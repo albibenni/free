@@ -15,7 +15,7 @@
 The app is built using Swift and SwiftUI. No external dependencies (CocoaPods/SPM) are required.
 
 ### Prerequisites
-*   macOS 13.0 (Ventura) or later.
+*   macOS 15.0 (Sequoia) or later.
 *   Xcode Command Line Tools installed (`xcode-select --install`).
 
 ### Build Command

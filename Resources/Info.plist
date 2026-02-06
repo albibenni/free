@@ -15,7 +15,7 @@
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
-    <string>13.0</string>
+    <string>15.0</string>
     <key>LSUIElement</key>
     <false/> <!-- Set to true if you want ONLY menu bar, but user asked for Windowed app + Menu Bar -->
     <key>NSAppleEventsUsageDescription</key>

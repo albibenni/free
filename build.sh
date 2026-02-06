@@ -8,8 +8,8 @@ APP_BUNDLE="$APP_NAME.app"
 # Compile
 echo "Compiling..."
 mkdir -p .build/debug
-# Target macOS 13.0 for MenuBarExtra
-swiftc Sources/Free/*.swift -o "$BUILD_DIR/$APP_NAME" -target arm64-apple-macosx13.0
+# Target macOS 15.0+ (Sequoia)
+swiftc Sources/Free/*.swift -o "$BUILD_DIR/$APP_NAME" -target arm64-apple-macosx15.0
 
 # Create App Bundle Structure
 echo "Creating Bundle..."
