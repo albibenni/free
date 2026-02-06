@@ -66,7 +66,7 @@ class BrowserMonitor {
     }
 
     func checkActiveTab() {
-        guard let appState = appState, appState.isBlocking else { return }
+        guard let appState = appState, appState.isBlocking, !appState.isPaused else { return }
 
         // Get the frontmost application
         guard let frontApp = NSWorkspace.shared.frontmostApplication else { return }
