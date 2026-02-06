@@ -96,7 +96,7 @@ class BrowserMonitor {
 
     func isAllowed(_ url: String, rules: [String]) -> Bool {
         for rule in rules {
-            if url.contains(rule) {
+            if url.localizedCaseInsensitiveContains(rule) {
                 return true
             }
         }
