@@ -16,7 +16,7 @@ struct FreeApp: App {
         }
 
         // Menu Bar Icon
-        MenuBarExtra("Free", systemImage: "leaf.fill") {
+        MenuBarExtra {
             Button("Toggle Blocking") {
                 appState.isBlocking.toggle()
             }
@@ -24,6 +24,10 @@ struct FreeApp: App {
             Button("Quit") {
                 NSApplication.shared.terminate(nil)
             }
+        } label: {
+            Image(systemName: "leaf.fill")
+                // Use foregroundStyle for modern SwiftUI color support
+                .foregroundStyle(appState.isBlocking ? .green : .primary)
         }
     }
 }
