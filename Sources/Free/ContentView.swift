@@ -165,24 +165,28 @@ struct ContentView: View {
                 .foregroundColor(.secondary)
 
             List {
-                ForEach(Array(appState.allowedRules.enumerated()), id: \.element) { index, rule in
+                ForEach(appState.allowedRules, id: \.self) { rule in
                     HStack {
                         Image(systemName: "globe")
                             .foregroundColor(.blue)
                         Text(rule)
                         Spacer()
                         Button(action: {
-                            appState.allowedRules.remove(at: index)
+                            if let index = appState.allowedRules.firstIndex(of: rule) {
+                                appState.allowedRules.remove(at: index)
+                            }
                         }) {
                             Image(systemName: "trash")
                                 .foregroundColor(.red)
                         }
-                        .buttonStyle(PlainButtonStyle()) // Clickable icon only
+                        .buttonStyle(PlainButtonStyle())
                     }
                     .padding(.vertical, 4)
                 }
             }
             .listStyle(PlainListStyle())
+
+            Divider()
 
             // Add Rule
             HStack {
@@ -193,9 +197,10 @@ struct ContentView: View {
                 }
                 .disabled(newRule.isEmpty)
             }
+            .padding(.bottom, 10)
         }
         .padding()
-        .frame(minWidth: 400, minHeight: 500)
+        .frame(minWidth: 400, minHeight: 600) // Increased height to ensure space
         .alert("Custom Break", isPresented: $showCustomTimer) {
             TextField("Minutes", text: $customMinutesString)
             Button("Start") {
@@ -215,11 +220,16 @@ struct ContentView: View {
     }
 
     func addRule() {
-        guard !newRule.isEmpty else { return }
-        // Prevent duplicates
-        if !appState.allowedRules.contains(newRule) {
-            appState.allowedRules.append(newRule)
+        let cleanedRule = newRule.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedRule.isEmpty else { return }
+        
+        if !appState.allowedRules.contains(cleanedRule) {
+            appState.allowedRules.append(cleanedRule)
         }
-        newRule = ""
+        
+        // Explicitly clear on main thread to ensure UI update
+        DispatchQueue.main.async {
+            self.newRule = ""
+        }
     }
 }

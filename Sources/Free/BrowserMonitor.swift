@@ -21,8 +21,8 @@ class BrowserMonitor {
     init(appState: AppState) {
         self.appState = appState
         
-        // Check permissions immediately
-        checkPermissions()
+        // Check permissions immediately (prompt only on first launch)
+        checkPermissions(prompt: true)
         
         // Start local blocking server
         server.start()
@@ -30,13 +30,13 @@ class BrowserMonitor {
         startMonitoring()
     }
 
-    func checkPermissions() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+    func checkPermissions(prompt: Bool = false) {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: prompt] as CFDictionary
         let trusted = AXIsProcessTrustedWithOptions(options)
         DispatchQueue.main.async {
             self.appState?.isTrusted = trusted
         }
-        if !trusted {
+        if !trusted && prompt {
             print("WARNING: Accessibility permissions not granted. Blocking will not work.")
         }
     }
@@ -44,7 +44,7 @@ class BrowserMonitor {
     func startMonitoring() {
         // Check every 1 second
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.checkPermissions()
+            self?.checkPermissions(prompt: false)
             self?.checkActiveTab()
         }
     }
