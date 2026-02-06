@@ -74,27 +74,34 @@ struct ContentView: View {
                 .foregroundColor(.secondary)
 
             List {
-                ForEach(appState.allowedRules, id: \.self) { rule in
+                ForEach(Array(appState.allowedRules.enumerated()), id: \.element) { index, rule in
                     HStack {
                         Image(systemName: "globe")
+                            .foregroundColor(.blue)
                         Text(rule)
                         Spacer()
+                        Button(action: {
+                            appState.allowedRules.remove(at: index)
+                        }) {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(PlainButtonStyle()) // Clickable icon only
                     }
-                }
-                .onDelete { indices in
-                    appState.allowedRules.remove(atOffsets: indices)
+                    .padding(.vertical, 4)
                 }
             }
             .listStyle(PlainListStyle())
 
             // Add Rule
             HStack {
-                TextField("Enter URL to allow (e.g. google.com)", text: $newRule)
+                TextField("Enter URL to allow (e.g. google.com)", text: $newRule, onCommit: addRule)
                     .textFieldStyle(.roundedBorder)
                 Button(action: addRule) {
                     Image(systemName: "plus")
                 }
                 .disabled(newRule.isEmpty)
+                .keyboardShortcut(.defaultAction) // Allows Enter key if button is focused
             }
         }
         .padding()
