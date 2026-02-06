@@ -1,0 +1,10 @@
+# Swift Package Manager & Build
+.build/
+Packages/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Application Bundle
+Free.app/
