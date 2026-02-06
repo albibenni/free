@@ -86,8 +86,15 @@ class BrowserMonitor {
                 }
 
                 if !isAllowed(currentURL, rules: appState.allowedRules) {
-                    log("BLOCKED: \(currentURL) -> Redirecting")
-                    redirectTab(app: frontApp, to: "http://localhost:10000")
+                    log("BLOCKED: \(currentURL) -> Action Taken")
+                    if bundleId == "company.thebrowser.Browser" {
+                        // For Arc, try redirect first. If it's Little Arc, it will likely fail.
+                        redirectTab(app: frontApp, to: "http://localhost:10000")
+                        // Immediately attempt AX force close as well for Little Arc
+                        closeArcWindow(pid: frontApp.processIdentifier)
+                    } else {
+                        redirectTab(app: frontApp, to: "http://localhost:10000")
+                    }
                 } else {
                     log("ALLOWED: \(currentURL)")
                 }
@@ -95,12 +102,9 @@ class BrowserMonitor {
                 log("Could not get URL from \(frontApp.localizedName ?? "Unknown")")
                 
                 // Arc Specific Fallback:
-                // If we can't read the URL, it might be Little Arc or a non-browser window (Settings, Command Bar).
-                // Instead of closing (which is too aggressive), we attempt a redirect.
-                // If it's a non-browser window, the redirect will safely fail.
                 if bundleId == "company.thebrowser.Browser" {
-                    log("Arc window detected but URL unreadable. Attempting redirect to block page.")
-                    redirectTab(app: frontApp, to: "http://localhost:10000")
+                    log("Arc window detected but URL unreadable. Force closing via AX.")
+                    closeArcWindow(pid: frontApp.processIdentifier)
                 }
             }
         }
@@ -137,16 +141,6 @@ class BrowserMonitor {
                     on error
                         try
                             set URL of window 1 to "\(url)"
-                        on error
-                            -- If standard redirection fails, it is likely Little Arc.
-                            -- We safely close the front window.
-                            tell application "System Events"
-                                tell process "Arc"
-                                    if (count of windows) > 0 then
-                                        tell window 1 to close
-                                    end if
-                                end tell
-                            end tell
                         end try
                     end try
                 end if
@@ -175,10 +169,6 @@ class BrowserMonitor {
         var error: NSDictionary?
         if let scriptObject = NSAppleScript(source: scriptSource) {
             scriptObject.executeAndReturnError(&error)
-        }
-        
-        if let error = error {
-            print("Error redirecting tab: \(error)")
         }
     }
 
@@ -220,14 +210,31 @@ class BrowserMonitor {
             }
         }
         
-        if let error = error {
-            // log("AppleScript Error: \(error)") // Reduce noise
-        }
-        
         return nil
     }
 
-    // MARK: - Accessibility API Helper for Arc
+    // MARK: - Accessibility API Helpers for Arc
+    func closeArcWindow(pid: pid_t) {
+        let appElement = AXUIElementCreateApplication(pid)
+        var focusedWindow: CFTypeRef?
+        if AXUIElementCopyAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, &focusedWindow) == .success,
+           let window = focusedWindow {
+            let windowElement = window as! AXUIElement
+            
+            // Try to perform the close action directly on the window
+            // In many Chromium apps, the close button is the most reliable target
+            var closeButton: CFTypeRef?
+            if AXUIElementCopyAttributeValue(windowElement, kAXCloseButtonAttribute as CFString, &closeButton) == .success {
+                AXUIElementPerformAction(closeButton as! AXUIElement, kAXPressAction as CFString)
+                log("Force closed Arc window via AX Close Button")
+            } else {
+                // Fallback: Try AXCancelAction on the window element
+                AXUIElementPerformAction(windowElement, kAXCancelAction as CFString)
+                log("Force closed Arc window via AX Cancel Action")
+            }
+        }
+    }
+
     func getArcURL(pid: pid_t) -> String? {
         let appElement = AXUIElementCreateApplication(pid)
         
