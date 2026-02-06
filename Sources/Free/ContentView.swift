@@ -101,7 +101,6 @@ struct ContentView: View {
                     Image(systemName: "plus")
                 }
                 .disabled(newRule.isEmpty)
-                .keyboardShortcut(.defaultAction) // Allows Enter key if button is focused
             }
         }
         .padding()
@@ -110,7 +109,10 @@ struct ContentView: View {
 
     func addRule() {
         guard !newRule.isEmpty else { return }
-        appState.allowedRules.append(newRule)
+        // Prevent duplicates
+        if !appState.allowedRules.contains(newRule) {
+            appState.allowedRules.append(newRule)
+        }
         newRule = ""
     }
 }
