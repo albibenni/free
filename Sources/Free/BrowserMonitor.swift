@@ -96,8 +96,17 @@ class BrowserMonitor {
 
     func isAllowed(_ url: String, rules: [String]) -> Bool {
         for rule in rules {
-            if url.localizedCaseInsensitiveContains(rule) {
-                return true
+            if rule.contains("*") {
+                // Wildcard match (Case & Diacritic Insensitive)
+                let predicate = NSPredicate(format: "SELF LIKE[cd] %@", rule)
+                if predicate.evaluate(with: url) {
+                    return true
+                }
+            } else {
+                // Standard containment match
+                if url.localizedCaseInsensitiveContains(rule) {
+                    return true
+                }
             }
         }
         return false

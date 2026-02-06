@@ -38,9 +38,12 @@ This will create `Free.app` in the current directory.
     *   **Automation:** Required to redirect the browser tab. macOS will prompt you ("Free wants to control Safari...") the first time you use it. Click "OK".
 
 3.  **Start Focusing:**
-    *   Add allowed URLs in the main window (e.g., `google.com`, `localhost`).
+    *   Add allowed URLs in the main window.
+    *   **Matching Logic:**
+        *   **Simple Match:** Enter a domain or keyword (e.g., `google.com`). This matches any URL *containing* that string (case-insensitive).
+        *   **Wildcard Match:** Use `*` for pattern matching. For example, `https://www.youtube.com/watch*` will match any YouTube video URL, while `*github.com/*` will match any page on GitHub.
     *   Toggle **Focus Mode** to ON.
-    *   Any website not in your list will now be redirected to the "Blocked" screen.
+    *   Any website not matching your rules will be redirected to the "Blocked" screen.
 
 ## 🔧 Technical Details
 
