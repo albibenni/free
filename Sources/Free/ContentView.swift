@@ -45,7 +45,7 @@ struct ContentView: View {
 
             // Header
             HStack {
-                Image(systemName: "shield.check.fill")
+                Image(systemName: "leaf.fill")
                     .font(.largeTitle)
                     .foregroundColor(appState.isBlocking ? .green : .gray)
                 VStack(alignment: .leading) {

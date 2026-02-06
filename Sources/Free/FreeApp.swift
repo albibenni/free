@@ -16,7 +16,7 @@ struct FreeApp: App {
         }
 
         // Menu Bar Icon
-        MenuBarExtra("Free", systemImage: "shield.fill") {
+        MenuBarExtra("Free", systemImage: "leaf.fill") {
             Button("Toggle Blocking") {
                 appState.isBlocking.toggle()
             }
