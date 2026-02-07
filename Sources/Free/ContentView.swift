@@ -67,10 +67,11 @@ class AppState: ObservableObject {
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @State private var showSettings = false
+    @State private var showRules = false
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            FocusView()
+            FocusView(showRules: $showRules)
             
             Button(action: { showSettings = true }) {
                 Image(systemName: "gearshape.fill")
@@ -85,31 +86,55 @@ struct ContentView: View {
         }
         .frame(minWidth: 450, minHeight: 600)
         .sheet(isPresented: $showSettings) {
-            VStack(spacing: 0) {
-                HStack {
-                    Text("Settings")
-                        .font(.headline)
-                    Spacer()
-                    Button("Done") {
-                        showSettings = false
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                .padding()
-                .background(Color(NSColor.windowBackgroundColor))
-                
-                Divider()
-                
+            SheetWrapper(title: "Settings", isPresented: $showSettings) {
                 SettingsView()
             }
             .frame(width: 400, height: 350)
+        }
+        .sheet(isPresented: $showRules) {
+            SheetWrapper(title: "Allowed Websites", isPresented: $showRules) {
+                RulesView()
+            }
+            .frame(width: 550, height: 650)
+        }
+    }
+}
+
+struct SheetWrapper<Content: View>: View {
+    let title: String
+    @Binding var isPresented: Bool
+    let content: Content
+
+    init(title: String, isPresented: Binding<Bool>, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self._isPresented = isPresented
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(title)
+                    .font(.headline)
+                Spacer()
+                Button("Done") {
+                    isPresented = false
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            Divider()
+            
+            content
         }
     }
 }
 
 struct FocusView: View {
     @EnvironmentObject var appState: AppState
-    @State private var newRule: String = ""
+    @Binding var showRules: Bool
     @State private var showCustomTimer = false
     @State private var customMinutesString = ""
 
@@ -210,51 +235,61 @@ struct FocusView: View {
                     }
                 }
             }
-
-            Divider()
-
-            // Rules Section
-            Text("Allowed Websites")
-                .font(.headline)
             
-            Text("Everything is blocked EXCEPT these rules:")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            List {
-                ForEach(appState.allowedRules, id: \.self) { rule in
+            // Rules Widget (Card)
+            Button(action: { showRules = true }) {
+                VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Image(systemName: "globe")
+                            .font(.headline)
                             .foregroundColor(.blue)
-                        Text(rule)
+                        Text("Allowed Websites")
+                            .font(.headline)
                         Spacer()
-                        Button(action: {
-                            if let index = appState.allowedRules.firstIndex(of: rule) {
-                                appState.allowedRules.remove(at: index)
-                            }
-                        }) {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
-                        }
-                        .buttonStyle(PlainButtonStyle())
+                        Text("\(appState.allowedRules.count)")
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color.blue.opacity(0.2))
+                            .cornerRadius(10)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
-                    .padding(.vertical, 4)
+                    
+                    if appState.allowedRules.isEmpty {
+                        Text("No websites allowed. Click to add.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(appState.allowedRules.prefix(3), id: \.self) { rule in
+                                Text("• \(rule)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+                            if appState.allowedRules.count > 3 {
+                                Text("and \(appState.allowedRules.count - 3) more...")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .italic()
+                            }
+                        }
+                    }
                 }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                )
             }
-            .listStyle(PlainListStyle())
-
-            Divider()
-
-            // Add Rule
-            HStack {
-                TextField("Enter URL to allow (e.g. google.com)", text: $newRule, onCommit: addRule)
-                    .textFieldStyle(.roundedBorder)
-                Button(action: addRule) {
-                    Image(systemName: "plus")
-                }
-                .disabled(newRule.isEmpty)
-            }
-            .padding(.bottom, 10)
+            .buttonStyle(.plain)
+            
+            Spacer()
         }
         .padding()
         .alert("Custom Break", isPresented: $showCustomTimer) {
@@ -274,6 +309,56 @@ struct FocusView: View {
     func showCustomTimerInput() {
         showCustomTimer = true
     }
+}
+
+struct RulesView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var newRule: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            List {
+                ForEach(appState.allowedRules, id: \.self) { rule in
+                    HStack {
+                        Image(systemName: "link")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(rule)
+                            .font(.subheadline)
+                        Spacer()
+                        Button(action: {
+                            if let index = appState.allowedRules.firstIndex(of: rule) {
+                                appState.allowedRules.remove(at: index)
+                            }
+                        }) {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+            .listStyle(PlainListStyle())
+            .background(Color.clear)
+
+            HStack {
+                TextField("Add URL to allow...", text: $newRule, onCommit: addRule)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.leading, 8) // Extra padding to clear rounded corners
+                
+                Button(action: addRule) {
+                    Image(systemName: "plus")
+                        .padding(.horizontal, 8)
+                }
+                .disabled(newRule.isEmpty)
+                .buttonStyle(.borderedProminent)
+                .padding(.trailing, 8) // Extra padding to clear rounded corners
+            }
+            .padding(.bottom, 8)
+        }
+        .padding() // Main padding for the sheet content
+    }
 
     func addRule() {
         let cleanedRule = newRule.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -283,7 +368,6 @@ struct FocusView: View {
             appState.allowedRules.append(cleanedRule)
         }
         
-        // Explicitly clear on main thread to ensure UI update
         DispatchQueue.main.async {
             self.newRule = ""
         }
