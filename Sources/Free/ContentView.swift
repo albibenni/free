@@ -292,27 +292,39 @@ struct FocusView: View {
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
+    @State private var showChallenge = false
+    @State private var challengeInput = ""
+    let challengePhrase = "I am choosing to break my focus and I acknowledge that this may impact my productivity."
 
     var body: some View {
         Form {
             Section {
-                Toggle(isOn: $appState.isUnblockable) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Unblockable Mode")
-                            .font(.headline)
-                        Text("When active, you cannot disable Focus Mode.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .toggleStyle(.switch)
-                .disabled(appState.isBlocking && appState.isUnblockable)
-                
                 if appState.isBlocking && appState.isUnblockable {
-                    Text("You cannot disable Unblockable Mode while Focus Mode is active.")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.top, 4)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Unblockable Mode")
+                                .font(.headline)
+                            Text("Active and Locking Focus Mode.")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                        Spacer()
+                        Button("Disable...") {
+                            showChallenge = true
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                } else {
+                    Toggle(isOn: $appState.isUnblockable) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Unblockable Mode")
+                                .font(.headline)
+                            Text("When active, you cannot disable Focus Mode.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .toggleStyle(.switch)
                 }
             } header: {
                 Text("Strict Mode")
@@ -330,5 +342,19 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .alert("Emergency Unlock", isPresented: $showChallenge) {
+            TextField("Type the phrase exactly", text: $challengeInput)
+            Button("Unlock", role: .destructive) {
+                if challengeInput == challengePhrase {
+                    appState.isUnblockable = false
+                }
+                challengeInput = ""
+            }
+            Button("Cancel", role: .cancel) { 
+                challengeInput = ""
+            }
+        } message: {
+            Text("To disable Unblockable Mode, you must type the following exactly:\n\n\"\(challengePhrase)\"")
+        }
     }
 }
