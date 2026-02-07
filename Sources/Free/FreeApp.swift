@@ -17,9 +17,11 @@ struct FreeApp: App {
 
         // Menu Bar Icon
         MenuBarExtra {
-            Button("Toggle Blocking") {
+            Button(appState.isBlocking ? "Turn Off Focus" : "Turn On Focus") {
                 appState.isBlocking.toggle()
             }
+            .disabled(appState.isBlocking && appState.isUnblockable)
+            
             Divider()
             Button("Quit") {
                 NSApplication.shared.terminate(nil)

@@ -7,6 +7,11 @@ class AppState: ObservableObject {
             if !isBlocking { cancelPause() } // Reset pause if user manually turns off
         }
     }
+    @Published var isUnblockable = false {
+        didSet {
+            UserDefaults.standard.set(isUnblockable, forKey: "IsUnblockable")
+        }
+    }
     @Published var isTrusted = false
     @Published var allowedRules: [String] = [] {
         didSet {
@@ -23,6 +28,7 @@ class AppState: ObservableObject {
     
     init() {
         self.isBlocking = UserDefaults.standard.bool(forKey: "IsBlocking")
+        self.isUnblockable = UserDefaults.standard.bool(forKey: "IsUnblockable")
         self.allowedRules = UserDefaults.standard.stringArray(forKey: "AllowedRules") ?? [
             "https://www.youtube.com/watch?v=gmuTjeQUbTM"
         ]
@@ -59,6 +65,49 @@ class AppState: ObservableObject {
 }
 
 struct ContentView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var showSettings = false
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            FocusView()
+            
+            Button(action: { showSettings = true }) {
+                Image(systemName: "gearshape.fill")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+                    .padding(8)
+                    .background(Color(NSColor.controlBackgroundColor).opacity(0.8))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .padding(16)
+        }
+        .frame(minWidth: 450, minHeight: 600)
+        .sheet(isPresented: $showSettings) {
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Settings")
+                        .font(.headline)
+                    Spacer()
+                    Button("Done") {
+                        showSettings = false
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding()
+                .background(Color(NSColor.windowBackgroundColor))
+                
+                Divider()
+                
+                SettingsView()
+            }
+            .frame(width: 400, height: 350)
+        }
+    }
+}
+
+struct FocusView: View {
     @EnvironmentObject var appState: AppState
     @State private var newRule: String = ""
     @State private var showCustomTimer = false
@@ -104,10 +153,18 @@ struct ContentView: View {
                 Spacer()
                 Toggle("", isOn: $appState.isBlocking)
                     .toggleStyle(.switch)
+                    .disabled(appState.isBlocking && appState.isUnblockable)
             }
             .padding()
             .background(Color(NSColor.controlBackgroundColor))
             .cornerRadius(12)
+            
+            if appState.isBlocking && appState.isUnblockable {
+                Text("Unblockable mode is active. You cannot disable Focus Mode.")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                    .padding(.horizontal)
+            }
             
             // Pause / Break Dashboard
             if appState.isBlocking {
@@ -200,7 +257,6 @@ struct ContentView: View {
             .padding(.bottom, 10)
         }
         .padding()
-        .frame(minWidth: 400, minHeight: 600) // Increased height to ensure space
         .alert("Custom Break", isPresented: $showCustomTimer) {
             TextField("Minutes", text: $customMinutesString)
             Button("Start") {
@@ -231,5 +287,48 @@ struct ContentView: View {
         DispatchQueue.main.async {
             self.newRule = ""
         }
+    }
+}
+
+struct SettingsView: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle(isOn: $appState.isUnblockable) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Unblockable Mode")
+                            .font(.headline)
+                        Text("When active, you cannot disable Focus Mode.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .toggleStyle(.switch)
+                .disabled(appState.isBlocking && appState.isUnblockable)
+                
+                if appState.isBlocking && appState.isUnblockable {
+                    Text("You cannot disable Unblockable Mode while Focus Mode is active.")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.top, 4)
+                }
+            } header: {
+                Text("Strict Mode")
+            }
+            
+            Section {
+                HStack {
+                    Text("Version")
+                    Spacer()
+                    Text("1.0.0")
+                        .foregroundColor(.secondary)
+                }
+            } header: {
+                Text("About")
+            }
+        }
+        .formStyle(.grouped)
     }
 }
