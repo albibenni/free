@@ -6,6 +6,7 @@ class BrowserMonitor {
     private var timer: Timer?
     private weak var appState: AppState?
     private let server = LocalServer()
+    private var lastRedirectTime: [String: Date] = [:]
     
     // Supported browsers bundle IDs
     private let browsers = [
@@ -71,82 +72,74 @@ class BrowserMonitor {
         // Get the frontmost application
         guard let frontApp = NSWorkspace.shared.frontmostApplication else { return }
         
-        // Arc Special Handling: Check for Little Arc (blind window)
-        // If it's Arc, we let getActiveUrl try to find the URL.
-        
         // Log non-browser apps only occasionally to avoid spam, but for now log everything relevant
         if let bundleId = frontApp.bundleIdentifier, browsers.contains(bundleId) {
+            
+            // Cooldown check to prevent spamming redirects/UI scripting
+            if let lastRedirect = lastRedirectTime[bundleId], Date().timeIntervalSince(lastRedirect) < 2.0 {
+                return
+            }
+            
             // Get the URL
             if let currentURL = getActiveUrl(for: frontApp) {
                 log("Detected URL: \(currentURL) in \(frontApp.localizedName ?? "Unknown")")
                 
-                // Check if we are already on our block page to avoid loops
+                // CRITICAL: Avoid blocking our own block page
                 if currentURL.contains("localhost:10000") {
                     return
                 }
 
                 if !isAllowed(currentURL, rules: appState.allowedRules) {
-                    log("BLOCKED: \(currentURL) -> Action Taken")
-                    if bundleId == "company.thebrowser.Browser" {
-                        // For Arc, try redirect first. If it's Little Arc, it will likely fail.
-                        redirectTab(app: frontApp, to: "http://localhost:10000")
-                        // Immediately attempt AX force close as well for Little Arc
-                        closeArcWindow(pid: frontApp.processIdentifier)
-                    } else {
-                        redirectTab(app: frontApp, to: "http://localhost:10000")
-                    }
+                    log("BLOCKED: \(currentURL) (Current Rules: \(appState.allowedRules.joined(separator: ", ")))")
+                    lastRedirectTime[bundleId] = Date()
+                    redirectTab(app: frontApp, to: "http://localhost:10000")
                 } else {
-                    log("ALLOWED: \(currentURL)")
+                    // log("ALLOWED: \(currentURL)")
                 }
             } else {
                 log("Could not get URL from \(frontApp.localizedName ?? "Unknown")")
-                
-                // Arc Specific Fallback:
-                if bundleId == "company.thebrowser.Browser" {
-                    log("Arc window detected but URL unreadable. Force closing via AX.")
-                    closeArcWindow(pid: frontApp.processIdentifier)
-                }
             }
         }
     }
     
-    func isAllowed(_ url: String, rules: [String]) -> Bool {
-        for rule in rules {
-            if rule.contains("*") {
-                // Wildcard match (Case & Diacritic Insensitive)
-                let predicate = NSPredicate(format: "SELF LIKE[cd] %@", rule)
-                if predicate.evaluate(with: url) {
-                    return true
-                }
-            } else {
-                // Standard containment match
-                if url.localizedCaseInsensitiveContains(rule) {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
     func redirectTab(app: NSRunningApplication, to url: String) {
         let scriptSource: String
         let appName = app.localizedName ?? "Safari"
+        let bundleId = app.bundleIdentifier ?? ""
         
-        if app.bundleIdentifier == "company.thebrowser.Browser" {
-             scriptSource = """
+        if bundleId == "company.thebrowser.Browser" {
+            // Arc specific: Try to redirect without closing windows
+            scriptSource = """
             tell application "Arc"
+                activate
                 if (count of windows) > 0 then
                     try
+                        -- Method 1: Standard redirect
                         set URL of active tab of front window to "\(url)"
                     on error
+                        -- Method 2: UI scripting for Little Arc (redirect in-place)
                         try
-                            set URL of window 1 to "\(url)"
+                            tell application "System Events"
+                                tell process "Arc"
+                                    -- Focus address bar (Cmd+L)
+                                    keystroke "l" using {command down}
+                                    delay 0.1
+                                    -- Type URL
+                                    keystroke "\(url)"
+                                    -- Press Enter (key code 36)
+                                    key code 36
+                                end tell
+                            end tell
+                        on error
+                            -- Fallback: do nothing to avoid new tab spam
                         end try
                     end try
+                else
+                    open location "\(url)"
                 end if
             end tell
             """
-        } else if app.bundleIdentifier == "com.apple.Safari" {
+        } else if bundleId == "com.apple.Safari" {
              scriptSource = """
             tell application "Safari"
                 if (count of windows) > 0 then
@@ -155,8 +148,7 @@ class BrowserMonitor {
             end tell
             """
         } else {
-            // Chromium based browsers (Chrome, Brave, Edge, Arc, Opera, Vivaldi) usually share the same AppleScript suite
-            // We just need to target the correct application name.
+            // Chromium based browsers usually share the same AppleScript suite
             scriptSource = """
             tell application "\(appName)"
                 if (count of windows) > 0 then
@@ -173,18 +165,35 @@ class BrowserMonitor {
     }
 
     func getActiveUrl(for app: NSRunningApplication) -> String? {
-        // Arc Special Handling using Accessibility API (More robust for Little Arc)
-        if app.bundleIdentifier == "company.thebrowser.Browser" {
-            if let url = getArcURL(pid: app.processIdentifier) {
-                return url
+        let bundleId = app.bundleIdentifier ?? ""
+        let appName = app.localizedName ?? "Safari"
+        
+        // Arc Special Handling: AppleScript gives the FULL URL (path + query), AX is for Little Arc fallback
+        if bundleId == "company.thebrowser.Browser" {
+            let scriptSource = """
+            tell application "Arc"
+                try
+                    if (count of windows) > 0 then
+                        return URL of active tab of front window
+                    end if
+                on error
+                    return ""
+                end try
+            end tell
+            """
+            var error: NSDictionary?
+            if let scriptObject = NSAppleScript(source: scriptSource) {
+                let output = scriptObject.executeAndReturnError(&error)
+                let url = output.stringValue ?? ""
+                if !url.isEmpty { return url }
             }
-            // Fallback to standard AppleScript if AX fails (unlikely)
+            
+            // Fallback to AX for Little Arc (usually just the domain)
+            return getArcURL(pid: app.processIdentifier)
         }
 
         var scriptSource = ""
-        let appName = app.localizedName ?? "Safari"
-        
-        if app.bundleIdentifier == "com.apple.Safari" {
+        if bundleId == "com.apple.Safari" {
             scriptSource = """
             tell application "Safari"
                 if (count of windows) > 0 then
@@ -205,40 +214,70 @@ class BrowserMonitor {
         var error: NSDictionary?
         if let scriptObject = NSAppleScript(source: scriptSource) {
             let output = scriptObject.executeAndReturnError(&error)
-            if let url = output.stringValue {
-                return url
-            }
+            return output.stringValue
         }
         
         return nil
     }
 
-    // MARK: - Accessibility API Helpers for Arc
-    func closeArcWindow(pid: pid_t) {
-        let appElement = AXUIElementCreateApplication(pid)
-        var focusedWindow: CFTypeRef?
-        if AXUIElementCopyAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, &focusedWindow) == .success,
-           let window = focusedWindow {
-            let windowElement = window as! AXUIElement
+    func isAllowed(_ url: String, rules: [String]) -> Bool {
+        let cleanedUrl = url.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleanedUrl.isEmpty { return true }
+        
+        let internalSchemes = ["about:", "arc:", "chrome:", "brave:", "edge:", "viva:", "opera:", "file:", "localhost:10000"]
+        for scheme in internalSchemes {
+            if cleanedUrl.contains(scheme) { return true }
+        }
+
+        func normalize(_ s: String) -> String {
+            var out = s.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            if out.hasPrefix("https://") { out = String(out.dropFirst(8)) }
+            if out.hasPrefix("http://") { out = String(out.dropFirst(7)) }
+            if out.hasPrefix("www.") { out = String(out.dropFirst(4)) }
             
-            // Try to perform the close action directly on the window
-            // In many Chromium apps, the close button is the most reliable target
-            var closeButton: CFTypeRef?
-            if AXUIElementCopyAttributeValue(windowElement, kAXCloseButtonAttribute as CFString, &closeButton) == .success {
-                AXUIElementPerformAction(closeButton as! AXUIElement, kAXPressAction as CFString)
-                log("Force closed Arc window via AX Close Button")
+            // Only strip trailing slash if NOT a YouTube/Query URL to preserve IDs
+            if !out.contains("?") {
+                while out.hasSuffix("/") { out = String(out.dropLast()) }
+            }
+            return out
+        }
+
+        let normalizedUrl = normalize(cleanedUrl)
+
+        for rule in rules {
+            let cleanedRule = rule.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            if cleanedRule.isEmpty { continue }
+
+            if cleanedRule.contains("*") {
+                let baseRule = normalize(cleanedRule.replacingOccurrences(of: "*", with: ""))
+                if normalizedUrl == baseRule || normalizedUrl.hasPrefix(baseRule + "/") || normalizedUrl.hasPrefix(baseRule + "?") {
+                    return true
+                }
+                let predicate = NSPredicate(format: "SELF LIKE[cd] %@", cleanedRule)
+                if predicate.evaluate(with: cleanedUrl) { return true }
             } else {
-                // Fallback: Try AXCancelAction on the window element
-                AXUIElementPerformAction(windowElement, kAXCancelAction as CFString)
-                log("Force closed Arc window via AX Cancel Action")
+                let normalizedRule = normalize(cleanedRule)
+                
+                // Exact Match (Crucial for YouTube links)
+                if normalizedUrl == normalizedRule || cleanedUrl == cleanedRule { return true }
+                
+                // Prefix Match
+                if normalizedUrl.hasPrefix(normalizedRule + "/") || normalizedUrl.hasPrefix(normalizedRule + "?") {
+                    return true
+                }
+                
+                // Substring containment as last resort
+                if normalizedUrl.contains(normalizedRule) { return true }
             }
         }
+        return false
     }
 
+    // MARK: - Accessibility API Helpers for Arc
     func getArcURL(pid: pid_t) -> String? {
         let appElement = AXUIElementCreateApplication(pid)
         
-        // 1. Try Focused Window first (fastest)
+        // 1. Try Focused Window first (fastest and most accurate for redirecting)
         var focusedWindow: CFTypeRef?
         if AXUIElementCopyAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, &focusedWindow) == .success,
            let window = focusedWindow {
@@ -247,14 +286,12 @@ class BrowserMonitor {
             }
         }
         
-        // 2. Fallback: Iterate all windows (Little Arc might not be "focused" in AX terms but is visible)
+        // 2. Fallback: Check ONLY the frontmost window in the window list (avoids background window loops)
         var windows: CFTypeRef?
         if AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windows) == .success,
-           let windowList = windows as? [AXUIElement] {
-            for window in windowList {
-                if let url = findURLInElement(window) {
-                    return url
-                }
+           let windowList = windows as? [AXUIElement], let firstWindow = windowList.first {
+            if let url = findURLInElement(firstWindow) {
+                return url
             }
         }
         
@@ -266,25 +303,22 @@ class BrowserMonitor {
         
         // Check Role & Description
         var role: CFTypeRef?
-        var description: CFTypeRef?
         var title: CFTypeRef?
         var value: CFTypeRef?
         
         AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &role)
-        AXUIElementCopyAttributeValue(element, kAXDescriptionAttribute as CFString, &description)
         AXUIElementCopyAttributeValue(element, kAXTitleAttribute as CFString, &title)
         AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &value)
         
         let roleStr = role as? String ?? ""
-        let descStr = (description as? String ?? "").lowercased()
         let titleStr = title as? String ?? ""
-        let valStr = value as? String ?? ""
+        let valStr = (value as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
         // 1. Check if this is likely an address bar (TextField) or Little Arc display (StaticText)
         if roleStr == "AXTextField" || roleStr == "AXStaticText" || roleStr == "AXComboBox" {
             if !valStr.isEmpty {
                 // Case A: Full URL (http/https) - Common in Main Window TextFields
-                if valStr.hasPrefix("http") {
+                if valStr.lowercased().hasPrefix("http") {
                     return valStr
                 }
                 
@@ -314,5 +348,3 @@ class BrowserMonitor {
         return nil
     }
 }
-
-
