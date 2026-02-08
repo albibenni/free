@@ -586,6 +586,14 @@ struct AddScheduleView: View {
     // Logic for splitting schedule
     @State private var modifyAllDays = true
 
+    var dayOrder: [Int] {
+        if appState.weekStartsOnMonday {
+            return [2, 3, 4, 5, 6, 7, 1] // Mon -> Sun
+        } else {
+            return [1, 2, 3, 4, 5, 6, 7] // Sun -> Sat
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Custom Header
@@ -679,7 +687,7 @@ struct AddScheduleView: View {
                                 .cornerRadius(8)
                         } else {
                             HStack(spacing: 15) {
-                                ForEach(1...7, id: \.self) { day in
+                                ForEach(dayOrder, id: \.self) { day in
                                     DayToggle(day: day, isSelected: days.contains(day)) {
                                         if days.contains(day) {
                                             days.remove(day)
