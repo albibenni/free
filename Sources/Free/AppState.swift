@@ -29,6 +29,15 @@ class AppState: ObservableObject {
             UserDefaults.standard.set(weekStartsOnMonday, forKey: "WeekStartsOnMonday")
         }
     }
+    @Published var calendarIntegrationEnabled: Bool = false {
+        didSet {
+            UserDefaults.standard.set(calendarIntegrationEnabled, forKey: "CalendarIntegrationEnabled")
+            if calendarIntegrationEnabled {
+                calendarManager.requestAccess()
+            }
+            checkSchedules()
+        }
+    }
     @Published var allowedRules: [String] = [] {
         didSet {
             UserDefaults.standard.set(allowedRules, forKey: "AllowedRules")
@@ -54,10 +63,15 @@ class AppState: ObservableObject {
     private var scheduleTimer: Timer?
     private var wasStartedBySchedule = false
     
+    // External Calendar
+    @Published var calendarManager = CalendarManager()
+    private var calendarCancellable: AnyCancellable?
+    
     init() {
         self.isBlocking = UserDefaults.standard.bool(forKey: "IsBlocking")
         self.isUnblockable = UserDefaults.standard.bool(forKey: "IsUnblockable")
         self.weekStartsOnMonday = UserDefaults.standard.bool(forKey: "WeekStartsOnMonday")
+        self.calendarIntegrationEnabled = UserDefaults.standard.bool(forKey: "CalendarIntegrationEnabled")
         self.allowedRules = UserDefaults.standard.stringArray(forKey: "AllowedRules") ?? [
             "https://www.youtube.com/watch?v=gmuTjeQUbTM"
         ]
@@ -71,6 +85,11 @@ class AppState: ObservableObject {
         
         self.monitor = BrowserMonitor(appState: self)
         
+        // Listen to calendar updates to re-check schedules immediately
+        calendarCancellable = calendarManager.$events.sink { [weak self] _ in
+            self?.checkSchedules()
+        }
+        
         startScheduleTimer()
     }
     
@@ -83,9 +102,17 @@ class AppState: ObservableObject {
     }
     
     func checkSchedules() {
-        let anyActive = schedules.contains { $0.isActive() }
+        let activeSchedules = schedules.filter { $0.isActive() }
+        let hasFocus = activeSchedules.contains { $0.type == .focus }
+        let hasBreak = activeSchedules.contains { $0.type == .unfocus }
         
-        if anyActive {
+        // Check external events only if integration is enabled
+        let hasExternalEvent = calendarIntegrationEnabled && calendarManager.events.contains { $0.isActive() }
+        
+        // Blocking is true if we have a focus session AND no active breaks (internal or external)
+        let shouldBeBlocking = hasFocus && !hasBreak && !hasExternalEvent
+        
+        if shouldBeBlocking {
             if !isBlocking {
                 isBlocking = true
                 wasStartedBySchedule = true
