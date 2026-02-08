@@ -7,24 +7,30 @@ We have selected **Option 2: Process Monitor (Swift + AppleScript)** for this pr
 
 *   **Approach:** The app runs as a background process with a UI. It polls the active application state every 1 second.
 *   **Detection:** It identifies if the frontmost app is a supported browser (Safari, Chrome, Brave, etc.) and uses **AppleScript** (via Accessibility APIs) to read the URL from the address bar.
+*   **Scheduling:** Uses a polling mechanism combined with `EventKit` to monitor internal focus schedules and external system calendar events.
 *   **Enforcement:**
-    *   **Current:** If a URL is not in the allowlist, the app uses AppleScript to **redirect** the tab to a local block page (`http://localhost:10000`).
-    *   **Reasoning:** This avoids the complexity and signing requirements of the Screen Time API or specific Browser Extensions, allowing for a single app that works across multiple browsers immediately.
+    *   **Logic:** If a URL is not in the allowlist AND focus mode is active (either manually or via schedule), the app uses AppleScript to **redirect** the tab to a local block page (`http://localhost:10000`).
+    *   **Overrides:** "Break" sessions (internal) and any external calendar events (e.g., Google Calendar meetings) act as high-priority overrides that temporarily disable blocking even during focus windows.
 
 ## 2. Core Functionality (Current Status)
 
 ### ✅ Implemented
-*   **Allowlist Logic (Strict Mode):** The app operates on a "deny all, allow some" basis. Everything is blocked unless explicitly added to the rules list.
+*   **Allowlist Logic (Strict Mode):** Everything is blocked unless explicitly added to the rules list.
 *   **Real-time Monitoring:** Blocks content within ~1 second of navigation.
-*   **User Feedback:** Redirects to a visual "Focus Mode Active" HTML page instead of silently closing tabs.
+*   **Interactive Weekly Calendar:** Google Calendar-style grid with drag-to-create, 15-minute snapping, and real-time time overlays.
+*   **Smart Automation:**
+    *   **Focus vs Break:** Support for different session types.
+    *   **Calendar Sync:** Integration with native macOS Calendar (EventKit) to treat meetings as breaks.
+    *   **Schedule Splitting:** Ability to modify single occurrences of recurring schedules.
+*   **User Customization:** Personalized session colors and configurable week start (Monday vs Sunday).
 *   **Browser Support:** Extensive support for Chromium-based browsers and Safari.
 
 ### 🚧 Roadmap / Future Features
 *   **Blocklists:** Option to invert logic (Allow everything *except* bad sites).
 *   **Lockdown Mode:** Prevent quitting the app or disabling permissions during a session.
-*   **Scheduled Blocking:** Calendar-based (9 AM – 5 PM) automation.
 *   **Pomodoro Timer:** Integration with short-term focus timers.
 
 ## 3. User Workflows
-*   **Focus Session:** User toggles "Focus Mode" on. They can only access tools required for their work (e.g., Figma, localhost, specific documentation).
-*   **Emergency Access:** Currently, the user can toggle the mode off at any time. Future updates may restrict this ("Nuclear Option").
+*   **Focus Session:** User toggles "Focus Mode" on manually, or defines a schedule. They can only access tools required for their work.
+*   **Dynamic Breaks:** If a user has a meeting on their Google Calendar, the app automatically unblocks the browser for that window, then re-engages focus mode once the meeting ends.
+*   **Emergency Access:** The user can toggle mode off manually (unless "Unblockable" mode is active, which requires a text-based challenge).
