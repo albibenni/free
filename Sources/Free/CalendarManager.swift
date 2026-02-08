@@ -10,7 +10,12 @@ class CalendarManager: ObservableObject {
     private var refreshTimer: Timer?
     
     init() {
-        requestAccess()
+        // Only fetch if already authorized, don't trigger prompt yet
+        let status = EKEventStore.authorizationStatus(for: .event)
+        if status == .fullAccess || (status.rawValue == 3 /* authorized fallback */) {
+            self.isAuthorized = true
+            self.fetchEvents()
+        }
         
         // Refresh every 5 minutes
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 5 * 60, repeats: true) { [weak self] _ in

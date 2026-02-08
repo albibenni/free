@@ -29,6 +29,15 @@ class AppState: ObservableObject {
             UserDefaults.standard.set(weekStartsOnMonday, forKey: "WeekStartsOnMonday")
         }
     }
+    @Published var calendarIntegrationEnabled: Bool = false {
+        didSet {
+            UserDefaults.standard.set(calendarIntegrationEnabled, forKey: "CalendarIntegrationEnabled")
+            if calendarIntegrationEnabled {
+                calendarManager.requestAccess()
+            }
+            checkSchedules()
+        }
+    }
     @Published var allowedRules: [String] = [] {
         didSet {
             UserDefaults.standard.set(allowedRules, forKey: "AllowedRules")
@@ -62,6 +71,7 @@ class AppState: ObservableObject {
         self.isBlocking = UserDefaults.standard.bool(forKey: "IsBlocking")
         self.isUnblockable = UserDefaults.standard.bool(forKey: "IsUnblockable")
         self.weekStartsOnMonday = UserDefaults.standard.bool(forKey: "WeekStartsOnMonday")
+        self.calendarIntegrationEnabled = UserDefaults.standard.bool(forKey: "CalendarIntegrationEnabled")
         self.allowedRules = UserDefaults.standard.stringArray(forKey: "AllowedRules") ?? [
             "https://www.youtube.com/watch?v=gmuTjeQUbTM"
         ]
@@ -96,9 +106,8 @@ class AppState: ObservableObject {
         let hasFocus = activeSchedules.contains { $0.type == .focus }
         let hasBreak = activeSchedules.contains { $0.type == .unfocus }
         
-        // Check external events (Google Calendar/System)
-        // If ANY external event is active, we treat it as a BREAK (unfocus)
-        let hasExternalEvent = calendarManager.events.contains { $0.isActive() }
+        // Check external events only if integration is enabled
+        let hasExternalEvent = calendarIntegrationEnabled && calendarManager.events.contains { $0.isActive() }
         
         // Blocking is true if we have a focus session AND no active breaks (internal or external)
         let shouldBeBlocking = hasFocus && !hasBreak && !hasExternalEvent

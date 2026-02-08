@@ -167,13 +167,15 @@ struct WeeklyCalendarView: View {
                                     
                                     ZStack(alignment: .topLeading) {
                                         // 1. External Events (System/Google Calendar)
-                                        ForEach(appState.calendarManager.events.filter { 
-                                            $0.startDate >= weekStart && $0.startDate < weekEnd
-                                        }) { event in
-                                            if let frame = calculateExternalFrame(event: event, columnWidth: columnWidth) {
-                                                ExternalEventBlockView(event: event)
-                                                    .frame(width: frame.width, height: frame.height)
-                                                    .position(x: frame.midX, y: frame.midY)
+                                        if appState.calendarIntegrationEnabled {
+                                            ForEach(appState.calendarManager.events.filter { 
+                                                $0.startDate >= weekStart && $0.startDate < weekEnd
+                                            }) { event in
+                                                if let frame = calculateExternalFrame(event: event, columnWidth: columnWidth) {
+                                                    ExternalEventBlockView(event: event)
+                                                        .frame(width: frame.width, height: frame.height)
+                                                        .position(x: frame.midX, y: frame.midY)
+                                                }
                                             }
                                         }
                                         

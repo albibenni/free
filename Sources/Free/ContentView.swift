@@ -420,6 +420,7 @@ struct SettingsView: View {
 
             Section {
                 Toggle("Start week on Monday", isOn: $appState.weekStartsOnMonday)
+                Toggle("Enable Calendar Integration", isOn: $appState.calendarIntegrationEnabled)
             } header: {
                 Text("Calendar")
             }
