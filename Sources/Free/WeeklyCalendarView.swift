@@ -5,8 +5,9 @@ struct WeeklyCalendarView: View {
     @Binding var showingAddSchedule: Bool
     @Binding var selectedDay: Int?
     @Binding var selectedTime: Date?
+    @Binding var selectedSchedule: Schedule?
     
-    let hourHeight: CGFloat = 60
+    let hourHeight: CGFloat = 80
     let dayHeaderHeight: CGFloat = 40
     let timeLabelWidth: CGFloat = 50
     
@@ -95,6 +96,11 @@ struct WeeklyCalendarView: View {
                                                 ScheduleBlockView(schedule: schedule)
                                                     .frame(width: frame.width, height: frame.height)
                                                     .position(x: frame.midX, y: frame.midY)
+                                                    .onTapGesture {
+                                                        selectedSchedule = schedule
+                                                        selectedDay = day
+                                                        showingAddSchedule = true
+                                                    }
                                             }
                                             
                                             // Handle overnight wrapping (segment on the next day)

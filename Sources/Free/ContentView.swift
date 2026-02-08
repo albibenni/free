@@ -21,7 +21,7 @@ struct ContentView: View {
             .buttonStyle(.plain)
             .padding(16)
         }
-        .frame(minWidth: 450, minHeight: 600)
+        .frame(minWidth: 800, minHeight: 800)
         .sheet(isPresented: $showSettings) {
             SheetWrapper(title: "Settings", isPresented: $showSettings) {
                 SettingsView()
@@ -38,7 +38,7 @@ struct ContentView: View {
             SheetWrapper(title: "Focus Schedules", isPresented: $showSchedules) {
                 SchedulesView()
             }
-            .frame(width: 500, height: 600)
+            .frame(width: 750, height: 700)
         }
     }
 }
@@ -455,6 +455,7 @@ struct SchedulesView: View {
     // For passing data from Calendar click
     @State private var selectedDay: Int?
     @State private var selectedTime: Date?
+    @State private var selectedSchedule: Schedule?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -470,6 +471,11 @@ struct SchedulesView: View {
                 List {
                     ForEach($appState.schedules) { $schedule in
                         ScheduleRow(schedule: $schedule)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedSchedule = schedule
+                                showingAddSchedule = true
+                            }
                     }
                     .onDelete { indexSet in
                         appState.schedules.remove(atOffsets: indexSet)
@@ -481,7 +487,8 @@ struct SchedulesView: View {
                 WeeklyCalendarView(
                     showingAddSchedule: $showingAddSchedule,
                     selectedDay: $selectedDay,
-                    selectedTime: $selectedTime
+                    selectedTime: $selectedTime,
+                    selectedSchedule: $selectedSchedule
                 )
             }
             
@@ -491,6 +498,7 @@ struct SchedulesView: View {
                 // Reset defaults for manual add
                 selectedDay = nil
                 selectedTime = nil
+                selectedSchedule = nil
                 showingAddSchedule = true 
             }) {
                 HStack {
@@ -510,7 +518,8 @@ struct SchedulesView: View {
             AddScheduleView(
                 isPresented: $showingAddSchedule,
                 initialDay: selectedDay,
-                initialStartTime: selectedTime
+                initialStartTime: selectedTime,
+                existingSchedule: selectedSchedule
             )
         }
     }
@@ -560,70 +569,211 @@ struct AddScheduleView: View {
     // Optional initializers
     var initialDay: Int?
     var initialStartTime: Date?
+    var existingSchedule: Schedule?
     
     @State private var name = ""
     @State private var days: Set<Int> = [2, 3, 4, 5, 6]
     @State private var startTime = Calendar.current.date(from: DateComponents(hour: 9, minute: 0)) ?? Date()
     @State private var endTime = Calendar.current.date(from: DateComponents(hour: 17, minute: 0)) ?? Date()
+    
+    // Logic for splitting schedule
+    @State private var modifyAllDays = true
 
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Details")) {
-                    TextField("Name", text: $name)
+        VStack(spacing: 0) {
+            // Custom Header
+            HStack {
+                Text(existingSchedule == nil ? "New Schedule" : "Edit Schedule")
+                    .font(.title2)
+                    .bold()
+                Spacer()
+                Button(action: { isPresented = false }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
                 }
-                
-                Section(header: Text("Schedule")) {
-                    DatePicker("Start Time", selection: $startTime, displayedComponents: .hourAndMinute)
-                    DatePicker("End Time", selection: $endTime, displayedComponents: .hourAndMinute)
-                }
-                
-                Section(header: Text("Days")) {
-                    HStack {
-                        ForEach(1...7, id: \.self) { day in
-                            DayToggle(day: day, isSelected: days.contains(day)) {
-                                if days.contains(day) {
-                                    days.remove(day)
-                                } else {
-                                    days.insert(day)
+                .buttonStyle(.plain)
+            }
+            .padding(25)
+            
+            Divider()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 30) {
+                    // Edit Scope (if applicable)
+                    if existingSchedule != nil && initialDay != nil && (existingSchedule?.days.count ?? 0) > 1 {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("EDIT SCOPE")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                            
+                            Picker("", selection: $modifyAllDays) {
+                                Text("All Days").tag(true)
+                                Text("Only \(dayName(for: initialDay!))").tag(false)
+                            }
+                            .pickerStyle(.segmented)
+                            
+                            if !modifyAllDays {
+                                Text("This will create a separate schedule for \(dayName(for: initialDay!)).")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        .padding(.bottom, 10)
+                    }
+
+                    // Name
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("SCHEDULE NAME")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                        TextField("e.g. Deep Work", text: $name)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.title3)
+                    }
+                    
+                    // Times
+                    HStack(spacing: 40) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("START TIME")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                            DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                                .datePickerStyle(.field)
+                                .scaleEffect(1.2)
+                                .frame(width: 100, height: 40)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("END TIME")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                            DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                                .datePickerStyle(.field)
+                                .scaleEffect(1.2)
+                                .frame(width: 100, height: 40)
+                        }
+                    }
+                    
+                    // Days
+                    VStack(alignment: .leading, spacing: 15) {
+                        Text("DAYS OF THE WEEK")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                        
+                        if !modifyAllDays, let singleDay = initialDay {
+                            Text(dayName(for: singleDay))
+                                .font(.headline)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(8)
+                        } else {
+                            HStack(spacing: 15) {
+                                ForEach(1...7, id: \.self) { day in
+                                    DayToggle(day: day, isSelected: days.contains(day)) {
+                                        if days.contains(day) {
+                                            days.remove(day)
+                                        } else {
+                                            days.insert(day)
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                    .padding(.vertical, 8)
-                }
-            }
-            .navigationTitle("New Schedule")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { isPresented = false }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
-                        let newSchedule = Schedule(
-                            name: name.isEmpty ? "Focus Session" : name,
-                            days: days,
-                            startTime: startTime,
-                            endTime: endTime
-                        )
-                        appState.schedules.append(newSchedule)
-                        isPresented = false
+                    
+                    Spacer(minLength: 40)
+                    
+                    // Action Buttons
+                    VStack(spacing: 15) {
+                        Button(action: saveSchedule) {
+                            Text(existingSchedule == nil ? "Add Focus Schedule" : "Save Changes")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.blue)
+                        .disabled(days.isEmpty && modifyAllDays)
+                        
+                        if existingSchedule != nil {
+                            Button(action: deleteSchedule) {
+                                Text("Delete Schedule")
+                                    .foregroundColor(.red)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .disabled(days.isEmpty)
+                }
+                .padding(30)
+            }
+        }
+        .frame(width: 500, height: 650)
+        .background(Color(NSColor.windowBackgroundColor))
+        .onAppear {
+            if let schedule = existingSchedule {
+                name = schedule.name
+                days = schedule.days
+                startTime = schedule.startTime
+                endTime = schedule.endTime
+            } else {
+                if let day = initialDay {
+                    days = [day]
+                }
+                if let start = initialStartTime {
+                    startTime = start
+                    endTime = Calendar.current.date(byAdding: .hour, value: 1, to: start) ?? start
                 }
             }
         }
-        .frame(width: 400, height: 450)
-        .onAppear {
-            if let day = initialDay {
-                days = [day]
+    }
+    
+    func saveSchedule() {
+        if let schedule = existingSchedule,
+           let index = appState.schedules.firstIndex(where: { $0.id == schedule.id }) {
+            
+            if modifyAllDays {
+                appState.schedules[index].name = name
+                appState.schedules[index].days = days
+                appState.schedules[index].startTime = startTime
+                appState.schedules[index].endTime = endTime
+            } else if let dayToRemove = initialDay {
+                appState.schedules[index].days.remove(dayToRemove)
+                if appState.schedules[index].days.isEmpty {
+                    appState.schedules.remove(at: index)
+                }
+                let newSchedule = Schedule(name: name, days: [dayToRemove], startTime: startTime, endTime: endTime)
+                appState.schedules.append(newSchedule)
             }
-            if let start = initialStartTime {
-                startTime = start
-                // Default duration 1 hour
-                endTime = Calendar.current.date(byAdding: .hour, value: 1, to: start) ?? start
-            }
+        } else {
+            let newSchedule = Schedule(name: name.isEmpty ? "Focus Session" : name, days: days, startTime: startTime, endTime: endTime)
+            appState.schedules.append(newSchedule)
         }
+        isPresented = false
+    }
+    
+    func deleteSchedule() {
+        if let schedule = existingSchedule,
+           let index = appState.schedules.firstIndex(where: { $0.id == schedule.id }) {
+            if !modifyAllDays, let dayToRemove = initialDay {
+                appState.schedules[index].days.remove(dayToRemove)
+                if appState.schedules[index].days.isEmpty {
+                    appState.schedules.remove(at: index)
+                }
+            } else {
+                appState.schedules.remove(at: index)
+            }
+            isPresented = false
+        }
+    }
+    
+    func dayName(for day: Int) -> String {
+        return Calendar.current.weekdaySymbols[day - 1]
     }
 }
 
@@ -637,8 +787,8 @@ struct DayToggle: View {
     var body: some View {
         Button(action: action) {
             Text(dayNames[day - 1])
-                .font(.caption.bold())
-                .frame(width: 30, height: 30)
+                .font(.title3.bold())
+                .frame(width: 45, height: 45)
                 .background(isSelected ? Color.blue : Color.secondary.opacity(0.2))
                 .foregroundColor(isSelected ? .white : .primary)
                 .clipShape(Circle())
