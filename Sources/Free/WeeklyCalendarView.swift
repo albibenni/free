@@ -154,6 +154,18 @@ struct WeeklyCalendarView: View {
                                 if let colIndex = dayOrder.firstIndex(of: data.day) {
                                     RoundedRectangle(cornerRadius: 6)
                                         .fill(Color.blue.opacity(0.3))
+                                        .overlay(
+                                            VStack {
+                                                Text("\(formatTime(startH)) - \(formatTime(endH))")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(.blue)
+                                                    .padding(4)
+                                                    .background(Color(NSColor.windowBackgroundColor).opacity(0.8))
+                                                    .cornerRadius(4)
+                                                    .offset(y: -25) // Show slightly above or inside at the top
+                                            },
+                                            alignment: .top
+                                        )
                                         .frame(width: columnWidth - 4, height: h)
                                         .offset(x: timeLabelWidth + timeColumnGutter + CGFloat(colIndex) * columnWidth + 2, y: y)
                                 }
@@ -215,6 +227,15 @@ struct WeeklyCalendarView: View {
         let currentHour = Calendar.current.component(.hour, from: Date())
         let targetHour = max(0, currentHour - 2)
         proxy.scrollTo(targetHour, anchor: .top)
+    }
+    
+    func formatTime(_ h: CGFloat) -> String {
+        let hour = Int(h)
+        let min = Int((h - CGFloat(hour)) * 60)
+        let date = Calendar.current.date(from: DateComponents(hour: hour, minute: min)) ?? Date()
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
     
     func quickAdd(day: Int, hour: Int) {
