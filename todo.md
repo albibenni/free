@@ -1,7 +1,7 @@
 ## UI
 
 - [ ] personalize accent color
-- [ ] caldendar schedule can personalize color
+- [x] caldendar schedule can personalize color
 
 ## Logic
 
@@ -9,4 +9,4 @@
 - [x] the app should manage focus mode via calendar schedule, like a google calendar app
 - [ ] fix drag - should round to 15m
   - [ ] overlay showing time selected?
-- [ ] integrate with google calendar?
+- [x] integrate with google calendar?
