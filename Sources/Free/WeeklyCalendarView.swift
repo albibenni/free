@@ -51,20 +51,25 @@ struct WeeklyCalendarView: View {
                 // Scrollable Grid
                 ScrollView {
                     ZStack(alignment: .topLeading) {
-                        // Grid Lines & Time Labels
+                        // Horizontal Grid Lines & Time Labels (Unified)
                         VStack(spacing: 0) {
                             ForEach(0..<24, id: \.self) { hour in
-                                HStack(alignment: .top, spacing: 0) {
-                                    // Time Label
-                                    Text(timeString(hour: hour))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .frame(width: timeLabelWidth, alignment: .trailing)
-                                        .padding(.trailing, 8)
-                                        .offset(y: -6) // Align with line
-                                    
-                                    // Horizontal Line
+                                ZStack(alignment: .top) {
+                                    // The horizontal line that spans the whole width
                                     Divider()
+                                        .offset(y: 0)
+                                    
+                                    HStack(alignment: .top, spacing: 0) {
+                                        // Time Label
+                                        Text(timeString(hour: hour))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .frame(width: timeLabelWidth, alignment: .trailing)
+                                            .padding(.trailing, 8)
+                                            .offset(y: -6) // Align with line
+                                        
+                                        Spacer()
+                                    }
                                 }
                                 .frame(height: hourHeight, alignment: .top)
                             }
@@ -73,11 +78,8 @@ struct WeeklyCalendarView: View {
                         // Vertical Day Lines
                         HStack(spacing: 0) {
                             Spacer().frame(width: timeLabelWidth)
-                            // Line starting the grid (left of first day)
-                            Divider()
                             ForEach(0..<7, id: \.self) { _ in
                                 Spacer()
-                                // Line after each day (right border)
                                 Divider()
                             }
                         }
