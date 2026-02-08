@@ -668,7 +668,7 @@ struct AddScheduleView: View {
                         Text("SCHEDULE NAME")
                             .font(.caption.bold())
                             .foregroundColor(.secondary)
-                        TextField("e.g. Deep Work", text: $name)
+                        TextField(sessionType == .focus ? "Focus Session" : "Break Session", text: $name)
                             .textFieldStyle(.roundedBorder)
                             .font(.title3)
                     }
@@ -821,11 +821,13 @@ struct AddScheduleView: View {
     }
     
     func saveSchedule() {
+        let finalName = name.trimmingCharacters(in: .whitespaces).isEmpty ? (sessionType == .focus ? "Focus Session" : "Break Session") : name
+        
         if let schedule = existingSchedule,
            let index = appState.schedules.firstIndex(where: { $0.id == schedule.id }) {
             
             if modifyAllDays {
-                appState.schedules[index].name = name
+                appState.schedules[index].name = finalName
                 appState.schedules[index].days = days
                 appState.schedules[index].startTime = startTime
                 appState.schedules[index].endTime = endTime
@@ -836,11 +838,11 @@ struct AddScheduleView: View {
                 if appState.schedules[index].days.isEmpty {
                     appState.schedules.remove(at: index)
                 }
-                let newSchedule = Schedule(name: name, days: [dayToRemove], startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex, type: sessionType)
+                let newSchedule = Schedule(name: finalName, days: [dayToRemove], startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex, type: sessionType)
                 appState.schedules.append(newSchedule)
             }
         } else {
-            let newSchedule = Schedule(name: name.isEmpty ? (sessionType == .focus ? "Focus Session" : "Break") : name, days: days, startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex, type: sessionType)
+            let newSchedule = Schedule(name: finalName, days: days, startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex, type: sessionType)
             appState.schedules.append(newSchedule)
         }
         isPresented = false
