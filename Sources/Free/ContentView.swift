@@ -450,7 +450,7 @@ struct SettingsView: View {
 struct SchedulesView: View {
     @EnvironmentObject var appState: AppState
     @State private var showingAddSchedule = false
-    @State private var viewMode = 0 // 0 = List, 1 = Calendar
+    @State private var viewMode = 1 // 0 = List, 1 = Calendar
     
     // For passing data from Calendar click
     @State private var selectedDay: Int?
