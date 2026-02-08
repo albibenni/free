@@ -79,44 +79,30 @@ struct WeeklyCalendarView: View {
                                     .contentShape(Rectangle())
                                     .frame(maxWidth: .infinity, maxHeight: 24 * hourHeight)
                                     .gesture(
-                                        DragGesture(minimumDistance: 10)
+                                        DragGesture(minimumDistance: 0)
                                             .onChanged { value in
-                                                let startY = value.startLocation.y
-                                                let currentY = value.location.y
-                                                if dragData == nil {
-                                                    dragData = DragSelection(day: day, startHour: startY / hourHeight, endHour: currentY / hourHeight)
-                                                } else {
-                                                    dragData?.endHour = currentY / hourHeight
+                                                // If we moved more than a tiny bit, it's a drag
+                                                if abs(value.translation.height) > 5 {
+                                                    let startY = value.startLocation.y
+                                                    let currentY = value.location.y
+                                                    if dragData == nil {
+                                                        dragData = DragSelection(day: day, startHour: startY / hourHeight, endHour: currentY / hourHeight)
+                                                    } else {
+                                                        dragData?.endHour = currentY / hourHeight
+                                                    }
                                                 }
                                             }
-                                            .onEnded { _ in
+                                            .onEnded { value in
                                                 if let data = dragData {
+                                                    // It was a drag
                                                     finalizeDrag(data)
                                                     dragData = nil
+                                                } else {
+                                                    // It was a tap (very little movement)
+                                                    let hour = Int(value.startLocation.y / hourHeight)
+                                                    quickAdd(day: day, hour: hour)
                                                 }
                                             }
-                                    )
-                                    .simultaneousGesture(
-                                        TapGesture().onEnded {
-                                            // We need to know the Y position of the tap
-                                            // Since TapGesture doesn't give location, we'll use a hack or just use a coordinate space
-                                        }
-                                    )
-                                    // Using individual hour cells for tap-to-add since TapGesture location is hard in SwiftUI
-                                    .overlay(
-                                        VStack(spacing: 0) {
-                                            ForEach(0..<24, id: \.self) { hour in
-                                                Color.clear
-                                                    .contentShape(Rectangle())
-                                                    .frame(height: hourHeight)
-                                                    .onTapGesture {
-                                                        quickAdd(day: day, hour: hour)
-                                                    }
-                                                    .onLongPressGesture {
-                                                        openPreciseEditor(day: day, hour: hour)
-                                                    }
-                                            }
-                                        }
                                     )
                             }
                         }
