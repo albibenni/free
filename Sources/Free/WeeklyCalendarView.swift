@@ -140,10 +140,16 @@ struct WeeklyCalendarView: View {
                             // Ghost block while dragging
                             if let data = dragData {
                                 let columnWidth = (geometry.size.width - (timeLabelWidth + timeColumnGutter)) / 7
-                                let startH = min(data.startHour, data.endHour)
-                                let endH = max(data.startHour, data.endHour)
+                                
+                                // Snap to 15 mins (0.25 of an hour)
+                                let snap = { (h: CGFloat) -> CGFloat in
+                                    return (h * 4).rounded() / 4.0
+                                }
+                                
+                                let startH = snap(min(data.startHour, data.endHour))
+                                let endH = snap(max(data.startHour, data.endHour))
                                 let y = startH * hourHeight
-                                let h = max(endH - startH, 0.1) * hourHeight
+                                let h = max(endH - startH, 0.25) * hourHeight // Min 15 mins
                                 
                                 if let colIndex = dayOrder.firstIndex(of: data.day) {
                                     RoundedRectangle(cornerRadius: 6)
@@ -220,13 +226,24 @@ struct WeeklyCalendarView: View {
     
     func finalizeDrag(_ data: DragSelection) {
         let calendar = Calendar.current
-        let startH = min(data.startHour, data.endHour)
-        let endH = max(data.startHour, data.endHour)
+        
+        let snap = { (h: CGFloat) -> CGFloat in
+            return (h * 4).rounded() / 4.0
+        }
+        
+        let startH = snap(min(data.startHour, data.endHour))
+        var endH = snap(max(data.startHour, data.endHour))
+        
+        // Ensure at least 15 mins
+        if endH - startH < 0.25 {
+            endH = startH + 0.25
+        }
         
         let startHour = Int(startH)
-        let startMin = Int((startH - CGFloat(startHour)) * 60)
+        let startMin = Int(((startH - CGFloat(startHour)) * 60).rounded())
+        
         let endHour = Int(endH)
-        let endMin = Int((endH - CGFloat(endHour)) * 60)
+        let endMin = Int(((endH - CGFloat(endHour)) * 60).rounded())
         
         selectedDay = data.day
         selectedTime = calendar.date(from: DateComponents(hour: startHour, minute: startMin))
