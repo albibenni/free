@@ -29,8 +29,28 @@ struct WeeklyCalendarView: View {
         }
     }
     
+    var currentWeekDates: [Date] {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfWeekDay = appState.weekStartsOnMonday ? 2 : 1
+        
+        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+        components.weekday = startOfWeekDay
+        
+        guard let startOfWeek = calendar.date(from: components) else { return [] }
+        
+        return (0..<7).compactMap { day in
+            calendar.date(byAdding: .day, value: day, to: startOfWeek)
+        }
+    }
+    
     var body: some View {
         GeometryReader { geometry in
+            let calendar = Calendar.current
+            let weekRange = currentWeekDates
+            let weekStart = weekRange.first ?? Date.distantPast
+            let weekEnd = calendar.date(byAdding: .day, value: 1, to: weekRange.last ?? Date.distantFuture) ?? Date.distantFuture
+
             VStack(spacing: 0) {
                 // Header (Days)
                 HStack(alignment: .center, spacing: 0) {
@@ -141,7 +161,9 @@ struct WeeklyCalendarView: View {
                                     
                                     ZStack(alignment: .topLeading) {
                                         // 1. External Events (System/Google Calendar)
-                                        ForEach(appState.calendarManager.events) { event in
+                                        ForEach(appState.calendarManager.events.filter { 
+                                            $0.startDate >= weekStart && $0.startDate < weekEnd
+                                        }) { event in
                                             if let frame = calculateExternalFrame(event: event, columnWidth: columnWidth) {
                                                 ExternalEventBlockView(event: event)
                                                     .frame(width: frame.width, height: frame.height)

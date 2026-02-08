@@ -48,10 +48,11 @@ class CalendarManager: ObservableObject {
         
         let calendar = Calendar.current
         let now = Date()
+        let startOfDay = calendar.startOfDay(for: now)
         
-        // Fetch events for a 2-week window (-7 to +7 days) to ensure we cover the current view
-        let startRange = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: now))!
-        let endRange = calendar.date(byAdding: .day, value: 7, to: startRange)!
+        // Fetch events for a 2-week window: 7 days before and 7 days after today
+        let startRange = calendar.date(byAdding: .day, value: -7, to: startOfDay)!
+        let endRange = calendar.date(byAdding: .day, value: 7, to: startOfDay)!
         
         // Fetch all calendars
         let calendars = eventStore.calendars(for: .event)
@@ -61,12 +62,15 @@ class CalendarManager: ObservableObject {
         
         // Map to our model
         let mappedEvents = ekEvents.compactMap { ekEvent -> ExternalEvent? in
-            // Filter out all-day events as requested
             if ekEvent.isAllDay { return nil }
             
+            // For recurring events, ekEvent.eventIdentifier might be the same for all occurrences.
+            // We create a unique ID by combining identifier and start date.
+            let uniqueId = "\(ekEvent.eventIdentifier ?? UUID().uuidString)-\(ekEvent.startDate.timeIntervalSince1970)"
+            
             return ExternalEvent(
-                id: ekEvent.eventIdentifier,
-                title: ekEvent.title,
+                id: uniqueId,
+                title: ekEvent.title ?? "Untitled Event",
                 startDate: ekEvent.startDate,
                 endDate: ekEvent.endDate
             )
