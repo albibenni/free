@@ -7,4 +7,6 @@
 
 - [x] there should be a setting, maybe a setting tab where you can enable an UNBLOCKABLE feature where you cannot toggle the focus button
 - [x] the app should manage focus mode via calendar schedule, like a google calendar app
+- [ ] fix drag - should round to 15m
+  - [ ] overlay showing time selected?
 - [ ] integrate with google calendar?

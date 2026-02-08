@@ -9,7 +9,7 @@ struct ContentView: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             FocusView(showRules: $showRules, showSchedules: $showSchedules)
-            
+
             Button(action: { showSettings = true }) {
                 Image(systemName: "gearshape.fill")
                     .font(.title2)
@@ -67,9 +67,9 @@ struct SheetWrapper<Content: View>: View {
             }
             .padding()
             .background(Color(NSColor.windowBackgroundColor))
-            
+
             Divider()
-            
+
             content
         }
     }
@@ -130,14 +130,14 @@ struct FocusView: View {
             .padding()
             .background(Color(NSColor.controlBackgroundColor))
             .cornerRadius(12)
-            
+
             if appState.isBlocking && appState.isUnblockable {
                 Text("Unblockable mode is active. You cannot disable Focus Mode.")
                     .font(.caption)
                     .foregroundColor(.orange)
                     .padding(.horizontal)
             }
-            
+
             // Pause / Break Dashboard
             if appState.isBlocking {
                 if appState.isPaused {
@@ -145,11 +145,11 @@ struct FocusView: View {
                         Text("On Break")
                             .font(.headline)
                             .foregroundColor(.secondary)
-                        
+
                         Text(appState.timeString(time: appState.pauseRemaining))
                             .font(.system(size: 48, weight: .bold, design: .monospaced))
                             .foregroundColor(.orange)
-                        
+
                         Button(action: { appState.cancelPause() }) {
                             Text("End Break & Focus")
                                 .font(.headline)
@@ -172,7 +172,7 @@ struct FocusView: View {
                         Text("Take a break:")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         HStack {
                             Button("5m") { appState.startPause(minutes: 5) }
                             Button("15m") { appState.startPause(minutes: 15) }
@@ -182,7 +182,7 @@ struct FocusView: View {
                     }
                 }
             }
-            
+
             // Schedules Widget (Card)
             Button(action: { showSchedules = true }) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -203,7 +203,7 @@ struct FocusView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     if appState.schedules.isEmpty {
                         Text("No schedules set. Click to automate.")
                             .font(.caption)
@@ -239,7 +239,7 @@ struct FocusView: View {
                 )
             }
             .buttonStyle(.plain)
-            
+
             // Rules Widget (Card)
             Button(action: { showRules = true }) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -260,7 +260,7 @@ struct FocusView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     if appState.allowedRules.isEmpty {
                         Text("No websites allowed. Click to add.")
                             .font(.caption)
@@ -292,7 +292,7 @@ struct FocusView: View {
                 )
             }
             .buttonStyle(.plain)
-            
+
             Spacer()
         }
         .padding()
@@ -350,7 +350,7 @@ struct RulesView: View {
                 TextField("Add URL to allow...", text: $newRule, onCommit: addRule)
                     .textFieldStyle(.roundedBorder)
                     .padding(.leading, 8) // Extra padding to clear rounded corners
-                
+
                 Button(action: addRule) {
                     Image(systemName: "plus")
                         .padding(.horizontal, 8)
@@ -367,11 +367,11 @@ struct RulesView: View {
     func addRule() {
         let cleanedRule = newRule.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedRule.isEmpty else { return }
-        
+
         if !appState.allowedRules.contains(cleanedRule) {
             appState.allowedRules.append(cleanedRule)
         }
-        
+
         DispatchQueue.main.async {
             self.newRule = ""
         }
@@ -417,7 +417,7 @@ struct SettingsView: View {
             } header: {
                 Text("Strict Mode")
             }
-            
+
             Section {
                 Toggle("Start week on Monday", isOn: $appState.weekStartsOnMonday)
             } header: {
@@ -444,7 +444,7 @@ struct SettingsView: View {
                 }
                 challengeInput = ""
             }
-            Button("Cancel", role: .cancel) { 
+            Button("Cancel", role: .cancel) {
                 challengeInput = ""
             }
         } message: {
@@ -457,10 +457,11 @@ struct SchedulesView: View {
     @EnvironmentObject var appState: AppState
     @State private var showingAddSchedule = false
     @State private var viewMode = 1 // 0 = List, 1 = Calendar
-    
+
     // For passing data from Calendar click
     @State private var selectedDay: Int?
     @State private var selectedTime: Date?
+    @State private var selectedEndTime: Date?
     @State private var selectedSchedule: Schedule?
 
     var body: some View {
@@ -494,18 +495,20 @@ struct SchedulesView: View {
                     showingAddSchedule: $showingAddSchedule,
                     selectedDay: $selectedDay,
                     selectedTime: $selectedTime,
+                    selectedEndTime: $selectedEndTime,
                     selectedSchedule: $selectedSchedule
                 )
             }
-            
+
             Divider()
-            
-            Button(action: { 
+
+            Button(action: {
                 // Reset defaults for manual add
                 selectedDay = nil
                 selectedTime = nil
+                selectedEndTime = nil
                 selectedSchedule = nil
-                showingAddSchedule = true 
+                showingAddSchedule = true
             }) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
@@ -525,9 +528,10 @@ struct SchedulesView: View {
                 isPresented: $showingAddSchedule,
                 initialDay: selectedDay,
                 initialStartTime: selectedTime,
+                initialEndTime: selectedEndTime,
                 existingSchedule: selectedSchedule
             )
-            .id(selectedSchedule?.id ?? UUID())
+            .id(selectedSchedule?.id.uuidString ?? "new-schedule")
         }
     }
 }
@@ -540,7 +544,7 @@ struct ScheduleRow: View {
             RoundedRectangle(cornerRadius: 4)
                 .fill(schedule.themeColor)
                 .frame(width: 4, height: 35)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Image(systemName: schedule.type == .focus ? "target" : "cup.and.saucer.fill")
@@ -581,19 +585,20 @@ struct ScheduleRow: View {
 struct AddScheduleView: View {
     @EnvironmentObject var appState: AppState
     @Binding var isPresented: Bool
-    
+
     // Optional initializers
     var initialDay: Int?
     var initialStartTime: Date?
+    var initialEndTime: Date?
     var existingSchedule: Schedule?
-    
+
     @State private var name = ""
     @State private var days: Set<Int> = [] // Start empty, let onAppear fill it
     @State private var startTime = Calendar.current.date(from: DateComponents(hour: 9, minute: 0)) ?? Date()
     @State private var endTime = Calendar.current.date(from: DateComponents(hour: 17, minute: 0)) ?? Date()
     @State private var selectedColorIndex: Int = 0
     @State private var sessionType: ScheduleType = .focus
-    
+
     // Logic for splitting schedule
     @State private var modifyAllDays = true
 
@@ -621,9 +626,9 @@ struct AddScheduleView: View {
                 .buttonStyle(.plain)
             }
             .padding(25)
-            
+
             Divider()
-            
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 30) {
                     // Session Type
@@ -631,7 +636,7 @@ struct AddScheduleView: View {
                         Text("SESSION TYPE")
                             .font(.caption.bold())
                             .foregroundColor(.secondary)
-                        
+
                         Picker("", selection: $sessionType) {
                             ForEach(ScheduleType.allCases, id: \.self) { type in
                                 Label(type.rawValue, systemImage: type == .focus ? "target" : "cup.and.saucer.fill")
@@ -647,13 +652,13 @@ struct AddScheduleView: View {
                             Text("EDIT SCOPE")
                                 .font(.caption.bold())
                                 .foregroundColor(.secondary)
-                            
+
                             Picker("", selection: $modifyAllDays) {
                                 Text("All Days").tag(true)
                                 Text("Only \(dayName(for: initialDay!))").tag(false)
                             }
                             .pickerStyle(.segmented)
-                            
+
                             if !modifyAllDays {
                                 Text("This will create a separate schedule for \(dayName(for: initialDay!)).")
                                     .font(.caption)
@@ -678,7 +683,7 @@ struct AddScheduleView: View {
                         Text("THEME COLOR")
                             .font(.caption.bold())
                             .foregroundColor(.secondary)
-                        
+
                         HStack(spacing: 12) {
                             ForEach(0..<FocusColor.all.count, id: \.self) { index in
                                 Circle()
@@ -697,7 +702,7 @@ struct AddScheduleView: View {
                         }
                         .padding(.vertical, 5)
                     }
-                    
+
                     // Times
                     HStack(spacing: 40) {
                         VStack(alignment: .leading, spacing: 10) {
@@ -710,7 +715,7 @@ struct AddScheduleView: View {
                                 .scaleEffect(1.2)
                                 .frame(width: 100, height: 40)
                         }
-                        
+
                         VStack(alignment: .leading, spacing: 10) {
                             Text("END TIME")
                                 .font(.caption.bold())
@@ -722,13 +727,13 @@ struct AddScheduleView: View {
                                 .frame(width: 100, height: 40)
                         }
                     }
-                    
+
                     // Days
                     VStack(alignment: .leading, spacing: 15) {
                         Text("DAYS OF THE WEEK")
                             .font(.caption.bold())
                             .foregroundColor(.secondary)
-                        
+
                         if existingSchedule != nil && !modifyAllDays, let singleDay = initialDay {
                             Text(dayName(for: singleDay))
                                 .font(.headline)
@@ -750,21 +755,21 @@ struct AddScheduleView: View {
                             }
                         }
                     }
-                    
+
                     Spacer(minLength: 40)
-                    
+
                     // Action Buttons
                     VStack(spacing: 15) {
                         Button(action: saveSchedule) {
-                            Text(existingSchedule == nil ? "Add Focus Schedule" : "Save Changes")
+                            Text(existingSchedule == nil ? (sessionType == .focus ? "Add Focus Session" : "Add Break Session") : "Save Changes")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.blue)
+                        .tint(sessionType == .focus ? .blue : .orange) // Change color based on type
                         .disabled(days.isEmpty && modifyAllDays)
-                        
+
                         if existingSchedule != nil {
                             Button(action: deleteSchedule) {
                                 Text("Delete Schedule")
@@ -799,10 +804,14 @@ struct AddScheduleView: View {
                 } else {
                     days = [2, 3, 4, 5, 6] // Default to work week for manual add
                 }
-                
+
                 if let start = initialStartTime {
                     startTime = start
-                    endTime = Calendar.current.date(byAdding: .hour, value: 1, to: start) ?? start
+                    if let end = initialEndTime {
+                        endTime = end
+                    } else {
+                        endTime = Calendar.current.date(byAdding: .hour, value: 1, to: start) ?? start
+                    }
                 } else {
                     // Default to 9-5
                     let cal = Calendar.current
@@ -812,20 +821,20 @@ struct AddScheduleView: View {
                     var endComp = DateComponents()
                     endComp.hour = 17
                     endComp.minute = 0
-                    
+
                     startTime = cal.date(from: startComp) ?? Date()
                     endTime = cal.date(from: endComp) ?? Date()
                 }
             }
         }
     }
-    
+
     func saveSchedule() {
         let finalName = name.trimmingCharacters(in: .whitespaces).isEmpty ? (sessionType == .focus ? "Focus Session" : "Break Session") : name
-        
+
         if let schedule = existingSchedule,
            let index = appState.schedules.firstIndex(where: { $0.id == schedule.id }) {
-            
+
             if modifyAllDays {
                 appState.schedules[index].name = finalName
                 appState.schedules[index].days = days
@@ -842,12 +851,19 @@ struct AddScheduleView: View {
                 appState.schedules.append(newSchedule)
             }
         } else {
-            let newSchedule = Schedule(name: finalName, days: days, startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex, type: sessionType)
+            let newSchedule = Schedule(
+                name: finalName,
+                days: days,
+                startTime: startTime,
+                endTime: endTime,
+                colorIndex: selectedColorIndex,
+                type: sessionType // Ensure type is correctly assigned here
+            )
             appState.schedules.append(newSchedule)
         }
         isPresented = false
     }
-    
+
     func deleteSchedule() {
         if let schedule = existingSchedule,
            let index = appState.schedules.firstIndex(where: { $0.id == schedule.id }) {
@@ -862,7 +878,7 @@ struct AddScheduleView: View {
             isPresented = false
         }
     }
-    
+
     func dayName(for day: Int) -> String {
         return Calendar.current.weekdaySymbols[day - 1]
     }
@@ -872,7 +888,7 @@ struct DayToggle: View {
     let day: Int
     let isSelected: Bool
     let action: () -> Void
-    
+
     let dayNames = ["S", "M", "T", "W", "T", "F", "S"]
 
     var body: some View {

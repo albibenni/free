@@ -5,6 +5,7 @@ struct WeeklyCalendarView: View {
     @Binding var showingAddSchedule: Bool
     @Binding var selectedDay: Int?
     @Binding var selectedTime: Date?
+    @Binding var selectedEndTime: Date?
     @Binding var selectedSchedule: Schedule?
     
     @State private var dragData: DragSelection?
@@ -188,19 +189,14 @@ struct WeeklyCalendarView: View {
     
     func quickAdd(day: Int, hour: Int) {
         let calendar = Calendar.current
-        let start = calendar.date(from: DateComponents(hour: hour, minute: 0)) ?? Date()
-        let end = calendar.date(from: DateComponents(hour: hour + 1, minute: 0)) ?? Date()
-        
-        let new = Schedule(name: "Focus Session", days: [day], startTime: start, endTime: end)
-        appState.schedules.append(new)
-    }
-    
-    func openPreciseEditor(day: Int, hour: Int) {
-        let calendar = Calendar.current
         selectedDay = day
         selectedTime = calendar.date(from: DateComponents(hour: hour, minute: 0))
         selectedSchedule = nil
         showingAddSchedule = true
+    }
+    
+    func openPreciseEditor(day: Int, hour: Int) {
+        quickAdd(day: day, hour: hour)
     }
     
     func finalizeDrag(_ data: DragSelection) {
@@ -214,18 +210,12 @@ struct WeeklyCalendarView: View {
         let endHour = Int(endH)
         let endMin = Int((endH - CGFloat(endHour)) * 60)
         
-        // Ensure at least 15 mins
-        let startTotal = startHour * 60 + startMin
-        var endTotal = endHour * 60 + endMin
-        if endTotal - startTotal < 15 {
-            endTotal = startTotal + 60 // Default to 1 hour if too small
-        }
+        selectedDay = data.day
+        selectedTime = calendar.date(from: DateComponents(hour: startHour, minute: startMin))
+        selectedEndTime = calendar.date(from: DateComponents(hour: endHour, minute: endMin))
+        selectedSchedule = nil
         
-        let start = calendar.date(from: DateComponents(hour: startTotal / 60, minute: startTotal % 60)) ?? Date()
-        let end = calendar.date(from: DateComponents(hour: endTotal / 60, minute: endTotal % 60)) ?? Date()
-        
-        let new = Schedule(name: "Focus Session", days: [data.day], startTime: start, endTime: end)
-        appState.schedules.append(new)
+        showingAddSchedule = true
     }
     
     func dayName(for day: Int) -> String {
