@@ -35,7 +35,7 @@ struct ContentView: View {
             .frame(width: 550, height: 650)
         }
         .sheet(isPresented: $showSchedules) {
-            SheetWrapper(title: "Focus Schedules", isPresented: $showSchedules) {
+            SheetWrapper(title: "Schedules", isPresented: $showSchedules) {
                 SchedulesView()
             }
             .frame(width: 750, height: 700)
@@ -628,14 +628,14 @@ struct AddScheduleView: View {
             .padding(25)
 
                         Divider()
-                        
+
                         VStack(alignment: .leading, spacing: 20) {
                             // Session Type
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("SESSION TYPE")
                                     .font(.caption.bold())
                                     .foregroundColor(.secondary)
-                                
+
                                 Picker("", selection: $sessionType) {
                                     ForEach(ScheduleType.allCases, id: \.self) { type in
                                         Label(type.rawValue, systemImage: type == .focus ? "target" : "cup.and.saucer.fill")
@@ -644,14 +644,14 @@ struct AddScheduleView: View {
                                 }
                                 .pickerStyle(.segmented)
                             }
-            
+
                             // Edit Scope (if applicable)
                             if existingSchedule != nil && initialDay != nil && (existingSchedule?.days.count ?? 0) > 1 {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("EDIT SCOPE")
                                         .font(.caption.bold())
                                         .foregroundColor(.secondary)
-                                    
+
                                     Picker("", selection: $modifyAllDays) {
                                         Text("All Days").tag(true)
                                         Text("Only \(dayName(for: initialDay!))").tag(false)
@@ -659,7 +659,7 @@ struct AddScheduleView: View {
                                     .pickerStyle(.segmented)
                                 }
                             }
-            
+
                             // Name
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("SCHEDULE NAME")
@@ -669,13 +669,13 @@ struct AddScheduleView: View {
                                     .textFieldStyle(.roundedBorder)
                                     .font(.title3)
                             }
-            
+
                             // Color Selection
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("THEME COLOR")
                                     .font(.caption.bold())
                                     .foregroundColor(.secondary)
-                                
+
                                 HStack(spacing: 12) {
                                     ForEach(0..<FocusColor.all.count, id: \.self) { index in
                                         Circle()
@@ -693,7 +693,7 @@ struct AddScheduleView: View {
                                     }
                                 }
                             }
-                            
+
                             // Times
                             HStack(spacing: 40) {
                                 VStack(alignment: .leading, spacing: 8) {
@@ -706,7 +706,7 @@ struct AddScheduleView: View {
                                         .scaleEffect(1.1)
                                         .frame(width: 90, height: 35)
                                 }
-                                
+
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("END TIME")
                                         .font(.caption.bold())
@@ -718,13 +718,13 @@ struct AddScheduleView: View {
                                         .frame(width: 90, height: 35)
                                 }
                             }
-                            
+
                             // Days
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("DAYS OF THE WEEK")
                                     .font(.caption.bold())
                                     .foregroundColor(.secondary)
-                                
+
                                 if existingSchedule != nil && !modifyAllDays, let singleDay = initialDay {
                                     Text(dayName(for: singleDay))
                                         .font(.headline)
@@ -746,9 +746,9 @@ struct AddScheduleView: View {
                                     }
                                 }
                             }
-                            
+
                             Spacer(minLength: 10)
-                            
+
                             // Action Buttons
                             VStack(spacing: 12) {
                                 Button(action: saveSchedule) {
@@ -760,7 +760,7 @@ struct AddScheduleView: View {
                                 .buttonStyle(.borderedProminent)
                                 .tint(sessionType == .focus ? .blue : .orange)
                                 .disabled(days.isEmpty && modifyAllDays)
-                                
+
                                 if existingSchedule != nil {
                                     Button(action: deleteSchedule) {
                                         Text("Delete Schedule")

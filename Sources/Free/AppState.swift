@@ -54,6 +54,10 @@ class AppState: ObservableObject {
     private var scheduleTimer: Timer?
     private var wasStartedBySchedule = false
     
+    // External Calendar
+    @Published var calendarManager = CalendarManager()
+    private var calendarCancellable: AnyCancellable?
+    
     init() {
         self.isBlocking = UserDefaults.standard.bool(forKey: "IsBlocking")
         self.isUnblockable = UserDefaults.standard.bool(forKey: "IsUnblockable")
@@ -71,6 +75,11 @@ class AppState: ObservableObject {
         
         self.monitor = BrowserMonitor(appState: self)
         
+        // Listen to calendar updates to re-check schedules immediately
+        calendarCancellable = calendarManager.$events.sink { [weak self] _ in
+            self?.checkSchedules()
+        }
+        
         startScheduleTimer()
     }
     
@@ -87,8 +96,12 @@ class AppState: ObservableObject {
         let hasFocus = activeSchedules.contains { $0.type == .focus }
         let hasBreak = activeSchedules.contains { $0.type == .unfocus }
         
-        // Blocking is true if we have a focus session AND no active breaks
-        let shouldBeBlocking = hasFocus && !hasBreak
+        // Check external events (Google Calendar/System)
+        // If ANY external event is active, we treat it as a BREAK (unfocus)
+        let hasExternalEvent = calendarManager.events.contains { $0.isActive() }
+        
+        // Blocking is true if we have a focus session AND no active breaks (internal or external)
+        let shouldBeBlocking = hasFocus && !hasBreak && !hasExternalEvent
         
         if shouldBeBlocking {
             if !isBlocking {

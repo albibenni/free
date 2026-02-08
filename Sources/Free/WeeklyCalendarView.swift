@@ -58,24 +58,19 @@ struct WeeklyCalendarView: View {
                             VStack(spacing: 0) {
                                 ForEach(0..<24, id: \.self) { hour in
                                     ZStack(alignment: .top) {
-                                        // The horizontal line that spans the whole width
                                         Divider()
-                                            .offset(y: 0)
-                                        
                                         HStack(alignment: .top, spacing: 0) {
-                                            // Time Label
                                             Text(timeString(hour: hour))
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                                 .frame(width: timeLabelWidth, alignment: .trailing)
                                                 .padding(.trailing, 8)
-                                                .offset(y: -6) // Align with line
-                                            
+                                                .offset(y: -6)
                                             Spacer()
                                         }
                                     }
                                     .frame(height: hourHeight, alignment: .top)
-                                    .id(hour) // ID for scrolling
+                                    .id(hour)
                                 }
                             }
                             
@@ -99,7 +94,6 @@ struct WeeklyCalendarView: View {
                                         .gesture(
                                             DragGesture(minimumDistance: 0)
                                                 .onChanged { value in
-                                                    // If we moved more than a tiny bit, it's a drag
                                                     if abs(value.translation.height) > 5 {
                                                         let startY = value.startLocation.y
                                                         let currentY = value.location.y
@@ -112,11 +106,9 @@ struct WeeklyCalendarView: View {
                                                 }
                                                 .onEnded { value in
                                                     if let data = dragData {
-                                                        // It was a drag
                                                         finalizeDrag(data)
                                                         dragData = nil
                                                     } else {
-                                                        // It was a tap (very little movement)
                                                         let hour = Int(value.startLocation.y / hourHeight)
                                                         quickAdd(day: day, hour: hour)
                                                     }
@@ -133,7 +125,6 @@ struct WeeklyCalendarView: View {
                                 let y = startH * hourHeight
                                 let h = max(endH - startH, 0.1) * hourHeight
                                 
-                                // Find column index for current day
                                 if let colIndex = dayOrder.firstIndex(of: data.day) {
                                     RoundedRectangle(cornerRadius: 6)
                                         .fill(Color.blue.opacity(0.3))
@@ -149,6 +140,16 @@ struct WeeklyCalendarView: View {
                                     let columnWidth = innerGeo.size.width / 7
                                     
                                     ZStack(alignment: .topLeading) {
+                                        // 1. External Events (System/Google Calendar)
+                                        ForEach(appState.calendarManager.events) { event in
+                                            if let frame = calculateExternalFrame(event: event, columnWidth: columnWidth) {
+                                                ExternalEventBlockView(event: event)
+                                                    .frame(width: frame.width, height: frame.height)
+                                                    .position(x: frame.midX, y: frame.midY)
+                                            }
+                                        }
+                                        
+                                        // 2. Internal Schedules
                                         ForEach(appState.schedules) { schedule in
                                             ForEach(schedule.days.sorted(), id: \.self) { day in
                                                 if let colIndex = dayOrder.firstIndex(of: day),
@@ -182,7 +183,6 @@ struct WeeklyCalendarView: View {
     
     private func scrollToCurrentTime(proxy: ScrollViewProxy) {
         let currentHour = Calendar.current.component(.hour, from: Date())
-        // Scroll to 2 hours before current to give context, but capped at 0
         let targetHour = max(0, currentHour - 2)
         proxy.scrollTo(targetHour, anchor: .top)
     }
@@ -191,12 +191,9 @@ struct WeeklyCalendarView: View {
         let calendar = Calendar.current
         selectedDay = day
         selectedTime = calendar.date(from: DateComponents(hour: hour, minute: 0))
+        selectedEndTime = calendar.date(from: DateComponents(hour: hour + 1, minute: 0))
         selectedSchedule = nil
         showingAddSchedule = true
-    }
-    
-    func openPreciseEditor(day: Int, hour: Int) {
-        quickAdd(day: day, hour: hour)
     }
     
     func finalizeDrag(_ data: DragSelection) {
@@ -206,7 +203,6 @@ struct WeeklyCalendarView: View {
         
         let startHour = Int(startH)
         let startMin = Int((startH - CGFloat(startHour)) * 60)
-        
         let endHour = Int(endH)
         let endMin = Int((endH - CGFloat(endHour)) * 60)
         
@@ -214,7 +210,6 @@ struct WeeklyCalendarView: View {
         selectedTime = calendar.date(from: DateComponents(hour: startHour, minute: startMin))
         selectedEndTime = calendar.date(from: DateComponents(hour: endHour, minute: endMin))
         selectedSchedule = nil
-        
         showingAddSchedule = true
     }
     
@@ -233,10 +228,6 @@ struct WeeklyCalendarView: View {
         return formatter.string(from: date)
     }
     
-    func isOvernight(schedule: Schedule) -> Bool {
-        return schedule.startTime > schedule.endTime // Rough check based on time components only logic
-    }
-    
     func calculateFrame(schedule: Schedule, colIndex: Int, columnWidth: CGFloat) -> CGRect? {
         let calendar = Calendar.current
         let startComp = calendar.dateComponents([.hour, .minute], from: schedule.startTime)
@@ -248,16 +239,62 @@ struct WeeklyCalendarView: View {
         let startY = (CGFloat(startHour) + CGFloat(startMin) / 60.0) * hourHeight
         var endY = (CGFloat(endHour) + CGFloat(endMin) / 60.0) * hourHeight
         
-        // Handle overnight (draw until bottom)
-        if startY > endY {
-            endY = 24 * hourHeight 
-        }
+        if startY > endY { endY = 24 * hourHeight }
         
-        let height = max(endY - startY, 15) // Min height
-        // Add 2px offset to clear the left divider, and use columnWidth - 4 to stay centered
+        let height = max(endY - startY, 15)
         let x = CGFloat(colIndex) * columnWidth + 2
         
         return CGRect(x: x, y: startY, width: columnWidth - 4, height: height)
+    }
+
+    func calculateExternalFrame(event: ExternalEvent, columnWidth: CGFloat) -> CGRect? {
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: event.startDate)
+        
+        guard let colIndex = dayOrder.firstIndex(of: weekday) else { return nil }
+        
+        let startComp = calendar.dateComponents([.hour, .minute], from: event.startDate)
+        let endComp = calendar.dateComponents([.hour, .minute], from: event.endDate)
+        
+        guard let startHour = startComp.hour, let startMin = startComp.minute,
+              let endHour = endComp.hour, let endMin = endComp.minute else { return nil }
+        
+        let startY = (CGFloat(startHour) + CGFloat(startMin) / 60.0) * hourHeight
+        let endY = (CGFloat(endHour) + CGFloat(endMin) / 60.0) * hourHeight
+        
+        let height = max(endY - startY, 15)
+        let x = CGFloat(colIndex) * columnWidth + 2
+        
+        return CGRect(x: x, y: startY, width: columnWidth - 4, height: height)
+    }
+}
+
+struct ExternalEventBlockView: View {
+    let event: ExternalEvent
+    
+    var body: some View {
+        RoundedRectangle(cornerRadius: 6)
+            .fill(Color.secondary.opacity(0.15))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4]))
+                    .foregroundColor(.secondary.opacity(0.4))
+            )
+            .overlay(
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 9))
+                        Text(event.title)
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    Spacer()
+                }
+                .padding(4)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            )
     }
 }
 
