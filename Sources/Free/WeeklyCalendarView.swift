@@ -7,6 +7,14 @@ struct WeeklyCalendarView: View {
     @Binding var selectedTime: Date?
     @Binding var selectedSchedule: Schedule?
     
+    @State private var dragData: DragSelection?
+    
+    struct DragSelection {
+        let day: Int
+        let startHour: CGFloat
+        var endHour: CGFloat
+    }
+    
     let hourHeight: CGFloat = 80
     let dayHeaderHeight: CGFloat = 40
     let timeLabelWidth: CGFloat = 50
@@ -63,35 +71,79 @@ struct WeeklyCalendarView: View {
                             }
                         }
                         
-                        // Tappable Areas (Background)
+                        // Tappable & Draggable Areas (Background)
                         HStack(spacing: 0) {
                             Spacer().frame(width: timeLabelWidth)
                             ForEach(1...7, id: \.self) { day in
-                                VStack(spacing: 0) {
-                                    ForEach(0..<24, id: \.self) { hour in
-                                        Color.clear
-                                            .contentShape(Rectangle())
-                                            .frame(height: hourHeight)
-                                            .onTapGesture {
-                                                handleTap(day: day, hour: hour)
+                                Color.clear
+                                    .contentShape(Rectangle())
+                                    .frame(maxWidth: .infinity, maxHeight: 24 * hourHeight)
+                                    .gesture(
+                                        DragGesture(minimumDistance: 10)
+                                            .onChanged { value in
+                                                let startY = value.startLocation.y
+                                                let currentY = value.location.y
+                                                if dragData == nil {
+                                                    dragData = DragSelection(day: day, startHour: startY / hourHeight, endHour: currentY / hourHeight)
+                                                } else {
+                                                    dragData?.endHour = currentY / hourHeight
+                                                }
                                             }
-                                    }
-                                }
-                                .frame(maxWidth: .infinity)
+                                            .onEnded { _ in
+                                                if let data = dragData {
+                                                    finalizeDrag(data)
+                                                    dragData = nil
+                                                }
+                                            }
+                                    )
+                                    .simultaneousGesture(
+                                        TapGesture().onEnded {
+                                            // We need to know the Y position of the tap
+                                            // Since TapGesture doesn't give location, we'll use a hack or just use a coordinate space
+                                        }
+                                    )
+                                    // Using individual hour cells for tap-to-add since TapGesture location is hard in SwiftUI
+                                    .overlay(
+                                        VStack(spacing: 0) {
+                                            ForEach(0..<24, id: \.self) { hour in
+                                                Color.clear
+                                                    .contentShape(Rectangle())
+                                                    .frame(height: hourHeight)
+                                                    .onTapGesture {
+                                                        quickAdd(day: day, hour: hour)
+                                                    }
+                                                    .onLongPressGesture {
+                                                        openPreciseEditor(day: day, hour: hour)
+                                                    }
+                                            }
+                                        }
+                                    )
                             }
+                        }
+                        
+                        // Ghost block while dragging
+                        if let data = dragData {
+                            let columnWidth = (geometry.size.width - timeLabelWidth) / 7
+                            let startH = min(data.startHour, data.endHour)
+                            let endH = max(data.startHour, data.endHour)
+                            let y = startH * hourHeight
+                            let h = max(endH - startH, 0.1) * hourHeight
+                            
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.blue.opacity(0.3))
+                                .frame(width: columnWidth - 4, height: h)
+                                .offset(x: timeLabelWidth + CGFloat(data.day - 1) * columnWidth + 2, y: y)
                         }
                         
                         // Schedule Blocks
                         HStack(spacing: 0) {
                             Spacer().frame(width: timeLabelWidth)
-                            // We need a GeometryReader here to get the exact width of a day column
                             GeometryReader { innerGeo in
                                 let columnWidth = innerGeo.size.width / 7
                                 
                                 ZStack(alignment: .topLeading) {
                                     ForEach(appState.schedules) { schedule in
                                         ForEach(schedule.days.sorted(), id: \.self) { day in
-                                            // Calculate position
                                             if let frame = calculateFrame(schedule: schedule, day: day, columnWidth: columnWidth) {
                                                 ScheduleBlockView(schedule: schedule)
                                                     .frame(width: frame.width, height: frame.height)
@@ -101,12 +153,6 @@ struct WeeklyCalendarView: View {
                                                         selectedDay = day
                                                         showingAddSchedule = true
                                                     }
-                                            }
-                                            
-                                            // Handle overnight wrapping (segment on the next day)
-                                            // Note: simplistic handling, only drawing the second part if it wraps
-                                            if isOvernight(schedule: schedule) {
-                                                // TODO: complex rendering for overnight
                                             }
                                         }
                                     }
@@ -122,13 +168,46 @@ struct WeeklyCalendarView: View {
         }
     }
     
-    func handleTap(day: Int, hour: Int) {
+    func quickAdd(day: Int, hour: Int) {
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(hour: hour, minute: 0)) ?? Date()
+        let end = calendar.date(from: DateComponents(hour: hour + 1, minute: 0)) ?? Date()
+        
+        let new = Schedule(name: "Focus Session", days: [day], startTime: start, endTime: end)
+        appState.schedules.append(new)
+    }
+    
+    func openPreciseEditor(day: Int, hour: Int) {
+        let calendar = Calendar.current
         selectedDay = day
-        var components = DateComponents()
-        components.hour = hour
-        components.minute = 0
-        selectedTime = Calendar.current.date(from: components)
+        selectedTime = calendar.date(from: DateComponents(hour: hour, minute: 0))
+        selectedSchedule = nil
         showingAddSchedule = true
+    }
+    
+    func finalizeDrag(_ data: DragSelection) {
+        let calendar = Calendar.current
+        let startH = min(data.startHour, data.endHour)
+        let endH = max(data.startHour, data.endHour)
+        
+        let startHour = Int(startH)
+        let startMin = Int((startH - CGFloat(startHour)) * 60)
+        
+        let endHour = Int(endH)
+        let endMin = Int((endH - CGFloat(endHour)) * 60)
+        
+        // Ensure at least 15 mins
+        let startTotal = startHour * 60 + startMin
+        var endTotal = endHour * 60 + endMin
+        if endTotal - startTotal < 15 {
+            endTotal = startTotal + 60 // Default to 1 hour if too small
+        }
+        
+        let start = calendar.date(from: DateComponents(hour: startTotal / 60, minute: startTotal % 60)) ?? Date()
+        let end = calendar.date(from: DateComponents(hour: endTotal / 60, minute: endTotal % 60)) ?? Date()
+        
+        let new = Schedule(name: "Focus Session", days: [data.day], startTime: start, endTime: end)
+        appState.schedules.append(new)
     }
     
     func dayName(for day: Int) -> String {
