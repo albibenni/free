@@ -83,9 +83,14 @@ class AppState: ObservableObject {
     }
     
     func checkSchedules() {
-        let anyActive = schedules.contains { $0.isActive() }
+        let activeSchedules = schedules.filter { $0.isActive() }
+        let hasFocus = activeSchedules.contains { $0.type == .focus }
+        let hasBreak = activeSchedules.contains { $0.type == .unfocus }
         
-        if anyActive {
+        // Blocking is true if we have a focus session AND no active breaks
+        let shouldBeBlocking = hasFocus && !hasBreak
+        
+        if shouldBeBlocking {
             if !isBlocking {
                 isBlocking = true
                 wasStartedBySchedule = true

@@ -279,11 +279,16 @@ struct ScheduleBlockView: View {
             .fill(schedule.isEnabled ? schedule.themeColor.opacity(0.8) : Color.gray.opacity(0.5))
             .overlay(
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(schedule.name)
-                        .font(.caption)
-                        .bold()
-                        .foregroundColor(.white)
-                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Image(systemName: schedule.type == .focus ? "target" : "cup.and.saucer.fill")
+                            .font(.system(size: 10, weight: .bold))
+                        Text(schedule.name)
+                            .font(.caption)
+                            .bold()
+                    }
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    
                     Text(timeRange(schedule))
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.9))

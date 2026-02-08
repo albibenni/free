@@ -542,8 +542,13 @@ struct ScheduleRow: View {
                 .frame(width: 4, height: 35)
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(schedule.name)
-                    .font(.headline)
+                HStack(spacing: 6) {
+                    Image(systemName: schedule.type == .focus ? "target" : "cup.and.saucer.fill")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(schedule.name)
+                        .font(.headline)
+                }
                 Text(timeRangeString)
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -587,6 +592,7 @@ struct AddScheduleView: View {
     @State private var startTime = Calendar.current.date(from: DateComponents(hour: 9, minute: 0)) ?? Date()
     @State private var endTime = Calendar.current.date(from: DateComponents(hour: 17, minute: 0)) ?? Date()
     @State private var selectedColorIndex: Int = 0
+    @State private var sessionType: ScheduleType = .focus
     
     // Logic for splitting schedule
     @State private var modifyAllDays = true
@@ -620,6 +626,21 @@ struct AddScheduleView: View {
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 30) {
+                    // Session Type
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("SESSION TYPE")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                        
+                        Picker("", selection: $sessionType) {
+                            ForEach(ScheduleType.allCases, id: \.self) { type in
+                                Label(type.rawValue, systemImage: type == .focus ? "target" : "cup.and.saucer.fill")
+                                    .tag(type)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
                     // Edit Scope (if applicable)
                     if existingSchedule != nil && initialDay != nil && (existingSchedule?.days.count ?? 0) > 1 {
                         VStack(alignment: .leading, spacing: 10) {
@@ -767,9 +788,11 @@ struct AddScheduleView: View {
                 startTime = schedule.startTime
                 endTime = schedule.endTime
                 selectedColorIndex = schedule.colorIndex
+                sessionType = schedule.type
             } else {
                 // New schedule
                 name = ""
+                sessionType = .focus
                 selectedColorIndex = (appState.schedules.count % FocusColor.all.count)
                 if let day = initialDay {
                     days = [day]
@@ -807,16 +830,17 @@ struct AddScheduleView: View {
                 appState.schedules[index].startTime = startTime
                 appState.schedules[index].endTime = endTime
                 appState.schedules[index].colorIndex = selectedColorIndex
+                appState.schedules[index].type = sessionType
             } else if let dayToRemove = initialDay {
                 appState.schedules[index].days.remove(dayToRemove)
                 if appState.schedules[index].days.isEmpty {
                     appState.schedules.remove(at: index)
                 }
-                let newSchedule = Schedule(name: name, days: [dayToRemove], startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex)
+                let newSchedule = Schedule(name: name, days: [dayToRemove], startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex, type: sessionType)
                 appState.schedules.append(newSchedule)
             }
         } else {
-            let newSchedule = Schedule(name: name.isEmpty ? "Focus Session" : name, days: days, startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex)
+            let newSchedule = Schedule(name: name.isEmpty ? (sessionType == .focus ? "Focus Session" : "Break") : name, days: days, startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex, type: sessionType)
             appState.schedules.append(newSchedule)
         }
         isPresented = false

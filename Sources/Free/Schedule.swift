@@ -1,5 +1,10 @@
 import Foundation
 
+enum ScheduleType: String, Codable, CaseIterable {
+    case focus = "Focus"
+    case unfocus = "Break"
+}
+
 struct Schedule: Identifiable, Codable, Equatable {
     var id = UUID()
     var name: String
@@ -8,6 +13,7 @@ struct Schedule: Identifiable, Codable, Equatable {
     var endTime: Date   // Only time component matters
     var isEnabled: Bool = true
     var colorIndex: Int = 0
+    var type: ScheduleType = .focus
 
     static func defaultSchedule() -> Schedule {
         let calendar = Calendar.current
