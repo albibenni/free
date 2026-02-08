@@ -36,7 +36,7 @@ struct FreeApp: App {
         // Menu Bar Icon
         MenuBarExtra {
             Button(appState.isBlocking ? "Turn Off Focus" : "Turn On Focus") {
-                appState.isBlocking.toggle()
+                appState.toggleBlocking()
             }
             .disabled(appState.isBlocking && appState.isUnblockable)
             

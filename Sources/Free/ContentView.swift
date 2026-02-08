@@ -1,77 +1,14 @@
 import SwiftUI
 
-class AppState: ObservableObject {
-    @Published var isBlocking = false {
-        didSet {
-            UserDefaults.standard.set(isBlocking, forKey: "IsBlocking")
-            if !isBlocking { cancelPause() } // Reset pause if user manually turns off
-        }
-    }
-    @Published var isUnblockable = false {
-        didSet {
-            UserDefaults.standard.set(isUnblockable, forKey: "IsUnblockable")
-        }
-    }
-    @Published var isTrusted = false
-    @Published var allowedRules: [String] = [] {
-        didSet {
-            UserDefaults.standard.set(allowedRules, forKey: "AllowedRules")
-        }
-    }
-    
-    // Pause / Timer Logic
-    @Published var isPaused = false
-    @Published var pauseRemaining: TimeInterval = 0
-    private var pauseTimer: Timer?
-    
-    private var monitor: BrowserMonitor?
-    
-    init() {
-        self.isBlocking = UserDefaults.standard.bool(forKey: "IsBlocking")
-        self.isUnblockable = UserDefaults.standard.bool(forKey: "IsUnblockable")
-        self.allowedRules = UserDefaults.standard.stringArray(forKey: "AllowedRules") ?? [
-            "https://www.youtube.com/watch?v=gmuTjeQUbTM"
-        ]
-        self.monitor = BrowserMonitor(appState: self)
-    }
-    
-    func startPause(minutes: Double) {
-        guard isBlocking else { return }
-        isPaused = true
-        pauseRemaining = minutes * 60
-        
-        pauseTimer?.invalidate()
-        pauseTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            if self.pauseRemaining > 0 {
-                self.pauseRemaining -= 1
-            } else {
-                self.cancelPause()
-            }
-        }
-    }
-
-    func cancelPause() {
-        isPaused = false
-        pauseTimer?.invalidate()
-        pauseTimer = nil
-    }
-    
-    func timeString(time: TimeInterval) -> String {
-        let minutes = Int(time) / 60
-        let seconds = Int(time) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
-}
-
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @State private var showSettings = false
     @State private var showRules = false
+    @State private var showSchedules = false
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            FocusView(showRules: $showRules)
+            FocusView(showRules: $showRules, showSchedules: $showSchedules)
             
             Button(action: { showSettings = true }) {
                 Image(systemName: "gearshape.fill")
@@ -84,7 +21,7 @@ struct ContentView: View {
             .buttonStyle(.plain)
             .padding(16)
         }
-        .frame(minWidth: 450, minHeight: 600)
+        .frame(minWidth: 800, minHeight: 800)
         .sheet(isPresented: $showSettings) {
             SheetWrapper(title: "Settings", isPresented: $showSettings) {
                 SettingsView()
@@ -96,6 +33,12 @@ struct ContentView: View {
                 RulesView()
             }
             .frame(width: 550, height: 650)
+        }
+        .sheet(isPresented: $showSchedules) {
+            SheetWrapper(title: "Focus Schedules", isPresented: $showSchedules) {
+                SchedulesView()
+            }
+            .frame(width: 750, height: 700)
         }
     }
 }
@@ -135,6 +78,7 @@ struct SheetWrapper<Content: View>: View {
 struct FocusView: View {
     @EnvironmentObject var appState: AppState
     @Binding var showRules: Bool
+    @Binding var showSchedules: Bool
     @State private var showCustomTimer = false
     @State private var customMinutesString = ""
 
@@ -176,7 +120,10 @@ struct FocusView: View {
                         .foregroundColor(.secondary)
                 }
                 Spacer()
-                Toggle("", isOn: $appState.isBlocking)
+                Toggle("", isOn: Binding(
+                    get: { appState.isBlocking },
+                    set: { _ in appState.toggleBlocking() }
+                ))
                     .toggleStyle(.switch)
                     .disabled(appState.isBlocking && appState.isUnblockable)
             }
@@ -235,6 +182,63 @@ struct FocusView: View {
                     }
                 }
             }
+            
+            // Schedules Widget (Card)
+            Button(action: { showSchedules = true }) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "calendar")
+                            .font(.headline)
+                            .foregroundColor(.purple)
+                        Text("Focus Schedules")
+                            .font(.headline)
+                        Spacer()
+                        Text("\(appState.schedules.count)")
+                            .font(.caption)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color.purple.opacity(0.2))
+                            .cornerRadius(10)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    if appState.schedules.isEmpty {
+                        Text("No schedules set. Click to automate.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(appState.schedules.prefix(2)) { schedule in
+                                HStack {
+                                    Circle()
+                                        .fill(schedule.isEnabled ? Color.green : Color.gray)
+                                        .frame(width: 6, height: 6)
+                                    Text(schedule.name)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            if appState.schedules.count > 2 {
+                                Text("and \(appState.schedules.count - 2) more...")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .italic()
+                            }
+                        }
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
             
             // Rules Widget (Card)
             Button(action: { showRules = true }) {
@@ -415,6 +419,12 @@ struct SettingsView: View {
             }
             
             Section {
+                Toggle("Start week on Monday", isOn: $appState.weekStartsOnMonday)
+            } header: {
+                Text("Calendar")
+            }
+
+            Section {
                 HStack {
                     Text("Version")
                     Spacer()
@@ -440,5 +450,414 @@ struct SettingsView: View {
         } message: {
             Text("To disable Unblockable Mode, you must type the following exactly:\n\n\"\(challengePhrase)\"")
         }
+    }
+}
+
+struct SchedulesView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var showingAddSchedule = false
+    @State private var viewMode = 1 // 0 = List, 1 = Calendar
+    
+    // For passing data from Calendar click
+    @State private var selectedDay: Int?
+    @State private var selectedTime: Date?
+    @State private var selectedSchedule: Schedule?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("View Mode", selection: $viewMode) {
+                Image(systemName: "list.bullet").tag(0)
+                Image(systemName: "calendar").tag(1)
+            }
+            .pickerStyle(.segmented)
+            .padding()
+
+            if viewMode == 0 {
+                // List View
+                List {
+                    ForEach($appState.schedules) { $schedule in
+                        ScheduleRow(schedule: $schedule)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedSchedule = schedule
+                                showingAddSchedule = true
+                            }
+                    }
+                    .onDelete { indexSet in
+                        appState.schedules.remove(atOffsets: indexSet)
+                    }
+                }
+                .listStyle(InsetListStyle())
+            } else {
+                // Calendar View
+                WeeklyCalendarView(
+                    showingAddSchedule: $showingAddSchedule,
+                    selectedDay: $selectedDay,
+                    selectedTime: $selectedTime,
+                    selectedSchedule: $selectedSchedule
+                )
+            }
+            
+            Divider()
+            
+            Button(action: { 
+                // Reset defaults for manual add
+                selectedDay = nil
+                selectedTime = nil
+                selectedSchedule = nil
+                showingAddSchedule = true 
+            }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Add Schedule")
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+            .padding()
+        }
+        .sheet(isPresented: $showingAddSchedule) {
+            AddScheduleView(
+                isPresented: $showingAddSchedule,
+                initialDay: selectedDay,
+                initialStartTime: selectedTime,
+                existingSchedule: selectedSchedule
+            )
+            .id(selectedSchedule?.id ?? UUID())
+        }
+    }
+}
+
+struct ScheduleRow: View {
+    @Binding var schedule: Schedule
+
+    var body: some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(schedule.themeColor)
+                .frame(width: 4, height: 35)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(schedule.name)
+                    .font(.headline)
+                Text(timeRangeString)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text(daysString)
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(4)
+            }
+            Spacer()
+            Toggle("", isOn: $schedule.isEnabled)
+                .toggleStyle(.switch)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var timeRangeString: String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return "\(formatter.string(from: schedule.startTime)) - \(formatter.string(from: schedule.endTime))"
+    }
+
+    private var daysString: String {
+        let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        return schedule.days.sorted().map { dayNames[$0 - 1] }.joined(separator: ", ")
+    }
+}
+
+struct AddScheduleView: View {
+    @EnvironmentObject var appState: AppState
+    @Binding var isPresented: Bool
+    
+    // Optional initializers
+    var initialDay: Int?
+    var initialStartTime: Date?
+    var existingSchedule: Schedule?
+    
+    @State private var name = ""
+    @State private var days: Set<Int> = [] // Start empty, let onAppear fill it
+    @State private var startTime = Calendar.current.date(from: DateComponents(hour: 9, minute: 0)) ?? Date()
+    @State private var endTime = Calendar.current.date(from: DateComponents(hour: 17, minute: 0)) ?? Date()
+    @State private var selectedColorIndex: Int = 0
+    
+    // Logic for splitting schedule
+    @State private var modifyAllDays = true
+
+    var dayOrder: [Int] {
+        if appState.weekStartsOnMonday {
+            return [2, 3, 4, 5, 6, 7, 1] // Mon -> Sun
+        } else {
+            return [1, 2, 3, 4, 5, 6, 7] // Sun -> Sat
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Custom Header
+            HStack {
+                Text(existingSchedule == nil ? "New Schedule" : "Edit Schedule")
+                    .font(.title2)
+                    .bold()
+                Spacer()
+                Button(action: { isPresented = false }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(25)
+            
+            Divider()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 30) {
+                    // Edit Scope (if applicable)
+                    if existingSchedule != nil && initialDay != nil && (existingSchedule?.days.count ?? 0) > 1 {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("EDIT SCOPE")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                            
+                            Picker("", selection: $modifyAllDays) {
+                                Text("All Days").tag(true)
+                                Text("Only \(dayName(for: initialDay!))").tag(false)
+                            }
+                            .pickerStyle(.segmented)
+                            
+                            if !modifyAllDays {
+                                Text("This will create a separate schedule for \(dayName(for: initialDay!)).")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        .padding(.bottom, 10)
+                    }
+
+                    // Name
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("SCHEDULE NAME")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                        TextField("e.g. Deep Work", text: $name)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.title3)
+                    }
+
+                    // Color Selection
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("THEME COLOR")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                        
+                        HStack(spacing: 12) {
+                            ForEach(0..<FocusColor.all.count, id: \.self) { index in
+                                Circle()
+                                    .fill(FocusColor.all[index])
+                                    .frame(width: 30, height: 30)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.primary, lineWidth: selectedColorIndex == index ? 2 : 0)
+                                            .padding(-4)
+                                    )
+                                    .contentShape(Circle())
+                                    .onTapGesture {
+                                        selectedColorIndex = index
+                                    }
+                            }
+                        }
+                        .padding(.vertical, 5)
+                    }
+                    
+                    // Times
+                    HStack(spacing: 40) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("START TIME")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                            DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                                .datePickerStyle(.field)
+                                .scaleEffect(1.2)
+                                .frame(width: 100, height: 40)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("END TIME")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                            DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                                .datePickerStyle(.field)
+                                .scaleEffect(1.2)
+                                .frame(width: 100, height: 40)
+                        }
+                    }
+                    
+                    // Days
+                    VStack(alignment: .leading, spacing: 15) {
+                        Text("DAYS OF THE WEEK")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                        
+                        if existingSchedule != nil && !modifyAllDays, let singleDay = initialDay {
+                            Text(dayName(for: singleDay))
+                                .font(.headline)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(8)
+                        } else {
+                            HStack(spacing: 15) {
+                                ForEach(dayOrder, id: \.self) { day in
+                                    DayToggle(day: day, isSelected: days.contains(day)) {
+                                        if days.contains(day) {
+                                            days.remove(day)
+                                        } else {
+                                            days.insert(day)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(minLength: 40)
+                    
+                    // Action Buttons
+                    VStack(spacing: 15) {
+                        Button(action: saveSchedule) {
+                            Text(existingSchedule == nil ? "Add Focus Schedule" : "Save Changes")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.blue)
+                        .disabled(days.isEmpty && modifyAllDays)
+                        
+                        if existingSchedule != nil {
+                            Button(action: deleteSchedule) {
+                                Text("Delete Schedule")
+                                    .foregroundColor(.red)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(30)
+            }
+        }
+        .frame(width: 500, height: 650)
+        .background(Color(NSColor.windowBackgroundColor))
+        .onAppear {
+            if let schedule = existingSchedule {
+                name = schedule.name
+                days = schedule.days
+                startTime = schedule.startTime
+                endTime = schedule.endTime
+                selectedColorIndex = schedule.colorIndex
+            } else {
+                // New schedule
+                name = ""
+                selectedColorIndex = (appState.schedules.count % FocusColor.all.count)
+                if let day = initialDay {
+                    days = [day]
+                } else {
+                    days = [2, 3, 4, 5, 6] // Default to work week for manual add
+                }
+                
+                if let start = initialStartTime {
+                    startTime = start
+                    endTime = Calendar.current.date(byAdding: .hour, value: 1, to: start) ?? start
+                } else {
+                    // Default to 9-5
+                    let cal = Calendar.current
+                    var startComp = DateComponents()
+                    startComp.hour = 9
+                    startComp.minute = 0
+                    var endComp = DateComponents()
+                    endComp.hour = 17
+                    endComp.minute = 0
+                    
+                    startTime = cal.date(from: startComp) ?? Date()
+                    endTime = cal.date(from: endComp) ?? Date()
+                }
+            }
+        }
+    }
+    
+    func saveSchedule() {
+        if let schedule = existingSchedule,
+           let index = appState.schedules.firstIndex(where: { $0.id == schedule.id }) {
+            
+            if modifyAllDays {
+                appState.schedules[index].name = name
+                appState.schedules[index].days = days
+                appState.schedules[index].startTime = startTime
+                appState.schedules[index].endTime = endTime
+                appState.schedules[index].colorIndex = selectedColorIndex
+            } else if let dayToRemove = initialDay {
+                appState.schedules[index].days.remove(dayToRemove)
+                if appState.schedules[index].days.isEmpty {
+                    appState.schedules.remove(at: index)
+                }
+                let newSchedule = Schedule(name: name, days: [dayToRemove], startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex)
+                appState.schedules.append(newSchedule)
+            }
+        } else {
+            let newSchedule = Schedule(name: name.isEmpty ? "Focus Session" : name, days: days, startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex)
+            appState.schedules.append(newSchedule)
+        }
+        isPresented = false
+    }
+    
+    func deleteSchedule() {
+        if let schedule = existingSchedule,
+           let index = appState.schedules.firstIndex(where: { $0.id == schedule.id }) {
+            if !modifyAllDays, let dayToRemove = initialDay {
+                appState.schedules[index].days.remove(dayToRemove)
+                if appState.schedules[index].days.isEmpty {
+                    appState.schedules.remove(at: index)
+                }
+            } else {
+                appState.schedules.remove(at: index)
+            }
+            isPresented = false
+        }
+    }
+    
+    func dayName(for day: Int) -> String {
+        return Calendar.current.weekdaySymbols[day - 1]
+    }
+}
+
+struct DayToggle: View {
+    let day: Int
+    let isSelected: Bool
+    let action: () -> Void
+    
+    let dayNames = ["S", "M", "T", "W", "T", "F", "S"]
+
+    var body: some View {
+        Button(action: action) {
+            Text(dayNames[day - 1])
+                .font(.title3.bold())
+                .frame(width: 45, height: 45)
+                .background(isSelected ? Color.blue : Color.secondary.opacity(0.2))
+                .foregroundColor(isSelected ? .white : .primary)
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
     }
 }
