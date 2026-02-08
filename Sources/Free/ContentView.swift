@@ -536,7 +536,11 @@ struct ScheduleRow: View {
     @Binding var schedule: Schedule
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(schedule.themeColor)
+                .frame(width: 4, height: 35)
+            
             VStack(alignment: .leading, spacing: 4) {
                 Text(schedule.name)
                     .font(.headline)
@@ -582,6 +586,7 @@ struct AddScheduleView: View {
     @State private var days: Set<Int> = [] // Start empty, let onAppear fill it
     @State private var startTime = Calendar.current.date(from: DateComponents(hour: 9, minute: 0)) ?? Date()
     @State private var endTime = Calendar.current.date(from: DateComponents(hour: 17, minute: 0)) ?? Date()
+    @State private var selectedColorIndex: Int = 0
     
     // Logic for splitting schedule
     @State private var modifyAllDays = true
@@ -645,6 +650,31 @@ struct AddScheduleView: View {
                         TextField("e.g. Deep Work", text: $name)
                             .textFieldStyle(.roundedBorder)
                             .font(.title3)
+                    }
+
+                    // Color Selection
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("THEME COLOR")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                        
+                        HStack(spacing: 12) {
+                            ForEach(0..<FocusColor.all.count, id: \.self) { index in
+                                Circle()
+                                    .fill(FocusColor.all[index])
+                                    .frame(width: 30, height: 30)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.primary, lineWidth: selectedColorIndex == index ? 2 : 0)
+                                            .padding(-4)
+                                    )
+                                    .contentShape(Circle())
+                                    .onTapGesture {
+                                        selectedColorIndex = index
+                                    }
+                            }
+                        }
+                        .padding(.vertical, 5)
                     }
                     
                     // Times
@@ -736,9 +766,11 @@ struct AddScheduleView: View {
                 days = schedule.days
                 startTime = schedule.startTime
                 endTime = schedule.endTime
+                selectedColorIndex = schedule.colorIndex
             } else {
                 // New schedule
                 name = ""
+                selectedColorIndex = (appState.schedules.count % FocusColor.all.count)
                 if let day = initialDay {
                     days = [day]
                 } else {
@@ -774,16 +806,17 @@ struct AddScheduleView: View {
                 appState.schedules[index].days = days
                 appState.schedules[index].startTime = startTime
                 appState.schedules[index].endTime = endTime
+                appState.schedules[index].colorIndex = selectedColorIndex
             } else if let dayToRemove = initialDay {
                 appState.schedules[index].days.remove(dayToRemove)
                 if appState.schedules[index].days.isEmpty {
                     appState.schedules.remove(at: index)
                 }
-                let newSchedule = Schedule(name: name, days: [dayToRemove], startTime: startTime, endTime: endTime)
+                let newSchedule = Schedule(name: name, days: [dayToRemove], startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex)
                 appState.schedules.append(newSchedule)
             }
         } else {
-            let newSchedule = Schedule(name: name.isEmpty ? "Focus Session" : name, days: days, startTime: startTime, endTime: endTime)
+            let newSchedule = Schedule(name: name.isEmpty ? "Focus Session" : name, days: days, startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex)
             appState.schedules.append(newSchedule)
         }
         isPresented = false

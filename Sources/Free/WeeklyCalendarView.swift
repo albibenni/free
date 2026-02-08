@@ -276,7 +276,7 @@ struct ScheduleBlockView: View {
     
     var body: some View {
         RoundedRectangle(cornerRadius: 6)
-            .fill(schedule.isEnabled ? Color.blue.opacity(0.8) : Color.gray.opacity(0.5))
+            .fill(schedule.isEnabled ? schedule.themeColor.opacity(0.8) : Color.gray.opacity(0.5))
             .overlay(
                 VStack(alignment: .leading, spacing: 0) {
                     Text(schedule.name)

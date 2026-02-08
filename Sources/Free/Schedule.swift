@@ -7,6 +7,7 @@ struct Schedule: Identifiable, Codable, Equatable {
     var startTime: Date // Only time component matters
     var endTime: Date   // Only time component matters
     var isEnabled: Bool = true
+    var colorIndex: Int = 0
 
     static func defaultSchedule() -> Schedule {
         let calendar = Calendar.current
