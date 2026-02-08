@@ -24,6 +24,11 @@ class AppState: ObservableObject {
         }
     }
     @Published var isTrusted = false
+    @Published var weekStartsOnMonday: Bool = false {
+        didSet {
+            UserDefaults.standard.set(weekStartsOnMonday, forKey: "WeekStartsOnMonday")
+        }
+    }
     @Published var allowedRules: [String] = [] {
         didSet {
             UserDefaults.standard.set(allowedRules, forKey: "AllowedRules")
@@ -52,6 +57,7 @@ class AppState: ObservableObject {
     init() {
         self.isBlocking = UserDefaults.standard.bool(forKey: "IsBlocking")
         self.isUnblockable = UserDefaults.standard.bool(forKey: "IsUnblockable")
+        self.weekStartsOnMonday = UserDefaults.standard.bool(forKey: "WeekStartsOnMonday")
         self.allowedRules = UserDefaults.standard.stringArray(forKey: "AllowedRules") ?? [
             "https://www.youtube.com/watch?v=gmuTjeQUbTM"
         ]

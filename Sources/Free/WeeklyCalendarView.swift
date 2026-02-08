@@ -19,6 +19,14 @@ struct WeeklyCalendarView: View {
     let dayHeaderHeight: CGFloat = 40
     let timeLabelWidth: CGFloat = 50
     
+    var dayOrder: [Int] {
+        if appState.weekStartsOnMonday {
+            return [2, 3, 4, 5, 6, 7, 1] // Mon -> Sun
+        } else {
+            return [1, 2, 3, 4, 5, 6, 7] // Sun -> Sat
+        }
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
@@ -27,7 +35,7 @@ struct WeeklyCalendarView: View {
                     Text("")
                         .frame(width: timeLabelWidth)
                     
-                    ForEach(1...7, id: \.self) { day in
+                    ForEach(dayOrder, id: \.self) { day in
                         Text(dayName(for: day))
                             .font(.headline)
                             .frame(maxWidth: .infinity)
@@ -65,7 +73,7 @@ struct WeeklyCalendarView: View {
                         // Vertical Day Lines
                         HStack(spacing: 0) {
                             Spacer().frame(width: timeLabelWidth)
-                            ForEach(1...7, id: \.self) { day in
+                            ForEach(0..<7, id: \.self) { _ in
                                 Divider()
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                             }
@@ -74,7 +82,8 @@ struct WeeklyCalendarView: View {
                         // Tappable & Draggable Areas (Background)
                         HStack(spacing: 0) {
                             Spacer().frame(width: timeLabelWidth)
-                            ForEach(1...7, id: \.self) { day in
+                            ForEach(0..<7, id: \.self) { columnIndex in
+                                let day = dayOrder[columnIndex]
                                 Color.clear
                                     .contentShape(Rectangle())
                                     .frame(maxWidth: .infinity, maxHeight: 24 * hourHeight)
@@ -115,10 +124,13 @@ struct WeeklyCalendarView: View {
                             let y = startH * hourHeight
                             let h = max(endH - startH, 0.1) * hourHeight
                             
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(Color.blue.opacity(0.3))
-                                .frame(width: columnWidth - 4, height: h)
-                                .offset(x: timeLabelWidth + CGFloat(data.day - 1) * columnWidth + 2, y: y)
+                            // Find column index for current day
+                            if let colIndex = dayOrder.firstIndex(of: data.day) {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.blue.opacity(0.3))
+                                    .frame(width: columnWidth - 4, height: h)
+                                    .offset(x: timeLabelWidth + CGFloat(colIndex) * columnWidth + 2, y: y)
+                            }
                         }
                         
                         // Schedule Blocks
@@ -130,7 +142,8 @@ struct WeeklyCalendarView: View {
                                 ZStack(alignment: .topLeading) {
                                     ForEach(appState.schedules) { schedule in
                                         ForEach(schedule.days.sorted(), id: \.self) { day in
-                                            if let frame = calculateFrame(schedule: schedule, day: day, columnWidth: columnWidth) {
+                                            if let colIndex = dayOrder.firstIndex(of: day),
+                                               let frame = calculateFrame(schedule: schedule, colIndex: colIndex, columnWidth: columnWidth) {
                                                 ScheduleBlockView(schedule: schedule)
                                                     .frame(width: frame.width, height: frame.height)
                                                     .position(x: frame.midX, y: frame.midY)
@@ -147,7 +160,7 @@ struct WeeklyCalendarView: View {
                         }
                         
                         // Current Time Indicator
-                        CurrentTimeIndicator(hourHeight: hourHeight, timeLabelWidth: timeLabelWidth)
+                        CurrentTimeIndicator(hourHeight: hourHeight, timeLabelWidth: timeLabelWidth, dayOrder: dayOrder)
                     }
                 }
             }
@@ -215,7 +228,7 @@ struct WeeklyCalendarView: View {
         return schedule.startTime > schedule.endTime // Rough check based on time components only logic
     }
     
-    func calculateFrame(schedule: Schedule, day: Int, columnWidth: CGFloat) -> CGRect? {
+    func calculateFrame(schedule: Schedule, colIndex: Int, columnWidth: CGFloat) -> CGRect? {
         let calendar = Calendar.current
         let startComp = calendar.dateComponents([.hour, .minute], from: schedule.startTime)
         let endComp = calendar.dateComponents([.hour, .minute], from: schedule.endTime)
@@ -228,11 +241,11 @@ struct WeeklyCalendarView: View {
         
         // Handle overnight (draw until bottom)
         if startY > endY {
-            endY = 24 * hourHeight // Cap at midnight for the first day segment
+            endY = 24 * hourHeight 
         }
         
         let height = max(endY - startY, 15) // Min height
-        let x = CGFloat(day - 1) * columnWidth
+        let x = CGFloat(colIndex) * columnWidth
         
         return CGRect(x: x, y: startY, width: columnWidth - 2, height: height)
     }
@@ -272,21 +285,31 @@ struct ScheduleBlockView: View {
 struct CurrentTimeIndicator: View {
     let hourHeight: CGFloat
     let timeLabelWidth: CGFloat
+    let dayOrder: [Int]
     @State private var currentTimeOffset: CGFloat = 0
+    @State private var currentDayIndex: Int?
     let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
     
     var body: some View {
-        HStack(spacing: 0) {
-            Circle()
-                .fill(Color.red)
-                .frame(width: 8, height: 8)
-                .offset(x: timeLabelWidth - 4)
-            
-            Rectangle()
-                .fill(Color.red)
-                .frame(height: 1)
+        GeometryReader { geo in
+            if let colIndex = currentDayIndex {
+                let columnWidth = (geo.size.width - timeLabelWidth) / 7
+                let xOffset = timeLabelWidth + CGFloat(colIndex) * columnWidth
+                
+                HStack(spacing: 0) {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 8, height: 8)
+                        .offset(x: xOffset - 4)
+                    
+                    Rectangle()
+                        .fill(Color.red)
+                        .frame(width: columnWidth, height: 1)
+                        .offset(x: xOffset - 4)
+                }
+                .offset(y: currentTimeOffset)
+            }
         }
-        .offset(y: currentTimeOffset)
         .onAppear { updateTime() }
         .onReceive(timer) { _ in updateTime() }
     }
@@ -294,9 +317,10 @@ struct CurrentTimeIndicator: View {
     func updateTime() {
         let calendar = Calendar.current
         let now = Date()
-        let comps = calendar.dateComponents([.hour, .minute], from: now)
-        if let h = comps.hour, let m = comps.minute {
+        let comps = calendar.dateComponents([.hour, .minute, .weekday], from: now)
+        if let h = comps.hour, let m = comps.minute, let w = comps.weekday {
             currentTimeOffset = (CGFloat(h) + CGFloat(m) / 60.0) * hourHeight
+            currentDayIndex = dayOrder.firstIndex(of: w)
         }
     }
 }

@@ -419,6 +419,12 @@ struct SettingsView: View {
             }
             
             Section {
+                Toggle("Start week on Monday", isOn: $appState.weekStartsOnMonday)
+            } header: {
+                Text("Calendar")
+            }
+
+            Section {
                 HStack {
                     Text("Version")
                     Spacer()
