@@ -527,6 +527,7 @@ struct SchedulesView: View {
                 initialStartTime: selectedTime,
                 existingSchedule: selectedSchedule
             )
+            .id(selectedSchedule?.id ?? UUID())
         }
     }
 }
@@ -578,7 +579,7 @@ struct AddScheduleView: View {
     var existingSchedule: Schedule?
     
     @State private var name = ""
-    @State private var days: Set<Int> = [2, 3, 4, 5, 6]
+    @State private var days: Set<Int> = [] // Start empty, let onAppear fill it
     @State private var startTime = Calendar.current.date(from: DateComponents(hour: 9, minute: 0)) ?? Date()
     @State private var endTime = Calendar.current.date(from: DateComponents(hour: 17, minute: 0)) ?? Date()
     
@@ -669,7 +670,7 @@ struct AddScheduleView: View {
                             .font(.caption.bold())
                             .foregroundColor(.secondary)
                         
-                        if !modifyAllDays, let singleDay = initialDay {
+                        if existingSchedule != nil && !modifyAllDays, let singleDay = initialDay {
                             Text(dayName(for: singleDay))
                                 .font(.headline)
                                 .padding(.horizontal, 16)
@@ -728,12 +729,29 @@ struct AddScheduleView: View {
                 startTime = schedule.startTime
                 endTime = schedule.endTime
             } else {
+                // New schedule
+                name = ""
                 if let day = initialDay {
                     days = [day]
+                } else {
+                    days = [2, 3, 4, 5, 6] // Default to work week for manual add
                 }
+                
                 if let start = initialStartTime {
                     startTime = start
                     endTime = Calendar.current.date(byAdding: .hour, value: 1, to: start) ?? start
+                } else {
+                    // Default to 9-5
+                    let cal = Calendar.current
+                    var startComp = DateComponents()
+                    startComp.hour = 9
+                    startComp.minute = 0
+                    var endComp = DateComponents()
+                    endComp.hour = 17
+                    endComp.minute = 0
+                    
+                    startTime = cal.date(from: startComp) ?? Date()
+                    endTime = cal.date(from: endComp) ?? Date()
                 }
             }
         }
