@@ -73,9 +73,12 @@ struct WeeklyCalendarView: View {
                         // Vertical Day Lines
                         HStack(spacing: 0) {
                             Spacer().frame(width: timeLabelWidth)
+                            // Line starting the grid (left of first day)
+                            Divider()
                             ForEach(0..<7, id: \.self) { _ in
+                                Spacer()
+                                // Line after each day (right border)
                                 Divider()
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                             }
                         }
                         
@@ -245,9 +248,10 @@ struct WeeklyCalendarView: View {
         }
         
         let height = max(endY - startY, 15) // Min height
-        let x = CGFloat(colIndex) * columnWidth
+        // Add 2px offset to clear the left divider, and use columnWidth - 4 to stay centered
+        let x = CGFloat(colIndex) * columnWidth + 2
         
-        return CGRect(x: x, y: startY, width: columnWidth - 2, height: height)
+        return CGRect(x: x, y: startY, width: columnWidth - 4, height: height)
     }
 }
 
@@ -272,7 +276,6 @@ struct ScheduleBlockView: View {
                 .padding(4)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             )
-            .padding(.horizontal, 1)
     }
     
     func timeRange(_ s: Schedule) -> String {
