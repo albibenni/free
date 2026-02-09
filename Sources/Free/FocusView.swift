@@ -136,14 +136,14 @@ struct FocusView: View {
                                 .frame(width: 160, height: 160)
 
                                 HStack(spacing: 15) {
-                                    Button(action: { if appState.pomodoroFocusDuration > 1 { appState.pomodoroFocusDuration -= 1 } }) {
+                                    Button(action: { if appState.pomodoroFocusDuration > 5 { appState.pomodoroFocusDuration -= 5 } }) {
                                         Image(systemName: "minus.circle.fill")
                                             .font(.title2)
                                     }
                                     .buttonStyle(.plain)
                                     .foregroundColor(.secondary)
 
-                                    Button(action: { if appState.pomodoroFocusDuration < 120 { appState.pomodoroFocusDuration += 1 } }) {
+                                    Button(action: { if appState.pomodoroFocusDuration < 120 { appState.pomodoroFocusDuration += 5 } }) {
                                         Image(systemName: "plus.circle.fill")
                                             .font(.title2)
                                     }
@@ -164,14 +164,14 @@ struct FocusView: View {
                                 .frame(width: 160, height: 160)
 
                                 HStack(spacing: 15) {
-                                    Button(action: { if appState.pomodoroBreakDuration > 1 { appState.pomodoroBreakDuration -= 1 } }) {
+                                    Button(action: { if appState.pomodoroBreakDuration > 5 { appState.pomodoroBreakDuration -= 5 } }) {
                                         Image(systemName: "minus.circle.fill")
                                             .font(.title2)
                                     }
                                     .buttonStyle(.plain)
                                     .foregroundColor(.secondary)
 
-                                    Button(action: { if appState.pomodoroBreakDuration < 60 { appState.pomodoroBreakDuration += 1 } }) {
+                                    Button(action: { if appState.pomodoroBreakDuration < 60 { appState.pomodoroBreakDuration += 5 } }) {
                                         Image(systemName: "plus.circle.fill")
                                             .font(.title2)
                                     }

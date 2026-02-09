@@ -8,7 +8,7 @@ struct PomodoroTimerView: View {
     let color: Color
     
     private let knobSize: CGFloat = 14
-    private let strokeWidth: CGFloat = 10
+    private let strokeWidth: CGFloat = 16
     
     var body: some View {
         VStack(spacing: 12) {
@@ -86,9 +86,9 @@ struct PomodoroTimerView: View {
         let fraction = angleRadians / (2 * .pi)
         let newDuration = fraction * maxMinutes
         
-        // Snap to nearest 5 minutes for easier selection, or 1 minute if fine-grained
-        // Let's snap to integers
-        let snappedDuration = max(1, min(maxMinutes, round(newDuration)))
+        // Snap to nearest 5 minutes
+        let step: Double = 5
+        let snappedDuration = max(step, min(maxMinutes, round(newDuration / step) * step))
         
         durationMinutes = snappedDuration
     }
