@@ -40,6 +40,7 @@ struct ContentView: View {
             }
             .frame(width: 750, height: 700)
         }
+        .tint(FocusColor.color(for: appState.accentColorIndex))
     }
 }
 
@@ -426,6 +427,28 @@ struct SettingsView: View {
             }
 
             Section {
+                HStack(spacing: 12) {
+                    ForEach(0..<FocusColor.all.count, id: \.self) { index in
+                        Circle()
+                            .fill(FocusColor.all[index])
+                            .frame(width: 24, height: 24)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.primary, lineWidth: appState.accentColorIndex == index ? 2 : 0)
+                                    .padding(-3)
+                            )
+                            .contentShape(Circle())
+                            .onTapGesture {
+                                appState.accentColorIndex = index
+                            }
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text("Appearance")
+            }
+
+            Section {
                 HStack {
                     Text("Version")
                     Spacer()
@@ -517,7 +540,7 @@ struct SchedulesView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.blue)
+                .background(FocusColor.color(for: appState.accentColorIndex))
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }
@@ -759,7 +782,7 @@ struct AddScheduleView: View {
                                         .padding(.vertical, 10)
                                 }
                                 .buttonStyle(.borderedProminent)
-                                .tint(sessionType == .focus ? .blue : .orange)
+                                .tint(sessionType == .focus ? FocusColor.color(for: appState.accentColorIndex) : .orange)
                                 .disabled(days.isEmpty && modifyAllDays)
 
                                 if existingSchedule != nil {
@@ -875,6 +898,7 @@ struct AddScheduleView: View {
 }
 
 struct DayToggle: View {
+    @EnvironmentObject var appState: AppState
     let day: Int
     let isSelected: Bool
     let action: () -> Void
@@ -886,7 +910,7 @@ struct DayToggle: View {
             Text(dayNames[day - 1])
                 .font(.title3.bold())
                 .frame(width: 45, height: 45)
-                .background(isSelected ? Color.blue : Color.secondary.opacity(0.2))
+                .background(isSelected ? FocusColor.color(for: appState.accentColorIndex) : Color.secondary.opacity(0.2))
                 .foregroundColor(isSelected ? .white : .primary)
                 .clipShape(Circle())
         }

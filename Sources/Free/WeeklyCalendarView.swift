@@ -62,7 +62,7 @@ struct WeeklyCalendarView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
-                            .background(isToday(day: day) ? Color.blue.opacity(0.1) : Color.clear)
+                            .background(isToday(day: day) ? FocusColor.color(for: appState.accentColorIndex).opacity(0.1) : Color.clear)
                     }
                 }
                 .frame(height: dayHeaderHeight)
@@ -153,12 +153,12 @@ struct WeeklyCalendarView: View {
                                 
                                 if let colIndex = dayOrder.firstIndex(of: data.day) {
                                     RoundedRectangle(cornerRadius: 6)
-                                        .fill(Color.blue.opacity(0.3))
+                                        .fill(FocusColor.color(for: appState.accentColorIndex).opacity(0.3))
                                         .overlay(
                                             VStack {
                                                 Text("\(formatTime(startH)) - \(formatTime(endH))")
                                                     .font(.system(size: 10, weight: .bold))
-                                                    .foregroundColor(.blue)
+                                                    .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
                                                     .padding(4)
                                                     .background(Color(NSColor.windowBackgroundColor).opacity(0.8))
                                                     .cornerRadius(4)

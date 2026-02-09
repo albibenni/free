@@ -29,6 +29,11 @@ class AppState: ObservableObject {
             UserDefaults.standard.set(weekStartsOnMonday, forKey: "WeekStartsOnMonday")
         }
     }
+    @Published var accentColorIndex: Int = 0 {
+        didSet {
+            UserDefaults.standard.set(accentColorIndex, forKey: "AccentColorIndex")
+        }
+    }
     @Published var calendarIntegrationEnabled: Bool = false {
         didSet {
             UserDefaults.standard.set(calendarIntegrationEnabled, forKey: "CalendarIntegrationEnabled")
@@ -71,6 +76,7 @@ class AppState: ObservableObject {
         self.isBlocking = UserDefaults.standard.bool(forKey: "IsBlocking")
         self.isUnblockable = UserDefaults.standard.bool(forKey: "IsUnblockable")
         self.weekStartsOnMonday = UserDefaults.standard.bool(forKey: "WeekStartsOnMonday")
+        self.accentColorIndex = UserDefaults.standard.integer(forKey: "AccentColorIndex")
         self.calendarIntegrationEnabled = UserDefaults.standard.bool(forKey: "CalendarIntegrationEnabled")
         self.allowedRules = UserDefaults.standard.stringArray(forKey: "AllowedRules") ?? [
             "https://www.youtube.com/watch?v=gmuTjeQUbTM"
