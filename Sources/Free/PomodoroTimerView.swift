@@ -7,13 +7,13 @@ struct PomodoroTimerView: View {
     let title: String
     let color: Color
     
-    private let knobSize: CGFloat = 12
-    private let strokeWidth: CGFloat = 8
+    private let knobSize: CGFloat = 14
+    private let strokeWidth: CGFloat = 10
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             Text(title)
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 12, weight: .black))
                 .foregroundColor(.secondary)
             
             GeometryReader { geometry in
@@ -38,7 +38,7 @@ struct PomodoroTimerView: View {
                     Circle()
                         .fill(color)
                         .frame(width: knobSize, height: knobSize)
-                        .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
+                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
                         .position(
                             position(for: durationMinutes, radius: radius, center: center)
                         )
@@ -50,14 +50,13 @@ struct PomodoroTimerView: View {
                         )
                     
                     // Center Content
-                    VStack(spacing: 2) {
+                    VStack(spacing: 4) {
                         Image(systemName: iconName)
-                            .font(.system(size: 20))
-                            .foregroundColor(color.opacity(0.8))
+                            .font(.system(size: 28))
+                            .foregroundColor(color.opacity(0.9))
                         
                         Text("\(Int(durationMinutes))m")
-                            .font(.system(.subheadline, design: .monospaced))
-                            .bold()
+                            .font(.system(size: 20, weight: .bold, design: .monospaced))
                     }
                 }
             }
