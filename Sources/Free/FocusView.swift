@@ -10,6 +10,7 @@ struct FocusView: View {
     // Pomodoro Challenge
     @State private var showPomodoroChallenge = false
     @State private var pomodoroChallengeInput = ""
+    @State private var isPomodoroExpanded = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -114,15 +115,23 @@ struct FocusView: View {
 
             // Pomodoro Widget
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Image(systemName: "timer")
-                        .foregroundColor(.red)
-                    Text("Pomodoro Mode")
-                        .font(.headline)
+                Button(action: { withAnimation { isPomodoroExpanded.toggle() } }) {
+                    HStack {
+                        Image(systemName: "timer")
+                            .foregroundColor(.red)
+                        Text("Pomodoro Mode")
+                            .font(.headline)
+                        Spacer()
+                        Image(systemName: isPomodoroExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
+                .buttonStyle(.plain)
 
-                if appState.pomodoroStatus == .none {
-                    VStack(spacing: 20) {
+                if isPomodoroExpanded || appState.pomodoroStatus != .none {
+                    if appState.pomodoroStatus == .none {
+                        VStack(spacing: 20) {
                         HStack(spacing: 30) {
                             // Focus Clock
                             VStack(spacing: 12) {
@@ -240,7 +249,8 @@ struct FocusView: View {
                     }
                 }
             }
-            .padding(12)
+        }
+        .padding(12)
             .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
             .cornerRadius(12)
             .overlay(
