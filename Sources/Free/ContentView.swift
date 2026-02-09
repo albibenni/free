@@ -184,6 +184,111 @@ struct FocusView: View {
                 }
             }
 
+            // Pomodoro Widget
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "timer")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                    Text("Pomodoro")
+                        .font(.headline)
+                    Spacer()
+                    if appState.pomodoroStatus != .none {
+                        Text(appState.timeString(time: appState.pomodoroRemaining))
+                            .font(.system(.body, design: .monospaced))
+                            .bold()
+                            .foregroundColor(appState.pomodoroStatus == .focus ? .red : .green)
+                    }
+                }
+
+                if appState.pomodoroStatus == .none {
+                    HStack(spacing: 24) {
+                        // Draggable Clock (Focus Duration)
+                        PomodoroTimerView(durationMinutes: $appState.pomodoroFocusDuration, color: FocusColor.color(for: appState.accentColorIndex))
+                            .frame(width: 140, height: 140)
+                        
+                        // Right Side: Break & Start
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Setup Session")
+                                .font(.headline)
+                            
+                            Divider()
+                            
+                            // Break Control
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("BREAK DURATION")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.secondary)
+                                HStack {
+                                    Button(action: { if appState.pomodoroBreakDuration > 1 { appState.pomodoroBreakDuration -= 1 } }) {
+                                        Image(systemName: "minus.circle")
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                    Text("\(Int(appState.pomodoroBreakDuration))m")
+                                        .font(.body.monospacedDigit())
+                                        .frame(width: 35)
+                                    
+                                    Button(action: { if appState.pomodoroBreakDuration < 60 { appState.pomodoroBreakDuration += 1 } }) {
+                                        Image(systemName: "plus.circle")
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: { appState.startPomodoro() }) {
+                                Text("Start Focus")
+                                    .bold()
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 6)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(FocusColor.color(for: appState.accentColorIndex))
+                        }
+                    }
+                } else {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(appState.pomodoroStatus == .focus ? "Focusing..." : "On Break")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            if appState.pomodoroStatus == .focus && appState.pomodoroDisableCalendar {
+                                Text("Calendar Disabled")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: { appState.skipPomodoroPhase() }) {
+                            Image(systemName: "forward.end.fill")
+                                .padding(6)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Skip Phase")
+                        
+                        Button(action: { appState.stopPomodoro() }) {
+                            Image(systemName: "stop.fill")
+                                .foregroundColor(.red)
+                                .padding(6)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Stop Pomodoro")
+                    }
+                }
+            }
+            .padding()
+            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+            )
+
             // Schedules Widget (Card)
             Button(action: { showSchedules = true }) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -446,6 +551,14 @@ struct SettingsView: View {
                 .padding(.vertical, 4)
             } header: {
                 Text("Appearance")
+            }
+
+            Section {
+                Stepper("Focus Duration: \(Int(appState.pomodoroFocusDuration)) min", value: $appState.pomodoroFocusDuration, in: 1...120)
+                Stepper("Break Duration: \(Int(appState.pomodoroBreakDuration)) min", value: $appState.pomodoroBreakDuration, in: 1...60)
+                Toggle("Disable Calendar in Focus", isOn: $appState.pomodoroDisableCalendar)
+            } header: {
+                Text("Pomodoro")
             }
 
             Section {
