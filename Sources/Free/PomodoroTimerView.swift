@@ -2,59 +2,67 @@ import SwiftUI
 
 struct PomodoroTimerView: View {
     @Binding var durationMinutes: Double
-    let maxMinutes: Double = 120
+    let maxMinutes: Double
+    let iconName: String
+    let title: String
     let color: Color
     
-    private let knobSize: CGFloat = 20
-    private let strokeWidth: CGFloat = 15
+    private let knobSize: CGFloat = 12
+    private let strokeWidth: CGFloat = 8
     
     var body: some View {
-        GeometryReader { geometry in
-            let size = min(geometry.size.width, geometry.size.height)
-            let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
-            let radius = (size - strokeWidth) / 2
+        VStack(spacing: 8) {
+            Text(title)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.secondary)
             
-            ZStack {
-                // Background Circle (Track)
-                Circle()
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: strokeWidth)
-                    .frame(width: radius * 2, height: radius * 2)
+            GeometryReader { geometry in
+                let size = min(geometry.size.width, geometry.size.height)
+                let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                let radius = (size - strokeWidth) / 2
                 
-                // Progress Arc
-                Circle()
-                    .trim(from: 0, to: CGFloat(durationMinutes / maxMinutes))
-                    .stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .frame(width: radius * 2, height: radius * 2)
-                
-                // Draggable Knob
-                Circle()
-                    .fill(color)
-                    .frame(width: knobSize, height: knobSize)
-                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                    .position(
-                        position(for: durationMinutes, radius: radius, center: center)
-                    )
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                updateDuration(location: value.location, center: center)
-                            }
-                    )
-                
-                // Center Content (Tree & Time)
-                VStack(spacing: 4) {
-                    Image(systemName: "tree.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(Color.green.opacity(0.8))
+                ZStack {
+                    // Background Circle (Track)
+                    Circle()
+                        .stroke(Color.secondary.opacity(0.15), lineWidth: strokeWidth)
+                        .frame(width: radius * 2, height: radius * 2)
                     
-                    Text("\(Int(durationMinutes))m")
-                        .font(.title2.bold())
-                        .monospacedDigit()
+                    // Progress Arc
+                    Circle()
+                        .trim(from: 0, to: CGFloat(durationMinutes / maxMinutes))
+                        .stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: radius * 2, height: radius * 2)
+                    
+                    // Draggable Knob
+                    Circle()
+                        .fill(color)
+                        .frame(width: knobSize, height: knobSize)
+                        .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
+                        .position(
+                            position(for: durationMinutes, radius: radius, center: center)
+                        )
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { value in
+                                    updateDuration(location: value.location, center: center)
+                                }
+                        )
+                    
+                    // Center Content
+                    VStack(spacing: 2) {
+                        Image(systemName: iconName)
+                            .font(.system(size: 20))
+                            .foregroundColor(color.opacity(0.8))
+                        
+                        Text("\(Int(durationMinutes))m")
+                            .font(.system(.subheadline, design: .monospaced))
+                            .bold()
+                    }
                 }
             }
+            .aspectRatio(1, contentMode: .fit)
         }
-        .aspectRatio(1, contentMode: .fit)
     }
     
     private func position(for duration: Double, radius: CGFloat, center: CGPoint) -> CGPoint {
