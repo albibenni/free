@@ -2,6 +2,8 @@ import SwiftUI
 import Combine
 
 class AppState: ObservableObject {
+    static let challengePhrase = "I am choosing to break my focus and I acknowledge that this may impact my productivity."
+    
     @Published var isBlocking = false {
         didSet {
             UserDefaults.standard.set(isBlocking, forKey: "IsBlocking")
@@ -89,7 +91,14 @@ class AppState: ObservableObject {
         didSet { UserDefaults.standard.set(pomodoroDisableCalendar, forKey: "PomodoroDisableCalendar") }
     }
     @Published var pomodoroRemaining: TimeInterval = 0
+    @Published var pomodoroStartedAt: Date?
     private var pomodoroTimer: Timer?
+    
+    var isPomodoroLocked: Bool {
+        guard pomodoroStatus == .focus && pomodoroDisableCalendar else { return false }
+        guard let startedAt = pomodoroStartedAt else { return false }
+        return Date().timeIntervalSince(startedAt) > 10
+    }
     
     init() {
         self.isBlocking = UserDefaults.standard.bool(forKey: "IsBlocking")
@@ -171,12 +180,15 @@ class AppState: ObservableObject {
     func startPomodoro() {
         pomodoroStatus = .focus
         pomodoroRemaining = pomodoroFocusDuration * 60
+        pomodoroStartedAt = Date()
         startPomodoroTimer()
         checkSchedules()
     }
 
     func stopPomodoro() {
+        if isPomodoroLocked { return }
         pomodoroStatus = .none
+        pomodoroStartedAt = nil
         pomodoroTimer?.invalidate()
         pomodoroTimer = nil
         checkSchedules()

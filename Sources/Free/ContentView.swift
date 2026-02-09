@@ -82,6 +82,10 @@ struct FocusView: View {
     @Binding var showSchedules: Bool
     @State private var showCustomTimer = false
     @State private var customMinutesString = ""
+    
+    // Pomodoro Challenge
+    @State private var showPomodoroChallenge = false
+    @State private var pomodoroChallengeInput = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -291,8 +295,15 @@ struct FocusView: View {
                                     .font(.title3)
                             }
                             .buttonStyle(.plain)
+                            .disabled(appState.isPomodoroLocked)
                             
-                            Button(action: { appState.stopPomodoro() }) {
+                            Button(action: { 
+                                if appState.isPomodoroLocked {
+                                    showPomodoroChallenge = true
+                                } else {
+                                    appState.stopPomodoro()
+                                }
+                            }) {
                                 Image(systemName: "stop.circle.fill")
                                     .font(.title)
                                     .foregroundColor(.red)
@@ -309,6 +320,22 @@ struct FocusView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.primary.opacity(0.1), lineWidth: 1)
             )
+            .alert("Emergency Unlock", isPresented: $showPomodoroChallenge) {
+                TextField("Type the phrase exactly", text: $pomodoroChallengeInput)
+                Button("Stop Pomodoro", role: .destructive) {
+                    if pomodoroChallengeInput == AppState.challengePhrase {
+                        // Bypass lock to stop
+                        appState.pomodoroDisableCalendar = false
+                        appState.stopPomodoro()
+                    }
+                    pomodoroChallengeInput = ""
+                }
+                Button("Cancel", role: .cancel) {
+                    pomodoroChallengeInput = ""
+                }
+            } message: {
+                Text("To stop a Strict Pomodoro session, you must type the following exactly:\n\n\"\(AppState.challengePhrase)\"")
+            }
 
             // Schedules Widget (Card)
             Button(action: { showSchedules = true }) {
@@ -509,7 +536,6 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @State private var showChallenge = false
     @State private var challengeInput = ""
-    let challengePhrase = "I am choosing to break my focus and I acknowledge that this may impact my productivity."
 
     var body: some View {
         Form {
@@ -589,7 +615,7 @@ struct SettingsView: View {
         .alert("Emergency Unlock", isPresented: $showChallenge) {
             TextField("Type the phrase exactly", text: $challengeInput)
             Button("Unlock", role: .destructive) {
-                if challengeInput == challengePhrase {
+                if challengeInput == AppState.challengePhrase {
                     appState.isUnblockable = false
                 }
                 challengeInput = ""
@@ -598,7 +624,7 @@ struct SettingsView: View {
                 challengeInput = ""
             }
         } message: {
-            Text("To disable Unblockable Mode, you must type the following exactly:\n\n\"\(challengePhrase)\"")
+            Text("To disable Unblockable Mode, you must type the following exactly:\n\n\"\(AppState.challengePhrase)\"")
         }
     }
 }
