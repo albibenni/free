@@ -182,19 +182,22 @@ struct FocusView: View {
                         }
                         .frame(maxWidth: .infinity)
 
-                        HStack(spacing: 20) {
+                        VStack(spacing: 12) {
                             Button(action: { appState.startPomodoro() }) {
                                 Text("Start Focus Session")
                                     .font(.headline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 30)
+                                    .padding(.vertical, 8)
                             }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.bordered)
                             .tint(FocusColor.color(for: appState.accentColorIndex))
                             
                             Toggle("Strict Mode", isOn: $appState.pomodoroDisableCalendar)
                                 .toggleStyle(.checkbox)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
+                        .frame(maxWidth: .infinity)
                     }
                 } else {
                     HStack {
