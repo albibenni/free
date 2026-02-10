@@ -2,11 +2,7 @@ import SwiftUI
 
 struct WeeklyCalendarView: View {
     @EnvironmentObject var appState: AppState
-    @Binding var showingAddSchedule: Bool
-    @Binding var selectedDay: Int?
-    @Binding var selectedTime: Date?
-    @Binding var selectedEndTime: Date?
-    @Binding var selectedSchedule: Schedule?
+    @Binding var editorContext: ScheduleEditorContext?
     
     @State private var dragData: DragSelection?
     
@@ -200,9 +196,10 @@ struct WeeklyCalendarView: View {
                                                         .frame(width: frame.width, height: frame.height)
                                                         .position(x: frame.midX, y: frame.midY)
                                                         .onTapGesture {
-                                                            selectedSchedule = schedule
-                                                            selectedDay = day
-                                                            showingAddSchedule = true
+                                                            editorContext = ScheduleEditorContext(
+                                                                day: day,
+                                                                schedule: schedule
+                                                            )
                                                         }
                                                 }
                                             }
@@ -240,11 +237,15 @@ struct WeeklyCalendarView: View {
     
     func quickAdd(day: Int, hour: Int) {
         let calendar = Calendar.current
-        selectedDay = day
-        selectedTime = calendar.date(from: DateComponents(hour: hour, minute: 0))
-        selectedEndTime = calendar.date(from: DateComponents(hour: hour + 1, minute: 0))
-        selectedSchedule = nil
-        showingAddSchedule = true
+        let start = calendar.date(from: DateComponents(hour: hour, minute: 0))
+        let end = calendar.date(from: DateComponents(hour: hour + 1, minute: 0))
+        
+        editorContext = ScheduleEditorContext(
+            day: day,
+            startTime: start,
+            endTime: end,
+            schedule: nil
+        )
     }
     
     func finalizeDrag(_ data: DragSelection) {
@@ -268,11 +269,15 @@ struct WeeklyCalendarView: View {
         let endHour = Int(endH)
         let endMin = Int(((endH - CGFloat(endHour)) * 60).rounded())
         
-        selectedDay = data.day
-        selectedTime = calendar.date(from: DateComponents(hour: startHour, minute: startMin))
-        selectedEndTime = calendar.date(from: DateComponents(hour: endHour, minute: endMin))
-        selectedSchedule = nil
-        showingAddSchedule = true
+        let start = calendar.date(from: DateComponents(hour: startHour, minute: startMin))
+        let end = calendar.date(from: DateComponents(hour: endHour, minute: endMin))
+        
+        editorContext = ScheduleEditorContext(
+            day: data.day,
+            startTime: start,
+            endTime: end,
+            schedule: nil
+        )
     }
     
     func dayName(for day: Int) -> String {

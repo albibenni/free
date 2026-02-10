@@ -1,15 +1,17 @@
 import SwiftUI
 
+struct ScheduleEditorContext: Identifiable {
+    let id = UUID()
+    var day: Int?
+    var startTime: Date?
+    var endTime: Date?
+    var schedule: Schedule?
+}
+
 struct SchedulesView: View {
     @EnvironmentObject var appState: AppState
-    @State private var showingAddSchedule = false
     @State private var viewMode = 1 // 0 = List, 1 = Calendar
-
-    // For passing data from Calendar click
-    @State private var selectedDay: Int?
-    @State private var selectedTime: Date?
-    @State private var selectedEndTime: Date?
-    @State private var selectedSchedule: Schedule?
+    @State private var editorContext: ScheduleEditorContext?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,8 +33,7 @@ struct SchedulesView: View {
                         })
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            selectedSchedule = schedule
-                            showingAddSchedule = true
+                            editorContext = ScheduleEditorContext(schedule: schedule)
                         }
                     }
                     .onDelete { indexSet in
@@ -42,24 +43,13 @@ struct SchedulesView: View {
                 .listStyle(InsetListStyle())
             } else {
                 // Calendar View
-                WeeklyCalendarView(
-                    showingAddSchedule: $showingAddSchedule,
-                    selectedDay: $selectedDay,
-                    selectedTime: $selectedTime,
-                    selectedEndTime: $selectedEndTime,
-                    selectedSchedule: $selectedSchedule
-                )
+                WeeklyCalendarView(editorContext: $editorContext)
             }
 
             Divider()
 
             Button(action: {
-                // Reset defaults for manual add
-                selectedDay = nil
-                selectedTime = nil
-                selectedEndTime = nil
-                selectedSchedule = nil
-                showingAddSchedule = true
+                editorContext = ScheduleEditorContext()
             }) {
                 Text("Add Schedule")
                     .font(.headline)
@@ -71,15 +61,17 @@ struct SchedulesView: View {
             .padding()
             .frame(maxWidth: .infinity)
         }
-        .sheet(isPresented: $showingAddSchedule) {
+        .sheet(item: $editorContext) { context in
             AddScheduleView(
-                isPresented: $showingAddSchedule,
-                initialDay: selectedDay,
-                initialStartTime: selectedTime,
-                initialEndTime: selectedEndTime,
-                existingSchedule: selectedSchedule
+                isPresented: Binding(
+                    get: { editorContext != nil },
+                    set: { if !$0 { editorContext = nil } }
+                ),
+                initialDay: context.day,
+                initialStartTime: context.startTime,
+                initialEndTime: context.endTime,
+                existingSchedule: context.schedule
             )
-            .id("\(selectedSchedule?.id.uuidString ?? "new")-\(selectedDay ?? -1)-\(selectedTime?.description ?? "")")
         }
     }
 }
@@ -154,15 +146,61 @@ struct AddScheduleView: View {
     var initialEndTime: Date?
     var existingSchedule: Schedule?
 
-    @State private var name = ""
-    @State private var days: Set<Int> = [] // Start empty, let onAppear fill it
-    @State private var startTime = Calendar.current.date(from: DateComponents(hour: 9, minute: 0)) ?? Date()
-    @State private var endTime = Calendar.current.date(from: DateComponents(hour: 17, minute: 0)) ?? Date()
-    @State private var selectedColorIndex: Int = 0
-    @State private var sessionType: ScheduleType = .focus
+    @State private var name: String
+    @State private var days: Set<Int>
+    @State private var startTime: Date
+    @State private var endTime: Date
+    @State private var selectedColorIndex: Int
+    @State private var sessionType: ScheduleType
 
     // Logic for splitting schedule
     @State private var modifyAllDays = true
+
+    init(isPresented: Binding<Bool>, initialDay: Int? = nil, initialStartTime: Date? = nil, initialEndTime: Date? = nil, existingSchedule: Schedule? = nil) {
+        self._isPresented = isPresented
+        self.initialDay = initialDay
+        self.initialStartTime = initialStartTime
+        self.initialEndTime = initialEndTime
+        self.existingSchedule = existingSchedule
+
+        if let schedule = existingSchedule {
+            _name = State(initialValue: schedule.name)
+            _days = State(initialValue: schedule.days)
+            _startTime = State(initialValue: schedule.startTime)
+            _endTime = State(initialValue: schedule.endTime)
+            _selectedColorIndex = State(initialValue: schedule.colorIndex)
+            _sessionType = State(initialValue: schedule.type)
+        } else {
+            _name = State(initialValue: "")
+            _sessionType = State(initialValue: .focus)
+            _selectedColorIndex = State(initialValue: 0) // Will be updated in onAppear for appState access if needed, or set a default
+            
+            if let day = initialDay {
+                _days = State(initialValue: [day])
+            } else {
+                _days = State(initialValue: [2, 3, 4, 5, 6])
+            }
+
+            if let start = initialStartTime {
+                _startTime = State(initialValue: start)
+                if let end = initialEndTime {
+                    _endTime = State(initialValue: end)
+                } else {
+                    _endTime = State(initialValue: Calendar.current.date(byAdding: .hour, value: 1, to: start) ?? start)
+                }
+            } else {
+                let cal = Calendar.current
+                var startComp = DateComponents()
+                startComp.hour = 9
+                startComp.minute = 0
+                var endComp = DateComponents()
+                endComp.hour = 17
+                endComp.minute = 0
+                _startTime = State(initialValue: cal.date(from: startComp) ?? Date())
+                _endTime = State(initialValue: cal.date(from: endComp) ?? Date())
+            }
+        }
+    }
 
     var dayOrder: [Int] {
         if appState.weekStartsOnMonday {
@@ -339,44 +377,9 @@ struct AddScheduleView: View {
         .frame(width: 500, height: 650)
         .background(Color(NSColor.windowBackgroundColor))
         .onAppear {
-            if let schedule = existingSchedule {
-                name = schedule.name
-                days = schedule.days
-                startTime = schedule.startTime
-                endTime = schedule.endTime
-                selectedColorIndex = schedule.colorIndex
-                sessionType = schedule.type
-            } else {
-                // New schedule
-                name = ""
-                sessionType = .focus
+            if existingSchedule == nil {
+                // Adjust default color based on existing schedules count
                 selectedColorIndex = (appState.schedules.count % FocusColor.all.count)
-                if let day = initialDay {
-                    days = [day]
-                } else {
-                    days = [2, 3, 4, 5, 6] // Default to work week for manual add
-                }
-
-                if let start = initialStartTime {
-                    startTime = start
-                    if let end = initialEndTime {
-                        endTime = end
-                    } else {
-                        endTime = Calendar.current.date(byAdding: .hour, value: 1, to: start) ?? start
-                    }
-                } else {
-                    // Default to 9-5
-                    let cal = Calendar.current
-                    var startComp = DateComponents()
-                    startComp.hour = 9
-                    startComp.minute = 0
-                    var endComp = DateComponents()
-                    endComp.hour = 17
-                    endComp.minute = 0
-
-                    startTime = cal.date(from: startComp) ?? Date()
-                    endTime = cal.date(from: endComp) ?? Date()
-                }
             }
         }
     }

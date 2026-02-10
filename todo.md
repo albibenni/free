@@ -12,9 +12,9 @@
 - [x] integrate with google calendar?
 - [x] modes for focus:
   - [x] pomodoro:
-    - personalize timer: eg 50m focus on 15m off
-    - setting to disable calendar, if strict is off
-    - free time disable focus even with calendar enabled
+  - [x] personalize timer: eg 50m focus on 15m off
+  - [x] setting to disable calendar, if strict is off
+  - [x] free time disable focus even with calendar enabled
 
 ## Bug
 
