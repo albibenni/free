@@ -18,8 +18,8 @@
 - [ ] the take a break shouldn't be allowed if it's strict mode, either pomodoro or focus
   - [ ] with a break it should pause the pomodoro - then restart it
 - [ ] list can add websites from open list?
-    - [ ] remove list selection from general ui
-    - [ ] focus session should default to the first list - not none
+  - [ ] remove list selection from general ui
+  - [ ] focus session should default to the first list - not none
 - [ ] add default pomodoro timer - most used ones
 
 ## Bug
