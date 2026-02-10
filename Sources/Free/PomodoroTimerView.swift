@@ -93,3 +93,43 @@ struct PomodoroTimerView: View {
         durationMinutes = snappedDuration
     }
 }
+
+struct PomodoroProgressView: View {
+    let progress: Double
+    let iconName: String
+    let title: String
+    let color: Color
+    let timeString: String
+    
+    private let strokeWidth: CGFloat = 16
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            Text(title)
+                .font(.system(size: 12, weight: .black))
+                .foregroundColor(.secondary)
+            
+            ZStack {
+                // Background Circle (Track)
+                Circle()
+                    .stroke(Color.secondary.opacity(0.15), lineWidth: strokeWidth)
+                
+                // Progress Arc
+                Circle()
+                    .trim(from: 0, to: CGFloat(progress))
+                    .stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                
+                // Center Content
+                VStack(spacing: 4) {
+                    Image(systemName: iconName)
+                        .font(.system(size: 28))
+                        .foregroundColor(color.opacity(0.9))
+                    
+                    Text(timeString)
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                }
+            }
+        }
+    }
+}

@@ -240,49 +240,41 @@ struct FocusView: View {
 
                                                         } else {
 
-                                                            HStack {
+                                                            VStack(spacing: 24) {
 
-                                                                VStack(alignment: .leading, spacing: 2) {
+                                                                let total = (appState.pomodoroStatus == .focus ? appState.pomodoroFocusDuration : appState.pomodoroBreakDuration) * 60
 
-                                                                    HStack(spacing: 6) {
+                                                                PomodoroProgressView(
 
-                                                                        Image(systemName: appState.pomodoroStatus == .focus ? "leaf.fill" : "cup.and.saucer.fill")
+                                                                    progress: appState.pomodoroRemaining / total,
 
-                                                                            .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
+                                                                    iconName: appState.pomodoroStatus == .focus ? "leaf.fill" : "cup.and.saucer.fill",
 
-                                                                        Text(appState.pomodoroStatus == .focus ? "Focus Session" : "Break Time")
+                                                                    title: appState.pomodoroStatus == .focus ? "FOCUSING" : "BREAKING",
 
-                                                                            .font(.headline)
+                                                                    color: FocusColor.color(for: appState.accentColorIndex),
 
-                                                                    }
+                                                                    timeString: appState.timeString(time: appState.pomodoroRemaining)
 
-                                                                    
+                                                                )
 
-                                                                    Text(appState.timeString(time: appState.pomodoroRemaining))
-
-                                                                        .font(.system(.title3, design: .monospaced))
-
-                                                                        .bold()
-
-                                                                }
+                                                                .frame(width: 160, height: 160)
 
                                                                 
 
-                                                                Spacer()
-
-                                                                
-
-                                                                HStack(spacing: 12) {
+                                                                HStack(spacing: 20) {
 
                                                                     Button(action: { appState.skipPomodoroPhase() }) {
 
-                                                                        Image(systemName: "forward.end.fill")
+                                                                        Label("Skip", systemImage: "forward.end.fill")
 
-                                                                            .font(.title3)
+                                                                            .font(.headline)
+
+                                                                            .padding(.horizontal, 10)
 
                                                                     }
 
-                                                                    .buttonStyle(.plain)
+                                                                    .buttonStyle(.bordered)
 
                                                                     .disabled(appState.isPomodoroLocked)
 
@@ -302,19 +294,25 @@ struct FocusView: View {
 
                                                                     }) {
 
-                                                                        Image(systemName: "stop.circle.fill")
+                                                                        Label("Stop", systemImage: "stop.fill")
 
-                                                                            .font(.title)
+                                                                            .font(.headline)
 
-                                                                            .foregroundColor(.red)
+                                                                            .padding(.horizontal, 10)
 
                                                                     }
 
-                                                                    .buttonStyle(.plain)
+                                                                    .buttonStyle(.bordered)
+
+                                                                    .tint(.red)
 
                                                                 }
 
                                                             }
+
+                                                            .frame(maxWidth: .infinity)
+
+                                                            .padding(.vertical, 20)
 
                                                         }
 

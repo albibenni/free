@@ -15,8 +15,8 @@
   - [x] personalize timer: eg 50m focus on 15m off
   - [x] setting to disable calendar, if strict is off
   - [x] free time disable focus even with calendar enabled
-- [ ] the take a break shouldn't be allowed if it's strict mode, either pomodoro or focus
-  - [ ] with a break it should pause the pomodoro - then restart it
+- [x] the take a break shouldn't be allowed if it's strict mode, either pomodoro or focus
+  - [x] with a break it should pause the pomodoro - then restart it
 - [ ] list can add websites from open list?
   - [ ] remove list selection from general ui
   - [ ] focus session should default to the first list - not none
@@ -25,3 +25,4 @@
 ## Bug
 
 - [x] when first schedule it adds multiple days of the weak instead of the selected. When I schedule once more it behave correctly (select only the day selected)
+- [ ] allowd list keep rotating in the ui, why?
