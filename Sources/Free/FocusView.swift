@@ -206,7 +206,58 @@ struct FocusView: View {
     @ViewBuilder
     var pomodoroSetupView: some View {
         VStack(spacing: 20) {
+            // Header Row: Titles and List Selector
+            HStack(spacing: 0) {
+                Text("FOCUS")
+                    .font(.system(size: 12, weight: .black))
+                    .foregroundColor(.secondary)
+                    .frame(width: 160)
+
+                if !appState.ruleSets.isEmpty {
+                    Spacer()
+                    Menu {
+                        ForEach(appState.ruleSets) { set in
+                            Button(action: { appState.activeRuleSetId = set.id }) {
+                                HStack {
+                                    Text(set.name)
+                                    if appState.activeRuleSetId == set.id {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "link")
+                                .font(.caption2)
+                            Text(appState.ruleSets.first(where: { $0.id == appState.activeRuleSetId })?.name ?? "Default")
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 8))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.primary.opacity(0.05))
+                        .clipShape(Capsule())
+                    }
+                    .menuStyle(.borderlessButton)
+                    .frame(width: 100)
+                    Spacer()
+                } else {
+                    Spacer()
+                }
+
+                Text("BREAK")
+                    .font(.system(size: 12, weight: .black))
+                    .foregroundColor(.secondary)
+                    .frame(width: 160)
+            }
+            .padding(.top, 10)
+
             HStack(spacing: 30) {
+                // Focus Clock
                 VStack(spacing: 12) {
                     PomodoroTimerView(
                         durationMinutes: $appState.pomodoroFocusDuration,
@@ -234,6 +285,11 @@ struct FocusView: View {
                     }
                 }
 
+                if !appState.ruleSets.isEmpty {
+                    Spacer().frame(width: 70) // Match the Menu width gap
+                }
+
+                // Break Clock
                 VStack(spacing: 12) {
                     PomodoroTimerView(
                         durationMinutes: $appState.pomodoroBreakDuration,
@@ -263,35 +319,6 @@ struct FocusView: View {
             }
             .frame(maxWidth: .infinity)
             
-            if !appState.ruleSets.isEmpty {
-                Menu {
-                    ForEach(appState.ruleSets) { set in
-                        Button(action: { appState.activeRuleSetId = set.id }) {
-                            HStack {
-                                Text(set.name)
-                                if appState.activeRuleSetId == set.id {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                            .font(.caption)
-                        Text(appState.ruleSets.first(where: { $0.id == appState.activeRuleSetId })?.name ?? "Select List")
-                            .font(.subheadline.bold())
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                                                        .background(Color.primary.opacity(0.05))
-                                                        .clipShape(Capsule())
-                                                    }
-                                                    .menuStyle(.borderlessButton)
-                                                }
             VStack(spacing: 12) {
                 Button(action: { appState.startPomodoro() }) {
                     Text("Start Focus Session")
@@ -299,7 +326,7 @@ struct FocusView: View {
                         .padding(.horizontal, 30)
                         .padding(.vertical, 8)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
                 .tint(FocusColor.color(for: appState.accentColorIndex))
             }
             .frame(maxWidth: .infinity)
@@ -312,6 +339,10 @@ struct FocusView: View {
             let total = (appState.pomodoroStatus == .focus ? appState.pomodoroFocusDuration : appState.pomodoroBreakDuration) * 60
             
             VStack(spacing: 16) {
+                Text(appState.pomodoroStatus == .focus ? "FOCUSING" : "BREAKING")
+                    .font(.system(size: 12, weight: .black))
+                    .foregroundColor(.secondary)
+
                 ZStack {
                     PomodoroProgressView(
                         progress: appState.pomodoroRemaining / total,

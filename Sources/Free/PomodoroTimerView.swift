@@ -11,57 +11,51 @@ struct PomodoroTimerView: View {
     private let strokeWidth: CGFloat = 16
     
     var body: some View {
-        VStack(spacing: 12) {
-            Text(title)
-                .font(.system(size: 12, weight: .black))
-                .foregroundColor(.secondary)
+        GeometryReader { geometry in
+            let size = min(geometry.size.width, geometry.size.height)
+            let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+            let radius = (size - strokeWidth) / 2
             
-            GeometryReader { geometry in
-                let size = min(geometry.size.width, geometry.size.height)
-                let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                let radius = (size - strokeWidth) / 2
+            ZStack {
+                // Background Circle (Track)
+                Circle()
+                    .stroke(Color.secondary.opacity(0.15), lineWidth: strokeWidth)
+                    .frame(width: radius * 2, height: radius * 2)
                 
-                ZStack {
-                    // Background Circle (Track)
-                    Circle()
-                        .stroke(Color.secondary.opacity(0.15), lineWidth: strokeWidth)
-                        .frame(width: radius * 2, height: radius * 2)
+                // Progress Arc
+                Circle()
+                    .trim(from: 0, to: CGFloat(durationMinutes / maxMinutes))
+                    .stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: radius * 2, height: radius * 2)
+                
+                // Draggable Knob
+                Circle()
+                    .fill(color)
+                    .frame(width: knobSize, height: knobSize)
+                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                    .position(
+                        position(for: durationMinutes, radius: radius, center: center)
+                    )
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                updateDuration(location: value.location, center: center)
+                            }
+                    )
+                
+                // Center Content
+                VStack(spacing: 4) {
+                    Image(systemName: iconName)
+                        .font(.system(size: 28))
+                        .foregroundColor(color.opacity(0.9))
                     
-                    // Progress Arc
-                    Circle()
-                        .trim(from: 0, to: CGFloat(durationMinutes / maxMinutes))
-                        .stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .frame(width: radius * 2, height: radius * 2)
-                    
-                    // Draggable Knob
-                    Circle()
-                        .fill(color)
-                        .frame(width: knobSize, height: knobSize)
-                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                        .position(
-                            position(for: durationMinutes, radius: radius, center: center)
-                        )
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { value in
-                                    updateDuration(location: value.location, center: center)
-                                }
-                        )
-                    
-                    // Center Content
-                    VStack(spacing: 4) {
-                        Image(systemName: iconName)
-                            .font(.system(size: 28))
-                            .foregroundColor(color.opacity(0.9))
-                        
-                        Text("\(Int(durationMinutes))m")
-                            .font(.system(size: 20, weight: .bold, design: .monospaced))
-                    }
+                    Text("\(Int(durationMinutes))m")
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
                 }
             }
-            .aspectRatio(1, contentMode: .fit)
         }
+        .aspectRatio(1, contentMode: .fit)
     }
     
     private func position(for duration: Double, radius: CGFloat, center: CGPoint) -> CGPoint {
@@ -104,31 +98,25 @@ struct PomodoroProgressView: View {
     private let strokeWidth: CGFloat = 16
     
     var body: some View {
-        VStack(spacing: 12) {
-            Text(title)
-                .font(.system(size: 12, weight: .black))
-                .foregroundColor(.secondary)
+        ZStack {
+            // Background Circle (Track)
+            Circle()
+                .stroke(Color.secondary.opacity(0.15), lineWidth: strokeWidth)
             
-            ZStack {
-                // Background Circle (Track)
-                Circle()
-                    .stroke(Color.secondary.opacity(0.15), lineWidth: strokeWidth)
+            // Progress Arc
+            Circle()
+                .trim(from: 0, to: CGFloat(progress))
+                .stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            
+            // Center Content
+            VStack(spacing: 4) {
+                Image(systemName: iconName)
+                    .font(.system(size: 28))
+                    .foregroundColor(color.opacity(0.9))
                 
-                // Progress Arc
-                Circle()
-                    .trim(from: 0, to: CGFloat(progress))
-                    .stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                
-                // Center Content
-                VStack(spacing: 4) {
-                    Image(systemName: iconName)
-                        .font(.system(size: 28))
-                        .foregroundColor(color.opacity(0.9))
-                    
-                    Text(timeString)
-                        .font(.system(size: 20, weight: .bold, design: .monospaced))
-                }
+                Text(timeString)
+                    .font(.system(size: 20, weight: .bold, design: .monospaced))
             }
         }
     }
