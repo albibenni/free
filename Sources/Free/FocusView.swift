@@ -11,7 +11,6 @@ struct FocusView: View {
     @State private var showPomodoroChallenge = false
     @State private var pomodoroChallengeInput = ""
     @State private var isPomodoroExpanded = false
-    @State private var isRulesExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -28,7 +27,7 @@ struct FocusView: View {
             pauseDashboard
             pomodoroWidget
             schedulesWidget
-            rulesWidget
+            AllowedWebsitesWidget(showRules: $showRules)
 
             Spacer()
         }
@@ -418,128 +417,6 @@ struct FocusView: View {
             )
         }
         .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    var rulesWidget: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button(action: { withAnimation { isRulesExpanded.toggle() } }) {
-                HStack {
-                    Image(systemName: "globe")
-                        .font(.headline)
-                        .foregroundColor(.blue)
-                    Text("Allowed Websites")
-                        .font(.headline)
-                    
-                    Spacer()
-                    
-                    Image(systemName: isRulesExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if isRulesExpanded {
-                VStack(alignment: .leading, spacing: 16) {
-                    if !appState.ruleSets.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("ACTIVE LIST")
-                                .font(.caption.bold())
-                                .foregroundColor(.secondary)
-                            
-                            Menu {
-                                ForEach(appState.ruleSets) { set in
-                                    Button(action: { appState.activeRuleSetId = set.id }) {
-                                        HStack {
-                                            Text(set.name)
-                                            if appState.activeRuleSetId == set.id {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Text(appState.ruleSets.first(where: { $0.id == appState.activeRuleSetId })?.name ?? "Default")
-                                        .font(.subheadline.bold())
-                                        .lineLimit(1)
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.system(size: 8))
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
-                            }
-                            .menuStyle(.borderlessButton)
-                            .disabled(appState.isBlocking)
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("PREVIEW")
-                            .font(.caption.bold())
-                            .foregroundColor(.secondary)
-                        
-                        if appState.allowedRules.isEmpty {
-                            Text("No websites allowed in this list.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else {
-                            VStack(alignment: .leading, spacing: 4) {
-                                ForEach(appState.allowedRules.prefix(5), id: \.self) { rule in
-                                    Text("• \(rule)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                }
-                                if appState.allowedRules.count > 5 {
-                                    Text("and \(appState.allowedRules.count - 5) more...")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .italic()
-                                }
-                            }
-                        }
-                    }
-
-                    Button(action: { showRules = true }) {
-                        HStack {
-                            Text("Manage & Edit Lists")
-                            Image(systemName: "arrow.right")
-                        }
-                        .font(.subheadline.bold())
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.blue)
-                }
-                .padding([.horizontal, .bottom])
-            } else if !appState.ruleSets.isEmpty {
-                // Collapsed summary
-                HStack(spacing: 6) {
-                    Image(systemName: "link")
-                        .font(.caption2)
-                    Text(appState.ruleSets.first(where: { $0.id == appState.activeRuleSetId })?.name ?? "Default")
-                        .font(.caption.bold())
-                }
-                .foregroundColor(.blue)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-        )
     }
 
     func showCustomTimerInput() {

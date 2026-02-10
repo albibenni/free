@@ -26,4 +26,4 @@
 ## Bug
 
 - [x] when first schedule it adds multiple days of the weak instead of the selected. When I schedule once more it behave correctly (select only the day selected)
-- [ ] allowd list keep rotating in the ui, why?
+- [ ] allowd list keep rotating in the ui, why? during focus mode
