@@ -32,7 +32,7 @@ struct ContentView: View {
             SheetWrapper(title: "Allowed Websites", isPresented: $showRules) {
                 RulesView()
             }
-            .frame(width: 550, height: 650)
+            .frame(width: 700, height: 650)
         }
         .sheet(isPresented: $showSchedules) {
             SheetWrapper(title: "Schedules", isPresented: $showSchedules) {

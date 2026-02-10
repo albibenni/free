@@ -6,120 +6,157 @@ struct RulesView: View {
     @State private var newRule: String = ""
     @State private var showAddSetAlert = false
     @State private var newSetName = ""
+    @State private var isSidebarVisible = true
 
     var body: some View {
         HStack(spacing: 0) {
             // Left Sidebar: List of RuleSets
-            VStack(alignment: .leading, spacing: 0) {
-                List {
-                    Section(header: Text("Allowed Lists").font(.caption).foregroundColor(.secondary)) {
-                        ForEach(appState.ruleSets) { ruleSet in
-                            HStack {
-                                Text(ruleSet.name)
-                                    .font(.subheadline)
-                                    .fontWeight(selectedSetId == ruleSet.id ? .bold : .regular)
-                                    .foregroundColor(selectedSetId == ruleSet.id ? .primary : .secondary)
-                                    .opacity(selectedSetId == ruleSet.id ? 1.0 : 0.4)
-                                Spacer()
-                                if appState.ruleSets.count > 1 && !appState.isBlocking {
-                                    Button(action: { deleteSet(ruleSet) }) {
-                                        Image(systemName: "minus.circle")
-                                            .foregroundColor(.red.opacity(0.5))
+            if isSidebarVisible {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        Text("ALLOWED LISTS")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button(action: { showAddSetAlert = true }) {
+                            Image(systemName: "plus")
+                                .font(.caption.bold())
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.accentColor)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+
+                    ScrollView {
+                        VStack(spacing: 2) {
+                            ForEach(appState.ruleSets) { ruleSet in
+                                HStack {
+                                    Text(ruleSet.name)
+                                        .font(.subheadline)
+                                        .fontWeight(selectedSetId == ruleSet.id ? .bold : .regular)
+                                        .foregroundColor(selectedSetId == ruleSet.id ? .primary : .secondary)
+                                        .opacity(selectedSetId == ruleSet.id ? 1.0 : 0.6)
+                                        .lineLimit(1)
+                                    
+                                    Spacer()
+                                    
+                                    if appState.ruleSets.count > 1 && !appState.isBlocking {
+                                        Button(action: { deleteSet(ruleSet) }) {
+                                            Image(systemName: "minus.circle.fill")
+                                                .font(.caption)
+                                                .foregroundColor(.red.opacity(0.4))
+                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .buttonStyle(.plain)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(selectedSetId == ruleSet.id ? Color.primary.opacity(0.08) : Color.clear)
+                                .cornerRadius(6)
+                                .padding(.horizontal, 8)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if !appState.isBlocking {
+                                        selectedSetId = ruleSet.id
+                                    }
                                 }
                             }
-                            .padding(.vertical, 4)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                if !appState.isBlocking {
-                                    selectedSetId = ruleSet.id
-                                }
-                            }
-                            .listRowBackground(selectedSetId == ruleSet.id ? Color.primary.opacity(0.05) : Color.clear)
                         }
                     }
-                }
-                .listStyle(SidebarListStyle())
-                .scrollContentBackground(.hidden)
 
+                    Spacer()
+                }
+                .frame(width: 200)
+                .background(Color(NSColor.windowBackgroundColor).brightness(-0.03))
+                
                 Divider()
-
-                Button(action: { showAddSetAlert = true }) {
-                    HStack {
-                        Image(systemName: "plus.circle")
-                        Text("New List")
-                    }
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding()
-                }
-                .buttonStyle(.plain)
             }
-            .frame(width: 180)
-            .background(Color(NSColor.windowBackgroundColor).brightness(-0.02))
-
-            Divider()
 
             // Right Content: URLs in selected RuleSet
-            if let selectedSet = appState.ruleSets.first(where: { $0.id == selectedSetId }) {
-                VStack(alignment: .leading, spacing: 0) {
-                    List {
-                        ForEach(selectedSet.urls, id: \.self) { rule in
-                            HStack(alignment: .top) {
-                                Image(systemName: "link")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .padding(.top, 2)
-                                
-                                Text(rule)
-                                    .font(.system(.subheadline, design: .monospaced))
-                                    .foregroundColor(.primary.opacity(0.9))
-                                    .fixedSize(horizontal: false, vertical: true)
-                                
-                                Spacer()
-                                
-                                Button(action: {
-                                    removeRule(rule, from: selectedSet)
-                                }) {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red.opacity(0.6))
+            VStack(alignment: .leading, spacing: 0) {
+                // Header with Sidebar Toggle
+                HStack {
+                    Button(action: { withAnimation(.spring()) { isSidebarVisible.toggle() } }) {
+                        Image(systemName: isSidebarVisible ? "sidebar.left" : "sidebar.right")
+                            .font(.title3)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 16)
+
+                    if let selectedSet = appState.ruleSets.first(where: { $0.id == selectedSetId }) {
+                        Text(selectedSet.name)
+                            .font(.headline)
+                            .padding(.leading, 8)
+                    }
+                    
+                    Spacer()
+                }
+                .frame(height: 44)
+                .background(Color(NSColor.windowBackgroundColor).opacity(0.5))
+                
+                Divider()
+
+                if let selectedSet = appState.ruleSets.first(where: { $0.id == selectedSetId }) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        List {
+                            ForEach(selectedSet.urls, id: \.self) { rule in
+                                HStack(alignment: .top) {
+                                    Image(systemName: "link")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .padding(.top, 2)
+                                    
+                                    Text(rule)
+                                        .font(.system(.subheadline, design: .monospaced))
+                                        .foregroundColor(.primary.opacity(0.9))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    
+                                    Spacer()
+                                    
+                                    Button(action: {
+                                        removeRule(rule, from: selectedSet)
+                                    }) {
+                                        Image(systemName: "trash")
+                                            .foregroundColor(.red.opacity(0.6))
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
                                 }
-                                .buttonStyle(PlainButtonStyle())
+                                .padding(.vertical, 6)
                             }
-                            .padding(.vertical, 6)
                         }
-                    }
-                    .listStyle(PlainListStyle())
+                        .listStyle(PlainListStyle())
 
-                    Divider()
+                        Divider()
 
-                    HStack(spacing: 12) {
-                        TextField("Add URL to allow...", text: $newRule, onCommit: { addRule(to: selectedSet) })
-                            .textFieldStyle(.plain)
-                            .padding(8)
-                            .background(Color.primary.opacity(0.05))
-                            .cornerRadius(6)
-                        
-                        Button(action: { addRule(to: selectedSet) }) {
-                            Image(systemName: "plus")
-                                .font(.headline)
-                                .frame(width: 24, height: 24)
+                        HStack(spacing: 12) {
+                            TextField("Add URL to allow...", text: $newRule, onCommit: { addRule(to: selectedSet) })
+                                .textFieldStyle(.plain)
+                                .padding(8)
+                                .background(Color.primary.opacity(0.05))
+                                .cornerRadius(6)
+                            
+                            Button(action: { addRule(to: selectedSet) }) {
+                                Image(systemName: "plus")
+                                    .font(.headline)
+                                    .frame(width: 24, height: 24)
+                            }
+                            .disabled(newRule.isEmpty)
+                            .buttonStyle(.borderedProminent)
                         }
-                        .disabled(newRule.isEmpty)
-                        .buttonStyle(.borderedProminent)
+                        .padding(16)
                     }
-                    .padding(16)
+                } else {
+                    VStack {
+                        Text("Select a list to edit")
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-            } else {
-                VStack {
-                    Text("Select a list to edit")
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .frame(minWidth: 600, minHeight: 600)
+        .frame(minWidth: 700, minHeight: 600)
         .onAppear {
             if selectedSetId == nil {
                 selectedSetId = appState.ruleSets.first?.id
@@ -167,4 +204,3 @@ struct RulesView: View {
         }
     }
 }
-
