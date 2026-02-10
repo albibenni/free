@@ -20,6 +20,7 @@
 - [ ] list can add websites from open list?
     - [ ] remove list selection from general ui
     - [ ] focus session should default to the first list - not none
+- [ ] add default pomodoro timer - most used ones
 
 ## Bug
 

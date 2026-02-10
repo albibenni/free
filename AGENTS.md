@@ -15,20 +15,22 @@ We have selected **Option 2: Process Monitor (Swift + AppleScript)** for this pr
 ## 2. Core Functionality (Current Status)
 
 ### ✅ Implemented
-*   **Allowlist Logic (Strict Mode):** Everything is blocked unless explicitly added to the rules list.
+*   **Multiple Personalized Allowed Lists:** Users can create multiple named sets of allowed URLs and assign them to specific schedules or manual focus sessions.
+*   **Allowlist Logic (Strict Mode):** Everything is blocked unless explicitly added to the active rules list.
 *   **Real-time Monitoring:** Blocks content within ~1 second of navigation.
 *   **Interactive Weekly Calendar:** Google Calendar-style grid with drag-to-create, 15-minute snapping, and real-time time overlays.
 *   **Smart Automation:**
     *   **Focus vs Break:** Support for different session types.
     *   **Calendar Sync:** Integration with native macOS Calendar (EventKit) to treat meetings as breaks.
     *   **Schedule Splitting:** Ability to modify single occurrences of recurring schedules.
+*   **Pomodoro Timer:** Fully integrated timer with Focus and Break phases.
+    *   **Strict Mode:** When "Unblockable Mode" is active, the timer is locked for both phases (2-second grace period).
 *   **User Customization:** Personalized session colors and configurable week start (Monday vs Sunday).
 *   **Browser Support:** Extensive support for Chromium-based browsers and Safari.
 
 ### 🚧 Roadmap / Future Features
 *   **Blocklists:** Option to invert logic (Allow everything *except* bad sites).
 *   **Lockdown Mode:** Prevent quitting the app or disabling permissions during a session.
-*   **Pomodoro Timer:** Integration with short-term focus timers.
 
 ## 3. User Workflows
 *   **Focus Session:** User toggles "Focus Mode" on manually, or defines a schedule. They can only access tools required for their work.
