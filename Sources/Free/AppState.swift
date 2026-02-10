@@ -2,6 +2,8 @@ import SwiftUI
 import Combine
 
 class AppState: ObservableObject {
+    static let challengePhrase = "I am choosing to break my focus and I acknowledge that this may impact my productivity."
+    
     @Published var isBlocking = false {
         didSet {
             UserDefaults.standard.set(isBlocking, forKey: "IsBlocking")
@@ -71,6 +73,32 @@ class AppState: ObservableObject {
     // External Calendar
     @Published var calendarManager = CalendarManager()
     private var calendarCancellable: AnyCancellable?
+
+    // Pomodoro
+    enum PomodoroStatus: String, Codable {
+        case none
+        case focus
+        case breakTime
+    }
+    @Published var pomodoroStatus: PomodoroStatus = .none
+    @Published var pomodoroFocusDuration: Double = 25 {
+        didSet { UserDefaults.standard.set(pomodoroFocusDuration, forKey: "PomodoroFocusDuration") }
+    }
+    @Published var pomodoroBreakDuration: Double = 5 {
+        didSet { UserDefaults.standard.set(pomodoroBreakDuration, forKey: "PomodoroBreakDuration") }
+    }
+    @Published var pomodoroDisableCalendar: Bool = false {
+        didSet { UserDefaults.standard.set(pomodoroDisableCalendar, forKey: "PomodoroDisableCalendar") }
+    }
+    @Published var pomodoroRemaining: TimeInterval = 0
+    @Published var pomodoroStartedAt: Date?
+    private var pomodoroTimer: Timer?
+    
+    var isPomodoroLocked: Bool {
+        guard pomodoroStatus == .focus && pomodoroDisableCalendar else { return false }
+        guard let startedAt = pomodoroStartedAt else { return false }
+        return Date().timeIntervalSince(startedAt) > 10
+    }
     
     init() {
         self.isBlocking = UserDefaults.standard.bool(forKey: "IsBlocking")
@@ -82,6 +110,12 @@ class AppState: ObservableObject {
             "https://www.youtube.com/watch?v=gmuTjeQUbTM"
         ]
         
+        self.pomodoroFocusDuration = UserDefaults.standard.double(forKey: "PomodoroFocusDuration")
+        if self.pomodoroFocusDuration == 0 { self.pomodoroFocusDuration = 25 }
+        self.pomodoroBreakDuration = UserDefaults.standard.double(forKey: "PomodoroBreakDuration")
+        if self.pomodoroBreakDuration == 0 { self.pomodoroBreakDuration = 5 }
+        self.pomodoroDisableCalendar = UserDefaults.standard.bool(forKey: "PomodoroDisableCalendar")
+
         if let data = UserDefaults.standard.data(forKey: "Schedules"),
            let decoded = try? JSONDecoder().decode([Schedule].self, from: data) {
             self.schedules = decoded
@@ -115,8 +149,19 @@ class AppState: ObservableObject {
         // Check external events only if integration is enabled
         let hasExternalEvent = calendarIntegrationEnabled && calendarManager.events.contains { $0.isActive() }
         
-        // Blocking is true if we have a focus session AND no active breaks (internal or external)
-        let shouldBeBlocking = hasFocus && !hasBreak && !hasExternalEvent
+        // Default Logic: Focus AND No Break AND No Calendar Event
+        var shouldBeBlocking = hasFocus && !hasBreak && !hasExternalEvent
+
+        // Pomodoro Override
+        if pomodoroStatus == .focus {
+            if pomodoroDisableCalendar {
+                shouldBeBlocking = true
+            } else {
+                shouldBeBlocking = !hasExternalEvent
+            }
+        } else if pomodoroStatus == .breakTime {
+            shouldBeBlocking = false
+        }
         
         if shouldBeBlocking {
             if !isBlocking {
@@ -127,6 +172,60 @@ class AppState: ObservableObject {
             if isBlocking && wasStartedBySchedule {
                 isBlocking = false
                 wasStartedBySchedule = false
+            }
+        }
+    }
+
+    // MARK: - Pomodoro Logic
+    func startPomodoro() {
+        pomodoroStatus = .focus
+        pomodoroRemaining = pomodoroFocusDuration * 60
+        pomodoroStartedAt = Date()
+        startPomodoroTimer()
+        checkSchedules()
+    }
+
+    func stopPomodoro() {
+        if isPomodoroLocked { return }
+        pomodoroStatus = .none
+        pomodoroStartedAt = nil
+        pomodoroTimer?.invalidate()
+        pomodoroTimer = nil
+        checkSchedules()
+    }
+
+    func skipPomodoroPhase() {
+        if pomodoroStatus == .focus {
+            startPomodoroBreak()
+        } else if pomodoroStatus == .breakTime {
+            startPomodoro()
+        }
+    }
+
+    private func startPomodoroBreak() {
+        pomodoroStatus = .breakTime
+        pomodoroRemaining = pomodoroBreakDuration * 60
+        startPomodoroTimer()
+        checkSchedules()
+    }
+
+    private func startPomodoroTimer() {
+        pomodoroTimer?.invalidate()
+        pomodoroTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            if self.pomodoroRemaining > 0 {
+                self.pomodoroRemaining -= 1
+            } else {
+                self.pomodoroTimer?.invalidate()
+                // Auto-switch phase or stop? Let's auto-switch for now or just stop.
+                // Standard Pomodoro usually rings a bell and waits. 
+                // For this MVP, let's switch automatically or just stop.
+                // Let's try switching automatically.
+                if self.pomodoroStatus == .focus {
+                    self.startPomodoroBreak()
+                } else {
+                    self.startPomodoro()
+                }
             }
         }
     }
