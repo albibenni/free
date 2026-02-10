@@ -10,8 +10,12 @@
 - [x] fix drag - should round to 15m
   - [x] overlay showing time selected?
 - [x] integrate with google calendar?
-- [ ] modes for focus:
-  - [ ] pomodoro:
+- [x] modes for focus:
+  - [x] pomodoro:
     - personalize timer: eg 50m focus on 15m off
     - setting to disable calendar, if strict is off
     - free time disable focus even with calendar enabled
+
+## Bug
+
+- [ ] when first schedule it adds multiple days of the weak instead of the selected. When I schedule once more it behave correctly (select only the day selected)

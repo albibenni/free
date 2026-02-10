@@ -165,7 +165,7 @@ struct FocusView: View {
                                             maxMinutes: 60,
                                             iconName: "cup.and.saucer.fill",
                                             title: "BREAK",
-                                            color: .orange
+                                            color: FocusColor.color(for: appState.accentColorIndex)
                                         )
                                         .frame(width: 160, height: 160)
 
@@ -206,15 +206,14 @@ struct FocusView: View {
                                 .frame(maxWidth: .infinity)
                             }
                         } else {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: appState.pomodoroStatus == .focus ? "leaf.fill" : "cup.and.saucer.fill")
-                                            .foregroundColor(appState.pomodoroStatus == .focus ? FocusColor.color(for: appState.accentColorIndex) : .orange)
-                                        Text(appState.pomodoroStatus == .focus ? "Focus Session" : "Break Time")
-                                            .font(.headline)
-                                    }
-                                    
+                                                            HStack {
+                                                                VStack(alignment: .leading, spacing: 2) {
+                                                                    HStack(spacing: 6) {
+                                                                        Image(systemName: appState.pomodoroStatus == .focus ? "leaf.fill" : "cup.and.saucer.fill")
+                                                                            .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
+                                                                        Text(appState.pomodoroStatus == .focus ? "Focus Session" : "Break Time")
+                                                                            .font(.headline)
+                                                                    }                                    
                                     Text(appState.timeString(time: appState.pomodoroRemaining))
                                         .font(.system(.title3, design: .monospaced))
                                         .bold()
