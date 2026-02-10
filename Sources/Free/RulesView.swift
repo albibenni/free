@@ -11,8 +11,8 @@ struct RulesView: View {
     var body: some View {
         HStack(spacing: 0) {
             // Left Sidebar: List of RuleSets
-            if isSidebarVisible {
-                VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                if isSidebarVisible {
                     HStack {
                         Text("ALLOWED LISTS")
                             .font(.caption.bold())
@@ -64,26 +64,31 @@ struct RulesView: View {
                             }
                         }
                     }
-
-                    Spacer()
                 }
-                .frame(width: 200)
-                .background(Color(NSColor.windowBackgroundColor).brightness(-0.03))
-                
+                Spacer()
+            }
+            .frame(width: isSidebarVisible ? 200 : 0)
+            .background(Color(NSColor.windowBackgroundColor).brightness(-0.03))
+            .clipped()
+            
+            if isSidebarVisible {
                 Divider()
             }
 
             // Right Content: URLs in selected RuleSet
             VStack(alignment: .leading, spacing: 0) {
-                // Header with Sidebar Toggle
+                // Header with Chevron Toggle
                 HStack {
-                    Button(action: { withAnimation(.spring()) { isSidebarVisible.toggle() } }) {
-                        Image(systemName: isSidebarVisible ? "sidebar.left" : "sidebar.right")
-                            .font(.title3)
+                    Button(action: { withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { isSidebarVisible.toggle() } }) {
+                        Image(systemName: isSidebarVisible ? "chevron.left" : "chevron.right")
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.secondary)
+                            .frame(width: 24, height: 24)
+                            .background(Color.primary.opacity(0.05))
+                            .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .padding(.leading, 16)
+                    .padding(.leading, 12)
 
                     if let selectedSet = appState.ruleSets.first(where: { $0.id == selectedSetId }) {
                         Text(selectedSet.name)
@@ -159,7 +164,7 @@ struct RulesView: View {
         .frame(minWidth: 700, minHeight: 600)
         .onAppear {
             if selectedSetId == nil {
-                selectedSetId = appState.ruleSets.first?.id
+                selectedSetId = appState.currentPrimaryRuleSetId
             }
         }
         .alert("New Allowed List", isPresented: $showAddSetAlert) {

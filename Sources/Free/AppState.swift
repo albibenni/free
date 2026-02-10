@@ -108,6 +108,21 @@ class AppState: ObservableObject {
         return isBlocking && isUnblockable
     }
 
+    var currentPrimaryRuleSetId: UUID? {
+        // Priority 1: Manual focus or Pomodoro session
+        if (isBlocking && !wasStartedBySchedule) || pomodoroStatus == .focus {
+            return activeRuleSetId ?? ruleSets.first?.id
+        }
+        
+        // Priority 2: Active schedule
+        if let activeSchedule = schedules.first(where: { $0.isActive() && $0.type == .focus }) {
+            return activeSchedule.ruleSetId ?? ruleSets.first?.id
+        }
+        
+        // Default to active manual selection or first set
+        return activeRuleSetId ?? ruleSets.first?.id
+    }
+
     var allowedRules: [String] {
         var urls = Set<String>()
         
