@@ -360,6 +360,7 @@ struct AddScheduleView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(sessionType == .focus ? FocusColor.color(for: appState.accentColorIndex) : .orange)
                     .disabled(days.isEmpty && modifyAllDays)
+                    .keyboardShortcut(.defaultAction)
 
                     if existingSchedule != nil {
                         Button(action: deleteSchedule) {

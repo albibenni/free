@@ -15,7 +15,8 @@
   - [x] personalize timer: eg 50m focus on 15m off
   - [x] setting to disable calendar, if strict is off
   - [x] free time disable focus even with calendar enabled
+- [ ] the take a break shouldn't be allowed if it's strict mode, either pomodoro or focus
 
 ## Bug
 
-- [ ] when first schedule it adds multiple days of the weak instead of the selected. When I schedule once more it behave correctly (select only the day selected)
+- [x] when first schedule it adds multiple days of the weak instead of the selected. When I schedule once more it behave correctly (select only the day selected)
