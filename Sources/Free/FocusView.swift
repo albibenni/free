@@ -206,47 +206,15 @@ struct FocusView: View {
     @ViewBuilder
     var pomodoroSetupView: some View {
         VStack(spacing: 20) {
-            // Header Row: Titles and List Selector
+            // Header Row: Titles
             HStack(spacing: 30) {
                 Text("FOCUS")
-                    .font(.system(size: 12, weight: .black))
+                    .font(.system(size: 14, weight: .black))
                     .foregroundColor(.secondary)
                     .frame(width: 160)
 
-                if !appState.ruleSets.isEmpty {
-                    Menu {
-                        ForEach(appState.ruleSets) { set in
-                            Button(action: { appState.activeRuleSetId = set.id }) {
-                                HStack {
-                                    Text(set.name)
-                                    if appState.activeRuleSetId == set.id {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "link")
-                                .font(.caption2)
-                            Text(appState.ruleSets.first(where: { $0.id == appState.activeRuleSetId })?.name ?? "Default")
-                                .font(.caption.bold())
-                                .lineLimit(1)
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 8))
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.primary.opacity(0.05))
-                        .clipShape(Capsule())
-                    }
-                    .menuStyle(.borderlessButton)
-                    .frame(width: 100) // Slightly wider to ensure it doesn't wrap
-                }
-
                 Text("BREAK")
-                    .font(.system(size: 12, weight: .black))
+                    .font(.system(size: 14, weight: .black))
                     .foregroundColor(.secondary)
                     .frame(width: 160)
             }
@@ -259,7 +227,7 @@ struct FocusView: View {
                         durationMinutes: $appState.pomodoroFocusDuration,
                         maxMinutes: 120,
                         iconName: "leaf.fill",
-                        title: "FOCUS",
+                        title: "",
                         color: FocusColor.color(for: appState.accentColorIndex)
                     )
                     .frame(width: 160, height: 160)
@@ -281,17 +249,13 @@ struct FocusView: View {
                     }
                 }
 
-                if !appState.ruleSets.isEmpty {
-                    Spacer().frame(width: 100) // Match the Menu width
-                }
-
                 // Break Clock
                 VStack(spacing: 12) {
                     PomodoroTimerView(
                         durationMinutes: $appState.pomodoroBreakDuration,
                         maxMinutes: 60,
                         iconName: "cup.and.saucer.fill",
-                        title: "BREAK",
+                        title: "",
                         color: FocusColor.color(for: appState.accentColorIndex)
                     )
                     .frame(width: 160, height: 160)
@@ -336,14 +300,14 @@ struct FocusView: View {
             
             VStack(spacing: 16) {
                 Text(appState.pomodoroStatus == .focus ? "FOCUSING" : "BREAKING")
-                    .font(.system(size: 12, weight: .black))
+                    .font(.system(size: 14, weight: .black))
                     .foregroundColor(.secondary)
 
                 ZStack {
                     PomodoroProgressView(
                         progress: appState.pomodoroRemaining / total,
                         iconName: appState.pomodoroStatus == .focus ? "leaf.fill" : "cup.and.saucer.fill",
-                        title: appState.pomodoroStatus == .focus ? "FOCUSING" : "BREAKING",
+                        title: "",
                         color: FocusColor.color(for: appState.accentColorIndex),
                         timeString: appState.timeString(time: appState.pomodoroRemaining)
                     )
@@ -465,37 +429,69 @@ struct FocusView: View {
                         .foregroundColor(.blue)
                     Text("Allowed Websites")
                         .font(.headline)
+                    
                     Spacer()
-                    Text("\(appState.allowedRules.count)")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.2))
-                        .cornerRadius(10)
+                    
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                }
+
+                if !appState.ruleSets.isEmpty {
+                    Menu {
+                        ForEach(appState.ruleSets) { set in
+                            Button(action: { appState.activeRuleSetId = set.id }) {
+                                HStack {
+                                    Text(set.name)
+                                    if appState.activeRuleSetId == set.id {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                        Divider()
+                        Button("Manage Lists...") {
+                            showRules = true
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(appState.ruleSets.first(where: { $0.id == appState.activeRuleSetId })?.name ?? "Default")
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 8))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .disabled(appState.isBlocking)
                 }
 
                 if appState.allowedRules.isEmpty {
                     Text("No websites allowed. Click to add.")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(appState.allowedRules.prefix(3), id: \.self) { rule in
                             Text("• \(rule)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
                         }
                         if appState.allowedRules.count > 3 {
                             Text("and \(appState.allowedRules.count - 3) more...")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .italic()
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .italic()
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding()
