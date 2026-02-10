@@ -92,16 +92,23 @@ struct FocusView: View {
                             .stroke(Color.orange.opacity(0.3), lineWidth: 1)
                     )
                 } else {
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 10) {
                         Text("Take a break:")
                             .font(.caption)
                             .foregroundColor(.secondary)
 
-                        HStack {
-                            Button("5m") { appState.startPause(minutes: 5) }
-                            Button("15m") { appState.startPause(minutes: 15) }
-                            Button("30m") { appState.startPause(minutes: 30) }
-                            Button("Custom") { showCustomTimerInput() }
+                        if appState.isStrictActive {
+                            Text("Breaks are disabled in Strict Mode.")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .italic()
+                        } else {
+                            HStack {
+                                Button("5m") { appState.startPause(minutes: 5) }
+                                Button("15m") { appState.startPause(minutes: 15) }
+                                Button("30m") { appState.startPause(minutes: 30) }
+                                Button("Custom") { showCustomTimerInput() }
+                            }
                         }
                     }
                 }
@@ -188,89 +195,167 @@ struct FocusView: View {
                                 }
                                 .frame(maxWidth: .infinity)
 
-                                VStack(spacing: 12) {
-                                    Button(action: { appState.startPomodoro() }) {
-                                        Text("Start Focus Session")
-                                            .font(.headline)
-                                            .padding(.horizontal, 30)
-                                            .padding(.vertical, 8)
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .tint(FocusColor.color(for: appState.accentColorIndex))
-                                    
-                                    Toggle("Strict Mode", isOn: $appState.pomodoroDisableCalendar)
-                                        .toggleStyle(.checkbox)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .frame(maxWidth: .infinity)
-                            }
-                        } else {
-                                                            HStack {
-                                                                VStack(alignment: .leading, spacing: 2) {
-                                                                    HStack(spacing: 6) {
-                                                                        Image(systemName: appState.pomodoroStatus == .focus ? "leaf.fill" : "cup.and.saucer.fill")
-                                                                            .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
-                                                                        Text(appState.pomodoroStatus == .focus ? "Focus Session" : "Break Time")
+                                                                VStack(spacing: 12) {
+
+                                                                    Button(action: { appState.startPomodoro() }) {
+
+                                                                        Text("Start Focus Session")
+
                                                                             .font(.headline)
-                                                                    }                                    
-                                    Text(appState.timeString(time: appState.pomodoroRemaining))
-                                        .font(.system(.title3, design: .monospaced))
-                                        .bold()
-                                }
-                                
-                                Spacer()
-                                
-                                HStack(spacing: 12) {
-                                    Button(action: { appState.skipPomodoroPhase() }) {
-                                        Image(systemName: "forward.end.fill")
-                                            .font(.title3)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .disabled(appState.isPomodoroLocked)
-                                    
-                                    Button(action: { 
-                                        if appState.isPomodoroLocked {
-                                            showPomodoroChallenge = true
-                                        } else {
-                                            appState.stopPomodoro()
-                                        }
-                                    }) {
-                                        Image(systemName: "stop.circle.fill")
-                                            .font(.title)
-                                            .foregroundColor(.red)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 12)
-                }
-            }
-            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-            )
-            .alert("Emergency Unlock", isPresented: $showPomodoroChallenge) {
-                TextField("Type the phrase exactly", text: $pomodoroChallengeInput)
-                Button("Stop Pomodoro", role: .destructive) {
-                    if pomodoroChallengeInput == AppState.challengePhrase {
-                        // Bypass lock to stop
-                        appState.pomodoroDisableCalendar = false
-                        appState.stopPomodoro()
-                    }
-                    pomodoroChallengeInput = ""
-                }
-                Button("Cancel", role: .cancel) {
-                    pomodoroChallengeInput = ""
-                }
-            } message: {
-                Text("To stop a Strict Pomodoro session, you must type the following exactly:\n\n\"\(AppState.challengePhrase)\"")
-            }
+
+                                                                            .padding(.horizontal, 30)
+
+                                                                            .padding(.vertical, 8)
+
+                                                                    }
+
+                                                                    .buttonStyle(.bordered)
+
+                                                                    .tint(FocusColor.color(for: appState.accentColorIndex))
+
+                                                                }
+
+                                                                .frame(maxWidth: .infinity)
+
+                                                            }
+
+                                                        } else {
+
+                                                            HStack {
+
+                                                                VStack(alignment: .leading, spacing: 2) {
+
+                                                                    HStack(spacing: 6) {
+
+                                                                        Image(systemName: appState.pomodoroStatus == .focus ? "leaf.fill" : "cup.and.saucer.fill")
+
+                                                                            .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
+
+                                                                        Text(appState.pomodoroStatus == .focus ? "Focus Session" : "Break Time")
+
+                                                                            .font(.headline)
+
+                                                                    }
+
+                                                                    
+
+                                                                    Text(appState.timeString(time: appState.pomodoroRemaining))
+
+                                                                        .font(.system(.title3, design: .monospaced))
+
+                                                                        .bold()
+
+                                                                }
+
+                                                                
+
+                                                                Spacer()
+
+                                                                
+
+                                                                HStack(spacing: 12) {
+
+                                                                    Button(action: { appState.skipPomodoroPhase() }) {
+
+                                                                        Image(systemName: "forward.end.fill")
+
+                                                                            .font(.title3)
+
+                                                                    }
+
+                                                                    .buttonStyle(.plain)
+
+                                                                    .disabled(appState.isPomodoroLocked)
+
+                                                                    
+
+                                                                    Button(action: { 
+
+                                                                        if appState.isPomodoroLocked {
+
+                                                                            showPomodoroChallenge = true
+
+                                                                        } else {
+
+                                                                            appState.stopPomodoro()
+
+                                                                        }
+
+                                                                    }) {
+
+                                                                        Image(systemName: "stop.circle.fill")
+
+                                                                            .font(.title)
+
+                                                                            .foregroundColor(.red)
+
+                                                                    }
+
+                                                                    .buttonStyle(.plain)
+
+                                                                }
+
+                                                            }
+
+                                                        }
+
+                                                    }
+
+                                                    .padding(.horizontal, 12)
+
+                                                    .padding(.bottom, 12)
+
+                                                }
+
+                                            }
+
+                                            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+
+                                            .cornerRadius(12)
+
+                                            .overlay(
+
+                                                RoundedRectangle(cornerRadius: 12)
+
+                                                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+
+                                            )
+
+                                            .alert("Emergency Unlock", isPresented: $showPomodoroChallenge) {
+
+                                                TextField("Type the phrase exactly", text: $pomodoroChallengeInput)
+
+                                                Button("Stop Pomodoro", role: .destructive) {
+
+                                                    if pomodoroChallengeInput == AppState.challengePhrase {
+
+                                                        // To stop a locked pomodoro, we temporarily disable unblockable mode
+
+                                                        let wasUnblockable = appState.isUnblockable
+
+                                                        appState.isUnblockable = false
+
+                                                        appState.stopPomodoro()
+
+                                                        appState.isUnblockable = wasUnblockable
+
+                                                    }
+
+                                                    pomodoroChallengeInput = ""
+
+                                                }
+
+                                                Button("Cancel", role: .cancel) {
+
+                                                    pomodoroChallengeInput = ""
+
+                                                }
+
+                                            } message: {
+
+                                                Text("To stop a Strict Pomodoro session, you must type the following exactly:\n\n\"\(AppState.challengePhrase)\"")
+
+                                            }
 
             // Schedules Widget (Card)
             Button(action: { showSchedules = true }) {

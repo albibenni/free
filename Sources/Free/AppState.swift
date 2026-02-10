@@ -87,17 +87,18 @@ class AppState: ObservableObject {
     @Published var pomodoroBreakDuration: Double = 5 {
         didSet { UserDefaults.standard.set(pomodoroBreakDuration, forKey: "PomodoroBreakDuration") }
     }
-    @Published var pomodoroDisableCalendar: Bool = false {
-        didSet { UserDefaults.standard.set(pomodoroDisableCalendar, forKey: "PomodoroDisableCalendar") }
-    }
     @Published var pomodoroRemaining: TimeInterval = 0
     @Published var pomodoroStartedAt: Date?
     private var pomodoroTimer: Timer?
     
     var isPomodoroLocked: Bool {
-        guard pomodoroStatus == .focus && pomodoroDisableCalendar else { return false }
+        guard isUnblockable && pomodoroStatus == .focus else { return false }
         guard let startedAt = pomodoroStartedAt else { return false }
         return Date().timeIntervalSince(startedAt) > 10
+    }
+
+    var isStrictActive: Bool {
+        return isBlocking && isUnblockable
     }
     
     init() {
@@ -114,7 +115,6 @@ class AppState: ObservableObject {
         if self.pomodoroFocusDuration == 0 { self.pomodoroFocusDuration = 25 }
         self.pomodoroBreakDuration = UserDefaults.standard.double(forKey: "PomodoroBreakDuration")
         if self.pomodoroBreakDuration == 0 { self.pomodoroBreakDuration = 5 }
-        self.pomodoroDisableCalendar = UserDefaults.standard.bool(forKey: "PomodoroDisableCalendar")
 
         if let data = UserDefaults.standard.data(forKey: "Schedules"),
            let decoded = try? JSONDecoder().decode([Schedule].self, from: data) {
@@ -150,11 +150,20 @@ class AppState: ObservableObject {
         let hasExternalEvent = calendarIntegrationEnabled && calendarManager.events.contains { $0.isActive() }
         
         // Default Logic: Focus AND No Break AND No Calendar Event
-        var shouldBeBlocking = hasFocus && !hasBreak && !hasExternalEvent
+        // If isUnblockable is true, we ignore hasExternalEvent (treat meetings as focus)
+        var shouldBeBlocking = false
+        
+        if isUnblockable {
+            // Strict: Blocking if ANY focus session is active, ignoring external events
+            shouldBeBlocking = hasFocus && !hasBreak
+        } else {
+            // Normal: Blocking if focus active, but unblock for breaks or meetings
+            shouldBeBlocking = hasFocus && !hasBreak && !hasExternalEvent
+        }
 
         // Pomodoro Override
         if pomodoroStatus == .focus {
-            if pomodoroDisableCalendar {
+            if isUnblockable {
                 shouldBeBlocking = true
             } else {
                 shouldBeBlocking = !hasExternalEvent
