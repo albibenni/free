@@ -76,7 +76,7 @@ struct FocusView: View {
                     }
                     .pickerStyle(.menu)
                     .labelsHidden()
-                    .disabled(appState.isBlocking && appState.isUnblockable)
+                    .disabled(appState.isBlocking)
                 }
                 .padding(.horizontal)
             }

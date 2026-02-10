@@ -16,8 +16,10 @@
   - [x] setting to disable calendar, if strict is off
   - [x] free time disable focus even with calendar enabled
 - [ ] the take a break shouldn't be allowed if it's strict mode, either pomodoro or focus
-    - [ ] with a break it should pause the pomodoro - then restart it
+  - [ ] with a break it should pause the pomodoro - then restart it
 - [ ] list can add websites from open list?
+    - [ ] remove list selection from general ui
+    - [ ] focus session should default to the first list - not none
 
 ## Bug
 
