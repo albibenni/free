@@ -24,12 +24,16 @@ struct SchedulesView: View {
                 // List View
                 List {
                     ForEach($appState.schedules) { $schedule in
-                        ScheduleRow(schedule: $schedule)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedSchedule = schedule
-                                showingAddSchedule = true
+                        ScheduleRow(schedule: $schedule, onDelete: {
+                            if let index = appState.schedules.firstIndex(where: { $0.id == schedule.id }) {
+                                appState.schedules.remove(at: index)
                             }
+                        })
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedSchedule = schedule
+                            showingAddSchedule = true
+                        }
                     }
                     .onDelete { indexSet in
                         appState.schedules.remove(atOffsets: indexSet)
@@ -82,6 +86,7 @@ struct SchedulesView: View {
 
 struct ScheduleRow: View {
     @Binding var schedule: Schedule
+    var onDelete: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -108,8 +113,21 @@ struct ScheduleRow: View {
                     .cornerRadius(4)
             }
             Spacer()
-            Toggle("", isOn: $schedule.isEnabled)
-                .toggleStyle(.switch)
+
+            HStack(spacing: 12) {
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+
+                Toggle("", isOn: $schedule.isEnabled)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .labelsHidden()
+            }
+            .fixedSize()
         }
         .padding(.vertical, 4)
     }
