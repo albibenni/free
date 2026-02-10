@@ -50,12 +50,6 @@ struct FocusView: View {
                         .foregroundColor(.secondary)
                 }
                 Spacer()
-                Toggle("", isOn: Binding(
-                    get: { appState.isBlocking },
-                    set: { _ in appState.toggleBlocking() }
-                ))
-                    .toggleStyle(.switch)
-                    .disabled(appState.isBlocking && appState.isUnblockable)
             }
             .padding()
             .background(Color(NSColor.controlBackgroundColor))

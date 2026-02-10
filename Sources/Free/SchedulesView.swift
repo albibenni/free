@@ -57,18 +57,15 @@ struct SchedulesView: View {
                 selectedSchedule = nil
                 showingAddSchedule = true
             }) {
-                HStack {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Add Schedule")
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(FocusColor.color(for: appState.accentColorIndex))
-                .foregroundColor(.white)
-                .cornerRadius(12)
+                Text("Add Schedule")
+                    .font(.headline)
+                    .padding(.horizontal, 30)
+                    .padding(.vertical, 8)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.bordered)
+            .tint(FocusColor.color(for: appState.accentColorIndex))
             .padding()
+            .frame(maxWidth: .infinity)
         }
         .sheet(isPresented: $showingAddSchedule) {
             AddScheduleView(
