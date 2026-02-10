@@ -207,14 +207,13 @@ struct FocusView: View {
     var pomodoroSetupView: some View {
         VStack(spacing: 20) {
             // Header Row: Titles and List Selector
-            HStack(spacing: 0) {
+            HStack(spacing: 30) {
                 Text("FOCUS")
                     .font(.system(size: 12, weight: .black))
                     .foregroundColor(.secondary)
                     .frame(width: 160)
 
                 if !appState.ruleSets.isEmpty {
-                    Spacer()
                     Menu {
                         ForEach(appState.ruleSets) { set in
                             Button(action: { appState.activeRuleSetId = set.id }) {
@@ -243,10 +242,7 @@ struct FocusView: View {
                         .clipShape(Capsule())
                     }
                     .menuStyle(.borderlessButton)
-                    .frame(width: 100)
-                    Spacer()
-                } else {
-                    Spacer()
+                    .frame(width: 100) // Slightly wider to ensure it doesn't wrap
                 }
 
                 Text("BREAK")
@@ -286,7 +282,7 @@ struct FocusView: View {
                 }
 
                 if !appState.ruleSets.isEmpty {
-                    Spacer().frame(width: 70) // Match the Menu width gap
+                    Spacer().frame(width: 100) // Match the Menu width
                 }
 
                 // Break Clock
