@@ -152,6 +152,7 @@ struct AddScheduleView: View {
     @State private var endTime: Date
     @State private var selectedColorIndex: Int
     @State private var sessionType: ScheduleType
+    @State private var ruleSetId: UUID?
 
     // Logic for splitting schedule
     @State private var modifyAllDays = true
@@ -170,10 +171,12 @@ struct AddScheduleView: View {
             _endTime = State(initialValue: schedule.endTime)
             _selectedColorIndex = State(initialValue: schedule.colorIndex)
             _sessionType = State(initialValue: schedule.type)
+            _ruleSetId = State(initialValue: schedule.ruleSetId)
         } else {
             _name = State(initialValue: "")
             _sessionType = State(initialValue: .focus)
             _selectedColorIndex = State(initialValue: 0) // Will be updated in onAppear for appState access if needed, or set a default
+            _ruleSetId = State(initialValue: nil)
             
             if let day = initialDay {
                 _days = State(initialValue: [day])
@@ -229,151 +232,169 @@ struct AddScheduleView: View {
 
             Divider()
 
-            VStack(alignment: .leading, spacing: 20) {
-                // Session Type
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("SESSION TYPE")
-                        .font(.caption.bold())
-                        .foregroundColor(.secondary)
-
-                    Picker("", selection: $sessionType) {
-                        ForEach(ScheduleType.allCases, id: \.self) { type in
-                            Label(type.rawValue, systemImage: type == .focus ? "target" : "cup.and.saucer.fill")
-                                .tag(type)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-
-                // Edit Scope (if applicable)
-                if existingSchedule != nil && initialDay != nil && (existingSchedule?.days.count ?? 0) > 1 {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Session Type
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("EDIT SCOPE")
+                        Text("SESSION TYPE")
                             .font(.caption.bold())
                             .foregroundColor(.secondary)
 
-                        Picker("", selection: $modifyAllDays) {
-                            Text("All Days").tag(true)
-                            Text("Only \(dayName(for: initialDay!))").tag(false)
+                        Picker("", selection: $sessionType) {
+                            ForEach(ScheduleType.allCases, id: \.self) { type in
+                                Label(type.rawValue, systemImage: type == .focus ? "target" : "cup.and.saucer.fill")
+                                    .tag(type)
+                            }
                         }
                         .pickerStyle(.segmented)
                     }
-                }
 
-                // Name
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("SCHEDULE NAME")
-                        .font(.caption.bold())
-                        .foregroundColor(.secondary)
-                    TextField(sessionType == .focus ? "Focus Session" : "Break Session", text: $name)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.title3)
-                }
+                    if sessionType == .focus {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("ALLOWED LIST")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
 
-                // Color Selection
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("THEME COLOR")
-                        .font(.caption.bold())
-                        .foregroundColor(.secondary)
-
-                    HStack(spacing: 12) {
-                        ForEach(0..<FocusColor.all.count, id: \.self) { index in
-                            Circle()
-                                .fill(FocusColor.all[index])
-                                .frame(width: 30, height: 30)
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.primary, lineWidth: selectedColorIndex == index ? 2 : 0)
-                                        .padding(-4)
-                                )
-                                .contentShape(Circle())
-                                .onTapGesture {
-                                    selectedColorIndex = index
+                            Picker("", selection: $ruleSetId) {
+                                Text("None").tag(UUID?.none)
+                                Divider()
+                                ForEach(appState.ruleSets) { set in
+                                    Text(set.name).tag(UUID?.some(set.id))
                                 }
+                            }
                         }
                     }
-                }
 
-                // Times
-                HStack(spacing: 40) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("START TIME")
-                            .font(.caption.bold())
-                            .foregroundColor(.secondary)
-                        DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .datePickerStyle(.field)
-                            .scaleEffect(1.1)
-                            .frame(width: 90, height: 35)
+                    // Edit Scope (if applicable)
+                    if existingSchedule != nil && initialDay != nil && (existingSchedule?.days.count ?? 0) > 1 {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("EDIT SCOPE")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+
+                            Picker("", selection: $modifyAllDays) {
+                                Text("All Days").tag(true)
+                                Text("Only \(dayName(for: initialDay!))").tag(false)
+                            }
+                            .pickerStyle(.segmented)
+                        }
                     }
 
+                    // Name
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("END TIME")
+                        Text("SCHEDULE NAME")
                             .font(.caption.bold())
                             .foregroundColor(.secondary)
-                        DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .datePickerStyle(.field)
-                            .scaleEffect(1.1)
-                            .frame(width: 90, height: 35)
+                        TextField(sessionType == .focus ? "Focus Session" : "Break Session", text: $name)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.title3)
                     }
-                }
 
-                // Days
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("DAYS OF THE WEEK")
-                        .font(.caption.bold())
-                        .foregroundColor(.secondary)
+                    // Color Selection
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("THEME COLOR")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
 
-                    if existingSchedule != nil && !modifyAllDays, let singleDay = initialDay {
-                        Text(dayName(for: singleDay))
-                            .font(.headline)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
-                    } else {
                         HStack(spacing: 12) {
-                            ForEach(dayOrder, id: \.self) { day in
-                                DayToggle(day: day, isSelected: days.contains(day)) {
-                                    if days.contains(day) {
-                                        days.remove(day)
-                                    } else {
-                                        days.insert(day)
+                            ForEach(0..<FocusColor.all.count, id: \.self) { index in
+                                Circle()
+                                    .fill(FocusColor.all[index])
+                                    .frame(width: 30, height: 30)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.primary, lineWidth: selectedColorIndex == index ? 2 : 0)
+                                            .padding(-4)
+                                    )
+                                    .contentShape(Circle())
+                                    .onTapGesture {
+                                        selectedColorIndex = index
+                                    }
+                            }
+                        }
+                    }
+
+                    // Times
+                    HStack(spacing: 40) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("START TIME")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                            DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                                .datePickerStyle(.field)
+                                .scaleEffect(1.1)
+                                .frame(width: 90, height: 35)
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("END TIME")
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                            DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                                .datePickerStyle(.field)
+                                .scaleEffect(1.1)
+                                .frame(width: 90, height: 35)
+                        }
+                    }
+
+                    // Days
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("DAYS OF THE WEEK")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+
+                        if existingSchedule != nil && !modifyAllDays, let singleDay = initialDay {
+                            Text(dayName(for: singleDay))
+                                .font(.headline)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(8)
+                        } else {
+                            HStack(spacing: 12) {
+                                ForEach(dayOrder, id: \.self) { day in
+                                    DayToggle(day: day, isSelected: days.contains(day)) {
+                                        if days.contains(day) {
+                                            days.remove(day)
+                                        } else {
+                                            days.insert(day)
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                Spacer(minLength: 10)
+                    Spacer(minLength: 10)
 
-                // Action Buttons
-                VStack(spacing: 12) {
-                    Button(action: saveSchedule) {
-                        Text(existingSchedule == nil ? (sessionType == .focus ? "Add Focus Session" : "Add Break Session") : "Save Changes")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(sessionType == .focus ? FocusColor.color(for: appState.accentColorIndex) : .orange)
-                    .disabled(days.isEmpty && modifyAllDays)
-                    .keyboardShortcut(.defaultAction)
-
-                    if existingSchedule != nil {
-                        Button(action: deleteSchedule) {
-                            Text("Delete Schedule")
-                                .foregroundColor(.red)
-                                .font(.subheadline)
+                    // Action Buttons
+                    VStack(spacing: 12) {
+                        Button(action: saveSchedule) {
+                            Text(existingSchedule == nil ? (sessionType == .focus ? "Add Focus Session" : "Add Break Session") : "Save Changes")
+                                .font(.headline)
                                 .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.borderedProminent)
+                        .tint(sessionType == .focus ? FocusColor.color(for: appState.accentColorIndex) : .orange)
+                        .disabled(days.isEmpty && modifyAllDays)
+                        .keyboardShortcut(.defaultAction)
+
+                        if existingSchedule != nil {
+                            Button(action: deleteSchedule) {
+                                Text("Delete Schedule")
+                                    .foregroundColor(.red)
+                                    .font(.subheadline)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
+                .padding(25)
             }
-            .padding(25)
         }
         .frame(width: 500, height: 650)
         .background(Color(NSColor.windowBackgroundColor))
@@ -381,6 +402,7 @@ struct AddScheduleView: View {
             if existingSchedule == nil {
                 // Adjust default color based on existing schedules count
                 selectedColorIndex = (appState.schedules.count % FocusColor.all.count)
+                ruleSetId = appState.ruleSets.first?.id
             }
         }
     }
@@ -398,12 +420,13 @@ struct AddScheduleView: View {
                 appState.schedules[index].endTime = endTime
                 appState.schedules[index].colorIndex = selectedColorIndex
                 appState.schedules[index].type = sessionType
+                appState.schedules[index].ruleSetId = ruleSetId
             } else if let dayToRemove = initialDay {
                 appState.schedules[index].days.remove(dayToRemove)
                 if appState.schedules[index].days.isEmpty {
                     appState.schedules.remove(at: index)
                 }
-                let newSchedule = Schedule(name: finalName, days: [dayToRemove], startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex, type: sessionType)
+                let newSchedule = Schedule(name: finalName, days: [dayToRemove], startTime: startTime, endTime: endTime, colorIndex: selectedColorIndex, type: sessionType, ruleSetId: ruleSetId)
                 appState.schedules.append(newSchedule)
             }
         } else {
@@ -413,7 +436,8 @@ struct AddScheduleView: View {
                 startTime: startTime,
                 endTime: endTime,
                 colorIndex: selectedColorIndex,
-                type: sessionType
+                type: sessionType,
+                ruleSetId: ruleSetId
             )
             appState.schedules.append(newSchedule)
         }

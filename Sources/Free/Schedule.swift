@@ -14,6 +14,7 @@ struct Schedule: Identifiable, Codable, Equatable {
     var isEnabled: Bool = true
     var colorIndex: Int = 0
     var type: ScheduleType = .focus
+    var ruleSetId: UUID? = nil
 
     static func defaultSchedule() -> Schedule {
         let calendar = Calendar.current

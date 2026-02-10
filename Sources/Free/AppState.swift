@@ -45,9 +45,16 @@ class AppState: ObservableObject {
             checkSchedules()
         }
     }
-    @Published var allowedRules: [String] = [] {
+    @Published var ruleSets: [RuleSet] = [] {
         didSet {
-            UserDefaults.standard.set(allowedRules, forKey: "AllowedRules")
+            if let encoded = try? JSONEncoder().encode(ruleSets) {
+                UserDefaults.standard.set(encoded, forKey: "RuleSets")
+            }
+        }
+    }
+    @Published var activeRuleSetId: UUID? = nil {
+        didSet {
+            UserDefaults.standard.set(activeRuleSetId?.uuidString, forKey: "ActiveRuleSetId")
         }
     }
     
@@ -92,13 +99,46 @@ class AppState: ObservableObject {
     private var pomodoroTimer: Timer?
     
     var isPomodoroLocked: Bool {
-        guard isUnblockable && pomodoroStatus == .focus else { return false }
+        guard isUnblockable && (pomodoroStatus == .focus || pomodoroStatus == .breakTime) else { return false }
         guard let startedAt = pomodoroStartedAt else { return false }
         return Date().timeIntervalSince(startedAt) > 10
     }
 
     var isStrictActive: Bool {
         return isBlocking && isUnblockable
+    }
+
+    var allowedRules: [String] {
+        var urls = Set<String>()
+        
+        // 1. Rules from active schedules
+        let activeSchedules = schedules.filter { $0.isActive() && $0.type == .focus }
+        for schedule in activeSchedules {
+            if let ruleSetId = schedule.ruleSetId,
+               let ruleSet = ruleSets.first(where: { $0.id == ruleSetId }) {
+                urls.formUnion(ruleSet.urls)
+            }
+        }
+        
+        // 2. Rules from manual focus or Pomodoro
+        if (isBlocking && !wasStartedBySchedule) || pomodoroStatus == .focus {
+            if let activeId = activeRuleSetId,
+               let ruleSet = ruleSets.first(where: { $0.id == activeId }) {
+                urls.formUnion(ruleSet.urls)
+            } else if let firstSet = ruleSets.first {
+                // Fallback to first set if none selected
+                urls.formUnion(firstSet.urls)
+            }
+        }
+
+        // 3. Global fallback if nothing active but blocking
+        if urls.isEmpty && isBlocking {
+            if let firstSet = ruleSets.first {
+                urls.formUnion(firstSet.urls)
+            }
+        }
+        
+        return Array(urls)
     }
     
     init() {
@@ -107,9 +147,22 @@ class AppState: ObservableObject {
         self.weekStartsOnMonday = UserDefaults.standard.bool(forKey: "WeekStartsOnMonday")
         self.accentColorIndex = UserDefaults.standard.integer(forKey: "AccentColorIndex")
         self.calendarIntegrationEnabled = UserDefaults.standard.bool(forKey: "CalendarIntegrationEnabled")
-        self.allowedRules = UserDefaults.standard.stringArray(forKey: "AllowedRules") ?? [
-            "https://www.youtube.com/watch?v=gmuTjeQUbTM"
-        ]
+        
+        if let data = UserDefaults.standard.data(forKey: "RuleSets"),
+           let decoded = try? JSONDecoder().decode([RuleSet].self, from: data) {
+            self.ruleSets = decoded
+        } else {
+            // Default rule sets if none found (migration or first run)
+            let defaultRules = UserDefaults.standard.stringArray(forKey: "AllowedRules") ?? ["https://www.youtube.com/watch?v=gmuTjeQUbTM"]
+            self.ruleSets = [RuleSet(name: "Default", urls: defaultRules)]
+        }
+
+        if let idString = UserDefaults.standard.string(forKey: "ActiveRuleSetId"),
+           let uuid = UUID(uuidString: idString) {
+            self.activeRuleSetId = uuid
+        } else {
+            self.activeRuleSetId = ruleSets.first?.id
+        }
         
         self.pomodoroFocusDuration = UserDefaults.standard.double(forKey: "PomodoroFocusDuration")
         if self.pomodoroFocusDuration == 0 { self.pomodoroFocusDuration = 25 }

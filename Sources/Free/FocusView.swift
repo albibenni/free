@@ -62,6 +62,25 @@ struct FocusView: View {
                     .padding(.horizontal)
             }
 
+            // RuleSet Selection for Manual Focus
+            if !appState.ruleSets.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("ACTIVE ALLOWED LIST")
+                        .font(.caption.bold())
+                        .foregroundColor(.secondary)
+                    
+                    Picker("", selection: $appState.activeRuleSetId) {
+                        ForEach(appState.ruleSets) { set in
+                            Text(set.name).tag(UUID?.some(set.id))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .disabled(appState.isBlocking && appState.isUnblockable)
+                }
+                .padding(.horizontal)
+            }
+
             // Pause / Break Dashboard
             if appState.isBlocking {
                 if appState.isPaused {
