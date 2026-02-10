@@ -141,7 +141,7 @@ struct FocusView: View {
                                                     PomodoroTimerView(
                                                         durationMinutes: $appState.pomodoroFocusDuration,
                                                         maxMinutes: 120,
-                                                        iconName: "tree.fill",
+                                                        iconName: "leaf.fill",
                                                         title: "FOCUS",
                                                         color: FocusColor.color(for: appState.accentColorIndex)
                                                     )
@@ -215,7 +215,7 @@ struct FocusView: View {
                                         HStack {
                                             VStack(alignment: .leading, spacing: 2) {
                                                 HStack(spacing: 6) {
-                                                    Image(systemName: appState.pomodoroStatus == .focus ? "tree.fill" : "cup.and.saucer.fill")
+                                                    Image(systemName: appState.pomodoroStatus == .focus ? "leaf.fill" : "cup.and.saucer.fill")
                                                         .foregroundColor(appState.pomodoroStatus == .focus ? FocusColor.color(for: appState.accentColorIndex) : .orange)
                                                     Text(appState.pomodoroStatus == .focus ? "Focus Session" : "Break Time")
                                                         .font(.headline)
