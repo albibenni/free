@@ -79,7 +79,7 @@ struct SchedulesView: View {
                 initialEndTime: selectedEndTime,
                 existingSchedule: selectedSchedule
             )
-            .id(selectedSchedule?.id.uuidString ?? "new-schedule")
+            .id("\(selectedSchedule?.id.uuidString ?? "new")-\(selectedDay ?? -1)-\(selectedTime?.description ?? "")")
         }
     }
 }
