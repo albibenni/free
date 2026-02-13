@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "Free",
     platforms: [
-        .macOS(.v15) // Assuming v14+ based on SwiftUI usage, previously v15 in script
+        .macOS(.v14) // Sequoia is v15, but v14 is available in this swift-tools-version
     ],
     targets: [
         .target(

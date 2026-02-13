@@ -9,7 +9,7 @@ APP_BUNDLE="$APP_NAME.app"
 echo "Compiling..."
 mkdir -p .build/debug
 # Target macOS 15.0+ (Sequoia)
-swiftc Sources/Free/*.swift -o "$BUILD_DIR/$APP_NAME" -target arm64-apple-macosx15.0
+swiftc $(find Sources/Free -name "*.swift") -o "$BUILD_DIR/$APP_NAME" -target arm64-apple-macosx15.0
 
 # Create App Bundle Structure
 echo "Creating Bundle..."
