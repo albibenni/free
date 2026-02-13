@@ -105,34 +105,14 @@ struct RulesView: View {
 
                 if let selectedSet = appState.ruleSets.first(where: { $0.id == selectedSetId }) {
                     VStack(alignment: .leading, spacing: 0) {
-                        List {
-                            ForEach(selectedSet.urls, id: \.self) { rule in
-                                HStack(alignment: .top) {
-                                    Image(systemName: "link")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .padding(.top, 2)
-                                    
-                                    Text(rule)
-                                        .font(.system(.subheadline, design: .monospaced))
-                                        .foregroundColor(.primary.opacity(0.9))
-                                        .fixedSize(horizontal: false, vertical: true)
-                                    
-                                    Spacer()
-                                    
-                                    Button(action: {
-                                        removeRule(rule, from: selectedSet)
-                                    }) {
-                                        Image(systemName: "trash")
-                                            .foregroundColor(.red.opacity(0.6))
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                }
-                                .padding(.vertical, 6)
-                            }
-                        }
-                        .listStyle(PlainListStyle())
-
+                                            List {
+                                                ForEach(selectedSet.urls, id: \.self) { rule in
+                                                    URLListRow(url: rule, onDelete: {
+                                                        removeRule(rule, from: selectedSet)
+                                                    })
+                                                }
+                                            }
+                                            .listStyle(PlainListStyle())
                         Divider()
 
                         HStack(spacing: 12) {

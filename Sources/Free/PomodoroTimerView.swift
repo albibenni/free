@@ -1,5 +1,28 @@
 import SwiftUI
 
+struct PomodoroConstants {
+    static let strokeWidth: CGFloat = 16
+    static let knobSize: CGFloat = 14
+    static let trackOpacity: Double = 0.15
+}
+
+struct ClockCenterContent: View {
+    let iconName: String
+    let color: Color
+    let text: String
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: iconName)
+                .font(.system(size: 28))
+                .foregroundColor(color.opacity(0.9))
+            
+            Text(text)
+                .font(.system(size: 20, weight: .bold, design: .monospaced))
+        }
+    }
+}
+
 struct PomodoroTimerView: View {
     @Binding var durationMinutes: Double
     let maxMinutes: Double
@@ -7,32 +30,29 @@ struct PomodoroTimerView: View {
     let title: String
     let color: Color
     
-    private let knobSize: CGFloat = 14
-    private let strokeWidth: CGFloat = 16
-    
     var body: some View {
         GeometryReader { geometry in
             let size = min(geometry.size.width, geometry.size.height)
             let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
-            let radius = (size - strokeWidth) / 2
+            let radius = (size - PomodoroConstants.strokeWidth) / 2
             
             ZStack {
                 // Background Circle (Track)
                 Circle()
-                    .stroke(Color.secondary.opacity(0.15), lineWidth: strokeWidth)
+                    .stroke(Color.secondary.opacity(PomodoroConstants.trackOpacity), lineWidth: PomodoroConstants.strokeWidth)
                     .frame(width: radius * 2, height: radius * 2)
                 
                 // Progress Arc
                 Circle()
                     .trim(from: 0, to: CGFloat(durationMinutes / maxMinutes))
-                    .stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                    .stroke(color, style: StrokeStyle(lineWidth: PomodoroConstants.strokeWidth, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .frame(width: radius * 2, height: radius * 2)
                 
                 // Draggable Knob
                 Circle()
                     .fill(color)
-                    .frame(width: knobSize, height: knobSize)
+                    .frame(width: PomodoroConstants.knobSize, height: PomodoroConstants.knobSize)
                     .overlay(Circle().stroke(Color.white, lineWidth: 2))
                     .position(
                         position(for: durationMinutes, radius: radius, center: center)
@@ -44,15 +64,7 @@ struct PomodoroTimerView: View {
                             }
                     )
                 
-                // Center Content
-                VStack(spacing: 4) {
-                    Image(systemName: iconName)
-                        .font(.system(size: 28))
-                        .foregroundColor(color.opacity(0.9))
-                    
-                    Text("\(Int(durationMinutes))m")
-                        .font(.system(size: 20, weight: .bold, design: .monospaced))
-                }
+                ClockCenterContent(iconName: iconName, color: color, text: "\(Int(durationMinutes))m")
             }
         }
         .aspectRatio(1, contentMode: .fit)
@@ -73,9 +85,7 @@ struct PomodoroTimerView: View {
         // Adjust coordinate system so -90 degrees (top) is 0
         angleRadians += .pi / 2
         
-        if angleRadians < 0 {
-            angleRadians += 2 * .pi
-        }
+        if angleRadians < 0 { angleRadians += 2 * .pi }
         
         let fraction = angleRadians / (2 * .pi)
         let newDuration = fraction * maxMinutes
@@ -95,29 +105,19 @@ struct PomodoroProgressView: View {
     let color: Color
     let timeString: String
     
-    private let strokeWidth: CGFloat = 16
-    
     var body: some View {
         ZStack {
             // Background Circle (Track)
             Circle()
-                .stroke(Color.secondary.opacity(0.15), lineWidth: strokeWidth)
+                .stroke(Color.secondary.opacity(PomodoroConstants.trackOpacity), lineWidth: PomodoroConstants.strokeWidth)
             
             // Progress Arc
             Circle()
                 .trim(from: 0, to: CGFloat(progress))
-                .stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                .stroke(color, style: StrokeStyle(lineWidth: PomodoroConstants.strokeWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             
-            // Center Content
-            VStack(spacing: 4) {
-                Image(systemName: iconName)
-                    .font(.system(size: 28))
-                    .foregroundColor(color.opacity(0.9))
-                
-                Text(timeString)
-                    .font(.system(size: 20, weight: .bold, design: .monospaced))
-            }
+            ClockCenterContent(iconName: iconName, color: color, text: timeString)
         }
     }
 }

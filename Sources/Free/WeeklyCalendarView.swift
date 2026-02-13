@@ -179,7 +179,9 @@ struct WeeklyCalendarView: View {
                                             ForEach(appState.calendarManager.events.filter { 
                                                 $0.startDate >= weekStart && $0.startDate < weekEnd
                                             }) { event in
-                                                if let frame = calculateExternalFrame(event: event, columnWidth: columnWidth) {
+                                                let weekday = calendar.component(.weekday, from: event.startDate)
+                                                if let colIndex = dayOrder.firstIndex(of: weekday),
+                                                   let frame = calculateRect(startDate: event.startDate, endDate: event.endDate, colIndex: colIndex, columnWidth: columnWidth) {
                                                     ExternalEventBlockView(event: event)
                                                         .frame(width: frame.width, height: frame.height)
                                                         .position(x: frame.midX, y: frame.midY)
@@ -191,7 +193,7 @@ struct WeeklyCalendarView: View {
                                         ForEach(appState.schedules) { schedule in
                                             ForEach(schedule.days.sorted(), id: \.self) { day in
                                                 if let colIndex = dayOrder.firstIndex(of: day),
-                                                   let frame = calculateFrame(schedule: schedule, colIndex: colIndex, columnWidth: columnWidth) {
+                                                   let frame = calculateRect(startDate: schedule.startTime, endDate: schedule.endTime, colIndex: colIndex, columnWidth: columnWidth) {
                                                     ScheduleBlockView(schedule: schedule)
                                                         .frame(width: frame.width, height: frame.height)
                                                         .position(x: frame.midX, y: frame.midY)
@@ -295,10 +297,10 @@ struct WeeklyCalendarView: View {
         return formatter.string(from: date)
     }
     
-    func calculateFrame(schedule: Schedule, colIndex: Int, columnWidth: CGFloat) -> CGRect? {
+    private func calculateRect(startDate: Date, endDate: Date, colIndex: Int, columnWidth: CGFloat) -> CGRect? {
         let calendar = Calendar.current
-        let startComp = calendar.dateComponents([.hour, .minute], from: schedule.startTime)
-        let endComp = calendar.dateComponents([.hour, .minute], from: schedule.endTime)
+        let startComp = calendar.dateComponents([.hour, .minute], from: startDate)
+        let endComp = calendar.dateComponents([.hour, .minute], from: endDate)
         
         guard let startHour = startComp.hour, let startMin = startComp.minute,
               let endHour = endComp.hour, let endMin = endComp.minute else { return nil }
@@ -306,30 +308,10 @@ struct WeeklyCalendarView: View {
         let startY = (CGFloat(startHour) + CGFloat(startMin) / 60.0) * hourHeight
         var endY = (CGFloat(endHour) + CGFloat(endMin) / 60.0) * hourHeight
         
-        if startY > endY { endY = 24 * hourHeight }
+        // Handle overnight or same-time
+        if startY >= endY { endY = 24 * hourHeight }
         
-        let height = max(endY - startY, 15)
-        let x = CGFloat(colIndex) * columnWidth + 2
-        
-        return CGRect(x: x, y: startY, width: columnWidth - 4, height: height)
-    }
-
-    func calculateExternalFrame(event: ExternalEvent, columnWidth: CGFloat) -> CGRect? {
-        let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: event.startDate)
-        
-        guard let colIndex = dayOrder.firstIndex(of: weekday) else { return nil }
-        
-        let startComp = calendar.dateComponents([.hour, .minute], from: event.startDate)
-        let endComp = calendar.dateComponents([.hour, .minute], from: event.endDate)
-        
-        guard let startHour = startComp.hour, let startMin = startComp.minute,
-              let endHour = endComp.hour, let endMin = endComp.minute else { return nil }
-        
-        let startY = (CGFloat(startHour) + CGFloat(startMin) / 60.0) * hourHeight
-        let endY = (CGFloat(endHour) + CGFloat(endMin) / 60.0) * hourHeight
-        
-        let height = max(endY - startY, 15)
+        let height = max(endY - startY, 15) // Min height
         let x = CGFloat(colIndex) * columnWidth + 2
         
         return CGRect(x: x, y: startY, width: columnWidth - 4, height: height)
