@@ -7,7 +7,10 @@ class LocalServer {
 
     func start() {
         // Skip starting the server if we are running in a unit test environment
-        if NSClassFromString("XCTestCase") != nil {
+        let isTesting = ProcessInfo.processInfo.environment["IS_TESTING"] == "1" || 
+                        ProcessInfo.processInfo.processName.contains("Test")
+        
+        if isTesting {
             return
         }
 

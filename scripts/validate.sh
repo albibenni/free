@@ -23,12 +23,12 @@ fi
 
 # 2. Run unit tests
 echo "🧪 Running unit tests..."
-if swift test --quiet; then
-    echo "  ✅ Tests passed"
+if IS_TESTING=1 swift test; then
+    echo -e "  ✅ Tests passed"
 else
     echo -e "  ❌ ${RED}Tests failed!${NC}"
     # Run again without quiet to show why it failed
-    swift test
+    IS_TESTING=1 swift test
     exit 1
 fi
 
