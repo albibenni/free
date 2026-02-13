@@ -29,13 +29,19 @@ struct RuleMatcher {
                 // Exact Match (Crucial for YouTube links)
                 if normalizedUrl == normalizedRule || cleanedUrl == cleanedRule { return true }
                 
-                // Prefix Match
+                // Segment Match: Ensure we don't match partial words (e.g., 'work' matching 'working')
+                // Match if normalizedUrl starts with normalizedRule followed by a separator
                 if normalizedUrl.hasPrefix(normalizedRule + "/") || normalizedUrl.hasPrefix(normalizedRule + "?") {
                     return true
                 }
-                
-                // Substring containment as last resort
-                if normalizedUrl.contains(normalizedRule) { return true }
+
+                // Subdomain Match: e.g., rule 'google.com' should match 'mail.google.com'
+                // Match if normalizedUrl ends with "." + normalizedRule OR contains "." + normalizedRule + "/"
+                if normalizedUrl.hasSuffix("." + normalizedRule) || 
+                   normalizedUrl.contains("." + normalizedRule + "/") || 
+                   normalizedUrl.contains("." + normalizedRule + "?") {
+                    return true
+                }
             }
         }
         return false

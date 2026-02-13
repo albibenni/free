@@ -273,7 +273,7 @@ class BrowserMonitor {
             if let scriptObject = NSAppleScript(source: scriptSource) {
                 let output = scriptObject.executeAndReturnError(&error)
                 let urlsString = output.stringValue ?? ""
-                let urls = urlsString.components(separatedBy: .newlines)
+                let urls = urlsString.components(separatedBy: "\n")
                 for url in urls {
                     let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !trimmed.isEmpty && !trimmed.contains("localhost:10000") {
