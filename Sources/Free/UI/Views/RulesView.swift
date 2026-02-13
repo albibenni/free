@@ -105,14 +105,57 @@ struct RulesView: View {
 
                 if let selectedSet = appState.ruleSets.first(where: { $0.id == selectedSetId }) {
                     VStack(alignment: .leading, spacing: 0) {
-                                            List {
-                                                ForEach(selectedSet.urls, id: \.self) { rule in
-                                                    URLListRow(url: rule, onDelete: {
-                                                        removeRule(rule, from: selectedSet)
-                                                    })
+                        List {
+                            // Current URLs in set
+                            Section(header: Text("Allowed in this list")) {
+                                ForEach(selectedSet.urls, id: \.self) { rule in
+                                    URLListRow(url: rule, onDelete: {
+                                        removeRule(rule, from: selectedSet)
+                                    })
+                                }
+                            }
+
+                            // Open Tabs Suggestions
+                            Section(header: 
+                                HStack {
+                                    Text("Open Tabs Suggestions")
+                                    Spacer()
+                                    Button(action: { appState.refreshCurrentOpenUrls() }) {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.caption)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            ) {
+                                if appState.currentOpenUrls.isEmpty {
+                                    Text("No open tabs detected. Click refresh.")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .padding(.vertical, 4)
+                                } else {
+                                    ForEach(appState.currentOpenUrls, id: \.self) { url in
+                                        if !selectedSet.urls.contains(url) {
+                                            HStack {
+                                                Image(systemName: "plus.circle")
+                                                    .foregroundColor(.green)
+                                                Text(url)
+                                                    .font(.system(.caption, design: .monospaced))
+                                                    .lineLimit(1)
+                                                Spacer()
+                                                Button("Add") {
+                                                    addSpecificRule(url, to: selectedSet)
                                                 }
+                                                .buttonStyle(.bordered)
+                                                .controlSize(.small)
                                             }
-                                            .listStyle(PlainListStyle())
+                                            .padding(.vertical, 2)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        .listStyle(PlainListStyle())
+                        
                         Divider()
 
                         HStack(spacing: 12) {
@@ -146,6 +189,7 @@ struct RulesView: View {
             if selectedSetId == nil {
                 selectedSetId = appState.currentPrimaryRuleSetId
             }
+            appState.refreshCurrentOpenUrls()
         }
         .alert("New Allowed List", isPresented: $showAddSetAlert) {
             TextField("List Name", text: $newSetName)
@@ -157,6 +201,14 @@ struct RulesView: View {
             }
             Button("Cancel", role: .cancel) {
                 newSetName = ""
+            }
+        }
+    }
+
+    func addSpecificRule(_ rule: String, to ruleSet: RuleSet) {
+        if let index = appState.ruleSets.firstIndex(where: { $0.id == ruleSet.id }) {
+            if !appState.ruleSets[index].urls.contains(rule) {
+                appState.ruleSets[index].urls.append(rule)
             }
         }
     }

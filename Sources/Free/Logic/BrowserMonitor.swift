@@ -220,6 +220,21 @@ class BrowserMonitor {
         return nil
     }
 
+    func getAllOpenUrls() -> [String] {
+        var foundUrls = Set<String>()
+        let runningApps = NSWorkspace.shared.runningApplications
+        
+        for app in runningApps {
+            if let bundleId = app.bundleIdentifier, browsers.contains(bundleId) {
+                if let url = getActiveUrl(for: app), !url.isEmpty {
+                    foundUrls.insert(url)
+                }
+            }
+        }
+        
+        return Array(foundUrls).sorted()
+    }
+
     // MARK: - Accessibility API Helpers for Arc
     func getArcURL(pid: pid_t) -> String? {
         let appElement = AXUIElementCreateApplication(pid)

@@ -73,6 +73,8 @@ class AppState: ObservableObject {
     @Published var pauseRemaining: TimeInterval = 0
     private var pauseTimer: Timer?
     
+    @Published var currentOpenUrls: [String] = []
+    
     private var monitor: BrowserMonitor?
     private var scheduleTimer: Timer?
     private var wasStartedBySchedule = false
@@ -207,6 +209,10 @@ class AppState: ObservableObject {
         }
         // Run immediately
         checkSchedules()
+    }
+
+    func refreshCurrentOpenUrls() {
+        self.currentOpenUrls = monitor?.getAllOpenUrls() ?? []
     }
     
     func checkSchedules() {
