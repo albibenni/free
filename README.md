@@ -6,12 +6,16 @@
 
 *   **Strict Blocking:** Blocks all websites by default when Focus Mode is ON.
 *   **Multiple Allowed Lists:** Create personalized sets of URLs for different tasks (e.g., "Work", "Research", "Dev"). Assign specific lists to schedules or select them manually for quick sessions.
+*   **Open Tab Suggestions:** Instantly see and add URLs from all your currently open browser tabs across all windows.
+*   **Smart Matching:** Precision matching prevents accidental leaks (e.g., "work" won't match "working") while automatically supporting all subdomains.
+*   **Customizable Themes:** Switch between Light, Dark, and System appearance modes. The local block page adapts automatically.
 *   **Focus Schedules:** Automate your focus sessions with a full-featured weekly calendar.
 *   **Pomodoro Timer:** Built-in timer with customizable focus and break intervals.
 *   **Unblockable Mode:** A high-commitment mode that prevents disabling focus or stopping the Pomodoro timer without completing a text-based challenge.
 *   **External Calendar Sync:** Integrate with Google Calendar (via macOS System Events) to automatically treat meetings as "Breaks."
 *   **Redirect, Don't Close:** Blocked pages are redirected to a local "Focus Mode" screen, preventing you from losing your tabs completely.
 *   **Wide Browser Support:** Works with Safari, Chrome, Brave, Edge, Arc, Opera, and Vivaldi.
+*   **Reliable Infrastructure:** Built-in automated tests and a Husky-powered pre-commit pipeline ensure the app remains stable and bug-free.
 *   **Native UI:** Clean macOS interface with both a Window and Menu Bar icon.
 
 ## 📅 Scheduling & Automation
@@ -29,11 +33,12 @@ The app features a powerful, interactive weekly calendar to manage your focus ti
 
 ## 🛠 Installation & Building
 
-The app is built using Swift and SwiftUI. No external dependencies (CocoaPods/SPM) are required.
+The app is built using Swift and SwiftUI.
 
 ### Prerequisites
 *   macOS 15.0 (Sequoia) or later.
 *   Xcode Command Line Tools installed (`xcode-select --install`).
+*   pnpm (optional, for pre-commit hooks).
 
 ### Build Command
 Run the included build script to compile the app:
@@ -44,6 +49,12 @@ Run the included build script to compile the app:
 
 This will create `Free.app` in the current directory.
 
+### Running Tests
+To verify the app's logic and stability:
+```bash
+swift test
+```
+
 ## 🚦 Usage
 
 1.  **Launch the App:**
@@ -52,39 +63,31 @@ This will create `Free.app` in the current directory.
     ```
 2.  **Manage Allowed Lists:**
     *   Click on **Allowed Websites** to open the manager.
-    *   Create multiple lists (e.g., "Deep Work", "Learning").
+    *   **Quick Add:** Expand the "Open Tabs Suggestions" section to see URLs from all your open browser tabs. Click "Add" to include them in your list instantly.
     *   Use the toggleable sidebar to switch between and organize your lists.
-3.  **Grant Permissions:**
-    *   **Accessibility:** Required to read the current URL from your browser. The app will show a red warning banner if this is missing.
-    *   **Automation:** Required to redirect the browser tab. macOS will prompt you ("Free wants to control Safari...") the first time you use it.
-    *   **Calendar (Optional):** Required only if you enable "Calendar Integration" in Settings to sync with your meetings.
+3.  **Appearance:**
+    *   Go to Settings to choose between **Light**, **Dark**, or **System** theme.
+4.  **Grant Permissions:**
+    *   **Accessibility:** Required to read URLs. The app shows a warning banner if this is missing.
+    *   **Automation:** Required to redirect browser tabs.
+    *   **Calendar (Optional):** Required for meeting synchronization.
 
-4.  **Start Focusing:**
+5.  **Start Focusing:**
     *   Toggle **Focus Mode** to ON, start a **Pomodoro**, or set up a **Schedule**.
-    *   **Strict Mode:** Enable "Unblockable Mode" in Settings to make the session (and the timer) truly unstoppable.
+    *   **Strict Mode:** Enable "Unblockable Mode" in Settings to make sessions truly unstoppable.
     *   **Matching Logic:**
-        *   **Simple Match:** Enter a domain or keyword (e.g., `google.com`). This matches any URL *containing* that string (case-insensitive).
-        *   **Wildcard Match:** Use `*` for pattern matching. For example, `https://www.youtube.com/watch*` will match any YouTube video URL.
+        *   **Segment Matching:** Rules are precise. `google.com` allows all subdomains (like `mail.google.com`) but won't match different words like `google.community`.
+        *   **Wildcard Match:** Use `*` for broad pattern matching.
 
 ## 🔧 Technical Details
 
-*   **Language:** Swift 5 (SwiftUI)
+*   **Language:** Swift 6 (SwiftUI)
+*   **Quality Assurance:**
+    *   **Swift Testing:** Modern unit test suite for core logic.
+    *   **Husky:** Pre-commit pipeline running build checks and tests.
 *   **Mechanism:**
-    *   **Poller:** Checks the active window every 1 second.
-    *   **AppleScript:** Uses AppleScript via `NSAppleScript` to read the URL from supported browsers and to perform the redirect.
-    *   **EventKit:** Integrates with the native macOS Calendar database to fetch and monitor external events.
-    *   **Local Server:** Runs a lightweight TCP server on port `10000` to serve the block page.
+    *   **Poller:** Checks active window state every 1 second.
+    *   **AppleScript:** Robust multi-browser support for tab reading and redirection.
+    *   **EventKit:** Native macOS Calendar integration.
+    *   **Local Server:** Lightweight TCP server serving the adaptive Light/Dark block page.
 *   **Supported Browsers:** Safari, Chrome, Brave, Edge, Arc, Opera, and Vivaldi.
-
-## ⚠️ Troubleshooting
-
-**"The app is damaged and can't be opened"**
-This happens because the app is ad-hoc signed locally. Run this command to fix it:
-```bash
-codesign -s - --deep --force Free.app
-```
-
-**Blocking isn't working?**
-1.  Check the "Accessibility Permission Needed" banner in the app.
-2.  If permissions look correct but it fails, remove "Free" from *System Settings > Privacy & Security > Accessibility* and add it again.
-3.  Check logs: `cat /tmp/free_app.log`

@@ -16,6 +16,10 @@ We have selected **Option 2: Process Monitor (Swift + AppleScript)** for this pr
 
 ### ✅ Implemented
 *   **Multiple Personalized Allowed Lists:** Users can create multiple named sets of allowed URLs and assign them to specific schedules or manual focus sessions.
+*   **Open Tab Suggestions:** Real-time URL suggestions fetched from ALL open tabs across all supported browsers for rapid list configuration.
+*   **Smart URL Matching:** High-precision matching logic that prevents partial-word leaks (e.g., "work" vs "working") while automatically supporting all subdomains.
+*   **Customizable Themes:** Full support for Light, Dark, and System appearance modes, including an adaptive local block page.
+*   **Automated Quality Assurance:** Comprehensive unit test suite using the new **Swift Testing** framework, integrated into a **Husky** pre-commit pipeline to ensure build and logic stability.
 *   **Allowlist Logic (Strict Mode):** Everything is blocked unless explicitly added to the active rules list.
 *   **Real-time Monitoring:** Blocks content within ~1 second of navigation.
 *   **Interactive Weekly Calendar:** Google Calendar-style grid with drag-to-create, 15-minute snapping, and real-time time overlays.
