@@ -30,37 +30,55 @@ struct AllowedWebsitesWidget: View {
                 VStack(alignment: .leading, spacing: 16) {
                     if !appState.ruleSets.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("ACTIVE LIST")
-                                .font(.caption.bold())
-                                .foregroundColor(.secondary)
+                                                        Text("SELECT LIST")
+                                                            .font(.caption.bold())
+                                                            .foregroundColor(.secondary)
+                                                        
+                                                        ScrollView {
+                                                            VStack(spacing: 4) {
+                                                                ForEach(appState.ruleSets) { set in
+                                                                    Button(action: {
+                                                                        if !appState.isBlocking {
+                                                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                                                appState.activeRuleSetId = set.id
+                                                                            }
+                                                                        }
+                                                                    }) {
+                                                                        HStack {
+                                                                            Image(systemName: appState.activeRuleSetId == set.id ? "link.circle.fill" : "link")
+                                                                                .font(.system(size: 12))
+                                                                                .foregroundColor(appState.activeRuleSetId == set.id ? FocusColor.color(for: appState.accentColorIndex) : .secondary)
+                                                                            
+                                                                            Text(set.name)
+                                                                                .font(.subheadline)
+                                                                                .fontWeight(appState.activeRuleSetId == set.id ? .bold : .regular)
+                                                                                .foregroundColor(appState.activeRuleSetId == set.id ? .primary : .secondary)
+                                                                            
+                                                                            Spacer()
+                                                                            
+                                                                            if appState.activeRuleSetId == set.id {
+                                                                                Image(systemName: "checkmark")
+                                                                                    .font(.caption.bold())
+                                                                                    .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
+                                                                            }
+                                                                        }
+                                                                        .padding(.horizontal, 12)
+                                                                        .padding(.vertical, 8)
+                                                                        .background(appState.activeRuleSetId == set.id ? FocusColor.color(for: appState.accentColorIndex).opacity(0.1) : Color.primary.opacity(0.03))
+                                                                        .cornerRadius(8)
+                                                                    }
+                                                                    .buttonStyle(.plain)
+                                                                    .disabled(appState.isBlocking)
+                                                                }
+                                                            }
+                                                        }
+                                                        .frame(maxHeight: 200) // Limit height to keep it compact
+                                                    }
+                                                }
                             
-                            Menu {
-                                ForEach(appState.ruleSets) { set in
-                                    Button(action: { appState.activeRuleSetId = set.id }) {
-                                        HStack {
-                                            Text(set.name)
-                                            if appState.activeRuleSetId == set.id {
-                                                Image(systemName: "checkmark")
-                                            }
-                                        }
-                                    }
-                                }
-                                Divider()
-                                Button("Manage Lists...") { showRules = true }
-                            } label: {
-                                PillMenuLabel(
-                                    text: appState.ruleSets.first(where: { $0.id == appState.activeRuleSetId })?.name ?? "Default",
-                                    icon: "link",
-                                    color: .blue
-                                )
-                            }
-                            .menuStyle(.borderlessButton)
-                            .disabled(appState.isBlocking)
-                        }
-                    }
-
-                    Button(action: { showRules = true }) {
-                        Text("Manage & Edit Lists")
+                                                Divider().opacity(0.5)
+                            
+                                                Button(action: { showRules = true }) {                        Text("Manage & Edit Lists")
                     }
                     .buttonStyle(AppPrimaryButtonStyle(
                         color: FocusColor.color(for: appState.accentColorIndex),
