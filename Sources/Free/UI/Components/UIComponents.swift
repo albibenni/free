@@ -44,39 +44,6 @@ struct PillMenuLabel: View {
     }
 }
 
-struct URLPreviewList: View {
-    let urls: [String]
-    let maxVisible: Int
-    
-    init(_ urls: [String], maxVisible: Int = 8) {
-        self.urls = urls
-        self.maxVisible = maxVisible
-    }
-    
-    var body: some View {
-        if urls.isEmpty {
-            Text("No websites allowed.")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-        } else {
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(urls.prefix(maxVisible), id: \.self) { rule in
-                    Text("• \(rule)")
-                        .font(.subheadline)
-                        .foregroundColor(.primary.opacity(0.8))
-                        .lineLimit(1)
-                }
-                if urls.count > maxVisible {
-                    Text("and \(urls.count - maxVisible) more...")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .italic()
-                }
-            }
-        }
-    }
-}
-
 struct URLListRow: View {
     let url: String
     let onDelete: () -> Void

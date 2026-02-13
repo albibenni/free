@@ -59,14 +59,6 @@ struct AllowedWebsitesWidget: View {
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("PREVIEW")
-                            .font(.caption.bold())
-                            .foregroundColor(.secondary)
-                        
-                        URLPreviewList(appState.allowedRules)
-                    }
-
                     Button(action: { showRules = true }) {
                         Text("Manage & Edit Lists")
                     }
