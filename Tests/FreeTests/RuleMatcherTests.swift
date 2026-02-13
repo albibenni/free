@@ -39,4 +39,29 @@ struct RuleMatcherTests {
         #expect(RuleMatcher.isAllowed("https://github.com/apple/swift", rules: rules))
         #expect(!RuleMatcher.isAllowed("https://github.com/google/swift", rules: rules))
     }
+    
+    @Test("Subdomain matching logic")
+    func subdomainMatching() {
+        let rules = ["google.com"]
+        // Core domain
+        #expect(RuleMatcher.isAllowed("https://google.com", rules: rules))
+        // Subdomain (should be allowed if parent domain is in rules)
+        #expect(RuleMatcher.isAllowed("https://mail.google.com", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://docs.google.com/document/123", rules: rules))
+    }
+    
+    @Test("Trailing slash and path normalization")
+    func pathVariations() {
+        let rules = ["example.com/work"]
+        #expect(RuleMatcher.isAllowed("https://example.com/work/", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://example.com/work?user=1", rules: rules))
+        #expect(!RuleMatcher.isAllowed("https://example.com/working", rules: rules))
+    }
+    
+    @Test("Handling empty rules and invalid URLs")
+    func emptyAndInvalid() {
+        #expect(RuleMatcher.isAllowed("", rules: ["google.com"]))
+        #expect(!RuleMatcher.isAllowed("https://google.com", rules: []))
+        #expect(RuleMatcher.isAllowed("about:blank", rules: []))
+    }
 }
