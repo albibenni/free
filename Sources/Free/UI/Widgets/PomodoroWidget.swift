@@ -5,7 +5,7 @@ struct PomodoroWidget: View {
     @Binding var showPomodoroChallenge: Bool
     @Binding var pomodoroChallengeInput: String
     @State private var isExpanded = false
-    
+
     var body: some View {
         WidgetCard {
             Button(action: { withAnimation { isExpanded.toggle() } }) {
@@ -127,13 +127,14 @@ struct PomodoroWidget: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            
+
             VStack(spacing: 12) {
                 Button(action: { appState.startPomodoro() }) {
                     Text("Start Focus Session")
                         .font(.headline)
                         .padding(.horizontal, 30)
                         .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
                 .tint(FocusColor.color(for: appState.accentColorIndex))
@@ -146,7 +147,7 @@ struct PomodoroWidget: View {
     private var pomodoroActiveView: some View {
         VStack(spacing: 32) {
             let total = (appState.pomodoroStatus == .focus ? appState.pomodoroFocusDuration : appState.pomodoroBreakDuration) * 60
-            
+
             VStack(spacing: 16) {
                 Text(appState.pomodoroStatus == .focus ? "FOCUSING" : "BREAKING")
                     .font(.system(size: 14, weight: .black))
@@ -162,7 +163,7 @@ struct PomodoroWidget: View {
                     )
                     .frame(width: 180, height: 180)
                 }
-                
+
                 if let activeId = appState.activeRuleSetId,
                    let setName = appState.ruleSets.first(where: { $0.id == activeId })?.name,
                    appState.pomodoroStatus == .focus {
@@ -180,7 +181,7 @@ struct PomodoroWidget: View {
                     .clipShape(Capsule())
                 }
             }
-            
+
             HStack(spacing: 20) {
                 Button(action: { appState.skipPomodoroPhase() }) {
                     Label("Skip", systemImage: "forward.end.fill")
@@ -189,8 +190,8 @@ struct PomodoroWidget: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(appState.isPomodoroLocked)
-                
-                Button(action: { 
+
+                Button(action: {
                     if appState.isPomodoroLocked {
                         showPomodoroChallenge = true
                     } else {

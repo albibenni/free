@@ -68,16 +68,14 @@ struct AllowedWebsitesWidget: View {
                     }
 
                     Button(action: { showRules = true }) {
-                        HStack {
-                            Text("Manage & Edit Lists")
-                            Image(systemName: "arrow.right")
-                        }
-                        .font(.subheadline.bold())
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        Text("Manage & Edit Lists")
+                            .font(.headline)
+                            .padding(.horizontal, 30)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    .tint(.blue)
+                    .tint(FocusColor.color(for: appState.accentColorIndex))
                 }
                 .padding([.horizontal, .bottom])
             } else if let activeSet = appState.ruleSets.first(where: { $0.id == appState.activeRuleSetId }) {
