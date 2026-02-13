@@ -237,12 +237,12 @@ struct AddScheduleView: View {
                     VStack(spacing: 12) {
                         Button(action: saveSchedule) {
                             Text(existingSchedule == nil ? (sessionType == .focus ? "Add Focus Session" : "Add Break Session") : "Save Changes")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(sessionType == .focus ? FocusColor.color(for: appState.accentColorIndex) : .orange)
+                        .buttonStyle(AppPrimaryButtonStyle(
+                            color: sessionType == .focus ? FocusColor.color(for: appState.accentColorIndex) : .orange,
+                            maxWidth: .infinity,
+                            isProminent: true
+                        ))
                         .disabled(days.isEmpty && modifyAllDays)
                         .keyboardShortcut(.defaultAction)
 

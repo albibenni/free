@@ -104,3 +104,28 @@ struct URLListRow: View {
         .padding(.vertical, 6)
     }
 }
+
+struct AppPrimaryButtonStyle: ButtonStyle {
+    let color: Color
+    var maxWidth: CGFloat? = nil
+    var isProminent: Bool = false
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline)
+            .padding(.horizontal, 30)
+            .padding(.vertical, 8)
+            .frame(maxWidth: maxWidth)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isProminent ? color : color.opacity(configuration.isPressed ? 0.15 : 0.08))
+            )
+            .foregroundColor(isProminent ? .white : color)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(color.opacity(isProminent ? 0 : 0.2), lineWidth: 1)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.easeOut(duration: 0.2), value: configuration.isPressed)
+    }
+}

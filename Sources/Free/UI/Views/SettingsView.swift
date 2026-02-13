@@ -21,7 +21,7 @@ struct SettingsView: View {
                         Button("Disable...") {
                             showChallenge = true
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(AppPrimaryButtonStyle(color: .orange))
                     }
                 } else {
                     Toggle(isOn: $appState.isUnblockable) {

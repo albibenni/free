@@ -52,13 +52,11 @@ struct SchedulesView: View {
                 editorContext = ScheduleEditorContext()
             }) {
                 Text("Add Schedule")
-                    .font(.headline)
-                    .padding(.horizontal, 30)
-                    .padding(.vertical, 8)
-                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
-            .tint(FocusColor.color(for: appState.accentColorIndex))
+            .buttonStyle(AppPrimaryButtonStyle(
+                color: FocusColor.color(for: appState.accentColorIndex),
+                maxWidth: .infinity
+            ))
             .padding()
             .frame(maxWidth: .infinity)
         }

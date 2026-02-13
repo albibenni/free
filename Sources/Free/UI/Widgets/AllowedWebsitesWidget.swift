@@ -69,13 +69,11 @@ struct AllowedWebsitesWidget: View {
 
                     Button(action: { showRules = true }) {
                         Text("Manage & Edit Lists")
-                            .font(.headline)
-                            .padding(.horizontal, 30)
-                            .padding(.vertical, 8)
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(FocusColor.color(for: appState.accentColorIndex))
+                    .buttonStyle(AppPrimaryButtonStyle(
+                        color: FocusColor.color(for: appState.accentColorIndex),
+                        maxWidth: .infinity
+                    ))
                 }
                 .padding([.horizontal, .bottom])
             } else if let activeSet = appState.ruleSets.first(where: { $0.id == appState.activeRuleSetId }) {

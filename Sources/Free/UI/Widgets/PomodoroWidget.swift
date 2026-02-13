@@ -131,13 +131,11 @@ struct PomodoroWidget: View {
             VStack(spacing: 12) {
                 Button(action: { appState.startPomodoro() }) {
                     Text("Start Focus Session")
-                        .font(.headline)
-                        .padding(.horizontal, 30)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
-                .tint(FocusColor.color(for: appState.accentColorIndex))
+                .buttonStyle(AppPrimaryButtonStyle(
+                    color: FocusColor.color(for: appState.accentColorIndex),
+                    maxWidth: .infinity
+                ))
             }
             .frame(maxWidth: .infinity)
         }
