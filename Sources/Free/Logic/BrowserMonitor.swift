@@ -225,9 +225,60 @@ class BrowserMonitor {
         let runningApps = NSWorkspace.shared.runningApplications
         
         for app in runningApps {
-            if let bundleId = app.bundleIdentifier, browsers.contains(bundleId) {
-                if let url = getActiveUrl(for: app), !url.isEmpty {
-                    foundUrls.insert(url)
+            guard let bundleId = app.bundleIdentifier, browsers.contains(bundleId) else { continue }
+            let appName = app.localizedName ?? ""
+            
+            var scriptSource = ""
+            if bundleId == "com.apple.Safari" {
+                scriptSource = """
+                set allUrls to ""
+                tell application "Safari"
+                    repeat with w in windows
+                        repeat with t in tabs of w
+                            set allUrls to allUrls & URL of t & "\n"
+                        end repeat
+                    end repeat
+                end tell
+                return allUrls
+                """
+            } else if bundleId == "company.thebrowser.Browser" {
+                // Arc handles tabs differently but this usually works for standard tabs
+                scriptSource = """
+                set allUrls to ""
+                tell application "Arc"
+                    repeat with w in windows
+                        repeat with t in tabs of w
+                            set allUrls to allUrls & URL of t & "\n"
+                        end repeat
+                    end repeat
+                end tell
+                return allUrls
+                """
+            } else {
+                // Standard Chromium
+                scriptSource = """
+                set allUrls to ""
+                tell application "\(appName)"
+                    repeat with w in windows
+                        repeat with t in tabs of w
+                            set allUrls to allUrls & URL of t & "\n"
+                        end repeat
+                    end repeat
+                end tell
+                return allUrls
+                """
+            }
+            
+            var error: NSDictionary?
+            if let scriptObject = NSAppleScript(source: scriptSource) {
+                let output = scriptObject.executeAndReturnError(&error)
+                let urlsString = output.stringValue ?? ""
+                let urls = urlsString.components(separatedBy: .newlines)
+                for url in urls {
+                    let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty && !trimmed.contains("localhost:10000") {
+                        foundUrls.insert(trimmed)
+                    }
                 }
             }
         }
