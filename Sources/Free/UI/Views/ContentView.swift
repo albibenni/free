@@ -41,5 +41,6 @@ struct ContentView: View {
             .frame(width: 750, height: 700)
         }
         .tint(FocusColor.color(for: appState.accentColorIndex))
+        .preferredColorScheme(appState.appearanceMode.colorScheme)
     }
 }

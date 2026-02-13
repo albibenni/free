@@ -27,6 +27,7 @@ struct FreeApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
+                .preferredColorScheme(appState.appearanceMode.colorScheme)
         }
         .windowStyle(.hiddenTitleBar) // Modern look
         .commands {

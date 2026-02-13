@@ -47,6 +47,14 @@ struct SettingsView: View {
             }
 
             Section {
+                Picker("Theme", selection: $appState.appearanceMode) {
+                    ForEach(AppearanceMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.vertical, 4)
+
                 HStack(spacing: 12) {
                     ForEach(0..<FocusColor.all.count, id: \.self) { index in
                         Circle()

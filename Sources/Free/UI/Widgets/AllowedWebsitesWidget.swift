@@ -11,7 +11,7 @@ struct AllowedWebsitesWidget: View {
                 HStack {
                     Image(systemName: "globe")
                         .font(.headline)
-                        .foregroundColor(.blue)
+                        .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
                     Text("Allowed Websites")
                         .font(.headline)
                     
@@ -93,7 +93,7 @@ struct AllowedWebsitesWidget: View {
                     Text(activeSet.name)
                         .font(.caption.bold())
                 }
-                .foregroundColor(.blue)
+                .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
             }

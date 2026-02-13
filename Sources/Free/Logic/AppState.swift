@@ -1,6 +1,20 @@
 import SwiftUI
 import Combine
 
+enum AppearanceMode: String, Codable, CaseIterable {
+    case system = "System"
+    case light = "Light"
+    case dark = "Dark"
+    
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
+
 class AppState: ObservableObject {
     static let challengePhrase = "I am choosing to break my focus and I acknowledge that this may impact my productivity."
     
@@ -34,6 +48,11 @@ class AppState: ObservableObject {
     @Published var accentColorIndex: Int = 0 {
         didSet {
             UserDefaults.standard.set(accentColorIndex, forKey: "AccentColorIndex")
+        }
+    }
+    @Published var appearanceMode: AppearanceMode = .system {
+        didSet {
+            UserDefaults.standard.set(appearanceMode.rawValue, forKey: "AppearanceMode")
         }
     }
     @Published var calendarIntegrationEnabled: Bool = false {
@@ -163,6 +182,14 @@ class AppState: ObservableObject {
         self.isUnblockable = UserDefaults.standard.bool(forKey: "IsUnblockable")
         self.weekStartsOnMonday = UserDefaults.standard.bool(forKey: "WeekStartsOnMonday")
         self.accentColorIndex = UserDefaults.standard.integer(forKey: "AccentColorIndex")
+        
+        if let modeString = UserDefaults.standard.string(forKey: "AppearanceMode"),
+           let mode = AppearanceMode(rawValue: modeString) {
+            self.appearanceMode = mode
+        } else {
+            self.appearanceMode = .system
+        }
+        
         self.calendarIntegrationEnabled = UserDefaults.standard.bool(forKey: "CalendarIntegrationEnabled")
         
         if let data = UserDefaults.standard.data(forKey: "RuleSets"),

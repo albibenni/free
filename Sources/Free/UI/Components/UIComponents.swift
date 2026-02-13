@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct WidgetCard<Content: View>: View {
+    @Environment(\.colorScheme) var colorScheme
     let content: Content
     
     init(@ViewBuilder content: () -> Content) {
@@ -12,7 +13,7 @@ struct WidgetCard<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .background(Color(NSColor.controlBackgroundColor).opacity(colorScheme == .dark ? 0.5 : 0.8))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)

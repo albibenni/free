@@ -66,6 +66,11 @@ class LocalServer {
                 h1 { font-size: 32px; margin-bottom: 10px; color: #ff3b30; }
                 p { font-size: 18px; color: #8e8e93; }
                 .logo { font-size: 60px; margin-bottom: 20px; }
+                @media (prefers-color-scheme: dark) {
+                    body { background-color: #1c1c1e; color: #f2f2f7; }
+                    .container { background: #2c2c2e; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+                    p { color: #aeaeb2; }
+                }
             </style>
         </head>
         <body>
