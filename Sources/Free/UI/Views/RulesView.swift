@@ -7,6 +7,7 @@ struct RulesView: View {
     @State private var showAddSetAlert = false
     @State private var newSetName = ""
     @State private var isSidebarVisible = true
+    @State private var isSuggestionsExpanded = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -118,37 +119,57 @@ struct RulesView: View {
                             // Open Tabs Suggestions
                             Section(header: 
                                 HStack {
-                                    Text("Open Tabs Suggestions")
-                                    Spacer()
-                                    Button(action: { appState.refreshCurrentOpenUrls() }) {
-                                        Image(systemName: "arrow.clockwise")
-                                            .font(.caption)
+                                    Button(action: { withAnimation { isSuggestionsExpanded.toggle() } }) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: isSuggestionsExpanded ? "chevron.down" : "chevron.right")
+                                                .font(.caption2.bold())
+                                            Text("Open Tabs Suggestions")
+                                        }
                                     }
                                     .buttonStyle(.plain)
+                                    
+                                    Spacer()
+                                    
+                                    if isSuggestionsExpanded {
+                                        Button(action: { appState.refreshCurrentOpenUrls() }) {
+                                            Image(systemName: "arrow.clockwise")
+                                                .font(.caption)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                 }
                             ) {
-                                if appState.currentOpenUrls.isEmpty {
-                                    Text("No open tabs detected. Click refresh.")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .padding(.vertical, 4)
-                                } else {
-                                    ForEach(appState.currentOpenUrls, id: \.self) { url in
-                                        if !selectedSet.urls.contains(url) {
-                                            HStack {
-                                                Image(systemName: "plus.circle")
-                                                    .foregroundColor(.green)
-                                                Text(url)
-                                                    .font(.system(.caption, design: .monospaced))
-                                                    .lineLimit(1)
-                                                Spacer()
-                                                Button("Add") {
-                                                    addSpecificRule(url, to: selectedSet)
+                                if isSuggestionsExpanded {
+                                    if appState.currentOpenUrls.isEmpty {
+                                        Text("No open tabs detected. Click refresh.")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .padding(.vertical, 4)
+                                    } else {
+                                        let filteredUrls = appState.currentOpenUrls.filter { !selectedSet.urls.contains($0) }
+                                        
+                                        if filteredUrls.isEmpty {
+                                            Text("All open tabs are already allowed.")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                                .padding(.vertical, 4)
+                                        } else {
+                                            ForEach(filteredUrls, id: \.self) { url in
+                                                HStack {
+                                                    Image(systemName: "plus.circle")
+                                                        .foregroundColor(.green)
+                                                    Text(url)
+                                                        .font(.system(.caption, design: .monospaced))
+                                                        .lineLimit(1)
+                                                    Spacer()
+                                                    Button("Add") {
+                                                        addSpecificRule(url, to: selectedSet)
+                                                    }
+                                                    .buttonStyle(.bordered)
+                                                    .controlSize(.small)
                                                 }
-                                                .buttonStyle(.bordered)
-                                                .controlSize(.small)
+                                                .padding(.vertical, 2)
                                             }
-                                            .padding(.vertical, 2)
                                         }
                                     }
                                 }
