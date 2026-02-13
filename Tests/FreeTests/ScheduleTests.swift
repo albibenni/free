@@ -1,9 +1,11 @@
-import XCTest
+import Testing
+import Foundation
 @testable import FreeLogic
 
-final class ScheduleTests: XCTestCase {
+struct ScheduleTests {
     
-    func testScheduleActiveInTimeRange() {
+    @Test("Schedule activates correctly within time range")
+    func scheduleActiveInTimeRange() {
         // Given
         var schedule = Schedule(
             name: "Test Schedule",
@@ -26,10 +28,11 @@ final class ScheduleTests: XCTestCase {
         let isActive = schedule.isActive(at: monday)
         
         // Then
-        XCTAssertTrue(isActive, "Schedule should be active on Monday 10:00")
+        #expect(isActive, "Schedule should be active on Monday 10:00")
     }
     
-    func testScheduleInactiveWrongDay() {
+    @Test("Schedule remains inactive on wrong day")
+    func scheduleInactiveWrongDay() {
         // Given
         var schedule = Schedule(
             name: "Test Schedule",
@@ -50,10 +53,11 @@ final class ScheduleTests: XCTestCase {
         let isActive = schedule.isActive(at: tuesday)
         
         // Then
-        XCTAssertFalse(isActive, "Schedule should be inactive on Tuesday")
+        #expect(!isActive, "Schedule should be inactive on Tuesday")
     }
     
-    func testScheduleOvernight() {
+    @Test("Overnight schedule logic works correctly")
+    func scheduleOvernight() {
         // Given
         var schedule = Schedule(
             name: "Night Shift",
@@ -76,8 +80,8 @@ final class ScheduleTests: XCTestCase {
         let mondayNoon = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2, hour: 12, minute: 0))!
         
         // Then
-        XCTAssertTrue(schedule.isActive(at: mondayNight), "Should be active at 23:00")
-        XCTAssertTrue(schedule.isActive(at: mondayMorning), "Should be active at 01:00")
-        XCTAssertFalse(schedule.isActive(at: mondayNoon), "Should be inactive at 12:00")
+        #expect(schedule.isActive(at: mondayNight), "Should be active at 23:00")
+        #expect(schedule.isActive(at: mondayMorning), "Should be active at 01:00")
+        #expect(!schedule.isActive(at: mondayNoon), "Should be inactive at 12:00")
     }
 }

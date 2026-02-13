@@ -6,6 +6,11 @@ class LocalServer {
     let port: NWEndpoint.Port = 10000
 
     func start() {
+        // Skip starting the server if we are running in a unit test environment
+        if NSClassFromString("XCTestCase") != nil {
+            return
+        }
+
         do {
             let parameters = NWParameters.tcp
             let listener = try NWListener(using: parameters, on: port)

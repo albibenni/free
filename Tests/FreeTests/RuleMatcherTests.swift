@@ -1,37 +1,42 @@
-import XCTest
+import Testing
 @testable import FreeLogic
 
-final class RuleMatcherTests: XCTestCase {
+struct RuleMatcherTests {
     
-    func testNormalization() {
-        XCTAssertEqual(RuleMatcher.normalize("https://www.google.com/"), "google.com")
-        XCTAssertEqual(RuleMatcher.normalize("http://google.com"), "google.com")
-        XCTAssertEqual(RuleMatcher.normalize("www.google.com"), "google.com")
-        XCTAssertEqual(RuleMatcher.normalize("GOOGLE.COM"), "google.com")
+    @Test("URL normalization logic")
+    func normalization() {
+        #expect(RuleMatcher.normalize("https://www.google.com/") == "google.com")
+        #expect(RuleMatcher.normalize("http://google.com") == "google.com")
+        #expect(RuleMatcher.normalize("www.google.com") == "google.com")
+        #expect(RuleMatcher.normalize("GOOGLE.COM") == "google.com")
     }
     
-    func testExactMatch() {
+    @Test("Exact URL matching")
+    func exactMatch() {
         let rules = ["google.com"]
-        XCTAssertTrue(RuleMatcher.isAllowed("https://google.com", rules: rules))
-        XCTAssertTrue(RuleMatcher.isAllowed("https://www.google.com", rules: rules))
-        XCTAssertFalse(RuleMatcher.isAllowed("https://facebook.com", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://google.com", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://www.google.com", rules: rules))
+        #expect(!RuleMatcher.isAllowed("https://facebook.com", rules: rules))
     }
     
-    func testWildcardMatch() {
+    @Test("Wildcard URL matching")
+    func wildcardMatch() {
         let rules = ["https://www.youtube.com/watch*"]
-        XCTAssertTrue(RuleMatcher.isAllowed("https://www.youtube.com/watch?v=123", rules: rules))
-        XCTAssertFalse(RuleMatcher.isAllowed("https://www.youtube.com/", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://www.youtube.com/watch?v=123", rules: rules))
+        #expect(!RuleMatcher.isAllowed("https://www.youtube.com/", rules: rules))
     }
     
-    func testInternalSchemesAlwaysAllowed() {
-        XCTAssertTrue(RuleMatcher.isAllowed("about:blank", rules: []))
-        XCTAssertTrue(RuleMatcher.isAllowed("chrome://settings", rules: []))
-        XCTAssertTrue(RuleMatcher.isAllowed("http://localhost:10000", rules: []))
+    @Test("Internal browser schemes are always allowed")
+    func internalSchemesAlwaysAllowed() {
+        #expect(RuleMatcher.isAllowed("about:blank", rules: []))
+        #expect(RuleMatcher.isAllowed("chrome://settings", rules: []))
+        #expect(RuleMatcher.isAllowed("http://localhost:10000", rules: []))
     }
     
-    func testPrefixMatch() {
+    @Test("Prefix-based matching")
+    func prefixMatch() {
         let rules = ["github.com/apple"]
-        XCTAssertTrue(RuleMatcher.isAllowed("https://github.com/apple/swift", rules: rules))
-        XCTAssertFalse(RuleMatcher.isAllowed("https://github.com/google/swift", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://github.com/apple/swift", rules: rules))
+        #expect(!RuleMatcher.isAllowed("https://github.com/google/swift", rules: rules))
     }
 }
