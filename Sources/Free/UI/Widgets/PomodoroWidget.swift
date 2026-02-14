@@ -30,7 +30,7 @@ struct PomodoroWidget: View {
                 VStack(spacing: 0) {
                     HStack(alignment: .top, spacing: 20) {
                         PomodoroSidebar(showCustomTimer: $showCustomTimer)
-                        
+
                         VStack(alignment: .center, spacing: 16) {
                             if appState.pomodoroStatus == .none {
                                 PomodoroSetupView()
@@ -88,7 +88,7 @@ struct PomodoroWidget: View {
 struct PomodoroSidebar: View {
     @EnvironmentObject var appState: AppState
     @Binding var showCustomTimer: Bool
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             // Presets
@@ -144,6 +144,7 @@ struct PomodoroSidebar: View {
                                 .font(.system(size: 11, weight: .bold))
                                 .frame(width: 50)
                                 .padding(.vertical, 6)
+                                .padding(.leading, 2)
                                 .background(Color.primary.opacity(0.05))
                                 .foregroundColor(.secondary)
                                 .cornerRadius(6)
@@ -151,12 +152,13 @@ struct PomodoroSidebar: View {
                         .buttonStyle(.plain)
                         .disabled(!appState.isBlocking || appState.isStrictActive)
                     }
-                    
+
                     Button(action: { showCustomTimer = true }) {
                         Text("Cust")
                             .font(.system(size: 10, weight: .bold))
                             .frame(width: 50)
                             .padding(.vertical, 6)
+                            .padding(.leading, 2)
                             .background(Color.primary.opacity(0.05))
                             .foregroundColor(.secondary)
                             .cornerRadius(6)
@@ -167,14 +169,14 @@ struct PomodoroSidebar: View {
             }
         }
         .padding(.top, 4)
-        .padding(.leading, 12)
+        .padding(.leading, 20)
         .padding(.bottom, 20)
     }
 }
 
 struct PomodoroSetupView: View {
     @EnvironmentObject var appState: AppState
-    
+
     var body: some View {
         VStack(spacing: 20) {
             HStack(spacing: 60) {
@@ -194,7 +196,7 @@ struct PomodoroSetupView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private func timerColumn(title: String, duration: Binding<Double>, maxMinutes: Double, icon: String) -> some View {
         VStack(spacing: 16) {
@@ -232,7 +234,7 @@ struct PomodoroSetupView: View {
 
 struct PomodoroActiveView: View {
     @EnvironmentObject var appState: AppState
-    
+
     var body: some View {
         VStack(spacing: 32) {
             let total = (appState.pomodoroStatus == .focus ? appState.pomodoroFocusDuration : appState.pomodoroBreakDuration) * 60
@@ -279,7 +281,7 @@ struct PomodoroActiveView: View {
 struct PomodoroActionButtons: View {
     @EnvironmentObject var appState: AppState
     @Binding var showPomodoroChallenge: Bool
-    
+
     var body: some View {
         VStack {
             if appState.pomodoroStatus == .none {
