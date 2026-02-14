@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct PomodoroConstants {
-    static let strokeWidth: CGFloat = 16
-    static let knobSize: CGFloat = 14
+    static let strokeWidth: CGFloat = 24
+    static let knobSize: CGFloat = 16
     static let trackOpacity: Double = 0.15
 }
 
@@ -12,13 +12,13 @@ struct ClockCenterContent: View {
     let text: String
     
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 8) {
             Image(systemName: iconName)
-                .font(.system(size: 28))
+                .font(.system(size: 40))
                 .foregroundColor(color.opacity(0.9))
             
             Text(text)
-                .font(.system(size: 20, weight: .bold, design: .monospaced))
+                .font(.system(size: 28, weight: .bold, design: .monospaced))
         }
     }
 }

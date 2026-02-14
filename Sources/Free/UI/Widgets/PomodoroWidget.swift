@@ -167,22 +167,13 @@ struct PomodoroWidget: View {
 
     @ViewBuilder
     private var pomodoroSetupView: some View {
-        VStack(spacing: 20) {
-            HStack(spacing: 30) {
-                Text("FOCUS")
-                    .font(.system(size: 14, weight: .black))
-                    .foregroundColor(.secondary)
-                    .frame(width: 160)
+        VStack(spacing: 30) {
+            HStack(spacing: 40) {
+                VStack(spacing: 16) {
+                    Text("FOCUS")
+                        .font(.system(size: 14, weight: .black))
+                        .foregroundColor(.secondary)
 
-                Text("BREAK")
-                    .font(.system(size: 14, weight: .black))
-                    .foregroundColor(.secondary)
-                    .frame(width: 160)
-            }
-            .padding(.top, 10)
-
-            HStack(spacing: 30) {
-                VStack(spacing: 12) {
                     PomodoroTimerView(
                         durationMinutes: $appState.pomodoroFocusDuration,
                         maxMinutes: 120,
@@ -190,9 +181,9 @@ struct PomodoroWidget: View {
                         title: "",
                         color: FocusColor.color(for: appState.accentColorIndex)
                     )
-                    .frame(width: 160, height: 160)
+                    .frame(width: 200, height: 200)
 
-                    HStack(spacing: 15) {
+                    HStack(spacing: 20) {
                         Button(action: { if appState.pomodoroFocusDuration > 5 { appState.pomodoroFocusDuration -= 5 } }) {
                             Image(systemName: "minus.circle.fill")
                                 .font(.title2)
@@ -208,8 +199,13 @@ struct PomodoroWidget: View {
                         .foregroundColor(.secondary)
                     }
                 }
+                .frame(maxWidth: .infinity)
 
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
+                    Text("BREAK")
+                        .font(.system(size: 14, weight: .black))
+                        .foregroundColor(.secondary)
+
                     PomodoroTimerView(
                         durationMinutes: $appState.pomodoroBreakDuration,
                         maxMinutes: 60,
@@ -217,9 +213,9 @@ struct PomodoroWidget: View {
                         title: "",
                         color: FocusColor.color(for: appState.accentColorIndex)
                     )
-                    .frame(width: 160, height: 160)
+                    .frame(width: 200, height: 200)
 
-                    HStack(spacing: 15) {
+                    HStack(spacing: 20) {
                         Button(action: { if appState.pomodoroBreakDuration > 5 { appState.pomodoroBreakDuration -= 5 } }) {
                             Image(systemName: "minus.circle.fill")
                                 .font(.title2)
@@ -235,9 +231,11 @@ struct PomodoroWidget: View {
                         .foregroundColor(.secondary)
                     }
                 }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
+            .padding(.top, 20)
         }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
@@ -245,7 +243,7 @@ struct PomodoroWidget: View {
         VStack(spacing: 32) {
             let total = (appState.pomodoroStatus == .focus ? appState.pomodoroFocusDuration : appState.pomodoroBreakDuration) * 60
 
-            VStack(spacing: 16) {
+            VStack(spacing: 20) {
                 Text(appState.pomodoroStatus == .focus ? "FOCUSING" : "BREAKING")
                     .font(.system(size: 14, weight: .black))
                     .foregroundColor(.secondary)
@@ -258,7 +256,7 @@ struct PomodoroWidget: View {
                         color: FocusColor.color(for: appState.accentColorIndex),
                         timeString: appState.timeString(time: appState.pomodoroRemaining)
                     )
-                    .frame(width: 180, height: 180)
+                    .frame(width: 240, height: 240)
                 }
 
                 if let activeId = appState.activeRuleSetId,
