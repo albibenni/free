@@ -3,7 +3,7 @@
 Packages/
 .swiftpm/
 node_modules/
-
+.gemini/
 # macOS
 .DS_Store
 

@@ -5,9 +5,6 @@ struct FocusView: View {
     @Binding var showRules: Bool
     @Binding var showSchedules: Bool
     
-    @State private var showCustomTimer = false
-    @State private var customMinutesString = ""
-    
     // Pomodoro Challenge (Owned by FocusView to coordinate with widget)
     @State private var showPomodoroChallenge = false
     @State private var pomodoroChallengeInput = ""
@@ -35,18 +32,6 @@ struct FocusView: View {
             Spacer()
         }
         .padding()
-        .alert("Custom Break", isPresented: $showCustomTimer) {
-            TextField("Minutes", text: $customMinutesString)
-            Button("Start") {
-                if let minutes = Double(customMinutesString) {
-                    appState.startPause(minutes: minutes)
-                }
-                customMinutesString = ""
-            }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("Enter duration in minutes:")
-        }
     }
 
     // MARK: - Subviews
@@ -126,31 +111,7 @@ struct FocusView: View {
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(Color.orange.opacity(0.3), lineWidth: 1)
                 )
-            } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Take a break:")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    if appState.isStrictActive {
-                        Text("Breaks are disabled in Strict Mode.")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                            .italic()
-                    } else {
-                        HStack {
-                            Button("5m") { appState.startPause(minutes: 5) }
-                            Button("15m") { appState.startPause(minutes: 15) }
-                            Button("30m") { appState.startPause(minutes: 30) }
-                            Button("Custom") { showCustomTimerInput() }
-                        }
-                    }
-                }
             }
         }
-    }
-
-    private func showCustomTimerInput() {
-        showCustomTimer = true
     }
 }

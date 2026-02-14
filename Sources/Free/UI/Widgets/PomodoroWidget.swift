@@ -5,6 +5,8 @@ struct PomodoroWidget: View {
     @Binding var showPomodoroChallenge: Bool
     @Binding var pomodoroChallengeInput: String
     @State private var isExpanded = false
+    @State private var showCustomTimer = false
+    @State private var customMinutesString = ""
 
     var body: some View {
         WidgetCard {
@@ -25,16 +27,111 @@ struct PomodoroWidget: View {
             .buttonStyle(.plain)
 
             if isExpanded || appState.pomodoroStatus != .none {
-                VStack(alignment: .leading, spacing: 16) {
-                    if appState.pomodoroStatus == .none {
-                        pomodoroSetupView
-                    } else {
-                        pomodoroActiveView
+                HStack(alignment: .top, spacing: 20) {
+                    // Sidebar
+                    VStack(alignment: .leading, spacing: 24) {
+                        // Presets
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("PRESETS")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundColor(.secondary)
+
+                            VStack(spacing: 6) {
+                                ForEach([
+                                    (25.0, 5.0, "25/5"),
+                                    (50.0, 10.0, "50/10"),
+                                    (45.0, 15.0, "45/15"),
+                                    (90.0, 20.0, "90/20")
+                                ], id: \.2) { focus, breakTime, label in
+                                    Button(action: {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            appState.pomodoroFocusDuration = focus
+                                            appState.pomodoroBreakDuration = breakTime
+                                        }
+                                    }) {
+                                        Text(label)
+                                            .font(.system(size: 11, weight: .bold))
+                                            .frame(width: 50)
+                                            .padding(.vertical, 6)
+                                            .background(
+                                                appState.pomodoroFocusDuration == focus && appState.pomodoroBreakDuration == breakTime
+                                                ? FocusColor.color(for: appState.accentColorIndex).opacity(0.15)
+                                                : Color.primary.opacity(0.05)
+                                            )
+                                            .foregroundColor(
+                                                appState.pomodoroFocusDuration == focus && appState.pomodoroBreakDuration == breakTime
+                                                ? FocusColor.color(for: appState.accentColorIndex)
+                                                : .secondary
+                                            )
+                                            .cornerRadius(6)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+
+                        // Quick Breaks
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("QUICK BREAK")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundColor(.secondary)
+
+                            VStack(spacing: 6) {
+                                ForEach([5, 15, 30], id: \.self) { mins in
+                                    Button(action: { appState.startPause(minutes: Double(mins)) }) {
+                                        Text("\(mins)m")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .frame(width: 50)
+                                            .padding(.vertical, 6)
+                                            .background(Color.primary.opacity(0.05))
+                                            .foregroundColor(.secondary)
+                                            .cornerRadius(6)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(!appState.isBlocking || appState.isStrictActive)
+                                }
+                                
+                                Button(action: { showCustomTimer = true }) {
+                                    Text("Cust")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .frame(width: 50)
+                                        .padding(.vertical, 6)
+                                        .background(Color.primary.opacity(0.05))
+                                        .foregroundColor(.secondary)
+                                        .cornerRadius(6)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(!appState.isBlocking || appState.isStrictActive)
+                            }
+                        }
                     }
+                    .padding(.top, 40) // Align with timer content
+                    .padding(.leading, 12)
+                    .padding(.bottom, 20)
+
+                    VStack(alignment: .leading, spacing: 16) {
+                        if appState.pomodoroStatus == .none {
+                            pomodoroSetupView
+                        } else {
+                            pomodoroActiveView
+                        }
+                    }
+                    .padding(.trailing, 12)
+                    .padding(.bottom, 12)
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
             }
+        }
+        .alert("Custom Break", isPresented: $showCustomTimer) {
+            TextField("Minutes", text: $customMinutesString)
+            Button("Start") {
+                if let minutes = Double(customMinutesString) {
+                    appState.startPause(minutes: minutes)
+                }
+                customMinutesString = ""
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Enter duration in minutes:")
         }
         .alert("Emergency Unlock", isPresented: $showPomodoroChallenge) {
             TextField("Type the phrase exactly", text: $pomodoroChallengeInput)
@@ -131,11 +228,13 @@ struct PomodoroWidget: View {
             VStack(spacing: 12) {
                 Button(action: { appState.startPomodoro() }) {
                     Text("Start Focus Session")
+                        .font(.headline)
+                        .padding(.horizontal, 30)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(AppPrimaryButtonStyle(
-                    color: FocusColor.color(for: appState.accentColorIndex),
-                    maxWidth: .infinity
-                ))
+                .buttonStyle(.bordered)
+                .tint(FocusColor.color(for: appState.accentColorIndex))
             }
             .frame(maxWidth: .infinity)
         }
@@ -208,3 +307,5 @@ struct PomodoroWidget: View {
         .padding(.vertical, 20)
     }
 }
+
+

@@ -17,9 +17,9 @@
   - [x] free time disable focus even with calendar enabled
 - [x] the take a break shouldn't be allowed if it's strict mode, either pomodoro or focus
   - [x] with a break it should pause the pomodoro - then restart it
-- [ ] list can add websites from open list?
-  - [ ] remove list selection from general ui
-  - [ ] focus session should default to the first list - not none
+- [x] list can add websites from open list?
+  - [x] remove list selection from general ui
+  - [x] focus session should default to the first list - not none
 - [ ] add default pomodoro timer - most used ones
 - [ ] focus mode should show active list
 
