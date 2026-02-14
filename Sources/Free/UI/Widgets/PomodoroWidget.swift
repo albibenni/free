@@ -40,8 +40,8 @@ struct PomodoroWidget: View {
                                 VStack(spacing: 6) {
                                     ForEach([
                                         (25.0, 5.0, "25/5"),
-                                        (50.0, 10.0, "50/10"),
                                         (45.0, 15.0, "45/15"),
+                                        (50.0, 10.0, "50/10"),
                                         (90.0, 20.0, "90/20")
                                     ], id: \.2) { focus, breakTime, label in
                                         Button(action: {
@@ -91,7 +91,7 @@ struct PomodoroWidget: View {
                                     .buttonStyle(.plain)
                                     .disabled(!appState.isBlocking || appState.isStrictActive)
                                 }
-                                
+
                                 Button(action: { showCustomTimer = true }) {
                                     Text("Cust")
                                         .font(.system(size: 10, weight: .bold))
@@ -169,7 +169,7 @@ struct PomodoroWidget: View {
     @ViewBuilder
     private var pomodoroSetupView: some View {
         VStack(spacing: 20) {
-            HStack(spacing: 40) {
+            HStack(spacing: 60) {
                 VStack(spacing: 16) {
                     Text("FOCUS")
                         .font(.system(size: 14, weight: .black))
@@ -182,7 +182,7 @@ struct PomodoroWidget: View {
                         title: "",
                         color: FocusColor.color(for: appState.accentColorIndex)
                     )
-                    .frame(width: 200, height: 200)
+                    .frame(width: 240, height: 240)
 
                     HStack(spacing: 20) {
                         Button(action: { if appState.pomodoroFocusDuration > 5 { appState.pomodoroFocusDuration -= 5 } }) {
@@ -213,7 +213,7 @@ struct PomodoroWidget: View {
                         title: "",
                         color: FocusColor.color(for: appState.accentColorIndex)
                     )
-                    .frame(width: 200, height: 200)
+                    .frame(width: 240, height: 240)
 
                     HStack(spacing: 20) {
                         Button(action: { if appState.pomodoroBreakDuration > 5 { appState.pomodoroBreakDuration -= 5 } }) {
