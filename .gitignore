@@ -1,5 +1,6 @@
 # Swift Package Manager & Build
 .build/
+.build_log
 Packages/
 .swiftpm/
 node_modules/

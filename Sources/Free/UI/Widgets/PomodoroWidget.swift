@@ -82,19 +82,6 @@ struct PomodoroWidget: View {
                                         Button(action: { appState.startPause(minutes: Double(mins)) }) {
                                             Text("\(mins)m")
                                                 .font(.system(size: 11, weight: .bold))
-                                                .frame(width: 50)
-                                                .padding(.vertical, 6)
-                                                .background(Color.primary.opacity(0.05))
-                                                .foregroundColor(.secondary)
-                                                .cornerRadius(6)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .disabled(!appState.isBlocking || appState.isStrictActive)
-                                    }
-                                    
-                                    Button(action: { showCustomTimer = true }) {
-                                        Text("Cust")
-                                            .font(.system(size: 10, weight: .bold))
                                             .frame(width: 50)
                                             .padding(.vertical, 6)
                                             .background(Color.primary.opacity(0.05))
@@ -104,22 +91,36 @@ struct PomodoroWidget: View {
                                     .buttonStyle(.plain)
                                     .disabled(!appState.isBlocking || appState.isStrictActive)
                                 }
+                                
+                                Button(action: { showCustomTimer = true }) {
+                                    Text("Cust")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .frame(width: 50)
+                                        .padding(.vertical, 6)
+                                        .background(Color.primary.opacity(0.05))
+                                        .foregroundColor(.secondary)
+                                        .cornerRadius(6)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(!appState.isBlocking || appState.isStrictActive)
                             }
                         }
-                        .padding(.top, 40) // Align with timer content
-                        .padding(.leading, 12)
-                        .padding(.bottom, 20)
-
-                        VStack(alignment: .leading, spacing: 16) {
-                            if appState.pomodoroStatus == .none {
-                                pomodoroSetupView
-                            } else {
-                                pomodoroActiveView
-                            }
-                        }
-                        .padding(.trailing, 12)
-                        .padding(.bottom, 12)
                     }
+                    .padding(.top, 4) // Align with timer content
+                    .padding(.leading, 12)
+                    .padding(.bottom, 20)
+
+                    VStack(alignment: .center, spacing: 16) {
+                        if appState.pomodoroStatus == .none {
+                            pomodoroSetupView
+                        } else {
+                            pomodoroActiveView
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.trailing, 12)
+                    .padding(.bottom, 12)
+                }
 
                     // Bottom Action Area
                     VStack {
@@ -167,7 +168,7 @@ struct PomodoroWidget: View {
 
     @ViewBuilder
     private var pomodoroSetupView: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 20) {
             HStack(spacing: 40) {
                 VStack(spacing: 16) {
                     Text("FOCUS")
@@ -199,7 +200,6 @@ struct PomodoroWidget: View {
                         .foregroundColor(.secondary)
                     }
                 }
-                .frame(maxWidth: .infinity)
 
                 VStack(spacing: 16) {
                     Text("BREAK")
@@ -231,11 +231,8 @@ struct PomodoroWidget: View {
                         .foregroundColor(.secondary)
                     }
                 }
-                .frame(maxWidth: .infinity)
             }
-            .padding(.top, 20)
         }
-        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
