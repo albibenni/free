@@ -155,4 +155,22 @@ struct ScheduleTests {
         #expect(timeRange.contains(" - "))
         #expect(timeRange.count > 10)
     }
+
+    @Test("Negative: Schedule with no days should never be active")
+    func scheduleNoDays() {
+        let now = Date()
+        let schedule = Schedule(name: "Empty", days: [], startTime: now.addingTimeInterval(-3600), endTime: now.addingTimeInterval(3600))
+        #expect(!schedule.isActive(at: now))
+    }
+
+    @Test("Negative: Zero duration schedule should not be active")
+    func scheduleZeroDuration() {
+        let now = Date()
+        let calendar = Calendar.current
+        let today = calendar.component(.weekday, from: now)
+        let time = calendar.date(from: DateComponents(hour: 10, minute: 0))!
+        
+        let schedule = Schedule(name: "Instant", days: [today], startTime: time, endTime: time)
+        #expect(!schedule.isActive(at: time))
+    }
 }

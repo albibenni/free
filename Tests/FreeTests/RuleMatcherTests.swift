@@ -144,4 +144,19 @@ struct RuleMatcherTests {
         let shortsRule = ["youtube.com/shorts/*"]
         #expect(RuleMatcher.isAllowed("https://www.youtube.com/shorts/123", rules: shortsRule))
     }
+
+    @Test("Negative: Malformed URLs and Rules")
+    func malformedRuleLogic() {
+        // Just text, not a URL
+        #expect(!RuleMatcher.isAllowed("just-some-text", rules: ["google.com"]))
+        
+        // Invalid protocol
+        #expect(!RuleMatcher.isAllowed("ftp://google.com", rules: ["google.com"]))
+        
+        // Rule is just whitespace (should be ignored)
+        #expect(!RuleMatcher.isAllowed("https://google.com", rules: ["   "]))
+        
+        // Rule is just a wildcard (blocks everything)
+        #expect(RuleMatcher.isAllowed("https://google.com", rules: ["*"]))
+    }
 }

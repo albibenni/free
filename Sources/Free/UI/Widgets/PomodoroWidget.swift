@@ -66,12 +66,7 @@ struct PomodoroWidget: View {
         .alert("Emergency Unlock", isPresented: $showPomodoroChallenge) {
             TextField("Type the phrase exactly", text: $pomodoroChallengeInput)
             Button("Stop Pomodoro", role: .destructive) {
-                if pomodoroChallengeInput == AppState.challengePhrase {
-                    let wasUnblockable = appState.isUnblockable
-                    appState.isUnblockable = false
-                    appState.stopPomodoro()
-                    appState.isUnblockable = wasUnblockable
-                }
+                _ = appState.stopPomodoroWithChallenge(phrase: pomodoroChallengeInput)
                 pomodoroChallengeInput = ""
             }
             Button("Cancel", role: .cancel) {

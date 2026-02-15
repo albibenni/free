@@ -412,6 +412,66 @@ struct AppStateTests {
         // Break should win
         #expect(!appState.isBlocking)
     }
+
+    @Test("Challenge phrase enforcement logic")
+    func challengePhraseEnforcement() {
+        let appState = isolatedAppState(name: "challengePhraseEnforcement")
+        
+        // 1. Unblockable mode
+        appState.isUnblockable = true
+        #expect(!appState.disableUnblockableWithChallenge(phrase: "wrong"))
+        #expect(appState.isUnblockable)
+        
+        #expect(appState.disableUnblockableWithChallenge(phrase: AppState.challengePhrase))
+        #expect(!appState.isUnblockable)
+        
+        // 2. Pomodoro Stop
+        appState.isUnblockable = true
+        appState.startPomodoro()
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-100) // Ensure it's locked
+        #expect(appState.isPomodoroLocked)
+        
+        #expect(!appState.stopPomodoroWithChallenge(phrase: "wrong"))
+        #expect(appState.pomodoroStatus == .focus)
+        
+        #expect(appState.stopPomodoroWithChallenge(phrase: AppState.challengePhrase))
+        #expect(appState.pomodoroStatus == .none)
+    }
+
+    @Test("Negative: Pause when not blocking should fail")
+    func pauseWhileNotBlocking() {
+        let appState = isolatedAppState(name: "pauseWhileNotBlocking")
+        appState.isBlocking = false
+        
+        appState.startPause(minutes: 5)
+        #expect(!appState.isPaused)
+    }
+
+    @Test("Negative: Duplicate rules should not be added")
+    func duplicateRules() {
+        let appState = isolatedAppState(name: "duplicateRules")
+        let id = appState.ruleSets[0].id
+        
+        appState.addRule("google.com", to: id)
+        let count = appState.ruleSets[0].urls.count
+        
+        appState.addRule("google.com", to: id)
+        #expect(appState.ruleSets[0].urls.count == count, "Should not add duplicate URL")
+        
+        appState.addRule(" google.com ", to: id) // With spaces
+        #expect(appState.ruleSets[0].urls.count == count, "Should trim and detect duplicate")
+    }
+
+    @Test("Negative: Stop Pomodoro when locked without challenge")
+    func stopLockedPomodoro() {
+        let appState = isolatedAppState(name: "stopLockedPomodoro")
+        appState.isUnblockable = true
+        appState.startPomodoro()
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-100) // Locked
+        
+        appState.stopPomodoro() // Normal stop call
+        #expect(appState.pomodoroStatus == .focus, "Should not stop locked session without challenge")
+    }
 }
 
 

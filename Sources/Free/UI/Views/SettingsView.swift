@@ -91,9 +91,7 @@ struct SettingsView: View {
         .alert("Emergency Unlock", isPresented: $showChallenge) {
             TextField("Type the phrase exactly", text: $challengeInput)
             Button("Unlock", role: .destructive) {
-                if challengeInput == AppState.challengePhrase {
-                    appState.isUnblockable = false
-                }
+                _ = appState.disableUnblockableWithChallenge(phrase: challengeInput)
                 challengeInput = ""
             }
             Button("Cancel", role: .cancel) {

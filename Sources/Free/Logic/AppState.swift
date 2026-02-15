@@ -194,6 +194,22 @@ class AppState: ObservableObject {
         }
     }
 
+    // MARK: - Challenge Logic
+    func stopPomodoroWithChallenge(phrase: String) -> Bool {
+        guard phrase == AppState.challengePhrase else { return false }
+        let wasUnblockable = isUnblockable
+        isUnblockable = false
+        stopPomodoro()
+        isUnblockable = wasUnblockable
+        return true
+    }
+
+    func disableUnblockableWithChallenge(phrase: String) -> Bool {
+        guard phrase == AppState.challengePhrase else { return false }
+        isUnblockable = false
+        return true
+    }
+
     func startPomodoro() { pomodoroStatus = .focus ; pomodoroRemaining = pomodoroFocusDuration * 60 ; pomodoroStartedAt = Date() ; runTimer() }
     func stopPomodoro() { if !isPomodoroLocked { pomodoroStatus = .none ; pomodoroTimer?.invalidate() ; checkSchedules() } }
     func skipPomodoroPhase() { if pomodoroStatus == .focus { startBreak() } else if pomodoroStatus == .breakTime { startPomodoro() } }
