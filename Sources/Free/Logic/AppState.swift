@@ -165,6 +165,35 @@ class AppState: ObservableObject {
     func removeRule(_ rule: String, from setId: UUID) { updateSet(setId) { $0.urls.removeAll { $0 == rule } } }
     func deleteSet(id: UUID) { ruleSets.removeAll { $0.id == id } ; if activeRuleSetId == id { activeRuleSetId = ruleSets.first?.id } }
 
+    // MARK: - Schedule Management
+    func saveSchedule(name: String, days: Set<Int>, start: Date, end: Date, color: Int, type: ScheduleType, ruleSet: UUID?, existingId: UUID?, modifyAllDays: Bool, initialDay: Int?) {
+        let finalName = name.trimmingCharacters(in: .whitespaces).isEmpty ? (type == .focus ? "Focus Session" : "Break Session") : name
+        
+        if let id = existingId, let i = schedules.firstIndex(where: { $0.id == id }) {
+            if modifyAllDays {
+                schedules[i].name = finalName ; schedules[i].days = days ; schedules[i].startTime = start ; schedules[i].endTime = end
+                schedules[i].colorIndex = color ; schedules[i].type = type ; schedules[i].ruleSetId = ruleSet
+            } else if let day = initialDay {
+                schedules[i].days.remove(day)
+                if schedules[i].days.isEmpty { schedules.remove(at: i) }
+                schedules.append(Schedule(name: finalName, days: [day], startTime: start, endTime: end, colorIndex: color, type: type, ruleSetId: ruleSet))
+            }
+        } else {
+            schedules.append(Schedule(name: finalName, days: days, startTime: start, endTime: end, colorIndex: color, type: type, ruleSetId: ruleSet))
+        }
+    }
+
+    func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
+        if let i = schedules.firstIndex(where: { $0.id == id }) {
+            if !modifyAllDays, let day = initialDay {
+                schedules[i].days.remove(day)
+                if schedules[i].days.isEmpty { schedules.remove(at: i) }
+            } else {
+                schedules.remove(at: i)
+            }
+        }
+    }
+
     func startPomodoro() { pomodoroStatus = .focus ; pomodoroRemaining = pomodoroFocusDuration * 60 ; pomodoroStartedAt = Date() ; runTimer() }
     func stopPomodoro() { if !isPomodoroLocked { pomodoroStatus = .none ; pomodoroTimer?.invalidate() ; checkSchedules() } }
     func skipPomodoroPhase() { if pomodoroStatus == .focus { startBreak() } else if pomodoroStatus == .breakTime { startPomodoro() } }
