@@ -24,4 +24,27 @@ struct UITransformationTests {
             #expect(FocusColor.all[i] != FocusColor.all[i+1])
         }
     }
+
+    @Test("Pomodoro duration calculation and snapping")
+    func pomodoroCalculation() {
+        let center = CGPoint(x: 100, y: 100)
+        let maxMins: Double = 60
+        
+        // 1. Top (Calculates as 0 or 60 depending on float precision, snapped to 5 or 60)
+        let top = CGPoint(x: 100, y: 50)
+        let topResult = PomodoroTimerView.calculateDuration(location: top, center: center, maxMinutes: maxMins)
+        #expect(topResult == 5 || topResult == 60) 
+        
+        // 2. Right (90 degrees -> 15 mins)
+        let right = CGPoint(x: 150, y: 100)
+        #expect(PomodoroTimerView.calculateDuration(location: right, center: center, maxMinutes: maxMins) == 15)
+        
+        // 3. Bottom (180 degrees -> 30 mins)
+        let bottom = CGPoint(x: 100, y: 150)
+        #expect(PomodoroTimerView.calculateDuration(location: bottom, center: center, maxMinutes: maxMins) == 30)
+        
+        // 4. Left (270 degrees -> 45 mins)
+        let left = CGPoint(x: 50, y: 100)
+        #expect(PomodoroTimerView.calculateDuration(location: left, center: center, maxMinutes: maxMins) == 45)
+    }
 }

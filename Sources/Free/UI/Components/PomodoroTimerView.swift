@@ -79,6 +79,14 @@ struct PomodoroTimerView: View {
     }
 
     private func updateDuration(location: CGPoint, center: CGPoint) {
+        durationMinutes = PomodoroTimerView.calculateDuration(
+            location: location,
+            center: center,
+            maxMinutes: maxMinutes
+        )
+    }
+
+    static func calculateDuration(location: CGPoint, center: CGPoint, maxMinutes: Double) -> Double {
         let vector = CGVector(dx: location.x - center.x, dy: location.y - center.y)
         var angleRadians = atan2(vector.dy, vector.dx)
 
@@ -92,9 +100,7 @@ struct PomodoroTimerView: View {
 
         // Snap to nearest 5 minutes
         let step: Double = 5
-        let snappedDuration = max(step, min(maxMinutes, round(newDuration / step) * step))
-
-        durationMinutes = snappedDuration
+        return max(step, min(maxMinutes, round(newDuration / step) * step))
     }
 }
 
