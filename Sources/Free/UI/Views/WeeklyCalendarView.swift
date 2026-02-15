@@ -18,7 +18,11 @@ struct WeeklyCalendarView: View {
     let timeColumnGutter: CGFloat = 10
     
     var dayOrder: [Int] {
-        if appState.weekStartsOnMonday {
+        WeeklyCalendarView.getDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday)
+    }
+
+    static func getDayOrder(weekStartsOnMonday: Bool) -> [Int] {
+        if weekStartsOnMonday {
             return [2, 3, 4, 5, 6, 7, 1] // Mon -> Sun
         } else {
             return [1, 2, 3, 4, 5, 6, 7] // Sun -> Sat
@@ -298,6 +302,16 @@ struct WeeklyCalendarView: View {
     }
     
     private func calculateRect(startDate: Date, endDate: Date, colIndex: Int, columnWidth: CGFloat) -> CGRect? {
+        WeeklyCalendarView.calculateRect(
+            startDate: startDate,
+            endDate: endDate,
+            colIndex: colIndex,
+            columnWidth: columnWidth,
+            hourHeight: hourHeight
+        )
+    }
+
+    static func calculateRect(startDate: Date, endDate: Date, colIndex: Int, columnWidth: CGFloat, hourHeight: CGFloat) -> CGRect? {
         let calendar = Calendar.current
         let startComp = calendar.dateComponents([.hour, .minute], from: startDate)
         let endComp = calendar.dateComponents([.hour, .minute], from: endDate)

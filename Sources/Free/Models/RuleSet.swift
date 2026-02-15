@@ -11,4 +11,9 @@ struct RuleSet: Identifiable, Codable, Equatable {
             urls: ["https://www.youtube.com/watch?v=gmuTjeQUbTM"]
         )
     }
+
+    func containsRule(_ url: String) -> Bool {
+        // Use RuleMatcher to see if this URL is already effectively allowed by this set
+        return RuleMatcher.isAllowed(url, rules: urls)
+    }
 }

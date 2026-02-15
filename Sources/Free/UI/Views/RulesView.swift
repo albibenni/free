@@ -132,23 +132,24 @@ struct RulesView: View {
 
     @ViewBuilder
     private func suggestionsList(for selectedSet: RuleSet) -> some View {
-        if appState.currentOpenUrls.isEmpty {
-            Text("No open tabs detected.").font(.caption).foregroundColor(.secondary)
+        let filtered = RulesView.filterSuggestions(appState.currentOpenUrls, existing: selectedSet)
+        if filtered.isEmpty {
+            Text(appState.currentOpenUrls.isEmpty ? "No open tabs detected." : "All open tabs are already allowed.")
+                .font(.caption).foregroundColor(.secondary)
         } else {
-            let filtered = appState.currentOpenUrls.filter { !selectedSet.urls.contains($0) }
-            if filtered.isEmpty {
-                Text("All open tabs are already allowed.").font(.caption).foregroundColor(.secondary)
-            } else {
-                ForEach(filtered, id: \.self) { url in
-                    HStack {
-                        Image(systemName: "plus.circle").foregroundColor(.green)
-                        Text(url).font(.system(.caption, design: .monospaced)).lineLimit(1)
-                        Spacer()
-                        Button("Add") { appState.addSpecificRule(url, to: selectedSet.id) }.buttonStyle(.bordered).controlSize(.small)
-                    }
+            ForEach(filtered, id: \.self) { url in
+                HStack {
+                    Image(systemName: "plus.circle").foregroundColor(.green)
+                    Text(url).font(.system(.caption, design: .monospaced)).lineLimit(1)
+                    Spacer()
+                    Button("Add") { appState.addSpecificRule(url, to: selectedSet.id) }.buttonStyle(.bordered).controlSize(.small)
                 }
             }
         }
+    }
+
+    static func filterSuggestions(_ urls: [String], existing: RuleSet) -> [String] {
+        urls.filter { !existing.containsRule($0) }
     }
 
     private func addRuleFooter(for selectedSet: RuleSet) -> some View {

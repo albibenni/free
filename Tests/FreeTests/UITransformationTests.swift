@@ -54,4 +54,49 @@ struct UITransformationTests {
         #expect(AppearanceMode.dark.colorScheme == .dark)
         #expect(AppearanceMode.system.colorScheme == nil)
     }
+
+    @Test("WeeklyCalendar day ordering")
+    func dayOrdering() {
+        // Starts Sunday
+        let sunFirst = WeeklyCalendarView.getDayOrder(weekStartsOnMonday: false)
+        #expect(sunFirst.first == 1) // Sunday
+        #expect(sunFirst.last == 7)  // Saturday
+        
+        // Starts Monday
+        let monFirst = WeeklyCalendarView.getDayOrder(weekStartsOnMonday: true)
+        #expect(monFirst.first == 2) // Monday
+        #expect(monFirst.last == 1)  // Sunday
+    }
+
+    @Test("WeeklyCalendar rect calculation math")
+    func calendarRectMath() {
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 10, minute: 30))!
+        let hourH: CGFloat = 100
+        let colWidth: CGFloat = 200
+        
+        let rect = WeeklyCalendarView.calculateRect(startDate: start, endDate: end, colIndex: 0, columnWidth: colWidth, hourHeight: hourH)
+        
+        #expect(rect?.origin.y == 900) // 9:00 * 100
+        #expect(rect?.size.height == 150) // 1.5 hours * 100
+        #expect(rect?.size.width == 196) // 200 - 4 padding
+    }
+
+    @Test("RulesView suggestion filtering logic")
+    func suggestionFiltering() {
+        let existing = RuleSet(name: "Test", urls: ["google.com", "youtube.com/watch?v=123"])
+        let suggestions = [
+            "https://www.google.com",           // Duplicate (normalized)
+            "https://github.com",               // New
+            "https://youtube.com/watch?v=123",  // Duplicate (exact)
+            "https://youtube.com/watch?v=456"   // New
+        ]
+        
+        let filtered = RulesView.filterSuggestions(suggestions, existing: existing)
+        
+        #expect(filtered.count == 2)
+        #expect(filtered.contains("https://github.com"))
+        #expect(filtered.contains("https://youtube.com/watch?v=456"))
+    }
 }
