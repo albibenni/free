@@ -2,7 +2,7 @@ import Testing
 @testable import FreeLogic
 
 struct RuleMatcherTests {
-    
+
     @Test("URL normalization logic")
     func normalization() {
         #expect(RuleMatcher.normalize("https://www.google.com/") == "google.com")
@@ -10,7 +10,7 @@ struct RuleMatcherTests {
         #expect(RuleMatcher.normalize("www.google.com") == "google.com")
         #expect(RuleMatcher.normalize("GOOGLE.COM") == "google.com")
     }
-    
+
     @Test("Exact URL matching")
     func exactMatch() {
         let rules = ["google.com"]
@@ -18,28 +18,28 @@ struct RuleMatcherTests {
         #expect(RuleMatcher.isAllowed("https://www.google.com", rules: rules))
         #expect(!RuleMatcher.isAllowed("https://facebook.com", rules: rules))
     }
-    
+
     @Test("Wildcard URL matching")
     func wildcardMatch() {
         let rules = ["https://www.youtube.com/watch*"]
         #expect(RuleMatcher.isAllowed("https://www.youtube.com/watch?v=123", rules: rules))
         #expect(!RuleMatcher.isAllowed("https://www.youtube.com/", rules: rules))
     }
-    
+
     @Test("Internal browser schemes are always allowed")
     func internalSchemesAlwaysAllowed() {
         #expect(RuleMatcher.isAllowed("about:blank", rules: []))
         #expect(RuleMatcher.isAllowed("chrome://settings", rules: []))
         #expect(RuleMatcher.isAllowed("http://localhost:10000", rules: []))
     }
-    
+
     @Test("Prefix-based matching")
     func prefixMatch() {
         let rules = ["github.com/apple"]
         #expect(RuleMatcher.isAllowed("https://github.com/apple/swift", rules: rules))
         #expect(!RuleMatcher.isAllowed("https://github.com/google/swift", rules: rules))
     }
-    
+
     @Test("Subdomain matching logic")
     func subdomainMatching() {
         let rules = ["google.com"]
@@ -49,7 +49,7 @@ struct RuleMatcherTests {
         #expect(RuleMatcher.isAllowed("https://mail.google.com", rules: rules))
         #expect(RuleMatcher.isAllowed("https://docs.google.com/document/123", rules: rules))
     }
-    
+
     @Test("Trailing slash and path normalization")
     func pathVariations() {
         let rules = ["example.com/work"]
@@ -57,37 +57,37 @@ struct RuleMatcherTests {
         #expect(RuleMatcher.isAllowed("https://example.com/work?user=1", rules: rules))
         #expect(!RuleMatcher.isAllowed("https://example.com/working", rules: rules))
     }
-    
+
     @Test("Handling empty rules and invalid URLs")
     func emptyAndInvalid() {
         #expect(RuleMatcher.isAllowed("", rules: ["google.com"]))
         #expect(!RuleMatcher.isAllowed("https://google.com", rules: []))
         #expect(RuleMatcher.isAllowed("about:blank", rules: []))
     }
-    
+
     @Test("Complex subdomain and path matching")
     func complexMatching() {
         let rules = ["dev.example.co.uk/docs"]
-        
+
         #expect(RuleMatcher.isAllowed("https://dev.example.co.uk/docs/api", rules: rules))
         #expect(RuleMatcher.isAllowed("http://www.dev.example.co.uk/docs", rules: rules))
         #expect(!RuleMatcher.isAllowed("https://example.co.uk/docs", rules: rules))
         #expect(!RuleMatcher.isAllowed("https://dev.example.co.uk/documentation", rules: rules))
     }
-    
+
     @Test("Query parameters and fragments")
     func queryAndFragments() {
         let rules = ["youtube.com/watch?v=123"]
-        
+
         #expect(RuleMatcher.isAllowed("https://www.youtube.com/watch?v=123", rules: rules))
         #expect(RuleMatcher.isAllowed("https://youtube.com/watch?v=123#t=10s", rules: rules))
         #expect(!RuleMatcher.isAllowed("https://youtube.com/watch?v=456", rules: rules))
     }
-    
+
     @Test("Multiple trailing slashes")
     func trailingSlashes() {
         let rules = ["example.com/work"]
-        
+
         #expect(RuleMatcher.isAllowed("https://example.com/work///", rules: rules))
         #expect(RuleMatcher.isAllowed("https://example.com/work", rules: rules))
     }
@@ -98,7 +98,7 @@ struct RuleMatcherTests {
         let rules = ["*.google.com"]
         #expect(RuleMatcher.isAllowed("https://mail.google.com", rules: rules))
         #expect(RuleMatcher.isAllowed("https://google.com", rules: rules))
-        
+
         // Middle wildcard
         let rules2 = ["github.com/*/settings"]
         #expect(RuleMatcher.isAllowed("https://github.com/apple/settings", rules: rules2))
@@ -125,5 +125,23 @@ struct RuleMatcherTests {
         #expect(RuleMatcher.isAllowed("arc://extensions", rules: []))
         #expect(RuleMatcher.isAllowed("edge://history", rules: []))
         #expect(RuleMatcher.isAllowed("file:///Users/test/doc.pdf", rules: []))
+    }
+
+    @Test("YouTube specific matching edge cases")
+    func youtubeEdgeCases() {
+        let rules = ["youtube.com/watch?v=abc"]
+
+        // Desktop
+        #expect(RuleMatcher.isAllowed("https://www.youtube.com/watch?v=abc", rules: rules))
+        // Mobile
+        #expect(RuleMatcher.isAllowed("https://m.youtube.com/watch?v=abc", rules: rules))
+        // Attribution / Features
+        #expect(RuleMatcher.isAllowed("https://youtube.com/watch?v=abc&feature=emb_imp_woyt", rules: rules))
+        // Shorts (Should NOT match a watch link unless rule uses wildcard)
+        #expect(!RuleMatcher.isAllowed("https://youtube.com/shorts/abc", rules: rules))
+
+        // Rule for Shorts
+        let shortsRule = ["youtube.com/shorts/*"]
+        #expect(RuleMatcher.isAllowed("https://www.youtube.com/shorts/123", rules: shortsRule))
     }
 }
