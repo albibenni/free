@@ -438,6 +438,22 @@ struct AppStateTests {
         #expect(appState.pomodoroStatus == .none)
     }
 
+    @Test("Negative: Challenge phrase is case-sensitive and strict on whitespace")
+    func challengePhraseStrictness() {
+        let appState = isolatedAppState(name: "challengePhraseStrictness")
+        appState.isUnblockable = true
+        
+        // 1. Casing (should fail)
+        let lowercased = AppState.challengePhrase.lowercased()
+        #expect(!appState.disableUnblockableWithChallenge(phrase: lowercased))
+        
+        // 2. Leading/Trailing whitespace (should fail)
+        let padded = " " + AppState.challengePhrase + " "
+        #expect(!appState.disableUnblockableWithChallenge(phrase: padded))
+        
+        #expect(appState.isUnblockable, "Should still be locked after bad attempts")
+    }
+
     @Test("Negative: Pause when not blocking should fail")
     func pauseWhileNotBlocking() {
         let appState = isolatedAppState(name: "pauseWhileNotBlocking")

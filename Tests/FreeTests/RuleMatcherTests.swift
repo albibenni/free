@@ -160,6 +160,18 @@ struct RuleMatcherTests {
         #expect(RuleMatcher.isAllowed("https://google.com", rules: ["*"]))
     }
 
+    @Test("Negative: RuleMatcher extreme edge cases")
+    func ruleMatcherExtremeEdges() {
+        // 1. URL is just protocol
+        #expect(!RuleMatcher.isAllowed("https://", rules: ["google.com"]))
+        
+        // 2. Rule is just special characters (no domain)
+        #expect(!RuleMatcher.isAllowed("https://google.com", rules: ["./?"]))
+        
+        // 3. Rule is empty string (already tested in emptyAndInvalid but verifying consistency)
+        #expect(!RuleMatcher.isAllowed("https://google.com", rules: [""]))
+    }
+
     @Test("Advanced URL formats: Ports and IPs")
     func advancedUrlFormats() {
         // Port matching
