@@ -47,4 +47,11 @@ struct UITransformationTests {
         let left = CGPoint(x: 50, y: 100)
         #expect(PomodoroTimerView.calculateDuration(location: left, center: center, maxMinutes: maxMins) == 45)
     }
+
+    @Test("AppearanceMode mapping to ColorScheme")
+    func appearanceModeMapping() {
+        #expect(AppearanceMode.light.colorScheme == .light)
+        #expect(AppearanceMode.dark.colorScheme == .dark)
+        #expect(AppearanceMode.system.colorScheme == nil)
+    }
 }
