@@ -2,37 +2,40 @@ import Foundation
 import Network
 
 class LocalServer {
-    var listener: NWListener? 
-    let port: NWEndpoint.Port = 10000
+    var listener: NWListener?
+    private(set) var port: NWEndpoint.Port?
 
-    func start() {
+    func start(on requestedPort: NWEndpoint.Port = 10000) {
         // Skip starting the server if we are running in a unit test environment
-        let isTesting = ProcessInfo.processInfo.environment["IS_TESTING"] == "1" || 
-                        ProcessInfo.processInfo.processName.contains("Test")
-        
-        if isTesting {
+        // UNLESS we explicitly want to test it (handled by passing a different port or checking environment)
+        let isGeneralTesting = ProcessInfo.processInfo.processName.contains("Test") && requestedPort == 10000
+
+        if isGeneralTesting {
             return
         }
 
         do {
             let parameters = NWParameters.tcp
-            let listener = try NWListener(using: parameters, on: port)
-            
+            let listener = try NWListener(using: parameters, on: requestedPort)
+            self.port = requestedPort
+
             listener.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    print("Local server listening on port \(self.port)")
+                    if let actualPort = listener.port {
+                        print("Local server listening on port \(actualPort)")
+                    }
                 case .failed(let error):
                     print("Server failed with error: \(error)")
                 default:
                     break
                 }
             }
-            
+
             listener.newConnectionHandler = { connection in
                 self.handleConnection(connection)
             }
-            
+
             listener.start(queue: .global())
             self.listener = listener
         } catch {
@@ -40,9 +43,15 @@ class LocalServer {
         }
     }
 
+    func stop() {
+        listener?.cancel()
+        listener = nil
+        port = nil
+    }
+
     private func handleConnection(_ connection: NWConnection) {
         connection.start(queue: .global())
-        
+
         let html = """
         <!DOCTYPE html>
         <html>
@@ -86,7 +95,7 @@ class LocalServer {
         </body>
         </html>
         """
-        
+
         let response = """
         HTTP/1.1 200 OK\r
         Content-Type: text/html\r
@@ -96,7 +105,7 @@ class LocalServer {
         \(html)
         """
 
-        // Read the request (we don't strictly need to parse it, just consume it)
+        // Read the request (consume it)
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { _, _, isComplete, _ in
             if isComplete {
                 connection.cancel()

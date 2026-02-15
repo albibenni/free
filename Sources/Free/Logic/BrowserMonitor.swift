@@ -86,7 +86,7 @@ class DefaultBrowserAutomator: BrowserAutomator {
             let name = app.localizedName ?? ""
             let appName = id == "com.apple.Safari" ? "Safari" : (id == "company.thebrowser.Browser" ? "Arc" : name)
             let script = "set o to \"\"\ntell application \"\(appName)\"\nrepeat with w in windows\nrepeat with t in tabs of w\nset o to o & URL of t & \"\n\"\nend repeat\nend repeat\nend tell\nreturn o"
-            execute(script)?.components(separatedBy: "\n").forEach { 
+            execute(script)?.components(separatedBy: "\n").forEach {
                 let t = $0.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !t.isEmpty && !t.contains("localhost:10000") { urls.insert(t) }
             }
@@ -132,3 +132,5 @@ class DefaultBrowserAutomator: BrowserAutomator {
         return nil
     }
 }
+
+
