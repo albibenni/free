@@ -84,4 +84,53 @@ struct ScheduleTests {
         #expect(schedule.isActive(at: mondayMorning), "Should be active at 01:00")
         #expect(!schedule.isActive(at: mondayNoon), "Should be inactive at 12:00")
     }
+
+    @Test("Schedule disabled state")
+    func scheduleDisabled() {
+        let calendar = Calendar.current
+        let now = Date()
+        let weekday = calendar.component(.weekday, from: now)
+        
+        var schedule = Schedule(
+            name: "Disabled",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-3600),
+            endTime: now.addingTimeInterval(3600),
+            isEnabled: false
+        )
+        
+        #expect(!schedule.isActive(at: now), "Disabled schedule should never be active")
+        
+        schedule.isEnabled = true
+        #expect(schedule.isActive(at: now), "Re-enabled schedule should be active")
+    }
+
+    @Test("Schedule boundary conditions")
+    func scheduleBoundaries() {
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 10, minute: 0))!
+        let schedule = Schedule(name: "Hour", days: [1,2,3,4,5,6,7], startTime: start, endTime: end)
+        
+        // Exact start (inclusive)
+        let exactStart = calendar.date(from: DateComponents(hour: 9, minute: 0))!
+        #expect(schedule.isActive(at: exactStart))
+        
+        // Exact end (exclusive)
+        let exactEnd = calendar.date(from: DateComponents(hour: 10, minute: 0))!
+        #expect(!schedule.isActive(at: exactEnd))
+        
+        // One minute before end
+        let almostEnd = calendar.date(from: DateComponents(hour: 9, minute: 59))!
+        #expect(schedule.isActive(at: almostEnd))
+    }
+
+    @Test("Default schedule properties")
+    func defaultSchedule() {
+        let schedule = Schedule.defaultSchedule()
+        #expect(schedule.name == "Work Hours")
+        #expect(schedule.days.count == 5) // Mon-Fri
+        #expect(schedule.isEnabled == true)
+        #expect(schedule.type == .focus)
+    }
 }
