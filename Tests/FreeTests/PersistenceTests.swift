@@ -61,14 +61,14 @@ struct PersistenceTests {
         let defaults = UserDefaults(suiteName: testSuite)!
         
         // 1. Save state
-        var appState: AppState? = AppState(defaults: defaults)
+        var appState: AppState? = AppState(defaults: defaults, isTesting: true)
         appState?.isBlocking = true
         appState?.isUnblockable = true
         appState?.accentColorIndex = 5
         appState = nil // Deallocate
         
         // 2. Load state in new instance
-        let newAppState = AppState(defaults: defaults)
+        let newAppState = AppState(defaults: defaults, isTesting: true)
         #expect(newAppState.isBlocking == true)
         #expect(newAppState.isUnblockable == true)
         #expect(newAppState.accentColorIndex == 5)
@@ -82,7 +82,7 @@ struct PersistenceTests {
         UserDefaults.standard.removePersistentDomain(forName: testSuite)
         let defaults = UserDefaults(suiteName: testSuite)!
         
-        let appState = AppState(defaults: defaults)
+        let appState = AppState(defaults: defaults, isTesting: true)
         let setId = appState.ruleSets[0].id
         
         // Add rule
@@ -90,7 +90,7 @@ struct PersistenceTests {
         #expect(appState.ruleSets[0].urls.contains("test.com"))
         
         // Verify persistence
-        let newAppState = AppState(defaults: defaults)
+        let newAppState = AppState(defaults: defaults, isTesting: true)
         #expect(newAppState.ruleSets[0].urls.contains("test.com"))
         
         // Remove rule

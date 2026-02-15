@@ -179,13 +179,23 @@ class AppState: ObservableObject {
         return Array(urls)
     }
     
-    init(defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil) {
+    init(defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil, isTesting: Bool = false) {
         self.defaults = defaults
+        
+        // Initialize basic properties from defaults
         self.isBlocking = defaults.bool(forKey: "IsBlocking")
         self.isUnblockable = defaults.bool(forKey: "IsUnblockable")
         self.weekStartsOnMonday = defaults.bool(forKey: "WeekStartsOnMonday")
         self.accentColorIndex = defaults.integer(forKey: "AccentColorIndex")
         
+        self.pomodoroFocusDuration = defaults.double(forKey: "PomodoroFocusDuration")
+        if self.pomodoroFocusDuration == 0 { self.pomodoroFocusDuration = 25 }
+        self.pomodoroBreakDuration = defaults.double(forKey: "PomodoroBreakDuration")
+        if self.pomodoroBreakDuration == 0 { self.pomodoroBreakDuration = 5 }
+
+        self.calendarIntegrationEnabled = defaults.bool(forKey: "CalendarIntegrationEnabled")
+
+        // Load Appearance
         if let modeString = defaults.string(forKey: "AppearanceMode"),
            let mode = AppearanceMode(rawValue: modeString) {
             self.appearanceMode = mode
@@ -193,13 +203,11 @@ class AppState: ObservableObject {
             self.appearanceMode = .system
         }
         
-        self.calendarIntegrationEnabled = defaults.bool(forKey: "CalendarIntegrationEnabled")
-        
+        // Load RuleSets
         if let data = defaults.data(forKey: "RuleSets"),
            let decoded = try? JSONDecoder().decode([RuleSet].self, from: data) {
             self.ruleSets = decoded
         } else {
-            // Default rule sets if none found (migration or first run)
             let defaultRules = defaults.stringArray(forKey: "AllowedRules") ?? ["https://www.youtube.com/watch?v=gmuTjeQUbTM"]
             self.ruleSets = [RuleSet(name: "Default", urls: defaultRules)]
         }
@@ -211,11 +219,7 @@ class AppState: ObservableObject {
             self.activeRuleSetId = ruleSets.first?.id
         }
         
-        self.pomodoroFocusDuration = defaults.double(forKey: "PomodoroFocusDuration")
-        if self.pomodoroFocusDuration == 0 { self.pomodoroFocusDuration = 25 }
-        self.pomodoroBreakDuration = defaults.double(forKey: "PomodoroBreakDuration")
-        if self.pomodoroBreakDuration == 0 { self.pomodoroBreakDuration = 5 }
-
+        // Load Schedules
         if let data = defaults.data(forKey: "Schedules"),
            let decoded = try? JSONDecoder().decode([Schedule].self, from: data) {
             self.schedules = decoded
@@ -223,18 +227,15 @@ class AppState: ObservableObject {
             self.schedules = []
         }
         
+        // Initialize Monitor
         if let monitor = monitor {
             self.monitor = monitor
-        } else {
-            // Only create real monitor if not provided AND not testing
-            let isTesting = ProcessInfo.processInfo.environment["IS_TESTING"] == "1" || 
-                            ProcessInfo.processInfo.processName.contains("Test")
-            if !isTesting {
-                self.monitor = BrowserMonitor(appState: self)
-            }
+        } else if !isTesting {
+            // Only create real monitor if NOT testing
+            self.monitor = BrowserMonitor(appState: self)
         }
         
-        // Listen to calendar updates to re-check schedules immediately
+        // Listen to calendar updates
         calendarCancellable = calendarManager.$events.sink { [weak self] _ in
             self?.checkSchedules()
         }

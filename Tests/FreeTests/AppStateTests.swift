@@ -7,7 +7,7 @@ struct AppStateTests {
     @Test("Pomodoro locking logic works correctly with grace period")
     func pomodoroLocking() {
         // Given
-        let appState = AppState()
+        let appState = AppState(isTesting: true)
         
         // When: Start Pomodoro (Started 100s ago)
         appState.isUnblockable = true
@@ -26,7 +26,7 @@ struct AppStateTests {
     
     @Test("Strict Mode (Unblockable) activation logic")
     func strictActive() {
-        let appState = AppState()
+        let appState = AppState(isTesting: true)
         appState.isBlocking = true
         appState.isUnblockable = true
         
@@ -39,7 +39,7 @@ struct AppStateTests {
     @Test("Allowed rules aggregation from multiple sources")
     func allowedRulesAggregation() {
         // Given
-        let appState = AppState()
+        let appState = AppState(isTesting: true)
         let ruleSet1 = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
         let ruleSet2 = RuleSet(id: UUID(), name: "Set 2", urls: ["url2.com"])
         appState.ruleSets = [ruleSet1, ruleSet2]
@@ -60,7 +60,7 @@ struct AppStateTests {
     @Test("Break schedule overrides Focus schedule")
     func schedulePriorityBreakOverridesFocus() {
         // Given
-        let appState = AppState()
+        let appState = AppState(isTesting: true)
         appState.isBlocking = false
         appState.isUnblockable = false
         appState.calendarIntegrationEnabled = false
@@ -107,7 +107,7 @@ struct AppStateTests {
     @Test("Manual focus persists after schedule ends")
     func manualFocusOverridesScheduleStop() {
         // Given
-        let appState = AppState()
+        let appState = AppState(isTesting: true)
         appState.isBlocking = true // Manually started
         
         let now = Date()
@@ -137,7 +137,7 @@ struct AppStateTests {
     @Test("Calendar events override focus sessions in normal mode")
     func calendarEventOverride() {
         // Given
-        let appState = AppState()
+        let appState = AppState(isTesting: true)
         appState.calendarIntegrationEnabled = true
         
         // Reset state for test
@@ -191,7 +191,7 @@ struct AppStateTests {
     @Test("Pause logic works correctly")
     func pauseLogic() {
         // Given
-        let appState = AppState()
+        let appState = AppState(isTesting: true)
         appState.isBlocking = true
         
         // When: Pause started
@@ -215,7 +215,7 @@ struct AppStateTests {
     @Test("Rules aggregate from all active focus schedules")
     func multipleSchedulesRules() {
         // Given
-        let appState = AppState()
+        let appState = AppState(isTesting: true)
         let ruleSet1 = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
         let ruleSet2 = RuleSet(id: UUID(), name: "Set 2", urls: ["url2.com"])
         appState.ruleSets = [ruleSet1, ruleSet2]
