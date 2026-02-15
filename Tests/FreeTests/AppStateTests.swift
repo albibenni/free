@@ -108,13 +108,17 @@ struct AppStateTests {
     func manualFocusOverridesScheduleStop() {
         // Given
         let appState = AppState(isTesting: true)
-        appState.isBlocking = true // Manually started
+        
+        // 1. Manually start blocking
+        appState.isBlocking = true 
+        // Note: AppState.toggleBlocking() would set wasStartedBySchedule = false
+        // Direct property set also keeps it false by default.
         
         let now = Date()
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: now)
         
-        // Active schedule
+        // 2. Add an active schedule
         let schedule = Schedule(
             name: "Work",
             days: [weekday],
@@ -126,7 +130,10 @@ struct AppStateTests {
         appState.schedules = [schedule]
         appState.checkSchedules()
         
-        // When: Schedule ends (simulated by emptying list)
+        // Still blocking (both manual and schedule agree)
+        #expect(appState.isBlocking)
+        
+        // 3. When: Schedule ends (simulated by emptying list)
         appState.schedules = []
         appState.checkSchedules()
         
