@@ -64,4 +64,31 @@ struct RuleMatcherTests {
         #expect(!RuleMatcher.isAllowed("https://google.com", rules: []))
         #expect(RuleMatcher.isAllowed("about:blank", rules: []))
     }
+    
+    @Test("Complex subdomain and path matching")
+    func complexMatching() {
+        let rules = ["dev.example.co.uk/docs"]
+        
+        #expect(RuleMatcher.isAllowed("https://dev.example.co.uk/docs/api", rules: rules))
+        #expect(RuleMatcher.isAllowed("http://www.dev.example.co.uk/docs", rules: rules))
+        #expect(!RuleMatcher.isAllowed("https://example.co.uk/docs", rules: rules))
+        #expect(!RuleMatcher.isAllowed("https://dev.example.co.uk/documentation", rules: rules))
+    }
+    
+    @Test("Query parameters and fragments")
+    func queryAndFragments() {
+        let rules = ["youtube.com/watch?v=123"]
+        
+        #expect(RuleMatcher.isAllowed("https://www.youtube.com/watch?v=123", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://youtube.com/watch?v=123#t=10s", rules: rules))
+        #expect(!RuleMatcher.isAllowed("https://youtube.com/watch?v=456", rules: rules))
+    }
+    
+    @Test("Multiple trailing slashes")
+    func trailingSlashes() {
+        let rules = ["example.com/work"]
+        
+        #expect(RuleMatcher.isAllowed("https://example.com/work///", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://example.com/work", rules: rules))
+    }
 }

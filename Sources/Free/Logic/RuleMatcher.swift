@@ -31,7 +31,9 @@ struct RuleMatcher {
                 
                 // Segment Match: Ensure we don't match partial words (e.g., 'work' matching 'working')
                 // Match if normalizedUrl starts with normalizedRule followed by a separator
-                if normalizedUrl.hasPrefix(normalizedRule + "/") || normalizedUrl.hasPrefix(normalizedRule + "?") {
+                if normalizedUrl.hasPrefix(normalizedRule + "/") || 
+                   normalizedUrl.hasPrefix(normalizedRule + "?") ||
+                   normalizedUrl.hasPrefix(normalizedRule + "#") {
                     return true
                 }
 
@@ -39,7 +41,8 @@ struct RuleMatcher {
                 // Match if normalizedUrl ends with "." + normalizedRule OR contains "." + normalizedRule + "/"
                 if normalizedUrl.hasSuffix("." + normalizedRule) || 
                    normalizedUrl.contains("." + normalizedRule + "/") || 
-                   normalizedUrl.contains("." + normalizedRule + "?") {
+                   normalizedUrl.contains("." + normalizedRule + "?") ||
+                   normalizedUrl.contains("." + normalizedRule + "#") {
                     return true
                 }
             }
