@@ -34,4 +34,22 @@ struct UIComponentTests {
         view.onDelete()
         #expect(deleted == true)
     }
+
+    @Test("PillMenuLabel property integrity")
+    func pillMenuLabelProperties() {
+        let view = PillMenuLabel(text: "Test", icon: "star", color: .blue)
+        
+        #expect(view.text == "Test")
+        #expect(view.icon == "star")
+        #expect(view.color == .blue)
+    }
+
+    @Test("AppPrimaryButtonStyle property integrity")
+    func buttonStyleProperties() {
+        let style = AppPrimaryButtonStyle(color: .red, maxWidth: 200, isProminent: true)
+        
+        #expect(style.color == .red)
+        #expect(style.maxWidth == 200)
+        #expect(style.isProminent == true)
+    }
 }
