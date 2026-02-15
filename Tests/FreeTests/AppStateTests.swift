@@ -472,6 +472,24 @@ struct AppStateTests {
         appState.stopPomodoro() // Normal stop call
         #expect(appState.pomodoroStatus == .focus, "Should not stop locked session without challenge")
     }
+
+    @Test("Negative: Rule management with invalid IDs")
+    func ruleManagementInvalidIds() {
+        let appState = isolatedAppState(name: "ruleManagementInvalidIds")
+        let fakeId = UUID()
+        
+        // 1. Add rule to non-existent set
+        appState.addRule("test.com", to: fakeId)
+        #expect(!appState.ruleSets.contains { $0.urls.contains("test.com") })
+        
+        // 2. Remove rule from non-existent set
+        appState.removeRule("google.com", from: fakeId)
+        
+        // 3. Delete non-existent set
+        let count = appState.ruleSets.count
+        appState.deleteSet(id: fakeId)
+        #expect(appState.ruleSets.count == count)
+    }
 }
 
 

@@ -100,6 +100,27 @@ struct UITransformationTests {
         #expect(filtered.contains("https://youtube.com/watch?v=456"))
     }
 
+    @Test("Negative: RulesView suggestion filtering with edge cases")
+    func suggestionFilteringEdgeCases() {
+        let existing = RuleSet(name: "Test", urls: ["google.com"])
+        
+        // 1. Empty input list
+        #expect(RulesView.filterSuggestions([], existing: existing).isEmpty)
+        
+        // 2. Empty rule set (everything should pass through)
+        let emptySet = RuleSet(name: "Empty", urls: [])
+        let suggestions = ["a.com", "b.com"]
+        #expect(RulesView.filterSuggestions(suggestions, existing: emptySet).count == 2)
+        
+        // 3. Malformed/Empty strings in suggestions
+        // RuleSet.containsRule uses RuleMatcher.isAllowed which returns true for empty strings
+        // So filter { !existing.containsRule("") } should remove them.
+        let badSuggestions = ["", "   ", "github.com"]
+        let filtered = RulesView.filterSuggestions(badSuggestions, existing: existing)
+        #expect(filtered.count == 1) 
+        #expect(filtered.contains("github.com"))
+    }
+
     @Test("WeeklyCalendar week date ranges")
     func weekDateRange() {
         let calendar = Calendar.current
