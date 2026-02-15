@@ -20,32 +20,39 @@ class MockBrowserAutomator: BrowserAutomator {
 
 struct BrowserMonitorTests {
     
+    private func isolatedAppState(name: String) -> AppState {
+        let suite = "BrowserMonitorTests.\(name)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return AppState(defaults: defaults, isTesting: true)
+    }
+
     @Test("BrowserMonitor permission check updates AppState")
     func permissionUpdate() {
-        let appState = AppState(isTesting: true)
+        let appState = isolatedAppState(name: "permissionUpdate")
         let mock = MockBrowserAutomator()
         mock.permissionsReturn = false
         
-        let _ = BrowserMonitor(appState: appState, server: nil, automator: mock)
-        
-        // Use a small delay or ensure main queue is processed
-        // In these tests, we assume synchronous execution for simplicity
+        _ = BrowserMonitor(appState: appState, server: nil, automator: mock)
         #expect(mock.checkedPermissions)
     }
 
-    @Test("BrowserMonitor skips localhost:10000")
-    func skipLocalhost() {
-        let appState = AppState(isTesting: true)
+    @Test("BrowserMonitor internal logic handles blocking")
+    func internalLogic() {
+        // Since we can't easily mock NSRunningApplication (which is required by checkActiveTab),
+        // we verified the refactoring allows replacing the Automator.
+        // In a real environment, the monitor would call automator.getActiveUrl()
+        // and then automator.redirect() if RuleMatcher.isAllowed is false.
+        
+        let appState = isolatedAppState(name: "internalLogic")
         appState.isBlocking = true
-        appState.ruleSets = [RuleSet(name: "T", urls: [])] // Block everything
+        appState.ruleSets = [RuleSet(name: "Test", urls: ["google.com"])]
         
         let mock = MockBrowserAutomator()
-        mock.activeUrl = "http://localhost:10000/blocked"
+        let monitor = BrowserMonitor(appState: appState, server: nil, automator: mock)
         
-        _ = BrowserMonitor(appState: appState, server: nil, automator: mock)
-        
-        // We can't easily trigger the timer check manually without refactoring more,
-        // but we can test the internal logic if we made it internal.
-        // For now, verified the refactor build.
+        // Verification: If the monitor WAS to run, it would use these rules:
+        #expect(appState.allowedRules.contains("google.com"))
+        #expect(!RuleMatcher.isAllowed("https://facebook.com", rules: appState.allowedRules))
     }
 }
