@@ -11,18 +11,6 @@ struct SchedulesWidget: View {
         return f
     }()
     
-    var todaySchedules: [Schedule] {
-        let weekday = Calendar.current.component(.weekday, from: Date())
-        return appState.schedules.filter { $0.days.contains(weekday) }
-            .sorted { s1, s2 in
-                let c1 = Calendar.current.dateComponents([.hour, .minute], from: s1.startTime)
-                let c2 = Calendar.current.dateComponents([.hour, .minute], from: s2.startTime)
-                let m1 = (c1.hour ?? 0) * 60 + (c1.minute ?? 0)
-                let m2 = (c2.hour ?? 0) * 60 + (c2.minute ?? 0)
-                return m1 < m2
-            }
-    }
-    
     var body: some View {
         WidgetCard {
             Button(action: { withAnimation { isExpanded.toggle() } }) {
@@ -36,7 +24,7 @@ struct SchedulesWidget: View {
                     Spacer()
                     
                     if !isExpanded {
-                        let activeCount = todaySchedules.filter { $0.isEnabled }.count
+                        let activeCount = appState.todaySchedules.filter { $0.isEnabled }.count
                         if activeCount > 0 {
                             Text("\(activeCount) today")
                                 .font(.caption)
@@ -58,7 +46,7 @@ struct SchedulesWidget: View {
             
             if isExpanded {
                 VStack(alignment: .leading, spacing: 12) {
-                    if todaySchedules.isEmpty {
+                    if appState.todaySchedules.isEmpty {
                         Text("No schedules planned for today.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -66,7 +54,7 @@ struct SchedulesWidget: View {
                             .padding(.vertical, 8)
                     } else {
                         VStack(spacing: 8) {
-                            ForEach(todaySchedules) { schedule in
+                            ForEach(appState.todaySchedules) { schedule in
                                 HStack(spacing: 12) {
                                     VStack(alignment: .trailing, spacing: 0) {
                                         Text(timeFormatter.string(from: schedule.startTime))

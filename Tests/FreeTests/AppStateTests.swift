@@ -242,4 +242,30 @@ struct AppStateTests {
         #expect(allowed.contains("url1.com"))
         #expect(allowed.contains("url2.com"))
     }
+
+    @Test("todaySchedules filters by current day and sorts by time")
+    func todaySchedulesLogic() {
+        // Given
+        let appState = AppState(isTesting: true)
+        let now = Date()
+        let calendar = Calendar.current
+        let today = calendar.component(.weekday, from: now)
+        let otherDay = today == 1 ? 2 : 1
+        
+        let early = calendar.date(from: DateComponents(hour: 8, minute: 0))!
+        let late = calendar.date(from: DateComponents(hour: 20, minute: 0))!
+        
+        let s1 = Schedule(name: "Late Today", days: [today], startTime: late, endTime: late.addingTimeInterval(3600))
+        let s2 = Schedule(name: "Early Today", days: [today], startTime: early, endTime: early.addingTimeInterval(3600))
+        let s3 = Schedule(name: "Other Day", days: [otherDay], startTime: early, endTime: early.addingTimeInterval(3600))
+        
+        // When
+        appState.schedules = [s1, s2, s3]
+        
+        // Then
+        let result = appState.todaySchedules
+        #expect(result.count == 2)
+        #expect(result[0].name == "Early Today")
+        #expect(result[1].name == "Late Today")
+    }
 }

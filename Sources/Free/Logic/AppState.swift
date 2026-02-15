@@ -79,6 +79,16 @@ class AppState: ObservableObject {
         return Array(urls)
     }
 
+    var todaySchedules: [Schedule] {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        return schedules.filter { $0.days.contains(weekday) }
+            .sorted { s1, s2 in
+                let c1 = Calendar.current.dateComponents([.hour, .minute], from: s1.startTime)
+                let c2 = Calendar.current.dateComponents([.hour, .minute], from: s2.startTime)
+                return (c1.hour ?? 0) * 60 + (c1.minute ?? 0) < (c2.hour ?? 0) * 60 + (c2.minute ?? 0)
+            }
+    }
+
     // MARK: - Initialization
     init(defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil, calendar: (any CalendarProvider)? = nil, isTesting: Bool = false) {
         self.defaults = defaults
