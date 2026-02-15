@@ -4,7 +4,7 @@ struct RuleMatcher {
     static func isAllowed(_ url: String, rules: [String]) -> Bool {
         let cleanedUrl = url.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         if cleanedUrl.isEmpty { return true }
-        
+
         let internalSchemes = ["about:", "arc:", "chrome:", "brave:", "edge:", "viva:", "opera:", "file:", "localhost:10000"]
         for scheme in internalSchemes {
             if cleanedUrl.contains(scheme) { return true }
@@ -17,21 +17,35 @@ struct RuleMatcher {
             if cleanedRule.isEmpty { continue }
 
             if cleanedRule.contains("*") {
+                // Special case: *.google.com should match google.com
+                if cleanedRule.hasPrefix("*.") {
+                    let baseDomain = String(cleanedRule.dropFirst(2))
+                    if normalizedUrl == normalize(baseDomain) { return true }
+                }
+
                 let baseRule = normalize(cleanedRule.replacingOccurrences(of: "*", with: ""))
-                if normalizedUrl == baseRule || normalizedUrl.hasPrefix(baseRule + "/") || normalizedUrl.hasPrefix(baseRule + "?") {
+                if !baseRule.isEmpty && (normalizedUrl == baseRule || normalizedUrl.hasPrefix(baseRule + "/") || normalizedUrl.hasPrefix(baseRule + "?") || normalizedUrl.hasPrefix(baseRule + "#")) {
                     return true
                 }
-                let predicate = NSPredicate(format: "SELF LIKE[cd] %@", cleanedRule)
-                if predicate.evaluate(with: cleanedUrl) { return true }
+
+                // Fallback to predicate matching on normalized strings for path wildcards (e.g. github.com/*/settings)
+                let predicate = NSPredicate(format: "SELF LIKE[cd] %@", normalize(cleanedRule))
+                if predicate.evaluate(with: normalizedUrl) { return true }
+
+                // Final fallback: match against full cleaned URL if rule seems to include protocol/www
+                if cleanedRule.contains("://") || cleanedRule.contains("www.") {
+                    let fullPredicate = NSPredicate(format: "SELF LIKE[cd] %@", cleanedRule)
+                    if fullPredicate.evaluate(with: cleanedUrl) { return true }
+                }
             } else {
                 let normalizedRule = normalize(cleanedRule)
-                
+
                 // Exact Match (Crucial for YouTube links)
                 if normalizedUrl == normalizedRule || cleanedUrl == cleanedRule { return true }
-                
+
                 // Segment Match: Ensure we don't match partial words (e.g., 'work' matching 'working')
                 // Match if normalizedUrl starts with normalizedRule followed by a separator
-                if normalizedUrl.hasPrefix(normalizedRule + "/") || 
+                if normalizedUrl.hasPrefix(normalizedRule + "/") ||
                    normalizedUrl.hasPrefix(normalizedRule + "?") ||
                    normalizedUrl.hasPrefix(normalizedRule + "#") {
                     return true
@@ -39,8 +53,8 @@ struct RuleMatcher {
 
                 // Subdomain Match: e.g., rule 'google.com' should match 'mail.google.com'
                 // Match if normalizedUrl ends with "." + normalizedRule OR contains "." + normalizedRule + "/"
-                if normalizedUrl.hasSuffix("." + normalizedRule) || 
-                   normalizedUrl.contains("." + normalizedRule + "/") || 
+                if normalizedUrl.hasSuffix("." + normalizedRule) ||
+                   normalizedUrl.contains("." + normalizedRule + "/") ||
                    normalizedUrl.contains("." + normalizedRule + "?") ||
                    normalizedUrl.contains("." + normalizedRule + "#") {
                     return true
@@ -55,7 +69,7 @@ struct RuleMatcher {
         if out.hasPrefix("https://") { out = String(out.dropFirst(8)) }
         if out.hasPrefix("http://") { out = String(out.dropFirst(7)) }
         if out.hasPrefix("www.") { out = String(out.dropFirst(4)) }
-        
+
         // Only strip trailing slash if NOT a YouTube/Query URL to preserve IDs
         if !out.contains("?") {
             while out.hasSuffix("/") { out = String(out.dropLast()) }

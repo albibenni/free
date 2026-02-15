@@ -91,4 +91,39 @@ struct RuleMatcherTests {
         #expect(RuleMatcher.isAllowed("https://example.com/work///", rules: rules))
         #expect(RuleMatcher.isAllowed("https://example.com/work", rules: rules))
     }
+
+    @Test("Advanced Wildcard patterns")
+    func advancedWildcards() {
+        // Prefix wildcard (handled by NSPredicate logic in RuleMatcher)
+        let rules = ["*.google.com"]
+        #expect(RuleMatcher.isAllowed("https://mail.google.com", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://google.com", rules: rules))
+        
+        // Middle wildcard
+        let rules2 = ["github.com/*/settings"]
+        #expect(RuleMatcher.isAllowed("https://github.com/apple/settings", rules: rules2))
+        #expect(!RuleMatcher.isAllowed("https://github.com/apple/main", rules: rules2))
+    }
+
+    @Test("Case insensitivity exhaustive check")
+    func caseInsensitivity() {
+        let rules = ["GitHub.com/Apple"]
+        #expect(RuleMatcher.isAllowed("https://GITHUB.COM/apple/Swift", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://github.com/APPLE", rules: rules))
+    }
+
+    @Test("Fragment and Query interaction in subdomain matching")
+    func subdomainDelimiters() {
+        let rules = ["example.com"]
+        // Verify # and ? work as delimiters for subdomain-based rules
+        #expect(RuleMatcher.isAllowed("https://sub.example.com#section", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://sub.example.com?query=1", rules: rules))
+    }
+
+    @Test("Internal scheme variety")
+    func internalSchemes() {
+        #expect(RuleMatcher.isAllowed("arc://extensions", rules: []))
+        #expect(RuleMatcher.isAllowed("edge://history", rules: []))
+        #expect(RuleMatcher.isAllowed("file:///Users/test/doc.pdf", rules: []))
+    }
 }
