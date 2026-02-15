@@ -329,6 +329,25 @@ struct AppStateTests {
         // Then: Should STAY off (wasStartedBySchedule is now false)
         #expect(!appState.isBlocking)
     }
+
+    @Test("Nested schedule priority (Break inside Focus)")
+    func nestedSchedulePriority() {
+        let appState = isolatedAppState(name: "nestedSchedulePriority")
+        let now = Date()
+        let today = Calendar.current.component(.weekday, from: now)
+        
+        // Focus: 12:00 - 14:00
+        let focus = Schedule(name: "Focus", days: [today], startTime: now.addingTimeInterval(-3600), endTime: now.addingTimeInterval(3600), isEnabled: true, type: .focus)
+        
+        // Break: 12:30 - 13:00 (nested)
+        let breakSession = Schedule(name: "Break", days: [today], startTime: now.addingTimeInterval(-600), endTime: now.addingTimeInterval(600), isEnabled: true, type: .unfocus)
+        
+        appState.schedules = [focus, breakSession]
+        appState.checkSchedules()
+        
+        // Break should win
+        #expect(!appState.isBlocking)
+    }
 }
 
 
