@@ -87,6 +87,12 @@ struct RuleMatcher {
 
     static func normalize(_ s: String) -> String {
         var out = s.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Decode percent encoding (e.g. %20 -> space)
+        if let decoded = out.removingPercentEncoding {
+            out = decoded
+        }
+        
         if out.hasPrefix("https://") { out = String(out.dropFirst(8)) }
         if out.hasPrefix("http://") { out = String(out.dropFirst(7)) }
         if out.hasPrefix("www.") { out = String(out.dropFirst(4)) }

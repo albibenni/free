@@ -158,4 +158,19 @@ struct UITransformationTests {
         #expect(rect?.origin.y == 2200)
         #expect(rect?.size.height == 200) // 2 hours remaining
     }
+
+    @Test("Negative: WeeklyCalendar rect calculation with invalid range")
+    func calendarRectNegative() {
+        let calendar = Calendar.current
+        let hourH: CGFloat = 100
+        
+        // 10:00 to 9:00 (End before start - non-overnight format)
+        let start = calendar.date(from: DateComponents(hour: 10, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 9, minute: 0))!
+        
+        let rect = WeeklyCalendarView.calculateRect(startDate: start, endDate: end, colIndex: 0, columnWidth: 200, hourHeight: hourH)
+        
+        // Current implementation treats start >= end as "rest of the day" (24:00)
+        #expect(rect?.size.height == 1400) // (24 - 10) * 100
+    }
 }

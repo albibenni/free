@@ -159,4 +159,37 @@ struct RuleMatcherTests {
         // Rule is just a wildcard (blocks everything)
         #expect(RuleMatcher.isAllowed("https://google.com", rules: ["*"]))
     }
+
+    @Test("Advanced URL formats: Ports and IPs")
+    func advancedUrlFormats() {
+        // Port matching
+        let portRules = ["localhost:3000"]
+        #expect(RuleMatcher.isAllowed("http://localhost:3000/dashboard", rules: portRules))
+        #expect(!RuleMatcher.isAllowed("http://localhost:4000", rules: portRules))
+        
+        // IP Address matching
+        let ipRules = ["127.0.0.1"]
+        #expect(RuleMatcher.isAllowed("http://127.0.0.1/index.html", rules: ipRules))
+        
+        // IPv6 (Standard format)
+        let ipv6Rules = ["http://[::1]"]
+        #expect(RuleMatcher.isAllowed("http://[::1]/test", rules: ipv6Rules))
+    }
+
+    @Test("Percent encoding and special characters")
+    func encodedUrls() {
+        let rules = ["example.com/my page"]
+        #expect(RuleMatcher.isAllowed("https://example.com/my%20page", rules: rules))
+        
+        let rules2 = ["example.com/tag/swift++"]
+        #expect(RuleMatcher.isAllowed("https://example.com/tag/swift++", rules: rules2))
+    }
+
+    @Test("Multiple wildcards in one rule")
+    func multiWildcards() {
+        let rules = ["*google*"]
+        #expect(RuleMatcher.isAllowed("https://google.it", rules: rules))
+        #expect(RuleMatcher.isAllowed("https://sub.google.com/search", rules: rules))
+        #expect(!RuleMatcher.isAllowed("https://yahoo.com", rules: rules))
+    }
 }

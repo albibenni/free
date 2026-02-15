@@ -490,6 +490,30 @@ struct AppStateTests {
         appState.deleteSet(id: fakeId)
         #expect(appState.ruleSets.count == count)
     }
+
+    @Test("Rule aggregation across concurrent focus schedules")
+    func concurrentSchedulesRuleAggregation() {
+        let appState = isolatedAppState(name: "concurrentSchedulesRuleAggregation")
+        
+        // 1. Create two sets
+        let set1 = RuleSet(id: UUID(), name: "Set 1", urls: ["site1.com"])
+        let set2 = RuleSet(id: UUID(), name: "Set 2", urls: ["site2.com"])
+        appState.ruleSets = [set1, set2]
+        
+        let now = Date()
+        let today = Calendar.current.component(.weekday, from: now)
+        
+        // 2. Overlapping focus schedules
+        let sch1 = Schedule(name: "S1", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set1.id)
+        let sch2 = Schedule(name: "S2", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set2.id)
+        appState.schedules = [sch1, sch2]
+        
+        // 3. Verify aggregation
+        let rules = appState.allowedRules
+        #expect(rules.contains("site1.com"))
+        #expect(rules.contains("site2.com"))
+        #expect(rules.count == 2)
+    }
 }
 
 

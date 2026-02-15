@@ -78,4 +78,35 @@ struct UIComponentTests {
         #expect(config3.colorIndex == 5)
         #expect(config3.type == .unfocus)
     }
+
+    @Test("ScheduleEditorContext integrity")
+    func scheduleEditorContextLogic() {
+        // 1. New schedule context
+        let context1 = ScheduleEditorContext()
+        #expect(context1.schedule == nil)
+        #expect(context1.day == nil)
+        
+        // 2. Existing schedule context
+        let schedule = Schedule(name: "Test", days: [2], startTime: Date(), endTime: Date())
+        let context2 = ScheduleEditorContext(schedule: schedule)
+        #expect(context2.schedule?.id == schedule.id)
+        
+        // 3. Quick add from calendar context
+        let context3 = ScheduleEditorContext(day: 5, startTime: Date(), endTime: Date())
+        #expect(context3.day == 5)
+        #expect(context3.schedule == nil)
+    }
+
+    @Test("Negative: AddScheduleView configuration with end before start")
+    func addScheduleViewNegative() {
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(hour: 17, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 9, minute: 0))!
+        
+        // When providing an end time before start
+        let config = AddScheduleView.configure(initialDay: nil, initialStartTime: start, initialEndTime: end, existingSchedule: nil)
+        
+        // It currently trusts the input provided, but let's verify behavior
+        #expect(config.endTime == end)
+    }
 }
