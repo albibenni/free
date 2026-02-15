@@ -5,7 +5,7 @@ import ApplicationServices
 class BrowserMonitor {
     private var timer: Timer?
     private weak var appState: AppState?
-    private let server = LocalServer()
+    private let server: LocalServer?
     private var lastRedirectTime: [String: Date] = [:]
     
     // Supported browsers bundle IDs
@@ -19,14 +19,15 @@ class BrowserMonitor {
         "com.vivaldi.Vivaldi"
     ]
 
-    init(appState: AppState) {
+    init(appState: AppState, server: LocalServer? = LocalServer()) {
         self.appState = appState
+        self.server = server
         
         // Check permissions immediately (prompt only on first launch)
         checkPermissions(prompt: true)
         
         // Start local blocking server
-        server.start()
+        server?.start()
         
         startMonitoring()
     }

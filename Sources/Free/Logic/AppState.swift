@@ -18,9 +18,11 @@ enum AppearanceMode: String, Codable, CaseIterable {
 class AppState: ObservableObject {
     static let challengePhrase = "I am choosing to break my focus and I acknowledge that this may impact my productivity."
     
+    private let defaults: UserDefaults
+    
     @Published var isBlocking = false {
         didSet {
-            UserDefaults.standard.set(isBlocking, forKey: "IsBlocking")
+            defaults.set(isBlocking, forKey: "IsBlocking")
             if !isBlocking { 
                 cancelPause()
             }
@@ -36,28 +38,28 @@ class AppState: ObservableObject {
 
     @Published var isUnblockable = false {
         didSet {
-            UserDefaults.standard.set(isUnblockable, forKey: "IsUnblockable")
+            defaults.set(isUnblockable, forKey: "IsUnblockable")
         }
     }
     @Published var isTrusted = false
     @Published var weekStartsOnMonday: Bool = false {
         didSet {
-            UserDefaults.standard.set(weekStartsOnMonday, forKey: "WeekStartsOnMonday")
+            defaults.set(weekStartsOnMonday, forKey: "WeekStartsOnMonday")
         }
     }
     @Published var accentColorIndex: Int = 0 {
         didSet {
-            UserDefaults.standard.set(accentColorIndex, forKey: "AccentColorIndex")
+            defaults.set(accentColorIndex, forKey: "AccentColorIndex")
         }
     }
     @Published var appearanceMode: AppearanceMode = .system {
         didSet {
-            UserDefaults.standard.set(appearanceMode.rawValue, forKey: "AppearanceMode")
+            defaults.set(appearanceMode.rawValue, forKey: "AppearanceMode")
         }
     }
     @Published var calendarIntegrationEnabled: Bool = false {
         didSet {
-            UserDefaults.standard.set(calendarIntegrationEnabled, forKey: "CalendarIntegrationEnabled")
+            defaults.set(calendarIntegrationEnabled, forKey: "CalendarIntegrationEnabled")
             if calendarIntegrationEnabled {
                 calendarManager.requestAccess()
             }
@@ -67,13 +69,13 @@ class AppState: ObservableObject {
     @Published var ruleSets: [RuleSet] = [] {
         didSet {
             if let encoded = try? JSONEncoder().encode(ruleSets) {
-                UserDefaults.standard.set(encoded, forKey: "RuleSets")
+                defaults.set(encoded, forKey: "RuleSets")
             }
         }
     }
     @Published var activeRuleSetId: UUID? = nil {
         didSet {
-            UserDefaults.standard.set(activeRuleSetId?.uuidString, forKey: "ActiveRuleSetId")
+            defaults.set(activeRuleSetId?.uuidString, forKey: "ActiveRuleSetId")
         }
     }
     
@@ -81,7 +83,7 @@ class AppState: ObservableObject {
     @Published var schedules: [Schedule] = [] {
         didSet {
             if let encoded = try? JSONEncoder().encode(schedules) {
-                UserDefaults.standard.set(encoded, forKey: "Schedules")
+                defaults.set(encoded, forKey: "Schedules")
             }
             checkSchedules()
         }
@@ -94,7 +96,7 @@ class AppState: ObservableObject {
     
     @Published var currentOpenUrls: [String] = []
     
-    private var monitor: BrowserMonitor?
+    var monitor: BrowserMonitor?
     private var scheduleTimer: Timer?
     private var wasStartedBySchedule = false
     
@@ -110,10 +112,10 @@ class AppState: ObservableObject {
     }
     @Published var pomodoroStatus: PomodoroStatus = .none
     @Published var pomodoroFocusDuration: Double = 25 {
-        didSet { UserDefaults.standard.set(pomodoroFocusDuration, forKey: "PomodoroFocusDuration") }
+        didSet { defaults.set(pomodoroFocusDuration, forKey: "PomodoroFocusDuration") }
     }
     @Published var pomodoroBreakDuration: Double = 5 {
-        didSet { UserDefaults.standard.set(pomodoroBreakDuration, forKey: "PomodoroBreakDuration") }
+        didSet { defaults.set(pomodoroBreakDuration, forKey: "PomodoroBreakDuration") }
     }
     @Published var pomodoroRemaining: TimeInterval = 0
     @Published var pomodoroStartedAt: Date?
@@ -177,50 +179,60 @@ class AppState: ObservableObject {
         return Array(urls)
     }
     
-    init() {
-        self.isBlocking = UserDefaults.standard.bool(forKey: "IsBlocking")
-        self.isUnblockable = UserDefaults.standard.bool(forKey: "IsUnblockable")
-        self.weekStartsOnMonday = UserDefaults.standard.bool(forKey: "WeekStartsOnMonday")
-        self.accentColorIndex = UserDefaults.standard.integer(forKey: "AccentColorIndex")
+    init(defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil) {
+        self.defaults = defaults
+        self.isBlocking = defaults.bool(forKey: "IsBlocking")
+        self.isUnblockable = defaults.bool(forKey: "IsUnblockable")
+        self.weekStartsOnMonday = defaults.bool(forKey: "WeekStartsOnMonday")
+        self.accentColorIndex = defaults.integer(forKey: "AccentColorIndex")
         
-        if let modeString = UserDefaults.standard.string(forKey: "AppearanceMode"),
+        if let modeString = defaults.string(forKey: "AppearanceMode"),
            let mode = AppearanceMode(rawValue: modeString) {
             self.appearanceMode = mode
         } else {
             self.appearanceMode = .system
         }
         
-        self.calendarIntegrationEnabled = UserDefaults.standard.bool(forKey: "CalendarIntegrationEnabled")
+        self.calendarIntegrationEnabled = defaults.bool(forKey: "CalendarIntegrationEnabled")
         
-        if let data = UserDefaults.standard.data(forKey: "RuleSets"),
+        if let data = defaults.data(forKey: "RuleSets"),
            let decoded = try? JSONDecoder().decode([RuleSet].self, from: data) {
             self.ruleSets = decoded
         } else {
             // Default rule sets if none found (migration or first run)
-            let defaultRules = UserDefaults.standard.stringArray(forKey: "AllowedRules") ?? ["https://www.youtube.com/watch?v=gmuTjeQUbTM"]
+            let defaultRules = defaults.stringArray(forKey: "AllowedRules") ?? ["https://www.youtube.com/watch?v=gmuTjeQUbTM"]
             self.ruleSets = [RuleSet(name: "Default", urls: defaultRules)]
         }
 
-        if let idString = UserDefaults.standard.string(forKey: "ActiveRuleSetId"),
+        if let idString = defaults.string(forKey: "ActiveRuleSetId"),
            let uuid = UUID(uuidString: idString) {
             self.activeRuleSetId = uuid
         } else {
             self.activeRuleSetId = ruleSets.first?.id
         }
         
-        self.pomodoroFocusDuration = UserDefaults.standard.double(forKey: "PomodoroFocusDuration")
+        self.pomodoroFocusDuration = defaults.double(forKey: "PomodoroFocusDuration")
         if self.pomodoroFocusDuration == 0 { self.pomodoroFocusDuration = 25 }
-        self.pomodoroBreakDuration = UserDefaults.standard.double(forKey: "PomodoroBreakDuration")
+        self.pomodoroBreakDuration = defaults.double(forKey: "PomodoroBreakDuration")
         if self.pomodoroBreakDuration == 0 { self.pomodoroBreakDuration = 5 }
 
-        if let data = UserDefaults.standard.data(forKey: "Schedules"),
+        if let data = defaults.data(forKey: "Schedules"),
            let decoded = try? JSONDecoder().decode([Schedule].self, from: data) {
             self.schedules = decoded
         } else {
             self.schedules = []
         }
         
-        self.monitor = BrowserMonitor(appState: self)
+        if let monitor = monitor {
+            self.monitor = monitor
+        } else {
+            // Only create real monitor if not provided AND not testing
+            let isTesting = ProcessInfo.processInfo.environment["IS_TESTING"] == "1" || 
+                            ProcessInfo.processInfo.processName.contains("Test")
+            if !isTesting {
+                self.monitor = BrowserMonitor(appState: self)
+            }
+        }
         
         // Listen to calendar updates to re-check schedules immediately
         calendarCancellable = calendarManager.$events.sink { [weak self] _ in
@@ -240,6 +252,41 @@ class AppState: ObservableObject {
 
     func refreshCurrentOpenUrls() {
         self.currentOpenUrls = monitor?.getAllOpenUrls() ?? []
+    }
+
+    // MARK: - Rule Management
+    func addSpecificRule(_ rule: String, to setId: UUID) {
+        if let index = ruleSets.firstIndex(where: { $0.id == setId }) {
+            if !ruleSets[index].urls.contains(rule) {
+                ruleSets[index].urls.append(rule)
+            }
+        }
+    }
+
+    func addRule(_ rule: String, to setId: UUID) {
+        let cleanedRule = rule.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedRule.isEmpty else { return }
+
+        if let index = ruleSets.firstIndex(where: { $0.id == setId }) {
+            if !ruleSets[index].urls.contains(cleanedRule) {
+                ruleSets[index].urls.append(cleanedRule)
+            }
+        }
+    }
+
+    func removeRule(_ rule: String, from setId: UUID) {
+        if let index = ruleSets.firstIndex(where: { $0.id == setId }) {
+            if let ruleIndex = ruleSets[index].urls.firstIndex(of: rule) {
+                ruleSets[index].urls.remove(at: ruleIndex)
+            }
+        }
+    }
+
+    func deleteSet(id: UUID) {
+        ruleSets.removeAll(where: { $0.id == id })
+        if activeRuleSetId == id {
+            activeRuleSetId = ruleSets.first?.id
+        }
     }
     
     func checkSchedules() {
