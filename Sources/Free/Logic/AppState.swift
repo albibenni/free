@@ -28,14 +28,14 @@ class AppState: ObservableObject {
     @Published var calendarIntegrationEnabled = false {
         didSet {
             defaults.set(calendarIntegrationEnabled, forKey: "CalendarIntegrationEnabled")
-            if calendarIntegrationEnabled { calendarManager.requestAccess() }
+            if calendarIntegrationEnabled { calendarProvider.requestAccess() }
             checkSchedules()
         }
     }
     @Published var ruleSets: [RuleSet] = [] { didSet { saveJSON(ruleSets, key: "RuleSets") } }
     @Published var activeRuleSetId: UUID? = nil { didSet { defaults.set(activeRuleSetId?.uuidString, forKey: "ActiveRuleSetId") } }
     @Published var schedules: [Schedule] = [] { didSet { saveJSON(schedules, key: "Schedules") ; checkSchedules() } }
-
+    
     @Published var pomodoroFocusDuration: Double = 25 { didSet { defaults.set(pomodoroFocusDuration, forKey: "PomodoroFocusDuration") } }
     @Published var pomodoroBreakDuration: Double = 5 { didSet { defaults.set(pomodoroBreakDuration, forKey: "PomodoroBreakDuration") } }
 
@@ -46,9 +46,9 @@ class AppState: ObservableObject {
     @Published var pomodoroRemaining: TimeInterval = 0
     @Published var pomodoroStartedAt: Date?
     @Published var currentOpenUrls: [String] = []
-
+    
     var monitor: BrowserMonitor?
-    let calendarManager = CalendarManager()
+    let calendarProvider: any CalendarProvider
     private var calendarCancellable: AnyCancellable?
     private var pauseTimer: Timer?, pomodoroTimer: Timer?, scheduleTimer: Timer?
     private var wasStartedBySchedule = false
@@ -80,8 +80,10 @@ class AppState: ObservableObject {
     }
 
     // MARK: - Initialization
-    init(defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil, isTesting: Bool = false) {
+    init(defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil, calendar: (any CalendarProvider)? = nil, isTesting: Bool = false) {
         self.defaults = defaults
+        self.calendarProvider = calendar ?? (isTesting ? MockCalendarManager() : RealCalendarManager())
+        
         self.isBlocking = defaults.bool(forKey: "IsBlocking")
         self.isUnblockable = defaults.bool(forKey: "IsUnblockable")
         self.weekStartsOnMonday = defaults.bool(forKey: "WeekStartsOnMonday")
@@ -89,13 +91,19 @@ class AppState: ObservableObject {
         self.calendarIntegrationEnabled = defaults.bool(forKey: "CalendarIntegrationEnabled")
         self.pomodoroFocusDuration = defaults.double(forKey: "PomodoroFocusDuration") == 0 ? 25 : defaults.double(forKey: "PomodoroFocusDuration")
         self.pomodoroBreakDuration = defaults.double(forKey: "PomodoroBreakDuration") == 0 ? 5 : defaults.double(forKey: "PomodoroBreakDuration")
+        
         if let modeStr = defaults.string(forKey: "AppearanceMode") { self.appearanceMode = AppearanceMode(rawValue: modeStr) ?? .system }
         self.ruleSets = loadJSON(key: "RuleSets", as: [RuleSet].self) ?? [RuleSet.defaultSet()]
         self.schedules = loadJSON(key: "Schedules", as: [Schedule].self) ?? []
         self.activeRuleSetId = UUID(uuidString: defaults.string(forKey: "ActiveRuleSetId") ?? "") ?? ruleSets.first?.id
+        
         if let monitor = monitor { self.monitor = monitor }
         else if !isTesting { self.monitor = BrowserMonitor(appState: self) }
-        calendarCancellable = calendarManager.$events.sink { [weak self] _ in self?.checkSchedules() }
+        
+        calendarCancellable = calendarProvider.objectWillChange.sink { [weak self] _ in
+            DispatchQueue.main.async { self?.checkSchedules() }
+        }
+        
         scheduleTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in self?.checkSchedules() }
         checkSchedules()
     }
@@ -106,7 +114,7 @@ class AppState: ObservableObject {
         let active = schedules.filter { $0.isActive() }
         let hasFocus = active.contains { $0.type == .focus } || pomodoroStatus == .focus
         let hasBreak = active.contains { $0.type == .unfocus } || pomodoroStatus == .breakTime
-        let hasMeeting = calendarIntegrationEnabled && !isUnblockable && calendarManager.events.contains { $0.isActive() }
+        let hasMeeting = calendarIntegrationEnabled && !isUnblockable && calendarProvider.events.contains { $0.isActive() }
         let shouldBeBlocking = hasFocus && !hasBreak && !hasMeeting
         if shouldBeBlocking && !isBlocking { isBlocking = true ; wasStartedBySchedule = true }
         else if !shouldBeBlocking && isBlocking && wasStartedBySchedule { isBlocking = false ; wasStartedBySchedule = false }

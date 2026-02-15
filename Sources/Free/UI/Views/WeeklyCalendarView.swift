@@ -176,7 +176,7 @@ struct WeeklyCalendarView: View {
                                     ZStack(alignment: .topLeading) {
                                         // 1. External Events (System/Google Calendar)
                                         if appState.calendarIntegrationEnabled {
-                                            ForEach(appState.calendarManager.events.filter { 
+                                            ForEach(appState.calendarProvider.events.filter { 
                                                 $0.startDate >= weekStart && $0.startDate < weekEnd
                                             }) { event in
                                                 let weekday = calendar.component(.weekday, from: event.startDate)

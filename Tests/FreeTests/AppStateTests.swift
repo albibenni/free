@@ -181,7 +181,7 @@ struct AppStateTests {
         )
         
         // When: Calendar event added
-        appState.calendarManager.events = [event]
+        appState.calendarProvider.events = [event]
         appState.checkSchedules()
         
         // Then: Should NOT be blocking (Calendar event overrides focus in normal mode)
