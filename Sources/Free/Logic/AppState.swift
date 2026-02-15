@@ -52,6 +52,7 @@ class AppState: ObservableObject {
     private var calendarCancellable: AnyCancellable?
     private var pauseTimer: Timer?, pomodoroTimer: Timer?, scheduleTimer: Timer?
     private var wasStartedBySchedule = false
+    private var manuallyPausedScheduleId: UUID?
 
     enum PomodoroStatus: String, Codable { case none, focus, breakTime }
 
@@ -119,15 +120,42 @@ class AppState: ObservableObject {
     }
 
     // MARK: - Logic & Actions
-    func toggleBlocking() { if !(isBlocking && isUnblockable) { isBlocking.toggle() ; wasStartedBySchedule = false } }
+    func toggleBlocking() {
+        if !(isBlocking && isUnblockable) {
+            if isBlocking {
+                // Manually turning OFF: record current schedule if any so it doesn't immediately restart
+                manuallyPausedScheduleId = schedules.first { $0.isActive() && $0.type == .focus }?.id
+            } else {
+                // Manually turning ON: clear any previous manual pause
+                manuallyPausedScheduleId = nil
+            }
+            isBlocking.toggle()
+            wasStartedBySchedule = false
+        }
+    }
+
     func checkSchedules() {
         let active = schedules.filter { $0.isActive() }
-        let hasFocus = active.contains { $0.type == .focus } || pomodoroStatus == .focus
+        let focusSchedules = active.filter { $0.type == .focus }
+        
+        // 1. If the schedule that was manually paused is no longer active, clear the override
+        if let pausedId = manuallyPausedScheduleId, !focusSchedules.contains(where: { $0.id == pausedId }) {
+            manuallyPausedScheduleId = nil
+        }
+
+        let hasFocus = (focusSchedules.contains { $0.id != manuallyPausedScheduleId }) || pomodoroStatus == .focus
         let hasBreak = active.contains { $0.type == .unfocus } || pomodoroStatus == .breakTime
         let hasMeeting = calendarIntegrationEnabled && !isUnblockable && calendarProvider.events.contains { $0.isActive() }
+        
         let shouldBeBlocking = hasFocus && !hasBreak && !hasMeeting
-        if shouldBeBlocking && !isBlocking { isBlocking = true ; wasStartedBySchedule = true }
-        else if !shouldBeBlocking && isBlocking && wasStartedBySchedule { isBlocking = false ; wasStartedBySchedule = false }
+
+        if shouldBeBlocking && !isBlocking {
+            isBlocking = true
+            wasStartedBySchedule = true
+        } else if !shouldBeBlocking && isBlocking && wasStartedBySchedule {
+            isBlocking = false
+            wasStartedBySchedule = false
+        }
     }
 
     func addRule(_ rule: String, to setId: UUID) {

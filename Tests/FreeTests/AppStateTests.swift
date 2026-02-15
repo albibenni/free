@@ -275,6 +275,60 @@ struct AppStateTests {
         #expect(result[0].name == "Early Today")
         #expect(result[1].name == "Late Today")
     }
+
+    @Test("currentPrimaryRuleSetId priority logic")
+    func ruleSetPriority() {
+        let appState = isolatedAppState(name: "ruleSetPriority")
+        let set1 = RuleSet(id: UUID(), name: "Manual", urls: [])
+        let set2 = RuleSet(id: UUID(), name: "Schedule", urls: [])
+        appState.ruleSets = [set1, set2]
+        
+        let now = Date()
+        let today = Calendar.current.component(.weekday, from: now)
+        let sch = Schedule(name: "S", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set2.id)
+        appState.schedules = [sch]
+        
+        // 1. Schedule only
+        appState.checkSchedules()
+        #expect(appState.currentPrimaryRuleSetId == set2.id)
+        
+        // 2. Manual override wins over schedule
+        appState.activeRuleSetId = set1.id
+        appState.toggleBlocking() // Turning it OFF manually (even if schedule wants it ON)
+        #expect(!appState.isBlocking)
+        
+        appState.toggleBlocking() // Turning it ON manually
+        #expect(appState.isBlocking)
+        #expect(appState.currentPrimaryRuleSetId == set1.id)
+        
+        // 3. Pomodoro wins over manual
+        appState.pomodoroStatus = .focus
+        #expect(appState.currentPrimaryRuleSetId == set1.id) // Still set1 if it was active
+    }
+
+    @Test("Manual toggle can stop a schedule-started session")
+    func manualOverrideOfSchedule() {
+        let appState = isolatedAppState(name: "manualOverrideOfSchedule")
+        let now = Date()
+        let today = Calendar.current.component(.weekday, from: now)
+        let sch = Schedule(name: "S", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus)
+        
+        appState.schedules = [sch]
+        appState.checkSchedules()
+        #expect(appState.isBlocking)
+        
+        // When: User manually toggles OFF
+        appState.toggleBlocking()
+        
+        // Then: Should be OFF even though schedule is active
+        #expect(!appState.isBlocking)
+        
+        // When: checkSchedules runs again (e.g. 1 min later)
+        appState.checkSchedules()
+        
+        // Then: Should STAY off (wasStartedBySchedule is now false)
+        #expect(!appState.isBlocking)
+    }
 }
 
 
