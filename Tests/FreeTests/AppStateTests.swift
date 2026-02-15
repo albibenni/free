@@ -276,6 +276,70 @@ struct AppStateTests {
         #expect(result[1].name == "Late Today")
     }
 
+    @Test("saveSchedule logic: Create and Update")
+    func saveScheduleLogic() {
+        let appState = isolatedAppState(name: "saveScheduleLogic")
+        let start = Date()
+        let end = start.addingTimeInterval(3600)
+        
+        // 1. Create new
+        appState.saveSchedule(name: "New", days: [2], start: start, end: end, color: 1, type: .focus, ruleSet: nil, existingId: nil, modifyAllDays: true, initialDay: nil)
+        #expect(appState.schedules.count == 1)
+        #expect(appState.schedules.first?.name == "New")
+        
+        // 2. Update existing
+        let id = appState.schedules.first!.id
+        appState.saveSchedule(name: "Updated", days: [2, 3], start: start, end: end, color: 2, type: .unfocus, ruleSet: nil, existingId: id, modifyAllDays: true, initialDay: nil)
+        #expect(appState.schedules.count == 1)
+        #expect(appState.schedules.first?.name == "Updated")
+        #expect(appState.schedules.first?.days.count == 2)
+    }
+
+    @Test("saveSchedule logic: Splitting recurring schedule")
+    func splitScheduleLogic() {
+        let appState = isolatedAppState(name: "splitScheduleLogic")
+        let start = Date()
+        let end = start.addingTimeInterval(3600)
+        
+        // Setup: Mon-Wed schedule
+        let originalId = UUID()
+        let original = Schedule(id: originalId, name: "Original", days: [2, 3, 4], startTime: start, endTime: end)
+        appState.schedules = [original]
+        
+        // When: User edits ONLY Tuesday (Day 3)
+        appState.saveSchedule(name: "Split", days: [3], start: start, end: end, color: 5, type: .focus, ruleSet: nil, existingId: originalId, modifyAllDays: false, initialDay: 3)
+        
+        // Then:
+        // 1. Original should only have [2, 4] (Mon, Wed)
+        let old = appState.schedules.first { $0.id == originalId }
+        #expect(old?.days == [2, 4])
+        
+        // 2. New schedule should exist for [3] (Tue)
+        let new = appState.schedules.first { $0.name == "Split" }
+        #expect(new?.days == [3])
+        #expect(appState.schedules.count == 2)
+    }
+
+    @Test("deleteSchedule logic: Full and Partial")
+    func deleteScheduleLogic() {
+        let appState = isolatedAppState(name: "deleteScheduleLogic")
+        let start = Date()
+        let end = start.addingTimeInterval(3600)
+        
+        // Setup: Mon-Tue schedule
+        let id = UUID()
+        appState.schedules = [Schedule(id: id, name: "T", days: [2, 3], startTime: start, endTime: end)]
+        
+        // 1. Delete only Mon
+        appState.deleteSchedule(id: id, modifyAllDays: false, initialDay: 2)
+        #expect(appState.schedules.count == 1)
+        #expect(appState.schedules.first?.days == [3])
+        
+        // 2. Delete remaining
+        appState.deleteSchedule(id: id, modifyAllDays: true, initialDay: nil)
+        #expect(appState.schedules.isEmpty)
+    }
+
     @Test("currentPrimaryRuleSetId priority logic")
     func ruleSetPriority() {
         let appState = isolatedAppState(name: "ruleSetPriority")
