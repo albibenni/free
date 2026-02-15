@@ -20,10 +20,10 @@
 - [x] list can add websites from open list?
   - [x] remove list selection from general ui
   - [x] focus session should default to the first list - not none
-- [ ] add default pomodoro timer - most used ones
+- [x] add default pomodoro timer - most used ones
 - [ ] focus mode should show active list
 
 ## Bug
 
 - [x] when first schedule it adds multiple days of the weak instead of the selected. When I schedule once more it behave correctly (select only the day selected)
-- [ ] allowd list keep rotating in the ui, why? during focus mode
+- [x] allowd list keep rotating in the ui, why? during focus mode
