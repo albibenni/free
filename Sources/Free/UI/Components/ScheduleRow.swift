@@ -18,10 +18,10 @@ struct ScheduleRow: View {
                     Text(schedule.name)
                         .font(.headline)
                 }
-                Text(timeRangeString)
+                Text(schedule.timeRangeString)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                Text(daysString)
+                Text(schedule.daysString)
                     .font(.caption2)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -46,16 +46,5 @@ struct ScheduleRow: View {
             .fixedSize()
         }
         .padding(.vertical, 4)
-    }
-
-    private var timeRangeString: String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return "\(formatter.string(from: schedule.startTime)) - \(formatter.string(from: schedule.endTime))"
-    }
-
-    private var daysString: String {
-        let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-        return schedule.days.sorted().map { dayNames[$0 - 1] }.joined(separator: ", ")
     }
 }

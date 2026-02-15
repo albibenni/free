@@ -60,4 +60,15 @@ struct Schedule: Identifiable, Codable, Equatable {
             return currentMinutes >= startMinutes || currentMinutes < endMinutes
         }
     }
+
+    var timeRangeString: String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return "\(formatter.string(from: startTime)) - \(formatter.string(from: endTime))"
+    }
+
+    var daysString: String {
+        let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        return days.sorted().map { dayNames[$0 - 1] }.joined(separator: ", ")
+    }
 }

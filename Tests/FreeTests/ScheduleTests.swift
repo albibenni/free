@@ -133,4 +133,26 @@ struct ScheduleTests {
         #expect(schedule.isEnabled == true)
         #expect(schedule.type == .focus)
     }
+
+    @Test("Schedule display strings formatting")
+    func displayStrings() {
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 17, minute: 0))!
+        
+        let schedule = Schedule(
+            name: "Work",
+            days: [2, 4, 6], // Mon, Wed, Fri
+            startTime: start,
+            endTime: end
+        )
+        
+        // Verify days string
+        #expect(schedule.daysString == "Mon, Wed, Fri")
+        
+        // Verify time range (casing/format depends on locale, but we check structure)
+        let timeRange = schedule.timeRangeString
+        #expect(timeRange.contains(" - "))
+        #expect(timeRange.count > 10)
+    }
 }
