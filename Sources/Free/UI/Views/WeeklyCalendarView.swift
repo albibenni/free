@@ -30,11 +30,14 @@ struct WeeklyCalendarView: View {
     }
     
     var currentWeekDates: [Date] {
+        WeeklyCalendarView.getWeekDates(weekStartsOnMonday: appState.weekStartsOnMonday)
+    }
+
+    static func getWeekDates(at date: Date = Date(), weekStartsOnMonday: Bool) -> [Date] {
         let calendar = Calendar.current
-        let now = Date()
-        let startOfWeekDay = appState.weekStartsOnMonday ? 2 : 1
+        let startOfWeekDay = weekStartsOnMonday ? 2 : 1
         
-        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
         components.weekday = startOfWeekDay
         
         guard let startOfWeek = calendar.date(from: components) else { return [] }

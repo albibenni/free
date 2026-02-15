@@ -99,4 +99,42 @@ struct UITransformationTests {
         #expect(filtered.contains("https://github.com"))
         #expect(filtered.contains("https://youtube.com/watch?v=456"))
     }
+
+    @Test("WeeklyCalendar week date ranges")
+    func weekDateRange() {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Sunday Start
+        let sunDates = WeeklyCalendarView.getWeekDates(at: now, weekStartsOnMonday: false)
+        #expect(sunDates.count == 7)
+        #expect(calendar.component(.weekday, from: sunDates.first!) == 1) // Sunday
+        
+        // Monday Start
+        let monDates = WeeklyCalendarView.getWeekDates(at: now, weekStartsOnMonday: true)
+        #expect(monDates.count == 7)
+        #expect(calendar.component(.weekday, from: monDates.first!) == 2) // Monday
+        
+        // Verify continuity
+        for i in 0..<6 {
+            let nextDay = calendar.date(byAdding: .day, value: 1, to: sunDates[i])!
+            #expect(calendar.isDate(nextDay, inSameDayAs: sunDates[i+1]))
+        }
+    }
+
+    @Test("WeeklyCalendar overnight rect math")
+    func overnightRectMath() {
+        let calendar = Calendar.current
+        let hourH: CGFloat = 100
+        
+        // 10 PM to 2 AM
+        let start = calendar.date(from: DateComponents(hour: 22, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 2, minute: 0))!
+        
+        let rect = WeeklyCalendarView.calculateRect(startDate: start, endDate: end, colIndex: 0, columnWidth: 200, hourHeight: hourH)
+        
+        // Should fill from 22:00 to 24:00 (remainder of the day)
+        #expect(rect?.origin.y == 2200)
+        #expect(rect?.size.height == 200) // 2 hours remaining
+    }
 }
