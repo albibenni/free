@@ -71,8 +71,15 @@ struct FocusView: View {
                 Text("Focus Mode")
                     .font(.title2)
                     .bold()
-                Text(appState.isBlocking ? (appState.isPaused ? "Paused" : "Active") : "Inactive")
-                    .foregroundColor(.secondary)
+                HStack(spacing: 4) {
+                    Text(appState.isBlocking ? (appState.isPaused ? "Paused" : "Active") : "Inactive")
+                    if appState.isBlocking && !appState.isPaused {
+                        Text("•")
+                        Text(appState.currentPrimaryRuleSetName)
+                            .fontWeight(.bold)
+                    }
+                }
+                .foregroundColor(.secondary)
             }
             Spacer()
         }

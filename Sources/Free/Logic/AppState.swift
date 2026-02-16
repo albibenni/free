@@ -68,6 +68,11 @@ class AppState: ObservableObject {
         return schedules.first { $0.isActive() && $0.type == .focus }?.ruleSetId ?? activeRuleSetId ?? ruleSets.first?.id
     }
 
+    var currentPrimaryRuleSetName: String {
+        guard let id = currentPrimaryRuleSetId else { return "No List" }
+        return ruleSets.first { $0.id == id }?.name ?? "Unknown List"
+    }
+
     var allowedRules: [String] {
         var urls = Set<String>()
         schedules.filter { $0.isActive() && $0.type == .focus }.forEach { s in
