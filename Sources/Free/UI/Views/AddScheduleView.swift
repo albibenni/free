@@ -79,7 +79,7 @@ struct AddScheduleView: View {
                         Button(action: save) { Text(existingSchedule == nil ? (sessionType == .focus ? "Add Focus Session" : "Add Break Session") : "Save Changes") }
                             .buttonStyle(AppPrimaryButtonStyle(color: sessionType == .focus ? FocusColor.color(for: appState.accentColorIndex) : .orange, maxWidth: .infinity, isProminent: true))
                             .disabled(days.isEmpty && modifyAllDays)
-                        if let s = existingSchedule {
+                        if existingSchedule != nil {
                             Button(action: delete) { Text("Delete Schedule").foregroundColor(.red).font(.subheadline).frame(maxWidth: .infinity) }.buttonStyle(.plain)
                         }
                     }

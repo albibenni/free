@@ -3,7 +3,13 @@ import SwiftUI
 @main
 struct FreeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var appState = AppState()
+    @StateObject private var appState: AppState
+
+    init() {
+        let defaults = UserDefaults.standard
+        let state = AppState(defaults: defaults)
+        _appState = StateObject(wrappedValue: state)
+    }
 
     var body: some Scene {
         // Main Window

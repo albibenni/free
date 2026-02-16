@@ -47,4 +47,14 @@ struct AppDelegateTests {
         #expect(reply2 == .terminateNow)
         #expect(alertWasShown == false)
     }
+
+    @Test("isInApplications identifies correct paths")
+    func pathDetectionLogic() {
+        let delegate = AppDelegate()
+        
+        #expect(delegate.isInApplications(path: "/Applications/Free.app"))
+        #expect(delegate.isInApplications(path: "/System/Applications/Safari.app"))
+        #expect(!delegate.isInApplications(path: "/Users/test/Downloads/Free.app"))
+        #expect(!delegate.isInApplications(path: "/Volumes/Free/Free.app"))
+    }
 }
