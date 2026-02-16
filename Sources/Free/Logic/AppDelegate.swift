@@ -2,10 +2,15 @@ import AppKit
 
 public class AppDelegate: NSObject, NSApplicationDelegate {
     public var defaults: UserDefaults = .standard
+    public var onShowAlert: (() -> Void)?
 
     public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if shouldPreventTermination() {
-            showBlockingAlert()
+            if let customHandler = onShowAlert {
+                customHandler()
+            } else {
+                showBlockingAlert()
+            }
             return .terminateCancel
         }
         return .terminateNow
