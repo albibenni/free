@@ -159,6 +159,36 @@ struct UITransformationTests {
         #expect(rect?.size.height == 200) // 2 hours remaining
     }
 
+    @Test("WeeklyCalendar formatting helpers")
+    func calendarFormatting() {
+        // dayName (1 = Sunday)
+        #expect(!WeeklyCalendarView.dayName(for: 1).isEmpty)
+        
+        // timeString (9 AM)
+        let nineAM = WeeklyCalendarView.timeString(hour: 9)
+        #expect(nineAM.contains("9"))
+        
+        // formatTime (9.25 -> 9:15)
+        let nineFifteen = WeeklyCalendarView.formatTime(9.25)
+        #expect(nineFifteen.contains("9"))
+        #expect(nineFifteen.contains("15"))
+    }
+
+    @Test("WeeklyCalendar drag snapping logic")
+    func dragSnapping() {
+        let calendar = Calendar.current
+        
+        // 1. Snap 9.1 (approx 9:06) -> 9:00
+        //    Snap 10.4 (approx 10:24) -> 10:30
+        let result = WeeklyCalendarView.calculateDragSelection(startHour: 9.1, endHour: 10.4)
+        
+        #expect(calendar.component(.hour, from: result.start) == 9)
+        #expect(calendar.component(.minute, from: result.start) == 0)
+        
+        #expect(calendar.component(.hour, from: result.end) == 10)
+        #expect(calendar.component(.minute, from: result.end) == 30)
+    }
+
     @Test("Negative: WeeklyCalendar rect calculation with invalid range")
     func calendarRectNegative() {
         let calendar = Calendar.current

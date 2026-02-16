@@ -236,8 +236,12 @@ struct WeeklyCalendarView: View {
     }
     
     func formatTime(_ h: CGFloat) -> String {
+        WeeklyCalendarView.formatTime(h)
+    }
+
+    static func formatTime(_ h: CGFloat) -> String {
         let hour = Int(h)
-        let min = Int((h - CGFloat(hour)) * 60)
+        let min = Int(((h - CGFloat(hour)) * 60).rounded())
         let date = Calendar.current.date(from: DateComponents(hour: hour, minute: min)) ?? Date()
         let formatter = DateFormatter()
         formatter.timeStyle = .short
@@ -258,38 +262,50 @@ struct WeeklyCalendarView: View {
     }
     
     func finalizeDrag(_ data: DragSelection) {
-        let calendar = Calendar.current
+        let result = WeeklyCalendarView.calculateDragSelection(
+            startHour: data.startHour,
+            endHour: data.endHour
+        )
         
+        editorContext = ScheduleEditorContext(
+            day: data.day,
+            startTime: result.start,
+            endTime: result.end,
+            schedule: nil
+        )
+    }
+
+    static func calculateDragSelection(startHour: CGFloat, endHour: CGFloat) -> (start: Date, end: Date) {
+        let calendar = Calendar.current
         let snap = { (h: CGFloat) -> CGFloat in
             return (h * 4).rounded() / 4.0
         }
         
-        let startH = snap(min(data.startHour, data.endHour))
-        var endH = snap(max(data.startHour, data.endHour))
+        let sH = snap(min(startHour, endHour))
+        var eH = snap(max(startHour, endHour))
         
         // Ensure at least 15 mins
-        if endH - startH < 0.25 {
-            endH = startH + 0.25
+        if eH - sH < 0.25 {
+            eH = sH + 0.25
         }
         
-        let startHour = Int(startH)
-        let startMin = Int(((startH - CGFloat(startHour)) * 60).rounded())
+        let sHour = Int(sH)
+        let sMin = Int(((sH - CGFloat(sHour)) * 60).rounded())
         
-        let endHour = Int(endH)
-        let endMin = Int(((endH - CGFloat(endHour)) * 60).rounded())
+        let eHour = Int(eH)
+        let eMin = Int(((eH - CGFloat(eHour)) * 60).rounded())
         
-        let start = calendar.date(from: DateComponents(hour: startHour, minute: startMin))
-        let end = calendar.date(from: DateComponents(hour: endHour, minute: endMin))
+        let start = calendar.date(from: DateComponents(hour: sHour, minute: sMin)) ?? Date()
+        let end = calendar.date(from: DateComponents(hour: eHour, minute: eMin)) ?? Date()
         
-        editorContext = ScheduleEditorContext(
-            day: data.day,
-            startTime: start,
-            endTime: end,
-            schedule: nil
-        )
+        return (start, end)
     }
     
     func dayName(for day: Int) -> String {
+        WeeklyCalendarView.dayName(for: day)
+    }
+
+    static func dayName(for day: Int) -> String {
         return Calendar.current.shortWeekdaySymbols[day - 1]
     }
     
@@ -298,6 +314,10 @@ struct WeeklyCalendarView: View {
     }
     
     func timeString(hour: Int) -> String {
+        WeeklyCalendarView.timeString(hour: hour)
+    }
+
+    static func timeString(hour: Int) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "h a"
         let date = Calendar.current.date(from: DateComponents(hour: hour)) ?? Date()
