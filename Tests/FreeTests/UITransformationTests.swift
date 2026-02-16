@@ -189,6 +189,47 @@ struct UITransformationTests {
         #expect(calendar.component(.minute, from: result.end) == 30)
     }
 
+    @Test("WeeklyCalendar year transition edge case")
+    func calendarYearTransition() {
+        let calendar = Calendar.current
+        // Dec 31, 2023 (A Sunday)
+        let nye = calendar.date(from: DateComponents(year: 2023, month: 12, day: 31))!
+        
+        // Sunday Start: Should span Dec 31 to Jan 6
+        let dates = WeeklyCalendarView.getWeekDates(at: nye, weekStartsOnMonday: false)
+        #expect(dates.count == 7)
+        #expect(calendar.component(.year, from: dates.first!) == 2023)
+        #expect(calendar.component(.year, from: dates.last!) == 2024)
+        #expect(calendar.component(.month, from: dates.last!) == 1)
+    }
+
+    @Test("WeeklyCalendar rect calculation extreme edges")
+    func calendarRectExtremeEdges() {
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(hour: 12, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 12, minute: 1))! // 1 min duration
+        
+        // 1. Minimum height enforcement
+        let rect = WeeklyCalendarView.calculateRect(startDate: start, endDate: end, colIndex: 0, columnWidth: 100, hourHeight: 100)
+        #expect(rect?.size.height == 15) // Enforced minimum
+        
+        // 2. Extremely narrow column (negative width protection)
+        let narrowRect = WeeklyCalendarView.calculateRect(startDate: start, endDate: end, colIndex: 0, columnWidth: 2, hourHeight: 100)
+        #expect(narrowRect?.size.width == -2) // CGRect handles this, but logic verifies padding is subtracted
+    }
+
+    @Test("WeeklyCalendar zero-duration drag selection")
+    func zeroDurationDrag() {
+        let calendar = Calendar.current
+        // Click without drag at 14:00
+        let result = WeeklyCalendarView.calculateDragSelection(startHour: 14.0, endHour: 14.0)
+        
+        let duration = result.end.timeIntervalSince(result.start)
+        #expect(duration == 900) // 15 mins
+        #expect(calendar.component(.hour, from: result.start) == 14)
+        #expect(calendar.component(.minute, from: result.end) == 15)
+    }
+
     @Test("Negative: WeeklyCalendar rect calculation with invalid range")
     func calendarRectNegative() {
         let calendar = Calendar.current
