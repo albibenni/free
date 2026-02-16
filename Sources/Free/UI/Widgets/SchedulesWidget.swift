@@ -4,25 +4,25 @@ struct SchedulesWidget: View {
     @EnvironmentObject var appState: AppState
     @Binding var showSchedules: Bool
     @State private var isExpanded = false
-    
+
     private let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.timeStyle = .short
         return f
     }()
-    
+
     var body: some View {
         WidgetCard {
             Button(action: { withAnimation { isExpanded.toggle() } }) {
                 HStack {
                     Image(systemName: "calendar")
                         .font(.headline)
-                        .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
+                        .foregroundColor(.purple)
                     Text("Focus Schedules")
                         .font(.headline)
-                    
+
                     Spacer()
-                    
+
                     if !isExpanded {
                         let activeCount = appState.todaySchedules.filter { $0.isEnabled }.count
                         if activeCount > 0 {
@@ -34,7 +34,7 @@ struct SchedulesWidget: View {
                                 .cornerRadius(10)
                         }
                     }
-                    
+
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -43,7 +43,7 @@ struct SchedulesWidget: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            
+
             if isExpanded {
                 VStack(alignment: .leading, spacing: 12) {
                     if appState.todaySchedules.isEmpty {
@@ -65,12 +65,12 @@ struct SchedulesWidget: View {
                                             .foregroundColor(.secondary)
                                     }
                                     .frame(width: 65)
-                                    
+
                                     Capsule()
                                         .fill(schedule.themeColor)
                                         .frame(width: 4)
                                         .frame(height: 24)
-                                    
+
                                     VStack(alignment: .leading, spacing: 0) {
                                         Text(schedule.name)
                                             .font(.subheadline)
@@ -79,9 +79,9 @@ struct SchedulesWidget: View {
                                             .font(.caption2)
                                             .foregroundColor(.secondary)
                                     }
-                                    
+
                                     Spacer()
-                                    
+
                                     if !schedule.isEnabled {
                                         Text("Disabled")
                                             .font(.system(size: 8, weight: .bold))
@@ -100,9 +100,9 @@ struct SchedulesWidget: View {
                             }
                         }
                     }
-                    
+
                     Divider().opacity(0.5)
-                    
+
                     Button(action: { showSchedules = true }) {
                         Text("Open Full Calendar")
                     }
