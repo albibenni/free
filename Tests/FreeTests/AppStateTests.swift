@@ -608,6 +608,61 @@ struct AppStateTests {
         // (The monitor uses !appState.isPaused to decide if it should block)
         #expect(appState.isPaused == true)
     }
+
+    @Test("todaySchedules badge count logic")
+    func todaySchedulesBadgeCount() {
+        let appState = isolatedAppState(name: "todaySchedulesBadgeCount")
+        let today = Calendar.current.component(.weekday, from: Date())
+        
+        let s1 = Schedule(name: "Enabled", days: [today], startTime: Date(), endTime: Date(), isEnabled: true)
+        let s2 = Schedule(name: "Disabled", days: [today], startTime: Date(), endTime: Date(), isEnabled: false)
+        
+        appState.schedules = [s1, s2]
+        
+        let result = appState.todaySchedules
+        #expect(result.count == 2)
+        
+        // This is the logic used in SchedulesWidget for the badge
+        let enabledCount = result.filter { $0.isEnabled }.count
+        #expect(enabledCount == 1)
+    }
+
+    @Test("Negative: Toggling blocking OFF pauses ALL currently active schedules")
+    func pauseMultipleOverlappingSchedules() {
+        let appState = isolatedAppState(name: "pauseMultipleOverlappingSchedules")
+        let now = Date()
+        let today = Calendar.current.component(.weekday, from: now)
+        
+        let s1 = Schedule(name: "S1", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus)
+        let s2 = Schedule(name: "S2", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus)
+        appState.schedules = [s1, s2]
+        
+        appState.checkSchedules()
+        #expect(appState.isBlocking)
+        
+        // When: User toggles OFF
+        appState.toggleBlocking()
+        #expect(!appState.isBlocking)
+        
+        // Then: Should STAY off even after checkSchedules (both s1 and s2 are in paused set)
+        appState.checkSchedules()
+        #expect(!appState.isBlocking)
+    }
+
+    @Test("todaySchedules handles duplicate start times gracefully")
+    func todaySchedulesDuplicateTimes() {
+        let appState = isolatedAppState(name: "todaySchedulesDuplicateTimes")
+        let now = Date()
+        let today = Calendar.current.component(.weekday, from: now)
+        
+        let time = Calendar.current.date(from: DateComponents(hour: 10, minute: 0))!
+        let s1 = Schedule(name: "A", days: [today], startTime: time, endTime: time.addingTimeInterval(3600))
+        let s2 = Schedule(name: "B", days: [today], startTime: time, endTime: time.addingTimeInterval(3600))
+        
+        appState.schedules = [s1, s2]
+        let result = appState.todaySchedules
+        #expect(result.count == 2)
+    }
 }
 
 

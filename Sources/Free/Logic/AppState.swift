@@ -52,7 +52,7 @@ class AppState: ObservableObject {
     private var calendarCancellable: AnyCancellable?
     private var pauseTimer: Timer?, pomodoroTimer: Timer?, scheduleTimer: Timer?
     private var wasStartedBySchedule = false
-    private var manuallyPausedScheduleId: UUID?
+    private var manuallyPausedScheduleIds: Set<UUID> = []
 
     enum PomodoroStatus: String, Codable { case none, focus, breakTime }
 
@@ -123,11 +123,12 @@ class AppState: ObservableObject {
     func toggleBlocking() {
         if !(isBlocking && isUnblockable) {
             if isBlocking {
-                // Manually turning OFF: record current schedule if any so it doesn't immediately restart
-                manuallyPausedScheduleId = schedules.first { $0.isActive() && $0.type == .focus }?.id
+                // Manually turning OFF: record all current focus schedules so they don't immediately restart
+                let activeFocusIds = schedules.filter { $0.isActive() && $0.type == .focus }.map { $0.id }
+                manuallyPausedScheduleIds.formUnion(activeFocusIds)
             } else {
-                // Manually turning ON: clear any previous manual pause
-                manuallyPausedScheduleId = nil
+                // Manually turning ON: clear previous manual pauses
+                manuallyPausedScheduleIds.removeAll()
             }
             isBlocking.toggle()
             wasStartedBySchedule = false
@@ -138,12 +139,12 @@ class AppState: ObservableObject {
         let active = schedules.filter { $0.isActive() }
         let focusSchedules = active.filter { $0.type == .focus }
         
-        // 1. If the schedule that was manually paused is no longer active, clear the override
-        if let pausedId = manuallyPausedScheduleId, !focusSchedules.contains(where: { $0.id == pausedId }) {
-            manuallyPausedScheduleId = nil
-        }
+        // 1. Prune the paused set: remove IDs of schedules that are no longer active
+        let activeFocusIds = Set(focusSchedules.map { $0.id })
+        manuallyPausedScheduleIds.formIntersection(activeFocusIds)
 
-        let hasFocus = (focusSchedules.contains { $0.id != manuallyPausedScheduleId }) || pomodoroStatus == .focus
+        // 2. We should block if there is a focus session that is NOT manually paused
+        let hasFocus = (focusSchedules.contains { !manuallyPausedScheduleIds.contains($0.id) }) || pomodoroStatus == .focus
         let hasBreak = active.contains { $0.type == .unfocus } || pomodoroStatus == .breakTime
         let hasMeeting = calendarIntegrationEnabled && !isUnblockable && calendarProvider.events.contains { $0.isActive() }
         

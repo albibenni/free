@@ -156,6 +156,21 @@ struct ScheduleTests {
         #expect(timeRange.count > 10)
     }
 
+    @Test("Schedule daysString with various day counts")
+    func daysStringVariations() {
+        // Single day
+        let s1 = Schedule(name: "S", days: [1], startTime: Date(), endTime: Date())
+        #expect(s1.daysString == "Sun")
+        
+        // All days
+        let s2 = Schedule(name: "A", days: [1,2,3,4,5,6,7], startTime: Date(), endTime: Date())
+        #expect(s2.daysString == "Sun, Mon, Tue, Wed, Thu, Fri, Sat")
+        
+        // Non-sequential
+        let s3 = Schedule(name: "N", days: [1, 7], startTime: Date(), endTime: Date())
+        #expect(s3.daysString == "Sun, Sat")
+    }
+
     @Test("Negative: Schedule with no days should never be active")
     func scheduleNoDays() {
         let now = Date()
