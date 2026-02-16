@@ -136,6 +136,12 @@ struct UITransformationTests {
         #expect(monDates.count == 7)
         #expect(calendar.component(.weekday, from: monDates.first!) == 2) // Monday
         
+        // Offset test (Next week)
+        let nextWeek = WeeklyCalendarView.getWeekDates(at: now, weekStartsOnMonday: false, offset: 1)
+        #expect(nextWeek.count == 7)
+        let diff = calendar.dateComponents([.day], from: sunDates.first!, to: nextWeek.first!).day
+        #expect(diff == 7)
+        
         // Verify continuity
         for i in 0..<6 {
             let nextDay = calendar.date(byAdding: .day, value: 1, to: sunDates[i])!

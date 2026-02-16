@@ -5,6 +5,7 @@ struct WeeklyCalendarView: View {
     @Binding var editorContext: ScheduleEditorContext?
     
     @State private var dragData: DragSelection?
+    @State private var weekOffset: Int = 0
     
     struct DragSelection {
         let day: Int
@@ -30,14 +31,17 @@ struct WeeklyCalendarView: View {
     }
     
     var currentWeekDates: [Date] {
-        WeeklyCalendarView.getWeekDates(weekStartsOnMonday: appState.weekStartsOnMonday)
+        WeeklyCalendarView.getWeekDates(at: Date(), weekStartsOnMonday: appState.weekStartsOnMonday, offset: weekOffset)
     }
 
-    static func getWeekDates(at date: Date = Date(), weekStartsOnMonday: Bool) -> [Date] {
+    static func getWeekDates(at date: Date = Date(), weekStartsOnMonday: Bool, offset: Int = 0) -> [Date] {
         let calendar = Calendar.current
         let startOfWeekDay = weekStartsOnMonday ? 2 : 1
         
-        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
+        // Apply week offset
+        guard let targetDate = calendar.date(byAdding: .weekOfYear, value: offset, to: date) else { return [] }
+        
+        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: targetDate)
         components.weekday = startOfWeekDay
         
         guard let startOfWeek = calendar.date(from: components) else { return [] }
@@ -55,20 +59,62 @@ struct WeeklyCalendarView: View {
             let weekEnd = calendar.date(byAdding: .day, value: 1, to: weekRange.last ?? Date.distantFuture) ?? Date.distantFuture
 
             VStack(spacing: 0) {
+                // Toolbar (Navigation)
+                HStack {
+                    Text(monthYearString(for: weekStart))
+                        .font(.title3.bold())
+                    
+                    Spacer()
+                    
+                    HStack(spacing: 8) {
+                        Button(action: { weekOffset -= 1 }) {
+                            Image(systemName: "chevron.left")
+                                .padding(6)
+                                .background(Color.primary.opacity(0.05))
+                                .clipShape(Circle())
+                        }.buttonStyle(.plain)
+                        
+                        Button("Today") {
+                            weekOffset = 0
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        
+                        Button(action: { weekOffset += 1 }) {
+                            Image(systemName: "chevron.right")
+                                .padding(6)
+                                .background(Color.primary.opacity(0.05))
+                                .clipShape(Circle())
+                        }.buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+                
                 // Header (Days)
                 HStack(alignment: .center, spacing: 0) {
                     Text("")
                         .frame(width: timeLabelWidth + timeColumnGutter)
                     
                     ForEach(dayOrder, id: \.self) { day in
-                        Text(dayName(for: day))
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(isToday(day: day) ? FocusColor.color(for: appState.accentColorIndex).opacity(0.1) : Color.clear)
+                        VStack(spacing: 4) {
+                            Text(dayName(for: day))
+                                .font(.caption.bold())
+                                .foregroundColor(.secondary)
+                            
+                            if let date = dateFor(weekday: day, in: weekRange) {
+                                Text("\(calendar.component(.day, from: date))")
+                                    .font(.title3.bold())
+                                    .foregroundColor(isToday(date: date) ? .white : .primary)
+                                    .frame(width: 28, height: 28)
+                                    .background(isToday(date: date) ? FocusColor.color(for: appState.accentColorIndex) : Color.clear)
+                                    .clipShape(Circle())
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
                     }
                 }
-                .frame(height: dayHeaderHeight)
                 .background(Color(NSColor.controlBackgroundColor))
                 
                 Divider()
@@ -322,6 +368,20 @@ struct WeeklyCalendarView: View {
         formatter.dateFormat = "h a"
         let date = Calendar.current.date(from: DateComponents(hour: hour)) ?? Date()
         return formatter.string(from: date)
+    }
+
+    private func monthYearString(for date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMMM yyyy"
+        return f.string(from: date)
+    }
+
+    private func dateFor(weekday: Int, in range: [Date]) -> Date? {
+        range.first { Calendar.current.component(.weekday, from: $0) == weekday }
+    }
+
+    private func isToday(date: Date) -> Bool {
+        Calendar.current.isDateInToday(date)
     }
     
     private func calculateRect(startDate: Date, endDate: Date, colIndex: Int, columnWidth: CGFloat) -> CGRect? {
