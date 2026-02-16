@@ -6,6 +6,7 @@ struct ScheduleEditorContext: Identifiable {
     var startTime: Date?
     var endTime: Date?
     var schedule: Schedule?
+    var weekOffset: Int = 0
 }
 
 struct SchedulesView: View {
@@ -69,7 +70,8 @@ struct SchedulesView: View {
                 initialDay: context.day,
                 initialStartTime: context.startTime,
                 initialEndTime: context.endTime,
-                existingSchedule: context.schedule
+                existingSchedule: context.schedule,
+                editorContext: context
             )
         }
     }

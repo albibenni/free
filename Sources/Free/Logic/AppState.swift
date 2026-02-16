@@ -86,9 +86,17 @@ class AppState: ObservableObject {
     }
 
     var todaySchedules: [Schedule] {
-        let weekday = Calendar.current.component(.weekday, from: Date())
-        return schedules.filter { $0.days.contains(weekday) }
-            .sorted { s1, s2 in
+        let now = Date()
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: now)
+        
+        return schedules.filter { s in
+            if let specificDate = s.date {
+                return calendar.isDate(specificDate, inSameDayAs: now)
+            }
+            return s.days.contains(weekday)
+        }
+        .sorted { s1, s2 in
                 let c1 = Calendar.current.dateComponents([.hour, .minute], from: s1.startTime)
                 let c2 = Calendar.current.dateComponents([.hour, .minute], from: s2.startTime)
                 return (c1.hour ?? 0) * 60 + (c1.minute ?? 0) < (c2.hour ?? 0) * 60 + (c2.minute ?? 0)
@@ -182,20 +190,20 @@ class AppState: ObservableObject {
     }
 
     // MARK: - Schedule Management
-    func saveSchedule(name: String, days: Set<Int>, start: Date, end: Date, color: Int, type: ScheduleType, ruleSet: UUID?, existingId: UUID?, modifyAllDays: Bool, initialDay: Int?) {
+    func saveSchedule(name: String, days: Set<Int>, date: Date?, start: Date, end: Date, color: Int, type: ScheduleType, ruleSet: UUID?, existingId: UUID?, modifyAllDays: Bool, initialDay: Int?) {
         let finalName = name.trimmingCharacters(in: .whitespaces).isEmpty ? (type == .focus ? "Focus Session" : "Break Session") : name
         
         if let id = existingId, let i = schedules.firstIndex(where: { $0.id == id }) {
             if modifyAllDays {
-                schedules[i].name = finalName ; schedules[i].days = days ; schedules[i].startTime = start ; schedules[i].endTime = end
+                schedules[i].name = finalName ; schedules[i].days = days ; schedules[i].date = date ; schedules[i].startTime = start ; schedules[i].endTime = end
                 schedules[i].colorIndex = color ; schedules[i].type = type ; schedules[i].ruleSetId = ruleSet
             } else if let day = initialDay {
                 schedules[i].days.remove(day)
                 if schedules[i].days.isEmpty { schedules.remove(at: i) }
-                schedules.append(Schedule(name: finalName, days: [day], startTime: start, endTime: end, colorIndex: color, type: type, ruleSetId: ruleSet))
+                schedules.append(Schedule(name: finalName, days: [day], date: date, startTime: start, endTime: end, colorIndex: color, type: type, ruleSetId: ruleSet))
             }
         } else {
-            schedules.append(Schedule(name: finalName, days: days, startTime: start, endTime: end, colorIndex: color, type: type, ruleSetId: ruleSet))
+            schedules.append(Schedule(name: finalName, days: days, date: date, startTime: start, endTime: end, colorIndex: color, type: type, ruleSetId: ruleSet))
         }
     }
 

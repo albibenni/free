@@ -8,7 +8,8 @@ enum ScheduleType: String, Codable, CaseIterable {
 struct Schedule: Identifiable, Codable, Equatable {
     var id = UUID()
     var name: String
-    var days: Set<Int> // 1 = Sunday, 7 = Saturday (matching Calendar.component(.weekday, ...))
+    var days: Set<Int> // 1 = Sunday, 7 = Saturday
+    var date: Date? // If set, this is a one-off session for this specific calendar day
     var startTime: Date // Only time component matters
     var endTime: Date   // Only time component matters
     var isEnabled: Bool = true
@@ -36,14 +37,21 @@ struct Schedule: Identifiable, Codable, Equatable {
         )
     }
     
-    func isActive(at date: Date = Date()) -> Bool {
+    func isActive(at dateToCheck: Date = Date()) -> Bool {
         guard isEnabled else { return false }
         
         let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: date)
-        guard days.contains(weekday) else { return false }
         
-        let currentComponents = calendar.dateComponents([.hour, .minute], from: date)
+        // 1. Date Check (One-off vs Recurring)
+        if let specificDate = date {
+            guard calendar.isDate(specificDate, inSameDayAs: dateToCheck) else { return false }
+        } else {
+            let weekday = calendar.component(.weekday, from: dateToCheck)
+            guard days.contains(weekday) else { return false }
+        }
+        
+        // 2. Time Check
+        let currentComponents = calendar.dateComponents([.hour, .minute], from: dateToCheck)
         let startComponents = calendar.dateComponents([.hour, .minute], from: startTime)
         let endComponents = calendar.dateComponents([.hour, .minute], from: endTime)
         
@@ -68,6 +76,11 @@ struct Schedule: Identifiable, Codable, Equatable {
     }
 
     var daysString: String {
+        if let specificDate = date {
+            let f = DateFormatter()
+            f.dateStyle = .medium
+            return f.string(from: specificDate)
+        }
         let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
         return days.sorted().map { dayNames[$0 - 1] }.joined(separator: ", ")
     }

@@ -283,13 +283,13 @@ struct AppStateTests {
         let end = start.addingTimeInterval(3600)
         
         // 1. Create new
-        appState.saveSchedule(name: "New", days: [2], start: start, end: end, color: 1, type: .focus, ruleSet: nil, existingId: nil, modifyAllDays: true, initialDay: nil)
+        appState.saveSchedule(name: "New", days: [2], date: nil, start: start, end: end, color: 1, type: .focus, ruleSet: nil, existingId: nil, modifyAllDays: true, initialDay: nil)
         #expect(appState.schedules.count == 1)
         #expect(appState.schedules.first?.name == "New")
         
         // 2. Update existing
         let id = appState.schedules.first!.id
-        appState.saveSchedule(name: "Updated", days: [2, 3], start: start, end: end, color: 2, type: .unfocus, ruleSet: nil, existingId: id, modifyAllDays: true, initialDay: nil)
+        appState.saveSchedule(name: "Updated", days: [2, 3], date: nil, start: start, end: end, color: 2, type: .unfocus, ruleSet: nil, existingId: id, modifyAllDays: true, initialDay: nil)
         #expect(appState.schedules.count == 1)
         #expect(appState.schedules.first?.name == "Updated")
         #expect(appState.schedules.first?.days.count == 2)
@@ -307,7 +307,7 @@ struct AppStateTests {
         appState.schedules = [original]
         
         // When: User edits ONLY Tuesday (Day 3)
-        appState.saveSchedule(name: "Split", days: [3], start: start, end: end, color: 5, type: .focus, ruleSet: nil, existingId: originalId, modifyAllDays: false, initialDay: 3)
+        appState.saveSchedule(name: "Split", days: [3], date: nil, start: start, end: end, color: 5, type: .focus, ruleSet: nil, existingId: originalId, modifyAllDays: false, initialDay: 3)
         
         // Then:
         // 1. Original should only have [2, 4] (Mon, Wed)
@@ -692,6 +692,44 @@ struct AppStateTests {
         // 3. Fallback when no ID matches
         appState.activeRuleSetId = UUID() // Non-existent
         #expect(appState.currentPrimaryRuleSetName == "Manual Set" || appState.currentPrimaryRuleSetName == "Schedule Set")
+    }
+
+    @Test("One-off sessions only appear in their specific week grid")
+    func calendarGridFilteringLogic() {
+        let calendar = Calendar.current
+        // Use a fixed Wednesday (Feb 18, 2026)
+        let components = DateComponents(year: 2026, month: 2, day: 18, hour: 12)
+        let testDate = calendar.date(from: components)!
+        
+        let start = calendar.date(from: DateComponents(hour: 10, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 11, minute: 0))!
+        
+        // Setup: A one-off session for that Wednesday
+        let schedule = Schedule(name: "Feb 18 Only", days: [], date: testDate, startTime: start, endTime: end)
+        
+        // Helper to mimic WeeklyCalendarView.swift filter
+        func shouldShow(s: Schedule, weekStart: Date, weekEnd: Date) -> Bool {
+            let cal = Calendar.current
+            if let specificDate = s.date {
+                let d = cal.startOfDay(for: specificDate)
+                let s = cal.startOfDay(for: weekStart)
+                let e = cal.startOfDay(for: weekEnd)
+                return d >= s && d < e
+            }
+            return true
+        }
+        
+        // 1. Visible week is This Week (Feb 15 - Feb 21)
+        let week1 = WeeklyCalendarView.getWeekDates(at: testDate, weekStartsOnMonday: false, offset: 0)
+        let week1Start = week1.first!
+        let week1End = calendar.date(byAdding: .day, value: 7, to: week1Start)!
+        #expect(shouldShow(s: schedule, weekStart: week1Start, weekEnd: week1End) == true)
+        
+        // 2. Visible week is Next Week
+        let week2 = WeeklyCalendarView.getWeekDates(at: testDate, weekStartsOnMonday: false, offset: 1)
+        let week2Start = week2.first!
+        let week2End = calendar.date(byAdding: .day, value: 7, to: week2Start)!
+        #expect(shouldShow(s: schedule, weekStart: week2Start, weekEnd: week2End) == false)
     }
 }
 

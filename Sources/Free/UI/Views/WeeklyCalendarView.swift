@@ -35,17 +35,15 @@ struct WeeklyCalendarView: View {
     }
 
     static func getWeekDates(at date: Date = Date(), weekStartsOnMonday: Bool, offset: Int = 0) -> [Date] {
-        let calendar = Calendar.current
-        let startOfWeekDay = weekStartsOnMonday ? 2 : 1
+        var calendar = Calendar.current
+        calendar.firstWeekday = weekStartsOnMonday ? 2 : 1
         
-        // Apply week offset
-        guard let targetDate = calendar.date(byAdding: .weekOfYear, value: offset, to: date) else { return [] }
+        guard let targetDate = calendar.date(byAdding: .weekOfYear, value: offset, to: date),
+              let interval = calendar.dateInterval(of: .weekOfYear, for: targetDate) else {
+            return []
+        }
         
-        var components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: targetDate)
-        components.weekday = startOfWeekDay
-        
-        guard let startOfWeek = calendar.date(from: components) else { return [] }
-        
+        let startOfWeek = interval.start
         return (0..<7).compactMap { day in
             calendar.date(byAdding: .day, value: day, to: startOfWeek)
         }
@@ -243,7 +241,15 @@ struct WeeklyCalendarView: View {
                                         }
                                         
                                         // 2. Internal Schedules
-                                        ForEach(appState.schedules) { schedule in
+                                        ForEach(appState.schedules.filter { schedule in
+                                            if let specificDate = schedule.date {
+                                                let d = calendar.startOfDay(for: specificDate)
+                                                let s = calendar.startOfDay(for: weekStart)
+                                                let e = calendar.startOfDay(for: weekEnd)
+                                                return d >= s && d < e
+                                            }
+                                            return true // Recurring schedules show in every week
+                                        }) { schedule in
                                             ForEach(schedule.days.sorted(), id: \.self) { day in
                                                 if let colIndex = dayOrder.firstIndex(of: day),
                                                    let frame = calculateRect(startDate: schedule.startTime, endDate: schedule.endTime, colIndex: colIndex, columnWidth: columnWidth) {
@@ -253,7 +259,8 @@ struct WeeklyCalendarView: View {
                                                         .onTapGesture {
                                                             editorContext = ScheduleEditorContext(
                                                                 day: day,
-                                                                schedule: schedule
+                                                                schedule: schedule,
+                                                                weekOffset: weekOffset
                                                             )
                                                         }
                                                 }
@@ -264,7 +271,13 @@ struct WeeklyCalendarView: View {
                             }
                             
                             // Current Time Indicator
-                            CurrentTimeIndicator(hourHeight: hourHeight, timeLabelWidth: timeLabelWidth + timeColumnGutter, dayOrder: dayOrder)
+                            CurrentTimeIndicator(
+                                hourHeight: hourHeight,
+                                timeLabelWidth: timeLabelWidth + timeColumnGutter,
+                                dayOrder: dayOrder,
+                                weekStart: weekStart,
+                                weekEnd: weekEnd
+                            )
                         }
                     }
                     .onAppear {
@@ -303,7 +316,8 @@ struct WeeklyCalendarView: View {
             day: day,
             startTime: start,
             endTime: end,
-            schedule: nil
+            schedule: nil,
+            weekOffset: weekOffset
         )
     }
     
@@ -317,7 +331,8 @@ struct WeeklyCalendarView: View {
             day: data.day,
             startTime: result.start,
             endTime: result.end,
-            schedule: nil
+            schedule: nil,
+            weekOffset: weekOffset
         )
     }
 
@@ -483,28 +498,36 @@ struct CurrentTimeIndicator: View {
     let hourHeight: CGFloat
     let timeLabelWidth: CGFloat
     let dayOrder: [Int]
+    let weekStart: Date
+    let weekEnd: Date
+    
     @State private var currentTimeOffset: CGFloat = 0
     @State private var currentDayIndex: Int?
     let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
     
     var body: some View {
-        GeometryReader { geo in
-            if let colIndex = currentDayIndex {
-                let columnWidth = (geo.size.width - timeLabelWidth) / 7
-                let xOffset = timeLabelWidth + CGFloat(colIndex) * columnWidth
-                
-                HStack(spacing: 0) {
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 8, height: 8)
-                        .offset(x: xOffset - 4)
-                    
-                    Rectangle()
-                        .fill(Color.red)
-                        .frame(width: columnWidth, height: 1)
-                        .offset(x: xOffset - 4)
+        Group {
+            let now = Date()
+            if now >= weekStart && now < weekEnd {
+                GeometryReader { geo in
+                    if let colIndex = currentDayIndex {
+                        let columnWidth = (geo.size.width - timeLabelWidth) / 7
+                        let xOffset = timeLabelWidth + CGFloat(colIndex) * columnWidth
+                        
+                        HStack(spacing: 0) {
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 8, height: 8)
+                                .offset(x: xOffset - 4)
+                            
+                            Rectangle()
+                                .fill(Color.red)
+                                .frame(width: columnWidth, height: 1)
+                                .offset(x: xOffset - 4)
+                        }
+                        .offset(y: currentTimeOffset)
+                    }
                 }
-                .offset(y: currentTimeOffset)
             }
         }
         .onAppear { updateTime() }

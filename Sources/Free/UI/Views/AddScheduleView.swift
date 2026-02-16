@@ -3,7 +3,7 @@ import SwiftUI
 struct AddScheduleView: View {
     @EnvironmentObject var appState: AppState
     @Binding var isPresented: Bool
-    var initialDay: Int?, initialStartTime: Date?, initialEndTime: Date?, existingSchedule: Schedule?
+    var initialDay: Int?, initialStartTime: Date?, initialEndTime: Date?, existingSchedule: Schedule?, editorContext: ScheduleEditorContext?
 
     @State private var name: String
     @State private var days: Set<Int>
@@ -13,14 +13,16 @@ struct AddScheduleView: View {
     @State private var sessionType: ScheduleType
     @State private var ruleSetId: UUID?
     @State private var modifyAllDays = true
+    @State private var isRecurring = false
 
-    init(isPresented: Binding<Bool>, initialDay: Int? = nil, initialStartTime: Date? = nil, initialEndTime: Date? = nil, existingSchedule: Schedule? = nil) {
+    init(isPresented: Binding<Bool>, initialDay: Int? = nil, initialStartTime: Date? = nil, initialEndTime: Date? = nil, existingSchedule: Schedule? = nil, editorContext: ScheduleEditorContext? = nil) {
         self._isPresented = isPresented ; self.initialDay = initialDay ; self.initialStartTime = initialStartTime
-        self.initialEndTime = initialEndTime ; self.existingSchedule = existingSchedule
+        self.initialEndTime = initialEndTime ; self.existingSchedule = existingSchedule ; self.editorContext = editorContext
         let c = AddScheduleView.configure(initialDay: initialDay, initialStartTime: initialStartTime, initialEndTime: initialEndTime, existingSchedule: existingSchedule)
         _name = State(initialValue: c.name) ; _days = State(initialValue: c.days) ; _startTime = State(initialValue: c.startTime)
         _endTime = State(initialValue: c.endTime) ; _selectedColorIndex = State(initialValue: c.colorIndex)
         _sessionType = State(initialValue: c.type) ; _ruleSetId = State(initialValue: c.ruleSetId)
+        _isRecurring = State(initialValue: c.isRecurring)
     }
 
     var body: some View {
@@ -65,13 +67,20 @@ struct AddScheduleView: View {
                         section("START TIME") { DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute).labelsHidden().datePickerStyle(.field).scaleEffect(1.1).frame(width: 90, height: 35) }
                         section("END TIME") { DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute).labelsHidden().datePickerStyle(.field).scaleEffect(1.1).frame(width: 90, height: 35) }
                     }
-                    section("DAYS OF THE WEEK") {
-                        if existingSchedule != nil && !modifyAllDays, let d = initialDay {
-                            Text(dayName(for: d)).font(.headline).padding(.horizontal, 16).padding(.vertical, 8).background(Color.blue.opacity(0.1)).cornerRadius(8)
-                        } else {
-                            HStack(spacing: 12) {
-                                let order = appState.weekStartsOnMonday ? [2, 3, 4, 5, 6, 7, 1] : [1, 2, 3, 4, 5, 6, 7]
-                                ForEach(order, id: \.self) { d in DayToggle(day: d, isSelected: days.contains(d)) { if days.contains(d) { days.remove(d) } else { days.insert(d) } } }
+                    
+                    Toggle("Repeat weekly", isOn: $isRecurring)
+                        .toggleStyle(.checkbox)
+                        .font(.headline)
+                    
+                    if isRecurring {
+                        section("DAYS OF THE WEEK") {
+                            if existingSchedule != nil && !modifyAllDays, let d = initialDay {
+                                Text(dayName(for: d)).font(.headline).padding(.horizontal, 16).padding(.vertical, 8).background(Color.blue.opacity(0.1)).cornerRadius(8)
+                            } else {
+                                HStack(spacing: 12) {
+                                    let order = appState.weekStartsOnMonday ? [2, 3, 4, 5, 6, 7, 1] : [1, 2, 3, 4, 5, 6, 7]
+                                    ForEach(order, id: \.self) { d in DayToggle(day: d, isSelected: days.contains(d)) { if days.contains(d) { days.remove(d) } else { days.insert(d) } } }
+                                }
                             }
                         }
                     }
@@ -106,7 +115,22 @@ struct AddScheduleView: View {
 
     // MARK: - Logic
     private func save() {
-        appState.saveSchedule(name: name, days: days, start: startTime, end: endTime, color: selectedColorIndex, type: sessionType, ruleSet: ruleSetId, existingId: existingSchedule?.id, modifyAllDays: modifyAllDays, initialDay: initialDay)
+        var finalDate: Date? = nil
+        var finalDays = days
+        
+        if !isRecurring {
+            // For one-off sessions, we bond it to the specific date being viewed
+            let calendar = Calendar.current
+            // Find the date for the initialDay (which is the day being clicked) in the currently viewed week
+            let weekOffset = editorContext?.weekOffset ?? 0
+            let weekRange = WeeklyCalendarView.getWeekDates(weekStartsOnMonday: appState.weekStartsOnMonday, offset: weekOffset)
+            if let targetDate = weekRange.first(where: { calendar.component(.weekday, from: $0) == (initialDay ?? calendar.component(.weekday, from: Date())) }) {
+                finalDate = targetDate
+                finalDays = [calendar.component(.weekday, from: targetDate)]
+            }
+        }
+        
+        appState.saveSchedule(name: name, days: finalDays, date: finalDate, start: startTime, end: endTime, color: selectedColorIndex, type: sessionType, ruleSet: ruleSetId, existingId: existingSchedule?.id, modifyAllDays: modifyAllDays, initialDay: initialDay)
         isPresented = false
     }
     private func delete() {
@@ -115,12 +139,12 @@ struct AddScheduleView: View {
     }
     private func dayName(for day: Int) -> String { Calendar.current.weekdaySymbols[day - 1] }
 
-    struct Configuration { let name: String; let days: Set<Int>; let startTime: Date; let endTime: Date; let colorIndex: Int; let type: ScheduleType; let ruleSetId: UUID? }
+    struct Configuration { let name: String; let days: Set<Int>; let isRecurring: Bool; let startTime: Date; let endTime: Date; let colorIndex: Int; let type: ScheduleType; let ruleSetId: UUID? }
     static func configure(initialDay: Int?, initialStartTime: Date?, initialEndTime: Date?, existingSchedule: Schedule?) -> Configuration {
-        if let s = existingSchedule { return Configuration(name: s.name, days: s.days, startTime: s.startTime, endTime: s.endTime, colorIndex: s.colorIndex, type: s.type, ruleSetId: s.ruleSetId) }
+        if let s = existingSchedule { return Configuration(name: s.name, days: s.days, isRecurring: s.date == nil, startTime: s.startTime, endTime: s.endTime, colorIndex: s.colorIndex, type: s.type, ruleSetId: s.ruleSetId) }
         let start = initialStartTime ?? Calendar.current.date(from: DateComponents(hour: 9, minute: 0))!
         let end = initialEndTime ?? Calendar.current.date(byAdding: .hour, value: 1, to: start)!
-        return Configuration(name: "", days: initialDay.map { [$0] } ?? [2,3,4,5,6], startTime: start, endTime: end, colorIndex: 0, type: .focus, ruleSetId: nil)
+        return Configuration(name: "", days: initialDay.map { [$0] } ?? [2,3,4,5,6], isRecurring: false, startTime: start, endTime: end, colorIndex: 0, type: .focus, ruleSetId: nil)
     }
 }
 

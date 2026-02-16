@@ -188,4 +188,30 @@ struct ScheduleTests {
         let schedule = Schedule(name: "Instant", days: [today], startTime: time, endTime: time)
         #expect(!schedule.isActive(at: time))
     }
+
+    @Test("One-off schedule logic")
+    func oneOffScheduleLogic() {
+        let calendar = Calendar.current
+        // Create a date for "Today" and "Tomorrow"
+        let today = Date()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+        
+        let start = calendar.date(from: DateComponents(hour: 10, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 11, minute: 0))!
+        
+        // Setup: A one-off schedule bonded to TODAY at 10 AM
+        let schedule = Schedule(name: "Once", days: [], date: today, startTime: start, endTime: end)
+        
+        // 1. Should be active today at 10:30 AM
+        let testTimeToday = calendar.date(bySettingHour: 10, minute: 30, second: 0, of: today)!
+        #expect(schedule.isActive(at: testTimeToday))
+        
+        // 2. Should NOT be active tomorrow at 10:30 AM (even if weekday matches, date takes precedence)
+        let testTimeTomorrow = calendar.date(bySettingHour: 10, minute: 30, second: 0, of: tomorrow)!
+        #expect(!schedule.isActive(at: testTimeTomorrow))
+        
+        // 3. String representation should show date
+        #expect(schedule.daysString != "One-off") // It shows medium date style now
+        #expect(schedule.daysString.count > 5)
+    }
 }
