@@ -576,6 +576,38 @@ struct AppStateTests {
         
         #expect(appState.currentPrimaryRuleSetId == set1.id)
     }
+
+    @Test("Negative: startPause with zero or negative duration")
+    func pauseDurationEdgeCases() {
+        let appState = isolatedAppState(name: "pauseDurationEdgeCases")
+        appState.isBlocking = true
+        
+        // 1. Zero minutes
+        appState.startPause(minutes: 0)
+        #expect(!appState.isPaused)
+        
+        // 2. Negative minutes
+        appState.startPause(minutes: -5)
+        #expect(!appState.isPaused)
+    }
+
+    @Test("Manual pause takes precedence over Pomodoro focus")
+    func pausePrecedence() {
+        let appState = isolatedAppState(name: "pausePrecedence")
+        appState.isBlocking = true
+        
+        // Start Pomodoro
+        appState.startPomodoro()
+        #expect(appState.pomodoroStatus == .focus)
+        
+        // Start Manual Pause (Break)
+        appState.startPause(minutes: 5)
+        #expect(appState.isPaused)
+        
+        // Even though Pomodoro says .focus, isPaused must remain true
+        // (The monitor uses !appState.isPaused to decide if it should block)
+        #expect(appState.isPaused == true)
+    }
 }
 
 

@@ -226,7 +226,7 @@ class AppState: ObservableObject {
     private func startBreak() { pomodoroStatus = .breakTime ; pomodoroRemaining = pomodoroBreakDuration * 60 ; runTimer() }
 
     func startPause(minutes: Double) {
-        guard isBlocking else { return }
+        guard isBlocking, minutes > 0 else { return }
         isPaused = true ; pauseRemaining = minutes * 60 ; pauseTimer?.invalidate()
         pauseTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self = self else { return }
