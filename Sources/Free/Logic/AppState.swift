@@ -159,11 +159,21 @@ class AppState: ObservableObject {
     }
 
     func addRule(_ rule: String, to setId: UUID) {
+        if isStrictActive { return }
         updateSet(setId) { s in let r = rule.trimmingCharacters(in: .whitespaces) ; if !r.isEmpty && !s.urls.contains(r) { s.urls.append(r) } }
     }
-    func addSpecificRule(_ rule: String, to setId: UUID) { updateSet(setId) { if !$0.urls.contains(rule) { $0.urls.append(rule) } } }
-    func removeRule(_ rule: String, from setId: UUID) { updateSet(setId) { $0.urls.removeAll { $0 == rule } } }
-    func deleteSet(id: UUID) { ruleSets.removeAll { $0.id == id } ; if activeRuleSetId == id { activeRuleSetId = ruleSets.first?.id } }
+    func addSpecificRule(_ rule: String, to setId: UUID) { 
+        if isStrictActive { return }
+        updateSet(setId) { if !$0.urls.contains(rule) { $0.urls.append(rule) } } 
+    }
+    func removeRule(_ rule: String, from setId: UUID) { 
+        if isStrictActive { return }
+        updateSet(setId) { $0.urls.removeAll { $0 == rule } } 
+    }
+    func deleteSet(id: UUID) { 
+        if isStrictActive { return }
+        ruleSets.removeAll { $0.id == id } ; if activeRuleSetId == id { activeRuleSetId = ruleSets.first?.id } 
+    }
 
     // MARK: - Schedule Management
     func saveSchedule(name: String, days: Set<Int>, start: Date, end: Date, color: Int, type: ScheduleType, ruleSet: UUID?, existingId: UUID?, modifyAllDays: Bool, initialDay: Int?) {

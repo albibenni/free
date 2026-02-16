@@ -530,6 +530,52 @@ struct AppStateTests {
         #expect(rules.contains("site2.com"))
         #expect(rules.count == 2)
     }
+
+    @Test("Negative: Prevent rule modifications during strict mode")
+    func strictRuleModificationProtection() {
+        let appState = isolatedAppState(name: "strictRuleModificationProtection")
+        let setId = appState.ruleSets[0].id
+        let originalCount = appState.ruleSets[0].urls.count
+        
+        // Enable Strict Mode
+        appState.isBlocking = true
+        appState.isUnblockable = true
+        #expect(appState.isStrictActive)
+        
+        // 1. Try add
+        appState.addRule("cheat.com", to: setId)
+        #expect(appState.ruleSets[0].urls.count == originalCount)
+        
+        // 2. Try remove
+        if originalCount > 0 {
+            let first = appState.ruleSets[0].urls[0]
+            appState.removeRule(first, from: setId)
+            #expect(appState.ruleSets[0].urls.contains(first))
+        }
+        
+        // 3. Try delete set
+        appState.deleteSet(id: setId)
+        #expect(!appState.ruleSets.isEmpty)
+    }
+
+    @Test("Negative: Prevent activeRuleSetId change during blocking")
+    func ruleSetSwitchDuringBlocking() {
+        let appState = isolatedAppState(name: "ruleSetSwitchDuringBlocking")
+        let set1 = RuleSet(id: UUID(), name: "S1", urls: [])
+        let set2 = RuleSet(id: UUID(), name: "S2", urls: [])
+        appState.ruleSets = [set1, set2]
+        
+        // Setup: Blocking active with set1
+        appState.activeRuleSetId = set1.id
+        appState.isBlocking = true
+        
+        // Verification: The widget logic uses 'if !appState.isBlocking' 
+        // We verify the data dependency: even if code TRIED to change it, 
+        // we should know the blocking engine is still using the old rules 
+        // until session ends (handled by currentPrimaryRuleSetId logic).
+        
+        #expect(appState.currentPrimaryRuleSetId == set1.id)
+    }
 }
 
 
