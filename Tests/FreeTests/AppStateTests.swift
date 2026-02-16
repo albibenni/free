@@ -663,6 +663,36 @@ struct AppStateTests {
         let result = appState.todaySchedules
         #expect(result.count == 2)
     }
+
+    @Test("currentPrimaryRuleSetName correctly identifies the active list name")
+    func primaryRuleSetNameLogic() {
+        let appState = isolatedAppState(name: "primaryRuleSetNameLogic")
+        
+        // Setup: Two sets
+        let set1 = RuleSet(id: UUID(), name: "Manual Set", urls: [])
+        let set2 = RuleSet(id: UUID(), name: "Schedule Set", urls: [])
+        appState.ruleSets = [set1, set2]
+        
+        let now = Date()
+        let today = Calendar.current.component(.weekday, from: now)
+        
+        // 1. Manual focus active
+        appState.activeRuleSetId = set1.id
+        appState.isBlocking = true
+        #expect(appState.currentPrimaryRuleSetName == "Manual Set")
+        
+        // 2. Schedule focus active (and manual off)
+        appState.isBlocking = false
+        let sch = Schedule(name: "S", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set2.id)
+        appState.schedules = [sch]
+        appState.checkSchedules()
+        #expect(appState.isBlocking)
+        #expect(appState.currentPrimaryRuleSetName == "Schedule Set")
+        
+        // 3. Fallback when no ID matches
+        appState.activeRuleSetId = UUID() // Non-existent
+        #expect(appState.currentPrimaryRuleSetName == "Manual Set" || appState.currentPrimaryRuleSetName == "Schedule Set")
+    }
 }
 
 
