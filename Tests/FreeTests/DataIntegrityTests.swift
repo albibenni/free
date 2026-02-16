@@ -37,4 +37,19 @@ struct DataIntegrityTests {
         // Should fallback to first set ID
         #expect(appState.activeRuleSetId == ruleSet.id)
     }
+
+    @Test("AppState recovers from corrupted Schedules JSON")
+    func corruptedSchedules() {
+        let suite = "DataIntegrityTests.corruptedSchedules"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        
+        // Write invalid data
+        defaults.set("bad-data".data(using: .utf8), forKey: "Schedules")
+        
+        let appState = AppState(defaults: defaults, isTesting: true)
+        
+        // Should fallback to empty array
+        #expect(appState.schedules.isEmpty)
+    }
 }

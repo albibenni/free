@@ -694,6 +694,22 @@ struct AppStateTests {
         #expect(appState.currentPrimaryRuleSetName == "Manual Set" || appState.currentPrimaryRuleSetName == "Schedule Set")
     }
 
+    @Test("Pomodoro remaining time reflects duration changes mid-run")
+    func pomodoroMidRunDurationChange() {
+        let appState = isolatedAppState(name: "pomodoroMidRunDurationChange")
+        appState.pomodoroFocusDuration = 25
+        appState.startPomodoro()
+        #expect(appState.pomodoroRemaining == 25 * 60)
+        
+        // When: Duration changed to 45
+        appState.pomodoroFocusDuration = 45
+        
+        // Then: Ideally it should adjust, but let's check current behavior
+        // (Current behavior: It DOES NOT adjust until next start)
+        // I will add code to make it adjust.
+        #expect(appState.pomodoroRemaining == 45 * 60)
+    }
+
     @Test("One-off sessions only appear in their specific week grid")
     func calendarGridFilteringLogic() {
         let calendar = Calendar.current

@@ -84,4 +84,11 @@ struct Schedule: Identifiable, Codable, Equatable {
         let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
         return days.sorted().map { dayNames[$0 - 1] }.joined(separator: ", ")
     }
+
+    static func calculateOneOffDate(initialDay: Int?, weekOffset: Int, weekStartsOnMonday: Bool) -> Date? {
+        let calendar = Calendar.current
+        let targetWeekday = initialDay ?? calendar.component(.weekday, from: Date())
+        let weekRange = WeeklyCalendarView.getWeekDates(weekStartsOnMonday: weekStartsOnMonday, offset: weekOffset)
+        return weekRange.first { calendar.component(.weekday, from: $0) == targetWeekday }
+    }
 }

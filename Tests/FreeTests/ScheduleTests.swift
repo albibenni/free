@@ -214,4 +214,31 @@ struct ScheduleTests {
         #expect(schedule.daysString != "One-off") // It shows medium date style now
         #expect(schedule.daysString.count > 5)
     }
+
+    @Test("calculateOneOffDate correctly maps weekdays across offsets")
+    func oneOffDateCalculation() {
+        let calendar = Calendar.current
+        // A known Monday (Feb 16, 2026)
+        let monComps = DateComponents(year: 2026, month: 2, day: 16)
+        let mon = calendar.date(from: monComps)!
+        
+        // 1. Current week (Offset 0), target Wednesday (3)
+        // Monday start: Sun=1, Mon=2, Tue=3, Wed=4... wait. 
+        // Sunday is always 1 in Calendar components.
+        // Feb 16 is Monday (2). Wednesday is Feb 18 (4).
+        
+        if let wed = Schedule.calculateOneOffDate(initialDay: 4, weekOffset: 0, weekStartsOnMonday: true) {
+            #expect(calendar.component(.day, from: wed) == 18)
+            #expect(calendar.component(.month, from: wed) == 2)
+        } else {
+            Issue.record("Failed to calculate date")
+        }
+        
+        // 2. Next week (Offset 1), target Monday (2)
+        if let nextMon = Schedule.calculateOneOffDate(initialDay: 2, weekOffset: 1, weekStartsOnMonday: true) {
+            #expect(calendar.component(.day, from: nextMon) == 23)
+        } else {
+            Issue.record("Failed to calculate next week date")
+        }
+    }
 }

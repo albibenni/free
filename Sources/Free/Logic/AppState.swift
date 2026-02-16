@@ -36,8 +36,18 @@ class AppState: ObservableObject {
     @Published var activeRuleSetId: UUID? = nil { didSet { defaults.set(activeRuleSetId?.uuidString, forKey: "ActiveRuleSetId") } }
     @Published var schedules: [Schedule] = [] { didSet { saveJSON(schedules, key: "Schedules") ; checkSchedules() } }
     
-    @Published var pomodoroFocusDuration: Double = 25 { didSet { defaults.set(pomodoroFocusDuration, forKey: "PomodoroFocusDuration") } }
-    @Published var pomodoroBreakDuration: Double = 5 { didSet { defaults.set(pomodoroBreakDuration, forKey: "PomodoroBreakDuration") } }
+    @Published var pomodoroFocusDuration: Double = 25 { 
+        didSet { 
+            defaults.set(pomodoroFocusDuration, forKey: "PomodoroFocusDuration")
+            if pomodoroStatus == .focus { pomodoroRemaining = pomodoroFocusDuration * 60 }
+        } 
+    }
+    @Published var pomodoroBreakDuration: Double = 5 { 
+        didSet { 
+            defaults.set(pomodoroBreakDuration, forKey: "PomodoroBreakDuration")
+            if pomodoroStatus == .breakTime { pomodoroRemaining = pomodoroBreakDuration * 60 }
+        } 
+    }
 
     // MARK: - Volatile State
     @Published var isPaused = false

@@ -119,14 +119,13 @@ struct AddScheduleView: View {
         var finalDays = days
         
         if !isRecurring {
-            // For one-off sessions, we bond it to the specific date being viewed
-            let calendar = Calendar.current
-            // Find the date for the initialDay (which is the day being clicked) in the currently viewed week
-            let weekOffset = editorContext?.weekOffset ?? 0
-            let weekRange = WeeklyCalendarView.getWeekDates(weekStartsOnMonday: appState.weekStartsOnMonday, offset: weekOffset)
-            if let targetDate = weekRange.first(where: { calendar.component(.weekday, from: $0) == (initialDay ?? calendar.component(.weekday, from: Date())) }) {
+            if let targetDate = Schedule.calculateOneOffDate(
+                initialDay: initialDay,
+                weekOffset: editorContext?.weekOffset ?? 0,
+                weekStartsOnMonday: appState.weekStartsOnMonday
+            ) {
                 finalDate = targetDate
-                finalDays = [calendar.component(.weekday, from: targetDate)]
+                finalDays = [Calendar.current.component(.weekday, from: targetDate)]
             }
         }
         

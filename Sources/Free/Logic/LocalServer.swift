@@ -4,6 +4,7 @@ import Network
 class LocalServer {
     var listener: NWListener?
     private(set) var port: NWEndpoint.Port?
+    var onFailure: ((Error) -> Void)?
 
     func start(on requestedPort: NWEndpoint.Port = 10000) {
         // Skip starting the server if we are running in a unit test environment
@@ -27,6 +28,7 @@ class LocalServer {
                     }
                 case .failed(let error):
                     print("Server failed with error: \(error)")
+                    self.onFailure?(error)
                 default:
                     break
                 }
@@ -40,6 +42,7 @@ class LocalServer {
             self.listener = listener
         } catch {
             print("Failed to start server: \(error)")
+            self.onFailure?(error)
         }
     }
 
