@@ -43,6 +43,7 @@ app:
 
 dmg:
 	@./package.sh
+	@echo "DMG now includes Install Free.app + Applications shortcut."
 
 package: dmg
 
