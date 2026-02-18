@@ -5,13 +5,26 @@ import AppKit
 
 class MockBrowserAutomator: BrowserAutomator {
     var activeUrl: String?
-    var redirectedTo: String?
+    var redirectedUrls: [String] = []
+    var getActiveUrlCalls = 0
+    var forwardedBrowsers: [String] = []
     var checkedPermissions = false
     var permissionsReturn = true
     
-    func getActiveUrl(for app: NSRunningApplication) -> String? { activeUrl }
-    func redirect(app: NSRunningApplication, to url: String) { redirectedTo = url }
-    func getAllOpenUrls(browsers: [String]) -> [String] { activeUrl.map { [$0] } ?? [] }
+    func getActiveUrl(for app: NSRunningApplication) -> String? {
+        getActiveUrlCalls += 1
+        return activeUrl
+    }
+
+    func redirect(app: NSRunningApplication, to url: String) {
+        redirectedUrls.append(url)
+    }
+
+    func getAllOpenUrls(browsers: [String]) -> [String] {
+        forwardedBrowsers = browsers
+        return activeUrl.map { [$0] } ?? []
+    }
+
     func checkPermissions(prompt: Bool) -> Bool {
         checkedPermissions = true
         return permissionsReturn
@@ -27,32 +40,175 @@ struct BrowserMonitorTests {
         return AppState(defaults: defaults, isTesting: true)
     }
 
+    private func makeMonitor(
+        appState: AppState,
+        mock: MockBrowserAutomator,
+        supportedBrowsers: Set<String> = ["com.google.Chrome"],
+        bundleId: String? = "com.google.Chrome",
+        nowProvider: @escaping () -> Date = Date.init,
+        monitorInterval: TimeInterval = 1.0,
+        startTimer: Bool = false
+    ) -> BrowserMonitor {
+        BrowserMonitor(
+            appState: appState,
+            server: nil,
+            automator: mock,
+            supportedBrowsers: supportedBrowsers,
+            frontmostAppProvider: { NSRunningApplication.current },
+            bundleIdProvider: { _ in bundleId },
+            nowProvider: nowProvider,
+            monitorInterval: monitorInterval,
+            startTimer: startTimer
+        )
+    }
+
     @Test("BrowserMonitor permission check updates AppState")
     func permissionUpdate() {
         let appState = isolatedAppState(name: "permissionUpdate")
         let mock = MockBrowserAutomator()
         mock.permissionsReturn = false
         
-        _ = BrowserMonitor(appState: appState, server: nil, automator: mock)
+        _ = makeMonitor(appState: appState, mock: mock)
         #expect(mock.checkedPermissions)
     }
 
-    @Test("BrowserMonitor internal logic handles blocking")
-    func internalLogic() {
-        // Since we can't easily mock NSRunningApplication (which is required by checkActiveTab),
-        // we verified the refactoring allows replacing the Automator.
-        // In a real environment, the monitor would call automator.getActiveUrl()
-        // and then automator.redirect() if RuleMatcher.isAllowed is false.
-        
-        let appState = isolatedAppState(name: "internalLogic")
-        appState.isBlocking = true
-        appState.ruleSets = [RuleSet(name: "Test", urls: ["google.com"])]
-        
+    @Test("BrowserMonitor supports default provider wiring without explicit overrides")
+    func defaultProviderWiring() {
+        let appState = isolatedAppState(name: "defaultProviderWiring")
         let mock = MockBrowserAutomator()
-        let monitor = BrowserMonitor(appState: appState, server: nil, automator: mock)
-        
-        // Verification: If the monitor WAS to run, it would use these rules:
-        #expect(appState.allowedRules.contains("google.com"))
-        #expect(!RuleMatcher.isAllowed("https://facebook.com", rules: appState.allowedRules))
+
+        _ = BrowserMonitor(
+            appState: appState,
+            server: nil,
+            automator: mock,
+            startTimer: false
+        )
+
+        #expect(mock.checkedPermissions)
+    }
+
+    @Test("BrowserMonitor redirects disallowed URL when blocking")
+    func redirectsDisallowedUrl() {
+        let appState = isolatedAppState(name: "redirectsDisallowedUrl")
+        appState.isBlocking = true
+        appState.ruleSets = [RuleSet(name: "Allowed", urls: ["google.com"])]
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "https://facebook.com"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls == ["http://localhost:10000"])
+    }
+
+    @Test("BrowserMonitor does not redirect allowed URL")
+    func allowsWhitelistedUrl() {
+        let appState = isolatedAppState(name: "allowsWhitelistedUrl")
+        appState.isBlocking = true
+        appState.ruleSets = [RuleSet(name: "Allowed", urls: ["google.com"])]
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "https://docs.google.com/document/123"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls.isEmpty)
+    }
+
+    @Test("BrowserMonitor guard clauses prevent URL fetch when paused or unsupported")
+    func guardClauses() {
+        let appState = isolatedAppState(name: "guardClauses")
+        appState.isBlocking = true
+        appState.isPaused = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "https://facebook.com"
+        let monitorPaused = makeMonitor(appState: appState, mock: mock)
+
+        monitorPaused.checkActiveTab()
+        #expect(mock.getActiveUrlCalls == 0)
+        #expect(mock.redirectedUrls.isEmpty)
+
+        appState.isPaused = false
+        let monitorUnsupported = makeMonitor(appState: appState, mock: mock, bundleId: "com.unknown.app")
+        monitorUnsupported.checkActiveTab()
+        #expect(mock.getActiveUrlCalls == 0)
+        #expect(mock.redirectedUrls.isEmpty)
+    }
+
+    @Test("BrowserMonitor does not redirect block page itself")
+    func localhostBypass() {
+        let appState = isolatedAppState(name: "localhostBypass")
+        appState.isBlocking = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "http://localhost:10000"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+        #expect(mock.redirectedUrls.isEmpty)
+    }
+
+    @Test("BrowserMonitor throttles repeated redirects per bundle")
+    func redirectThrottle() {
+        let appState = isolatedAppState(name: "redirectThrottle")
+        appState.isBlocking = true
+
+        var now = Date(timeIntervalSince1970: 1_700_000_000)
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "https://facebook.com"
+        let monitor = makeMonitor(
+            appState: appState,
+            mock: mock,
+            nowProvider: { now }
+        )
+
+        monitor.checkActiveTab() // redirect #1 at t0
+        now = now.addingTimeInterval(1)
+        monitor.checkActiveTab() // throttled at t0+1
+        now = now.addingTimeInterval(2.1)
+        monitor.checkActiveTab() // redirect #2 at t0+3.1
+
+        #expect(mock.redirectedUrls.count == 2)
+    }
+
+    @Test("BrowserMonitor forwards supported browser list to open URL query")
+    func openUrlsForwarding() {
+        let appState = isolatedAppState(name: "openUrlsForwarding")
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "https://example.com"
+        let supported: Set<String> = ["com.google.Chrome", "com.apple.Safari"]
+        let monitor = makeMonitor(appState: appState, mock: mock, supportedBrowsers: supported)
+
+        let urls = monitor.getAllOpenUrls()
+
+        #expect(urls == ["https://example.com"])
+        #expect(Set(mock.forwardedBrowsers) == supported)
+    }
+
+    @Test("BrowserMonitor timer loop triggers permission and tab checks")
+    func timerLoop() {
+        let appState = isolatedAppState(name: "timerLoop")
+        appState.isBlocking = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "http://localhost:10000"
+        let monitor = makeMonitor(
+            appState: appState,
+            mock: mock,
+            monitorInterval: 0.01,
+            startTimer: true
+        )
+
+        mock.checkedPermissions = false
+        mock.getActiveUrlCalls = 0
+
+        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+
+        #expect(mock.checkedPermissions)
+        #expect(mock.getActiveUrlCalls > 0)
+        _ = monitor
     }
 }
