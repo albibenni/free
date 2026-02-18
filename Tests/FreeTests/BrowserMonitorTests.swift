@@ -138,6 +138,21 @@ struct BrowserMonitorTests {
         #expect(mock.redirectedUrls.isEmpty)
     }
 
+    @Test("BrowserMonitor does not fetch URL when blocking is disabled")
+    func guardClauseBlockingDisabled() {
+        let appState = isolatedAppState(name: "guardClauseBlockingDisabled")
+        appState.isBlocking = false
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "https://facebook.com"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.getActiveUrlCalls == 0)
+        #expect(mock.redirectedUrls.isEmpty)
+    }
+
     @Test("BrowserMonitor does not redirect block page itself")
     func localhostBypass() {
         let appState = isolatedAppState(name: "localhostBypass")
@@ -172,6 +187,48 @@ struct BrowserMonitorTests {
         monitor.checkActiveTab() // redirect #2 at t0+3.1
 
         #expect(mock.redirectedUrls.count == 2)
+    }
+
+    @Test("BrowserMonitor ignores missing active URL")
+    func missingActiveUrl() {
+        let appState = isolatedAppState(name: "missingActiveUrl")
+        appState.isBlocking = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = nil
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.getActiveUrlCalls == 1)
+        #expect(mock.redirectedUrls.isEmpty)
+    }
+
+    @Test("BrowserMonitor default providers can run on frontmost app path")
+    func defaultProvidersExecutionPath() {
+        let appState = isolatedAppState(name: "defaultProvidersExecutionPath")
+        appState.isBlocking = true
+
+        guard
+            let frontApp = NSWorkspace.shared.frontmostApplication,
+            let frontBundleId = frontApp.bundleIdentifier
+        else {
+            return
+        }
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = nil
+        let monitor = BrowserMonitor(
+            appState: appState,
+            server: nil,
+            automator: mock,
+            supportedBrowsers: [frontBundleId],
+            startTimer: false
+        )
+
+        monitor.checkActiveTab()
+
+        #expect(mock.getActiveUrlCalls == 1)
     }
 
     @Test("BrowserMonitor forwards supported browser list to open URL query")
