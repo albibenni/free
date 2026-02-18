@@ -1,14 +1,15 @@
 import Foundation
 
 struct RuleMatcher {
+    private static let internalSchemes: Set<String> = [
+        "about", "arc", "chrome", "brave", "edge", "viva", "vivaldi", "opera", "file"
+    ]
+
     static func isAllowed(_ url: String, rules: [String]) -> Bool {
         let cleanedUrl = url.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         if cleanedUrl.isEmpty { return true }
 
-        let internalSchemes = ["about:", "arc:", "chrome:", "brave:", "edge:", "viva:", "opera:", "file:", "localhost:10000"]
-        for scheme in internalSchemes {
-            if cleanedUrl.contains(scheme) { return true }
-        }
+        if isInternalBrowserUrl(cleanedUrl) { return true }
 
         let normalizedUrl = normalize(cleanedUrl)
 
@@ -82,6 +83,24 @@ struct RuleMatcher {
                 
             }
         }
+        return false
+    }
+
+    private static func isInternalBrowserUrl(_ rawUrl: String) -> Bool {
+        if rawUrl == "localhost:10000" || rawUrl.hasPrefix("localhost:10000/") { return true }
+
+        guard let components = URLComponents(string: rawUrl) else { return false }
+
+        if let scheme = components.scheme, internalSchemes.contains(scheme) {
+            return true
+        }
+
+        if let host = components.host?.lowercased(),
+           ["localhost", "127.0.0.1", "::1"].contains(host),
+           components.port == 10000 {
+            return true
+        }
+
         return false
     }
 

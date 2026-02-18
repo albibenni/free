@@ -33,6 +33,24 @@ struct RuleMatcherTests {
         #expect(RuleMatcher.isAllowed("http://localhost:10000", rules: []))
     }
 
+    @Test("Internal scheme tokens inside query/path do not bypass blocking")
+    func internalSchemeBypassProtection() {
+        let rules = ["github.com"]
+
+        #expect(
+            !RuleMatcher.isAllowed(
+                "https://facebook.com/login?next=http://localhost:10000",
+                rules: rules
+            )
+        )
+        #expect(
+            !RuleMatcher.isAllowed(
+                "https://facebook.com/about:blank/profile",
+                rules: rules
+            )
+        )
+    }
+
     @Test("Prefix-based matching")
     func prefixMatch() {
         let rules = ["github.com/apple"]
