@@ -40,6 +40,7 @@ The app is built using Swift and SwiftUI.
 ### Packaging for Distribution
 To create an optimized Release build and generate a `.dmg` with:
 * `Free.app`
+* `/Applications` shortcut
 
 ```bash
 ./package.sh

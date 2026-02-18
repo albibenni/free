@@ -29,6 +29,7 @@ echo "💿 Creating Disk Image ($DMG_NAME)..."
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 cp -R "$APP_BUNDLE" "$DIST_DIR/"
+ln -s /Applications "$DIST_DIR/Applications"
 
 # Use hdiutil to create the DMG
 rm -f "$DMG_NAME"

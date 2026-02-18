@@ -43,7 +43,7 @@ app:
 
 dmg:
 	@./package.sh
-	@echo "DMG contains Free.app for manual copy to /Applications."
+	@echo "DMG contains Free.app + Applications shortcut for manual install."
 
 package: dmg
 
