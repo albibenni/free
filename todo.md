@@ -27,3 +27,24 @@
 
 - [x] when first schedule it adds multiple days of the weak instead of the selected. When I schedule once more it behave correctly (select only the day selected)
 - [x] allowd list keep rotating in the ui, why? during focus mode
+
+## Possible issues:
+
+[P1] Allowlist bypass via substring matching in internal-scheme checks
+RuleMatcher.swift (line 8) and RuleMatcher.swift (line 10) use cleanedUrl.contains(...). Any blocked URL containing about:, arc:, or localhost (line 10000) in query/path can be treated as allowed.
+
+[P1] Overnight schedule weekday logic is incorrect
+Schedule.swift (line 49) checks only the current weekday before overnight logic at Schedule.swift (line 64). A Monday 22 (lines 0-2, column 0) session can wrongly match Monday 01:00 and miss Tuesday 01:00.
+The test currently reinforces this behavior: ScheduleTests.swift (line 76).
+
+[P2] Core enforcement path is weakly tested
+BrowserMonitor is the critical blocker path, but line coverage is low (16.8%) and the test explicitly avoids real enforcement flow: BrowserMonitorTests.swift (line 42). This leaves redirect decisions and frontmost-app integration under-tested.
+
+[P2] Deprecated Process API in production code
+AppDelegate.swift (line 48) and AppDelegate.swift (line 50) use launchPath/launch(). For modern macOS Swift, use executableURL + run().
+
+[P2] Timer lifecycle/thread-safety risk
+Repeating timers are created in AppState.swift (line 141), AppState.swift (line 255), AppState.swift (line 269), BrowserMonitor.swift (line 35), CalendarManager.swift (line 26) without teardown hooks (deinit). This can leave background polling active and complicate correctness.
+
+[P2] Clean-architecture boundary leak
+Model logic depends on UI type: Schedule.swift (line 91) calls WeeklyCalendarView.getWeekDates. This is a coupling smell against clean code boundaries.
