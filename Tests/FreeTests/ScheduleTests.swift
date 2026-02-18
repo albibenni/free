@@ -3,6 +3,65 @@ import Foundation
 @testable import FreeLogic
 
 struct ScheduleTests {
+    @Test("anchoredInterval builds same-day and overnight ranges")
+    func anchoredIntervalConstruction() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let anchor = calendar.date(from: DateComponents(year: 2026, month: 2, day: 16))!
+
+        let dayInterval = Schedule.anchoredInterval(
+            anchorDay: anchor,
+            startMinutes: 9 * 60,
+            endMinutes: 10 * 60,
+            calendar: calendar
+        )
+        #expect(dayInterval != nil)
+        #expect(calendar.component(.day, from: dayInterval!.start) == 16)
+        #expect(calendar.component(.day, from: dayInterval!.end) == 16)
+
+        let overnightInterval = Schedule.anchoredInterval(
+            anchorDay: anchor,
+            startMinutes: 22 * 60,
+            endMinutes: 2 * 60,
+            calendar: calendar
+        )
+        #expect(overnightInterval != nil)
+        #expect(calendar.component(.day, from: overnightInterval!.start) == 16)
+        #expect(calendar.component(.day, from: overnightInterval!.end) == 17)
+    }
+
+    @Test("anchoredInterval rejects zero-duration ranges")
+    func anchoredIntervalZeroDuration() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let anchor = calendar.date(from: DateComponents(year: 2026, month: 2, day: 16))!
+
+        let zero = Schedule.anchoredInterval(
+            anchorDay: anchor,
+            startMinutes: 10 * 60,
+            endMinutes: 10 * 60,
+            calendar: calendar
+        )
+        #expect(zero == nil)
+    }
+
+    @Test("Schedule.contains uses inclusive-start exclusive-end semantics")
+    func intervalContainsSemantics() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let anchor = calendar.date(from: DateComponents(year: 2026, month: 2, day: 16))!
+        let interval = Schedule.anchoredInterval(
+            anchorDay: anchor,
+            startMinutes: 9 * 60,
+            endMinutes: 10 * 60,
+            calendar: calendar
+        )!
+        let atStart = calendar.date(from: DateComponents(year: 2026, month: 2, day: 16, hour: 9, minute: 0))!
+        let atEnd = calendar.date(from: DateComponents(year: 2026, month: 2, day: 16, hour: 10, minute: 0))!
+
+        #expect(Schedule.contains(atStart, in: interval))
+        #expect(!Schedule.contains(atEnd, in: interval))
+    }
     
     @Test("Schedule activates correctly within time range")
     func scheduleActiveInTimeRange() {
@@ -74,14 +133,17 @@ struct ScheduleTests {
         
         // Monday 23:00 (Should be active)
         let mondayNight = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2, hour: 23, minute: 0))!
-        // Monday 01:00 (Should be active)
-        let mondayMorning = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2, hour: 1, minute: 0))!
+        // Tuesday 01:00 (Should be active as continuation of Monday overnight session)
+        let tuesdayEarlyMorning = calendar.date(from: DateComponents(year: 2023, month: 1, day: 3, hour: 1, minute: 0))!
+        // Monday 01:00 (Should be inactive because it belongs to Sunday's overnight session)
+        let mondayEarlyMorning = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2, hour: 1, minute: 0))!
         // Monday 12:00 (Should be inactive)
         let mondayNoon = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2, hour: 12, minute: 0))!
         
         // Then
         #expect(schedule.isActive(at: mondayNight), "Should be active at 23:00")
-        #expect(schedule.isActive(at: mondayMorning), "Should be active at 01:00")
+        #expect(schedule.isActive(at: tuesdayEarlyMorning), "Should be active Tuesday at 01:00")
+        #expect(!schedule.isActive(at: mondayEarlyMorning), "Should be inactive Monday at 01:00")
         #expect(!schedule.isActive(at: mondayNoon), "Should be inactive at 12:00")
     }
 

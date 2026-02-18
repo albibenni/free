@@ -39,34 +39,84 @@ struct Schedule: Identifiable, Codable, Equatable {
     
     func isActive(at dateToCheck: Date = Date()) -> Bool {
         guard isEnabled else { return false }
-        
         let calendar = Calendar.current
-        
-        // 1. Date Check (One-off vs Recurring)
-        if let specificDate = date {
-            guard calendar.isDate(specificDate, inSameDayAs: dateToCheck) else { return false }
-        } else {
-            let weekday = calendar.component(.weekday, from: dateToCheck)
-            guard days.contains(weekday) else { return false }
-        }
-        
-        // 2. Time Check
-        let currentComponents = calendar.dateComponents([.hour, .minute], from: dateToCheck)
-        let startComponents = calendar.dateComponents([.hour, .minute], from: startTime)
-        let endComponents = calendar.dateComponents([.hour, .minute], from: endTime)
-        
-        guard let currentMinutes = currentComponents.hour.map({ $0 * 60 + (currentComponents.minute ?? 0) }),
-              let startMinutes = startComponents.hour.map({ $0 * 60 + (startComponents.minute ?? 0) }),
-              let endMinutes = endComponents.hour.map({ $0 * 60 + (endComponents.minute ?? 0) }) else {
+        guard
+            let startMinutes = Self.minutesSinceMidnight(for: startTime, calendar: calendar),
+            let endMinutes = Self.minutesSinceMidnight(for: endTime, calendar: calendar)
+        else {
             return false
         }
-        
-        if startMinutes <= endMinutes {
-            return currentMinutes >= startMinutes && currentMinutes < endMinutes
-        } else {
-            // Overnights (e.g. 10 PM to 2 AM)
-            return currentMinutes >= startMinutes || currentMinutes < endMinutes
+        let isOvernight = startMinutes > endMinutes
+
+        if let specificDate = date {
+            guard let interval = Self.anchoredInterval(
+                anchorDay: calendar.startOfDay(for: specificDate),
+                startMinutes: startMinutes,
+                endMinutes: endMinutes,
+                calendar: calendar
+            ) else {
+                return false
+            }
+            return Self.contains(dateToCheck, in: interval)
         }
+
+        let today = calendar.startOfDay(for: dateToCheck)
+        var anchors = [today]
+        if isOvernight, let yesterday = calendar.date(byAdding: .day, value: -1, to: today) {
+            anchors.append(yesterday)
+        }
+
+        for anchor in anchors {
+            let weekday = calendar.component(.weekday, from: anchor)
+            guard days.contains(weekday) else { continue }
+            guard let interval = Self.anchoredInterval(
+                anchorDay: anchor,
+                startMinutes: startMinutes,
+                endMinutes: endMinutes,
+                calendar: calendar
+            ) else {
+                continue
+            }
+            if Self.contains(dateToCheck, in: interval) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    static func minutesSinceMidnight(for date: Date, calendar: Calendar = .current) -> Int? {
+        let comps = calendar.dateComponents([.hour, .minute], from: date)
+        guard let hour = comps.hour else { return nil }
+        return hour * 60 + (comps.minute ?? 0)
+    }
+
+    static func anchoredInterval(
+        anchorDay: Date,
+        startMinutes: Int,
+        endMinutes: Int,
+        calendar: Calendar = .current
+    ) -> DateInterval? {
+        let startOfAnchor = calendar.startOfDay(for: anchorDay)
+        guard let start = calendar.date(byAdding: .minute, value: startMinutes, to: startOfAnchor),
+              let sameDayEnd = calendar.date(byAdding: .minute, value: endMinutes, to: startOfAnchor) else {
+            return nil
+        }
+
+        let end: Date
+        if endMinutes < startMinutes {
+            guard let overnightEnd = calendar.date(byAdding: .day, value: 1, to: sameDayEnd) else { return nil }
+            end = overnightEnd
+        } else {
+            end = sameDayEnd
+        }
+
+        guard start < end else { return nil }
+        return DateInterval(start: start, end: end)
+    }
+
+    static func contains(_ date: Date, in interval: DateInterval) -> Bool {
+        interval.start <= date && date < interval.end
     }
 
     var timeRangeString: String {
