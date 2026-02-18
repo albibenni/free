@@ -1,6 +1,10 @@
 import SwiftUI
 
 enum FreeAppSceneFactory {
+    static func quitAction() -> () -> Void {
+        FreeAppRuntime.quitApplication
+    }
+
     @SceneBuilder
     static func make(
         appState: AppState,
@@ -8,6 +12,18 @@ enum FreeAppSceneFactory {
         isQuitDisabled: Bool,
         menuIconColor: Color
     ) -> some Scene {
+#if SWIFT_PACKAGE
+        // SwiftPM tests can validate menu scene behavior deterministically.
+        MenuBarExtra {
+            Text(menuStatusText)
+            Divider()
+            Button("Quit", action: quitAction())
+                .disabled(isQuitDisabled)
+        } label: {
+            Image(systemName: "leaf.fill")
+                .foregroundStyle(menuIconColor)
+        }
+#else
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
@@ -19,11 +35,12 @@ enum FreeAppSceneFactory {
         MenuBarExtra {
             Text(menuStatusText)
             Divider()
-            Button("Quit", action: FreeAppRuntime.quitApplication)
+            Button("Quit", action: quitAction())
                 .disabled(isQuitDisabled)
         } label: {
             Image(systemName: "leaf.fill")
                 .foregroundStyle(menuIconColor)
         }
+#endif
     }
 }
