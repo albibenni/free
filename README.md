@@ -39,17 +39,10 @@ The app is built using Swift and SwiftUI.
 
 ### Packaging for Distribution
 To create an optimized Release build and generate a `.dmg` with:
-* `Install Free.app` (guided installer)
-* `Free.app` (direct drag/install fallback)
-* `/Applications` shortcut
+* `Free.app`
 
 ```bash
 ./package.sh
-```
-
-To smoke-test the packaged installer artifacts:
-```bash
-make installer-smoke
 ```
 
 ### Running Tests
@@ -61,9 +54,8 @@ The suite runs 100+ tests in under 1 second.
 
 ## 🚦 Usage
 
-1.  **Install from DMG:** Open the disk image and launch `Install Free.app`.
-2.  **Launch the App:** The installer copies `Free.app` to `/Applications` and launches it.  
-    If users open `Free.app` directly, the in-app move prompt remains as a fallback.
+1.  **Install from DMG:** Open the disk image and drag `Free.app` to your `/Applications` folder.
+2.  **Launch the App:** Open `Free.app` from `/Applications`.
 3.  **Grant Permissions:** Provide Accessibility and Automation permissions when prompted.
 4.  **Manage Rules:** Use **Allowed Websites** to define what you need to work.
 5.  **Start Focusing:** Toggle manual mode, start a Pomodoro, or let your **Schedules** automate your day.

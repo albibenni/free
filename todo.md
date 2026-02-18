@@ -30,9 +30,6 @@
 
 ## Possible issues
 
-[P2] Deprecated Process API in production code
-AppDelegate.swift (line 48) and AppDelegate.swift (line 50) use launchPath/launch(). For modern macOS Swift, use executableURL + run().
-
 [P2] Timer lifecycle/thread-safety risk
 Repeating timers are created in AppState.swift (line 141), AppState.swift (line 255), AppState.swift (line 269), BrowserMonitor.swift (line 35), CalendarManager.swift (line 26) without teardown hooks (deinit). This can leave background polling active and complicate correctness.
 
