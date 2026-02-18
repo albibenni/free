@@ -2,6 +2,6 @@ import AppKit
 
 enum FreeAppRuntime {
     static func quitApplication() {
-        NSApplication.shared.terminate(nil)
+        FreeAppRuntimeStorage.terminator(NSApplication.shared, nil)
     }
 }
