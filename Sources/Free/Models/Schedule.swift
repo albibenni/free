@@ -8,10 +8,10 @@ enum ScheduleType: String, Codable, CaseIterable {
 struct Schedule: Identifiable, Codable, Equatable {
     var id = UUID()
     var name: String
-    var days: Set<Int> // 1 = Sunday, 7 = Saturday
-    var date: Date? // If set, this is a one-off session for this specific calendar day
-    var startTime: Date // Only time component matters
-    var endTime: Date   // Only time component matters
+    var days: Set<Int>  // 1 = Sunday, 7 = Saturday
+    var date: Date?  // If set, this is a one-off session for this specific calendar day
+    var startTime: Date  // Only time component matters
+    var endTime: Date  // Only time component matters
     var isEnabled: Bool = true
     var colorIndex: Int = 0
     var type: ScheduleType = .focus
@@ -23,20 +23,20 @@ struct Schedule: Identifiable, Codable, Equatable {
         startComponents.hour = 9
         startComponents.minute = 0
         let startDate = calendar.date(from: startComponents) ?? Date()
-        
+
         var endComponents = DateComponents()
         endComponents.hour = 17
         endComponents.minute = 0
         let endDate = calendar.date(from: endComponents) ?? Date()
-        
+
         return Schedule(
             name: "Work Hours",
-            days: [2, 3, 4, 5, 6], // Mon-Fri
+            days: [2, 3, 4, 5, 6],  // Mon-Fri
             startTime: startDate,
             endTime: endDate
         )
     }
-    
+
     func isActive(at dateToCheck: Date = Date()) -> Bool {
         guard isEnabled else { return false }
         let calendar = Calendar.current
@@ -49,12 +49,14 @@ struct Schedule: Identifiable, Codable, Equatable {
         let isOvernight = startMinutes > endMinutes
 
         if let specificDate = date {
-            guard let interval = Self.anchoredInterval(
-                anchorDay: calendar.startOfDay(for: specificDate),
-                startMinutes: startMinutes,
-                endMinutes: endMinutes,
-                calendar: calendar
-            ) else {
+            guard
+                let interval = Self.anchoredInterval(
+                    anchorDay: calendar.startOfDay(for: specificDate),
+                    startMinutes: startMinutes,
+                    endMinutes: endMinutes,
+                    calendar: calendar
+                )
+            else {
                 return false
             }
             return Self.contains(dateToCheck, in: interval)
@@ -69,12 +71,14 @@ struct Schedule: Identifiable, Codable, Equatable {
         for anchor in anchors {
             let weekday = calendar.component(.weekday, from: anchor)
             guard days.contains(weekday) else { continue }
-            guard let interval = Self.anchoredInterval(
-                anchorDay: anchor,
-                startMinutes: startMinutes,
-                endMinutes: endMinutes,
-                calendar: calendar
-            ) else {
+            guard
+                let interval = Self.anchoredInterval(
+                    anchorDay: anchor,
+                    startMinutes: startMinutes,
+                    endMinutes: endMinutes,
+                    calendar: calendar
+                )
+            else {
                 continue
             }
             if Self.contains(dateToCheck, in: interval) {
@@ -99,13 +103,16 @@ struct Schedule: Identifiable, Codable, Equatable {
     ) -> DateInterval? {
         let startOfAnchor = calendar.startOfDay(for: anchorDay)
         guard let start = calendar.date(byAdding: .minute, value: startMinutes, to: startOfAnchor),
-              let sameDayEnd = calendar.date(byAdding: .minute, value: endMinutes, to: startOfAnchor) else {
+            let sameDayEnd = calendar.date(byAdding: .minute, value: endMinutes, to: startOfAnchor)
+        else {
             return nil
         }
 
         let end: Date
         if endMinutes < startMinutes {
-            guard let overnightEnd = calendar.date(byAdding: .day, value: 1, to: sameDayEnd) else { return nil }
+            guard let overnightEnd = calendar.date(byAdding: .day, value: 1, to: sameDayEnd) else {
+                return nil
+            }
             end = overnightEnd
         } else {
             end = sameDayEnd
@@ -135,10 +142,13 @@ struct Schedule: Identifiable, Codable, Equatable {
         return days.sorted().map { dayNames[$0 - 1] }.joined(separator: ", ")
     }
 
-    static func calculateOneOffDate(initialDay: Int?, weekOffset: Int, weekStartsOnMonday: Bool) -> Date? {
+    static func calculateOneOffDate(initialDay: Int?, weekOffset: Int, weekStartsOnMonday: Bool)
+        -> Date?
+    {
         let calendar = Calendar.current
         let targetWeekday = initialDay ?? calendar.component(.weekday, from: Date())
-        let weekRange = WeeklyCalendarView.getWeekDates(weekStartsOnMonday: weekStartsOnMonday, offset: weekOffset)
+        let weekRange = WeeklyCalendarView.getWeekDates(
+            weekStartsOnMonday: weekStartsOnMonday, offset: weekOffset)
         return weekRange.first { calendar.component(.weekday, from: $0) == targetWeekday }
     }
 }

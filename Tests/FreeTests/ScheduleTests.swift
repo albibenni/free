@@ -62,6 +62,62 @@ struct ScheduleTests {
         #expect(Schedule.contains(atStart, in: interval))
         #expect(!Schedule.contains(atEnd, in: interval))
     }
+
+    @Test("anchoredInterval normalizes anchorDay to start-of-day")
+    func anchoredIntervalAnchorNormalization() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        // Anchor includes time; interval should still be based on that calendar day.
+        let noisyAnchor = calendar.date(from: DateComponents(year: 2026, month: 2, day: 16, hour: 18, minute: 45))!
+        let interval = Schedule.anchoredInterval(
+            anchorDay: noisyAnchor,
+            startMinutes: 9 * 60,
+            endMinutes: 10 * 60,
+            calendar: calendar
+        )
+        #expect(interval != nil)
+        #expect(calendar.component(.hour, from: interval!.start) == 9)
+        #expect(calendar.component(.minute, from: interval!.start) == 0)
+        #expect(calendar.component(.hour, from: interval!.end) == 10)
+        #expect(calendar.component(.minute, from: interval!.end) == 0)
+    }
+
+    @Test("Recurring overnight schedule carries correctly across week boundary")
+    func recurringOvernightWeekBoundary() {
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(hour: 22, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 2, minute: 0))!
+        // Saturday session.
+        let schedule = Schedule(name: "Weekend Night", days: [7], startTime: start, endTime: end)
+
+        // Saturday 23:30 should be active.
+        let saturdayLate = calendar.date(from: DateComponents(year: 2023, month: 1, day: 7, hour: 23, minute: 30))!
+        // Sunday 01:30 should still be active (carry from Saturday).
+        let sundayEarly = calendar.date(from: DateComponents(year: 2023, month: 1, day: 8, hour: 1, minute: 30))!
+        // Sunday 03:00 should be inactive (past end).
+        let sundayAfter = calendar.date(from: DateComponents(year: 2023, month: 1, day: 8, hour: 3, minute: 0))!
+
+        #expect(schedule.isActive(at: saturdayLate))
+        #expect(schedule.isActive(at: sundayEarly))
+        #expect(!schedule.isActive(at: sundayAfter))
+    }
+
+    @Test("One-off overnight schedule has exclusive end on the next day")
+    func oneOffOvernightBoundary() {
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(hour: 22, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 2, minute: 0))!
+        let oneOffDay = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2))! // Monday
+        let schedule = Schedule(name: "One Night", days: [], date: oneOffDay, startTime: start, endTime: end)
+
+        let mondayNight = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2, hour: 22, minute: 0))!
+        let tuesdayBeforeEnd = calendar.date(from: DateComponents(year: 2023, month: 1, day: 3, hour: 1, minute: 59))!
+        let tuesdayAtEnd = calendar.date(from: DateComponents(year: 2023, month: 1, day: 3, hour: 2, minute: 0))!
+
+        #expect(schedule.isActive(at: mondayNight))
+        #expect(schedule.isActive(at: tuesdayBeforeEnd))
+        #expect(!schedule.isActive(at: tuesdayAtEnd))
+    }
     
     @Test("Schedule activates correctly within time range")
     func scheduleActiveInTimeRange() {
