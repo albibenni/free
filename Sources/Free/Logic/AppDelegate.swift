@@ -3,28 +3,25 @@ import AppKit
 public class AppDelegate: NSObject, NSApplicationDelegate {
     public var defaults: UserDefaults = .standard
     public var onShowAlert: (() -> Void)?
+    var system: any AppDelegateSystem = DefaultAppDelegateSystem()
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         checkLocation()
     }
 
     private func checkLocation() {
-        if isInApplications(path: Bundle.main.bundlePath) || ProcessInfo.processInfo.processName.contains("Test") {
+        let bundlePath = system.bundlePath
+        if isInApplications(path: bundlePath) || system.processName.contains("Test") {
             return
         }
-        
-        // Ensure app is in front to show the alert
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        
-        let alert = NSAlert()
-        alert.messageText = "Move to Applications folder?"
-        alert.informativeText = "I can move myself to the Applications folder for you. This helps ensure I have the right permissions to block distractions."
-        alert.addButton(withTitle: "Move to Applications")
-        alert.addButton(withTitle: "Do Not Move")
-        
-        if alert.runModal() == .alertFirstButtonReturn {
-            moveToApplications(currentPath: Bundle.main.bundlePath, destinationPath: "/Applications/\(Bundle.main.bundleURL.lastPathComponent)")
+
+        system.activateForAlert()
+
+        if system.confirmMoveToApplications() {
+            moveToApplications(
+                currentPath: bundlePath,
+                destinationPath: "/Applications/\(system.bundleName)"
+            )
         }
     }
 
@@ -33,37 +30,26 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func moveToApplications(currentPath: String, destinationPath: String) {
-        let fileManager = FileManager.default
-        
         do {
-            if fileManager.fileExists(atPath: destinationPath) {
-                try fileManager.removeItem(atPath: destinationPath)
+            if system.fileExists(atPath: destinationPath) {
+                try system.removeItem(atPath: destinationPath)
             }
-            
-            try fileManager.copyItem(atPath: currentPath, toPath: destinationPath)
-            
-            // Relaunch from the new location
-            let script = "sleep 1; open \"\(destinationPath)\""
-            let process = Process()
-            process.launchPath = "/bin/sh"
-            process.arguments = ["-c", script]
-            process.launch()
-            
-            NSApplication.shared.terminate(nil)
+
+            try system.copyItem(atPath: currentPath, toPath: destinationPath)
+            try system.relaunch(destinationPath: destinationPath)
+            system.terminate()
         } catch {
-            let errorAlert = NSAlert()
-            errorAlert.messageText = "Could not move app"
-            errorAlert.informativeText = error.localizedDescription
-            errorAlert.runModal()
+            system.showMoveError(error.localizedDescription)
         }
     }
 
-    public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+    public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply
+    {
         if shouldPreventTermination() {
             if let customHandler = onShowAlert {
                 customHandler()
             } else {
-                showBlockingAlert()
+                system.showBlockingAlert()
             }
             return .terminateCancel
         }
@@ -72,14 +58,5 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
 
     public func shouldPreventTermination() -> Bool {
         return defaults.bool(forKey: "IsBlocking")
-    }
-
-    private func showBlockingAlert() {
-        let alert = NSAlert()
-        alert.messageText = "Focus Mode is Active"
-        alert.informativeText = "You must disable Focus Mode before quitting the app."
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
     }
 }

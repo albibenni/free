@@ -11,7 +11,6 @@ let package = Package(
             name: "FreeLogic",
             path: "Sources/Free",
             exclude: [
-                "FreeApp.swift", // Entry point
                 // UI Views can be included if they don't cause linking issues in tests,
                 // but usually better to separate if possible.
                 // For now, including them allows compiling AppState which imports SwiftUI.
