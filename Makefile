@@ -4,7 +4,7 @@ SHELL := /bin/bash
 APP_NAME := Free
 SWIFT := swift
 
-.PHONY: help build test test-verbose coverage app dmg package run clean deep-clean
+.PHONY: help build test test-verbose coverage app dmg package installer-smoke run clean deep-clean
 
 help:
 	@echo "Available targets:"
@@ -15,6 +15,7 @@ help:
 	@echo "  make app           - Build macOS .app bundle via build.sh"
 	@echo "  make dmg           - Build release .dmg via package.sh"
 	@echo "  make package       - Alias for dmg"
+	@echo "  make installer-smoke - Build + validate DMG installer artifacts"
 	@echo "  make run           - Launch Free.app"
 	@echo "  make clean         - Clean package artifacts and generated app bundle"
 	@echo "  make deep-clean    - Remove all generated artifacts including dmg"
@@ -46,6 +47,9 @@ dmg:
 	@echo "DMG now includes Install Free.app + Applications shortcut."
 
 package: dmg
+
+installer-smoke:
+	@./scripts/validate_installer_dmg.sh
 
 run:
 	@open "$(APP_NAME).app"

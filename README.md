@@ -47,6 +47,11 @@ To create an optimized Release build and generate a `.dmg` with:
 ./package.sh
 ```
 
+To smoke-test the packaged installer artifacts:
+```bash
+make installer-smoke
+```
+
 ### Running Tests
 To verify the app's logic and stability:
 ```bash

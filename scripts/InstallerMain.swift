@@ -1,83 +1,29 @@
 import AppKit
 import Foundation
 
-final class InstallerDelegate: NSObject, NSApplicationDelegate {
-    private var appName: String {
+private final class MacInstallerSystem: InstallerSystem {
+    var appName: String {
         (Bundle.main.object(forInfoDictionaryKey: "InstallerTargetAppName") as? String) ?? "Free"
     }
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.activate(ignoringOtherApps: true)
-        runInstallFlow()
+    var bundleURL: URL {
+        Bundle.main.bundleURL
     }
 
-    private func runInstallFlow() {
-        let sourceURL = sourceAppURL()
-        let targetURL = URL(fileURLWithPath: "/Applications/\(appName).app")
-
-        guard FileManager.default.fileExists(atPath: sourceURL.path) else {
-            showAlert(
-                title: "Could not find \(appName).app",
-                message:
-                    "Please open Install \(appName).app from the disk image that contains \(appName).app."
-            )
-            terminateInstaller()
-            return
-        }
-
-        if FileManager.default.fileExists(atPath: targetURL.path) {
-            let replaceAlert = NSAlert()
-            replaceAlert.messageText = "\(appName) is already installed"
-            replaceAlert.informativeText =
-                "Replace the existing app in Applications with this version?"
-            replaceAlert.addButton(withTitle: "Replace")
-            replaceAlert.addButton(withTitle: "Cancel")
-            if replaceAlert.runModal() != .alertFirstButtonReturn {
-                terminateInstaller()
-                return
-            }
-        }
-
-        let installCommand = [
-            "/bin/rm -rf \(shellQuote(targetURL.path))",
-            "/usr/bin/ditto \(shellQuote(sourceURL.path)) \(shellQuote(targetURL.path))",
-            "/usr/bin/xattr -d -r com.apple.quarantine \(shellQuote(targetURL.path)) >/dev/null 2>&1 || true",
-        ].joined(separator: "; ")
-
-        if !runShellCommand(installCommand) {
-            if !runShellCommandAsAdmin(installCommand) {
-                showAlert(
-                    title: "Installation failed",
-                    message:
-                        "Free could not be copied to /Applications. Please check permissions and try again."
-                )
-                terminateInstaller()
-                return
-            }
-        }
-
-        NSWorkspace.shared.openApplication(
-            at: targetURL,
-            configuration: NSWorkspace.OpenConfiguration()
-        ) { _, error in
-            if let error {
-                self.showAlert(
-                    title: "Installed, but launch failed",
-                    message:
-                        "Free was installed to /Applications, but could not be launched automatically.\n\n\(error.localizedDescription)"
-                )
-            }
-            self.terminateInstaller()
-        }
+    func fileExists(atPath: String) -> Bool {
+        FileManager.default.fileExists(atPath: atPath)
     }
 
-    private func sourceAppURL() -> URL {
-        let installerURL = Bundle.main.bundleURL
-        let volumeRoot = installerURL.deletingLastPathComponent()
-        return volumeRoot.appendingPathComponent("\(appName).app")
+    func confirmReplaceExistingApp() -> Bool {
+        let replaceAlert = NSAlert()
+        replaceAlert.messageText = "\(appName) is already installed"
+        replaceAlert.informativeText = "Replace the existing app in Applications with this version?"
+        replaceAlert.addButton(withTitle: "Replace")
+        replaceAlert.addButton(withTitle: "Cancel")
+        return replaceAlert.runModal() == .alertFirstButtonReturn
     }
 
-    private func runShellCommand(_ command: String) -> Bool {
+    func runShellCommand(_ command: String) -> Bool {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
         process.arguments = ["-c", command]
@@ -90,9 +36,8 @@ final class InstallerDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func runShellCommandAsAdmin(_ command: String) -> Bool {
-        let escaped =
-            command
+    func runShellCommandAsAdmin(_ command: String) -> Bool {
+        let escaped = command
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
         let source = "do shell script \"\(escaped)\" with administrator privileges"
@@ -101,16 +46,43 @@ final class InstallerDelegate: NSObject, NSApplicationDelegate {
         return scriptError == nil
     }
 
-    private func shellQuote(_ path: String) -> String {
-        "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    func launchInstalledApp(at url: URL) -> String? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = [url.path]
+        do {
+            try process.run()
+            process.waitUntilExit()
+            if process.terminationStatus == 0 {
+                return nil
+            }
+            return "open exited with status \(process.terminationStatus)"
+        } catch {
+            return error.localizedDescription
+        }
     }
 
-    private func showAlert(title: String, message: String) {
+    func showAlert(title: String, message: String) {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = message
         alert.addButton(withTitle: "OK")
         alert.runModal()
+    }
+}
+
+final class InstallerDelegate: NSObject, NSApplicationDelegate {
+    private let system: any InstallerSystem
+
+    override init() {
+        self.system = MacInstallerSystem()
+        super.init()
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.activate(ignoringOtherApps: true)
+        _ = InstallerFlow(system: system).runInstall()
+        terminateInstaller()
     }
 
     private func terminateInstaller() {

@@ -8,6 +8,7 @@ VERSION="${4:-1.0}"
 BUILD_NUMBER="${5:-1}"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 INSTALLER_SOURCE="${ROOT_DIR}/scripts/InstallerMain.swift"
+INSTALLER_FLOW_SOURCE="${ROOT_DIR}/Sources/Free/Logic/InstallerFlow.swift"
 ICON_PATH="${ROOT_DIR}/AppIcon.icns"
 
 INSTALLER_NAME="Install ${APP_NAME}"
@@ -17,6 +18,7 @@ INSTALLER_BUNDLE="${OUTPUT_DIR}/${INSTALLER_NAME}.app"
 mkdir -p "${INSTALLER_BUNDLE}/Contents/MacOS" "${INSTALLER_BUNDLE}/Contents/Resources"
 
 swiftc \
+  "${INSTALLER_FLOW_SOURCE}" \
   "${INSTALLER_SOURCE}" \
   -o "${INSTALLER_BUNDLE}/Contents/MacOS/${INSTALLER_EXECUTABLE}" \
   -parse-as-library \
