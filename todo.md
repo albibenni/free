@@ -30,9 +30,6 @@
 
 ## Possible issues
 
-[P2] Core enforcement path is weakly tested
-BrowserMonitor is the critical blocker path, but line coverage is low (16.8%) and the test explicitly avoids real enforcement flow: BrowserMonitorTests.swift (line 42). This leaves redirect decisions and frontmost-app integration under-tested.
-
 [P2] Deprecated Process API in production code
 AppDelegate.swift (line 48) and AppDelegate.swift (line 50) use launchPath/launch(). For modern macOS Swift, use executableURL + run().
 
