@@ -307,6 +307,17 @@ struct ScheduleTests {
         #expect(!schedule.isActive(at: time))
     }
 
+    @Test("Negative: One-off zero duration schedule should not be active")
+    func oneOffZeroDuration() {
+        let calendar = Calendar.current
+        let oneOffDate = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2))!
+        let time = calendar.date(from: DateComponents(hour: 10, minute: 0))!
+        let schedule = Schedule(name: "OneOffInstant", days: [], date: oneOffDate, startTime: time, endTime: time)
+
+        let check = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2, hour: 10, minute: 0))!
+        #expect(!schedule.isActive(at: check))
+    }
+
     @Test("One-off schedule logic")
     func oneOffScheduleLogic() {
         let calendar = Calendar.current
@@ -357,6 +368,14 @@ struct ScheduleTests {
             #expect(calendar.component(.day, from: nextMon) == 23)
         } else {
             Issue.record("Failed to calculate next week date")
+        }
+
+        // 3. Nil initialDay should default to today's weekday
+        if let inferred = Schedule.calculateOneOffDate(initialDay: nil, weekOffset: 0, weekStartsOnMonday: false) {
+            let todayWeekday = calendar.component(.weekday, from: Date())
+            #expect(calendar.component(.weekday, from: inferred) == todayWeekday)
+        } else {
+            Issue.record("Failed to infer one-off date from current weekday")
         }
     }
 }

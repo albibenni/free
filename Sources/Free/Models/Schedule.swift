@@ -19,15 +19,9 @@ struct Schedule: Identifiable, Codable, Equatable {
 
     static func defaultSchedule() -> Schedule {
         let calendar = Calendar.current
-        var startComponents = DateComponents()
-        startComponents.hour = 9
-        startComponents.minute = 0
-        let startDate = calendar.date(from: startComponents) ?? Date()
-
-        var endComponents = DateComponents()
-        endComponents.hour = 17
-        endComponents.minute = 0
-        let endDate = calendar.date(from: endComponents) ?? Date()
+        let now = Date()
+        let startDate = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now)!
+        let endDate = calendar.date(bySettingHour: 17, minute: 0, second: 0, of: now)!
 
         return Schedule(
             name: "Work Hours",
@@ -40,12 +34,8 @@ struct Schedule: Identifiable, Codable, Equatable {
     func isActive(at dateToCheck: Date = Date()) -> Bool {
         guard isEnabled else { return false }
         let calendar = Calendar.current
-        guard
-            let startMinutes = Self.minutesSinceMidnight(for: startTime, calendar: calendar),
-            let endMinutes = Self.minutesSinceMidnight(for: endTime, calendar: calendar)
-        else {
-            return false
-        }
+        let startMinutes = Self.minutesSinceMidnight(for: startTime, calendar: calendar)
+        let endMinutes = Self.minutesSinceMidnight(for: endTime, calendar: calendar)
         let isOvernight = startMinutes > endMinutes
 
         if let specificDate = date {
@@ -89,10 +79,10 @@ struct Schedule: Identifiable, Codable, Equatable {
         return false
     }
 
-    static func minutesSinceMidnight(for date: Date, calendar: Calendar = .current) -> Int? {
-        let comps = calendar.dateComponents([.hour, .minute], from: date)
-        guard let hour = comps.hour else { return nil }
-        return hour * 60 + (comps.minute ?? 0)
+    static func minutesSinceMidnight(for date: Date, calendar: Calendar = .current) -> Int {
+        let hour = calendar.component(.hour, from: date)
+        let minute = calendar.component(.minute, from: date)
+        return hour * 60 + minute
     }
 
     static func anchoredInterval(
@@ -102,18 +92,12 @@ struct Schedule: Identifiable, Codable, Equatable {
         calendar: Calendar = .current
     ) -> DateInterval? {
         let startOfAnchor = calendar.startOfDay(for: anchorDay)
-        guard let start = calendar.date(byAdding: .minute, value: startMinutes, to: startOfAnchor),
-            let sameDayEnd = calendar.date(byAdding: .minute, value: endMinutes, to: startOfAnchor)
-        else {
-            return nil
-        }
+        let start = startOfAnchor.addingTimeInterval(Double(startMinutes) * 60)
+        let sameDayEnd = startOfAnchor.addingTimeInterval(Double(endMinutes) * 60)
 
         let end: Date
         if endMinutes < startMinutes {
-            guard let overnightEnd = calendar.date(byAdding: .day, value: 1, to: sameDayEnd) else {
-                return nil
-            }
-            end = overnightEnd
+            end = sameDayEnd.addingTimeInterval(24 * 60 * 60)
         } else {
             end = sameDayEnd
         }
