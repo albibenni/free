@@ -30,8 +30,8 @@ test-verbose:
 
 coverage:
 	@$(SWIFT) test --enable-code-coverage
-	@profdata=$$(find .build -name default.profdata | head -n 1); \
-	bin=$$(find .build -name FreePackageTests -path "*.xctest/*/FreePackageTests" | head -n 1); \
+	@profdata=$$(find .build -path "*/debug/codecov/default.profdata" | head -n 1); \
+	bin=$$(find .build -path "*/debug/FreePackageTests.xctest/Contents/MacOS/FreePackageTests" -not -path "*.dSYM/*" | head -n 1); \
 	if [[ -z "$$profdata" || -z "$$bin" ]]; then \
 		echo "Could not locate coverage artifacts."; \
 		exit 1; \

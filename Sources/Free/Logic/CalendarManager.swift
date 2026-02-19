@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import EventKit
 
 protocol CalendarProvider: ObservableObject where ObjectWillChangePublisher == ObservableObjectPublisher {
     var events: [ExternalEvent] { get set }
@@ -19,7 +20,7 @@ class RealCalendarManager: CalendarProvider {
 
     init(
         timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
-        runtime: CalendarManagerRuntime = .live(),
+        runtime: CalendarManagerRuntime = .live(eventStore: EKEventStore()),
         nowProvider: @escaping () -> Date
     ) {
         self.runtime = runtime

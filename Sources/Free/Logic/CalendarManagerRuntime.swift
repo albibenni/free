@@ -17,21 +17,15 @@ struct CalendarManagerRuntime {
 }
 
 extension CalendarManagerRuntime {
-    static func live(eventStore: EKEventStore = EKEventStore()) -> CalendarManagerRuntime {
+    static func live(eventStore: EKEventStore) -> CalendarManagerRuntime {
         CalendarManagerRuntime(
             hasEventAuthorization: {
                 let status = EKEventStore.authorizationStatus(for: .event)
-                return status == .fullAccess || status.rawValue == 3
+                return Set([EKAuthorizationStatus.fullAccess.rawValue, 3]).contains(status.rawValue)
             },
             requestEventAccess: { completion in
-                if #available(macOS 14.0, *) {
-                    eventStore.requestFullAccessToEvents { granted, _ in
-                        completion(granted)
-                    }
-                } else {
-                    eventStore.requestAccess(to: .event) { granted, _ in
-                        completion(granted)
-                    }
+                eventStore.requestFullAccessToEvents { granted, _ in
+                    completion(granted)
                 }
             },
             loadEvents: { startRange, endRange in
