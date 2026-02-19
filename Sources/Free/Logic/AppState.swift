@@ -120,7 +120,7 @@ class AppState: ObservableObject {
     // MARK: - Initialization
     init(defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil, calendar: (any CalendarProvider)? = nil, timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(), isTesting: Bool = false) {
         self.defaults = defaults
-        self.calendarProvider = calendar ?? (isTesting ? MockCalendarManager() : RealCalendarManager())
+        self.calendarProvider = calendar ?? (isTesting ? MockCalendarManager() : RealCalendarManager(nowProvider: Date.init))
         self.timerScheduler = timerScheduler
         
         self.isBlocking = defaults.bool(forKey: "IsBlocking")
