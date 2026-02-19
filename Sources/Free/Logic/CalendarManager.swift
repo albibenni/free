@@ -73,7 +73,9 @@ class RealCalendarManager: CalendarProvider {
             )
         }
         
-        DispatchQueue.main.async { self.events = mapped }
+        DispatchQueue.main.async { [weak self] in
+            self?.events = mapped
+        }
     }
 }
 

@@ -3,6 +3,7 @@ import Foundation
 import Combine
 @testable import FreeLogic
 
+@Suite(.serialized)
 struct CalendarManagerTests {
 
     private func isolatedAppState(name: String, calendar: any CalendarProvider) -> AppState {
@@ -95,6 +96,10 @@ struct CalendarManagerTests {
         let timer = scheduler.timers[0]
 
         manager = nil
+        let deadline = Date().addingTimeInterval(0.2)
+        while timer.invalidateCallCount == 0 && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+        }
         #expect(timer.invalidateCallCount == 1)
     }
 }
