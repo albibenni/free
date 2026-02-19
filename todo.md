@@ -30,8 +30,5 @@
 
 ## Possible issues
 
-[P2] Timer lifecycle/thread-safety risk
-Repeating timers are created in AppState.swift (line 141), AppState.swift (line 255), AppState.swift (line 269), BrowserMonitor.swift (line 35), CalendarManager.swift (line 26) without teardown hooks (deinit). This can leave background polling active and complicate correctness.
-
 [P2] Clean-architecture boundary leak
 Model logic depends on UI type: Schedule.swift (line 91) calls WeeklyCalendarView.getWeekDates. This is a coupling smell against clean code boundaries.

@@ -131,7 +131,7 @@ struct Schedule: Identifiable, Codable, Equatable {
     {
         let calendar = Calendar.current
         let targetWeekday = initialDay ?? calendar.component(.weekday, from: Date())
-        let weekRange = WeeklyCalendarView.getWeekDates(
+        let weekRange = WeekDateCalculator.getWeekDates(
             weekStartsOnMonday: weekStartsOnMonday, offset: weekOffset)
         return weekRange.first { calendar.component(.weekday, from: $0) == targetWeekday }
     }
