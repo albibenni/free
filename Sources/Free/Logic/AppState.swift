@@ -111,9 +111,9 @@ class AppState: ObservableObject {
             return s.days.contains(weekday)
         }
         .sorted { s1, s2 in
-                let c1 = Calendar.current.dateComponents([.hour, .minute], from: s1.startTime)
-                let c2 = Calendar.current.dateComponents([.hour, .minute], from: s2.startTime)
-                return (c1.hour ?? 0) * 60 + (c1.minute ?? 0) < (c2.hour ?? 0) * 60 + (c2.minute ?? 0)
+                let m1 = minutesFromMidnight(s1.startTime)
+                let m2 = minutesFromMidnight(s2.startTime)
+                return m1 < m2
             }
     }
 
@@ -289,6 +289,11 @@ class AppState: ObservableObject {
     private func loadJSON<T: Decodable>(key: String, as type: T.Type) -> T? {
         guard let d = defaults.data(forKey: key) else { return nil }
         return try? JSONDecoder().decode(T.self, from: d)
+    }
+
+    private func minutesFromMidnight(_ date: Date) -> Int {
+        let calendar = Calendar.current
+        return calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
     }
 
     private func replacePauseTimer(with newTimer: (any RepeatingTimer)?) {

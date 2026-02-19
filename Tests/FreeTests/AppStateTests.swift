@@ -226,6 +226,299 @@ struct AppStateTests {
         #expect(!appState.isPaused, "Pause should cancel when blocking is disabled")
     }
 
+    @Test("todaySchedules includes matching one-off date sessions")
+    func todaySchedulesSpecificDate() {
+        let appState = isolatedAppState(name: "todaySchedulesSpecificDate")
+        let now = Date()
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 10, minute: 0))!
+
+        let todayOneOff = Schedule(name: "Today One-off", days: [], date: now, startTime: start, endTime: end)
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: now)!
+        let tomorrowOneOff = Schedule(name: "Tomorrow One-off", days: [], date: tomorrow, startTime: start, endTime: end)
+
+        appState.schedules = [tomorrowOneOff, todayOneOff]
+        let result = appState.todaySchedules
+
+        #expect(result.count == 1)
+        #expect(result.first?.name == "Today One-off")
+    }
+
+    @Test("addSpecificRule adds unique entries and respects strict mode")
+    func addSpecificRuleCoverage() {
+        let appState = isolatedAppState(name: "addSpecificRuleCoverage")
+        let setId = appState.ruleSets[0].id
+
+        appState.addSpecificRule("https://swift.org", to: setId)
+        #expect(appState.ruleSets[0].urls.contains("https://swift.org"))
+
+        let countAfterFirstAdd = appState.ruleSets[0].urls.count
+        appState.addSpecificRule("https://swift.org", to: setId)
+        #expect(appState.ruleSets[0].urls.count == countAfterFirstAdd)
+
+        appState.isBlocking = true
+        appState.isUnblockable = true
+        appState.addSpecificRule("https://example.com", to: setId)
+        #expect(!appState.ruleSets[0].urls.contains("https://example.com"))
+    }
+
+    @Test("AppState covers primary ruleset and name fallback branches")
+    func primaryRuleSetFallbackCoverage() {
+        let appState = isolatedAppState(name: "primaryRuleSetFallbackCoverage")
+
+        appState.ruleSets = []
+        appState.activeRuleSetId = nil
+        #expect(appState.currentPrimaryRuleSetId == nil)
+        #expect(appState.currentPrimaryRuleSetName == "No List")
+
+        let set = RuleSet(id: UUID(), name: "Main", urls: [])
+        appState.ruleSets = [set]
+
+        appState.isBlocking = true
+        appState.activeRuleSetId = nil
+        #expect(appState.currentPrimaryRuleSetId == set.id)
+
+        appState.activeRuleSetId = UUID()
+        #expect(appState.currentPrimaryRuleSetName == "Unknown List")
+
+        appState.isBlocking = false
+        let now = Date()
+        let weekday = Calendar.current.component(.weekday, from: now)
+        appState.schedules = [
+            Schedule(
+                name: "No set",
+                days: [weekday],
+                startTime: now.addingTimeInterval(-300),
+                endTime: now.addingTimeInterval(300),
+                isEnabled: true,
+                type: .focus,
+                ruleSetId: nil
+            )
+        ]
+        appState.activeRuleSetId = set.id
+        #expect(appState.currentPrimaryRuleSetId == set.id)
+        appState.activeRuleSetId = nil
+        #expect(appState.currentPrimaryRuleSetId == set.id)
+    }
+
+    @Test("AppState initializes with fallback appearance and injected monitor")
+    func initFallbackAndInjectedMonitorCoverage() {
+        let suiteA = "AppStateTests.initFallbackAndInjectedMonitorCoverage.A"
+        let defaultsA = UserDefaults(suiteName: suiteA)!
+        defaultsA.removePersistentDomain(forName: suiteA)
+        let sourceAppState = AppState(defaults: defaultsA, isTesting: true)
+        let monitor = BrowserMonitor(
+            appState: sourceAppState,
+            server: nil,
+            automator: MockBrowserAutomator(),
+            startTimer: false
+        )
+
+        let suiteB = "AppStateTests.initFallbackAndInjectedMonitorCoverage.B"
+        let defaultsB = UserDefaults(suiteName: suiteB)!
+        defaultsB.removePersistentDomain(forName: suiteB)
+        defaultsB.set("not-a-real-mode", forKey: "AppearanceMode")
+
+        let appState = AppState(defaults: defaultsB, monitor: monitor, isTesting: true)
+        #expect(appState.appearanceMode == .system)
+        #expect(appState.monitor === monitor)
+    }
+
+    @Test("skipPomodoroPhase transitions between focus and break")
+    func skipPomodoroPhaseCoverage() {
+        let scheduler = MockRepeatingTimerScheduler()
+        let appState = isolatedAppState(name: "skipPomodoroPhaseCoverage", timerScheduler: scheduler)
+
+        appState.startPomodoro()
+        #expect(appState.pomodoroStatus == .focus)
+
+        appState.skipPomodoroPhase()
+        #expect(appState.pomodoroStatus == .breakTime)
+
+        appState.skipPomodoroPhase()
+        #expect(appState.pomodoroStatus == .focus)
+
+        appState.pomodoroStatus = .none
+        appState.skipPomodoroPhase()
+        #expect(appState.pomodoroStatus == .none)
+    }
+
+    @Test("pause and pomodoro timer handlers execute countdown and transition logic")
+    func timerHandlerCoverage() {
+        let scheduler = MockRepeatingTimerScheduler()
+        let appState = isolatedAppState(name: "timerHandlerCoverage", timerScheduler: scheduler)
+        appState.isBlocking = true
+
+        appState.startPause(minutes: 1)
+        #expect(scheduler.handlers.count >= 2)
+
+        appState.pauseRemaining = 2
+        scheduler.fire(at: 1)
+        #expect(appState.pauseRemaining == 1)
+
+        appState.pauseRemaining = 0
+        scheduler.fire(at: 1)
+        #expect(!appState.isPaused)
+
+        appState.startPomodoro()
+        #expect(appState.pomodoroStatus == .focus)
+        #expect(scheduler.handlers.count >= 3)
+
+        let focusTimerIndex = scheduler.handlers.count - 1
+        appState.pomodoroRemaining = 2
+        scheduler.fire(at: focusTimerIndex)
+        #expect(appState.pomodoroRemaining == 1)
+
+        appState.pomodoroRemaining = 0
+        scheduler.fire(at: focusTimerIndex)
+        #expect(appState.pomodoroStatus == .breakTime)
+
+        let breakTimerIndex = scheduler.handlers.count - 1
+        appState.pomodoroRemaining = 0
+        scheduler.fire(at: breakTimerIndex)
+        #expect(appState.pomodoroStatus == .focus)
+    }
+
+    @Test("AppState covers nil self timer closures after deinit")
+    func timerWeakSelfNilCoverage() {
+        let scheduler = MockRepeatingTimerScheduler()
+        var appState: AppState? = isolatedAppState(name: "timerWeakSelfNilCoverage", timerScheduler: scheduler)
+        appState?.isBlocking = true
+        appState?.startPause(minutes: 1)
+        appState?.startPomodoro()
+        #expect(scheduler.handlers.count >= 3)
+
+        appState = nil
+        scheduler.fire(at: 0)
+        scheduler.fire(at: 1)
+        scheduler.fire(at: 2)
+        #expect(Bool(true))
+    }
+
+    @Test("refreshCurrentOpenUrls uses monitor-provided URLs")
+    func refreshCurrentOpenUrlsCoverage() {
+        let appState = isolatedAppState(name: "refreshCurrentOpenUrlsCoverage")
+        let automator = MockBrowserAutomator()
+        automator.activeUrl = "https://example.com"
+
+        let monitor = BrowserMonitor(
+            appState: appState,
+            server: nil,
+            automator: automator,
+            startTimer: false
+        )
+        appState.monitor = monitor
+
+        appState.refreshCurrentOpenUrls()
+        #expect(appState.currentOpenUrls == ["https://example.com"])
+    }
+
+    @Test("refreshCurrentOpenUrls falls back to empty when monitor is missing")
+    func refreshCurrentOpenUrlsNilMonitorCoverage() {
+        let appState = isolatedAppState(name: "refreshCurrentOpenUrlsNilMonitorCoverage")
+        appState.currentOpenUrls = ["stale"]
+        appState.monitor = nil
+        appState.refreshCurrentOpenUrls()
+        #expect(appState.currentOpenUrls.isEmpty)
+    }
+
+    @Test("deleteSet updates active selection and saveSchedule empty-name defaults")
+    func deleteAndDefaultNameCoverage() {
+        let appState = isolatedAppState(name: "deleteAndDefaultNameCoverage")
+        let set1 = RuleSet(id: UUID(), name: "Set 1", urls: [])
+        let set2 = RuleSet(id: UUID(), name: "Set 2", urls: [])
+        appState.ruleSets = [set1, set2]
+        appState.activeRuleSetId = set1.id
+        appState.deleteSet(id: set1.id)
+        #expect(appState.activeRuleSetId == set2.id)
+
+        let start = Date()
+        let end = start.addingTimeInterval(3600)
+        appState.saveSchedule(
+            name: " ",
+            days: [2],
+            date: nil,
+            start: start,
+            end: end,
+            color: 0,
+            type: .focus,
+            ruleSet: nil,
+            existingId: nil,
+            modifyAllDays: true,
+            initialDay: nil
+        )
+        appState.saveSchedule(
+            name: "",
+            days: [3],
+            date: nil,
+            start: start,
+            end: end,
+            color: 0,
+            type: .unfocus,
+            ruleSet: nil,
+            existingId: nil,
+            modifyAllDays: true,
+            initialDay: nil
+        )
+        #expect(appState.schedules.contains { $0.name == "Focus Session" })
+        #expect(appState.schedules.contains { $0.name == "Break Session" })
+    }
+
+    @Test("save and delete schedule remove empty-day entries")
+    func emptyDayRemovalCoverage() {
+        let appState = isolatedAppState(name: "emptyDayRemovalCoverage")
+        let start = Date()
+        let end = start.addingTimeInterval(3600)
+
+        let splitId = UUID()
+        appState.schedules = [
+            Schedule(id: splitId, name: "Split", days: [2], startTime: start, endTime: end)
+        ]
+        appState.saveSchedule(
+            name: "Only day edited",
+            days: [2],
+            date: nil,
+            start: start,
+            end: end,
+            color: 1,
+            type: .focus,
+            ruleSet: nil,
+            existingId: splitId,
+            modifyAllDays: false,
+            initialDay: 2
+        )
+        #expect(appState.schedules.count == 1)
+        #expect(appState.schedules.first?.name == "Only day edited")
+
+        let deleteId = UUID()
+        appState.schedules = [
+            Schedule(id: deleteId, name: "Delete", days: [3], startTime: start, endTime: end)
+        ]
+        appState.deleteSchedule(id: deleteId, modifyAllDays: false, initialDay: 3)
+        #expect(appState.schedules.isEmpty)
+    }
+
+    @Test("pomodoro break duration updates remaining during break phase")
+    func breakDurationUpdateCoverage() {
+        let appState = isolatedAppState(name: "breakDurationUpdateCoverage")
+        appState.pomodoroStatus = .breakTime
+        appState.pomodoroBreakDuration = 7
+        #expect(appState.pomodoroRemaining == 420)
+    }
+
+    @Test("allowedRules falls back to first ruleset when activeRuleSetId is nil")
+    func allowedRulesNilActiveRuleSetFallbackCoverage() {
+        let appState = isolatedAppState(name: "allowedRulesNilActiveRuleSetFallbackCoverage")
+        let fallbackSet = RuleSet(id: UUID(), name: "Fallback", urls: ["fallback.com"])
+        appState.ruleSets = [fallbackSet]
+        appState.activeRuleSetId = nil
+        appState.isBlocking = true
+
+        let rules = appState.allowedRules
+        #expect(rules.contains("fallback.com"))
+    }
+
     @Test("AppState deinit invalidates schedule, pause, and pomodoro timers")
     func appStateDeinitInvalidatesTimers() {
         let scheduler = MockRepeatingTimerScheduler()
@@ -791,4 +1084,3 @@ struct AppStateTests {
         #expect(shouldShow(s: schedule, weekStart: week2Start, weekEnd: week2End) == false)
     }
 }
-
