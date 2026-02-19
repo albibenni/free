@@ -27,8 +27,3 @@
 
 - [x] when first schedule it adds multiple days of the weak instead of the selected. When I schedule once more it behave correctly (select only the day selected)
 - [x] allowd list keep rotating in the ui, why? during focus mode
-
-## Possible issues
-
-[P2] Clean-architecture boundary leak
-Model logic depends on UI type: Schedule.swift (line 91) calls WeeklyCalendarView.getWeekDates. This is a coupling smell against clean code boundaries.
