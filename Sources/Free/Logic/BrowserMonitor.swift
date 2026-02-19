@@ -65,7 +65,9 @@ class BrowserMonitor {
 
     func checkPermissions(prompt: Bool = false) {
         let trusted = automator.checkPermissions(prompt: prompt)
-        DispatchQueue.main.async { self.appState?.isTrusted = trusted }
+        DispatchQueue.main.async { [weak self] in
+            self?.appState?.isTrusted = trusted
+        }
     }
 
     func startMonitoring() {
