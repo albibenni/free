@@ -14,18 +14,25 @@ class RealCalendarManager: CalendarProvider {
     @Published var isAuthorized: Bool = false
     
     private let eventStore = EKEventStore()
-    private var refreshTimer: Timer?
+    private let timerScheduler: any RepeatingTimerScheduling
+    private var refreshTimer: (any RepeatingTimer)?
     
-    init() {
+    init(timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler()) {
+        self.timerScheduler = timerScheduler
         let status = EKEventStore.authorizationStatus(for: .event)
         if status == .fullAccess || (status.rawValue == 3) {
             self.isAuthorized = true
             self.fetchEvents()
         }
         
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 5 * 60, repeats: true) { [weak self] _ in
+        refreshTimer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 5 * 60) { [weak self] in
             self?.fetchEvents()
         }
+    }
+
+    deinit {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
     }
     
     func requestAccess() {

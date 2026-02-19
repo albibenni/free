@@ -60,7 +60,11 @@ class AppState: ObservableObject {
     var monitor: BrowserMonitor?
     let calendarProvider: any CalendarProvider
     private var calendarCancellable: AnyCancellable?
-    private var pauseTimer: Timer?, pomodoroTimer: Timer?, scheduleTimer: Timer?
+    private let timerScheduler: any RepeatingTimerScheduling
+    private let timerLock = NSLock()
+    private var pauseTimer: (any RepeatingTimer)?
+    private var pomodoroTimer: (any RepeatingTimer)?
+    private var scheduleTimer: (any RepeatingTimer)?
     private var wasStartedBySchedule = false
     private var manuallyPausedScheduleIds: Set<UUID> = []
 
@@ -114,9 +118,10 @@ class AppState: ObservableObject {
     }
 
     // MARK: - Initialization
-    init(defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil, calendar: (any CalendarProvider)? = nil, isTesting: Bool = false) {
+    init(defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil, calendar: (any CalendarProvider)? = nil, timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(), isTesting: Bool = false) {
         self.defaults = defaults
         self.calendarProvider = calendar ?? (isTesting ? MockCalendarManager() : RealCalendarManager())
+        self.timerScheduler = timerScheduler
         
         self.isBlocking = defaults.bool(forKey: "IsBlocking")
         self.isUnblockable = defaults.bool(forKey: "IsUnblockable")
@@ -138,8 +143,14 @@ class AppState: ObservableObject {
             DispatchQueue.main.async { self?.checkSchedules() }
         }
         
-        scheduleTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in self?.checkSchedules() }
+        let timer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 60) { [weak self] in self?.checkSchedules() }
+        replaceScheduleTimer(with: timer)
         checkSchedules()
+    }
+
+    deinit {
+        invalidateAllTimers()
+        calendarCancellable?.cancel()
     }
 
     // MARK: - Logic & Actions
@@ -245,19 +256,20 @@ class AppState: ObservableObject {
     }
 
     func startPomodoro() { pomodoroStatus = .focus ; pomodoroRemaining = pomodoroFocusDuration * 60 ; pomodoroStartedAt = Date() ; runTimer() }
-    func stopPomodoro() { if !isPomodoroLocked { pomodoroStatus = .none ; pomodoroTimer?.invalidate() ; checkSchedules() } }
+    func stopPomodoro() { if !isPomodoroLocked { pomodoroStatus = .none ; replacePomodoroTimer(with: nil) ; checkSchedules() } }
     func skipPomodoroPhase() { if pomodoroStatus == .focus { startBreak() } else if pomodoroStatus == .breakTime { startPomodoro() } }
     private func startBreak() { pomodoroStatus = .breakTime ; pomodoroRemaining = pomodoroBreakDuration * 60 ; runTimer() }
 
     func startPause(minutes: Double) {
         guard isBlocking, minutes > 0 else { return }
-        isPaused = true ; pauseRemaining = minutes * 60 ; pauseTimer?.invalidate()
-        pauseTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+        isPaused = true ; pauseRemaining = minutes * 60
+        let timer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
             if self.pauseRemaining > 0 { self.pauseRemaining -= 1 } else { self.cancelPause() }
         }
+        replacePauseTimer(with: timer)
     }
-    func cancelPause() { isPaused = false ; pauseTimer?.invalidate() }
+    func cancelPause() { isPaused = false ; replacePauseTimer(with: nil) }
     func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }
     func timeString(time: TimeInterval) -> String { String(format: "%02d:%02d", Int(time) / 60, Int(time) % 60) }
 
@@ -265,17 +277,43 @@ class AppState: ObservableObject {
         if let i = ruleSets.firstIndex(where: { $0.id == id }) { action(&ruleSets[i]) ; ruleSets = ruleSets }
     }
     private func runTimer() {
-        pomodoroTimer?.invalidate()
-        pomodoroTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+        let timer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
             if self.pomodoroRemaining > 0 { self.pomodoroRemaining -= 1 }
             else { if self.pomodoroStatus == .focus { self.startBreak() } else { self.startPomodoro() } }
         }
+        replacePomodoroTimer(with: timer)
         checkSchedules()
     }
     private func saveJSON<T: Encodable>(_ v: T, key: String) { if let e = try? JSONEncoder().encode(v) { defaults.set(e, forKey: key) } }
     private func loadJSON<T: Decodable>(key: String, as type: T.Type) -> T? {
         guard let d = defaults.data(forKey: key) else { return nil }
         return try? JSONDecoder().decode(T.self, from: d)
+    }
+
+    private func replacePauseTimer(with newTimer: (any RepeatingTimer)?) {
+        replaceTimer(keyPath: \.pauseTimer, with: newTimer)
+    }
+
+    private func replacePomodoroTimer(with newTimer: (any RepeatingTimer)?) {
+        replaceTimer(keyPath: \.pomodoroTimer, with: newTimer)
+    }
+
+    private func replaceScheduleTimer(with newTimer: (any RepeatingTimer)?) {
+        replaceTimer(keyPath: \.scheduleTimer, with: newTimer)
+    }
+
+    private func invalidateAllTimers() {
+        replacePauseTimer(with: nil)
+        replacePomodoroTimer(with: nil)
+        replaceScheduleTimer(with: nil)
+    }
+
+    private func replaceTimer(keyPath: ReferenceWritableKeyPath<AppState, (any RepeatingTimer)?>, with newTimer: (any RepeatingTimer)?) {
+        timerLock.lock()
+        let oldTimer = self[keyPath: keyPath]
+        self[keyPath: keyPath] = newTimer
+        timerLock.unlock()
+        oldTimer?.invalidate()
     }
 }

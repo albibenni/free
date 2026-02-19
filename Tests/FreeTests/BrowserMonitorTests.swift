@@ -47,6 +47,7 @@ struct BrowserMonitorTests {
         bundleId: String? = "com.google.Chrome",
         nowProvider: @escaping () -> Date = Date.init,
         monitorInterval: TimeInterval = 1.0,
+        timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
         startTimer: Bool = false
     ) -> BrowserMonitor {
         BrowserMonitor(
@@ -58,6 +59,7 @@ struct BrowserMonitorTests {
             bundleIdProvider: { _ in bundleId },
             nowProvider: nowProvider,
             monitorInterval: monitorInterval,
+            timerScheduler: timerScheduler,
             startTimer: startTimer
         )
     }
@@ -267,5 +269,49 @@ struct BrowserMonitorTests {
         #expect(mock.checkedPermissions)
         #expect(mock.getActiveUrlCalls > 0)
         _ = monitor
+    }
+
+    @Test("BrowserMonitor start/stop invalidates replaced timers")
+    func startStopInvalidatesTimers() {
+        let appState = isolatedAppState(name: "startStopInvalidatesTimers")
+        let mock = MockBrowserAutomator()
+        let scheduler = MockRepeatingTimerScheduler()
+        let monitor = makeMonitor(
+            appState: appState,
+            mock: mock,
+            timerScheduler: scheduler,
+            startTimer: true
+        )
+
+        #expect(scheduler.timers.count == 1)
+        let first = scheduler.timers[0]
+        #expect(first.invalidateCallCount == 0)
+
+        monitor.startMonitoring()
+        #expect(scheduler.timers.count == 2)
+        #expect(first.invalidateCallCount == 1)
+
+        let second = scheduler.timers[1]
+        monitor.stopMonitoring()
+        #expect(second.invalidateCallCount == 1)
+    }
+
+    @Test("BrowserMonitor deinit invalidates active timer")
+    func deinitInvalidatesActiveTimer() {
+        let appState = isolatedAppState(name: "deinitInvalidatesActiveTimer")
+        let mock = MockBrowserAutomator()
+        let scheduler = MockRepeatingTimerScheduler()
+        var monitor: BrowserMonitor? = makeMonitor(
+            appState: appState,
+            mock: mock,
+            timerScheduler: scheduler,
+            startTimer: true
+        )
+        #expect(monitor != nil)
+
+        #expect(scheduler.timers.count == 1)
+        let timer = scheduler.timers[0]
+        monitor = nil
+        #expect(timer.invalidateCallCount == 1)
     }
 }

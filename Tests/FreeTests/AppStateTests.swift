@@ -4,11 +4,11 @@ import Foundation
 
 struct AppStateTests {
 
-    private func isolatedAppState(name: String) -> AppState {
+    private func isolatedAppState(name: String, timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler()) -> AppState {
         let suite = "AppStateTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
-        return AppState(defaults: defaults, isTesting: true)
+        return AppState(defaults: defaults, timerScheduler: timerScheduler, isTesting: true)
     }
 
     @Test("Pomodoro locking logic works correctly with grace period")
@@ -224,6 +224,49 @@ struct AppStateTests {
         appState.startPause(minutes: 1)
         appState.isBlocking = false
         #expect(!appState.isPaused, "Pause should cancel when blocking is disabled")
+    }
+
+    @Test("AppState deinit invalidates schedule, pause, and pomodoro timers")
+    func appStateDeinitInvalidatesTimers() {
+        let scheduler = MockRepeatingTimerScheduler()
+        var appState: AppState? = isolatedAppState(name: "appStateDeinitInvalidatesTimers", timerScheduler: scheduler)
+        appState?.isBlocking = true
+        appState?.startPause(minutes: 1)
+        appState?.startPomodoro()
+
+        #expect(scheduler.timers.count == 3)
+        let scheduleTimer = scheduler.timers[0]
+        let pauseTimer = scheduler.timers[1]
+        let pomodoroTimer = scheduler.timers[2]
+
+        appState = nil
+
+        #expect(scheduleTimer.invalidateCallCount == 1)
+        #expect(pauseTimer.invalidateCallCount == 1)
+        #expect(pomodoroTimer.invalidateCallCount == 1)
+    }
+
+    @Test("AppState replaces active pause and pomodoro timers safely")
+    func appStateReplacesTimersSafely() {
+        let scheduler = MockRepeatingTimerScheduler()
+        let appState = isolatedAppState(name: "appStateReplacesTimersSafely", timerScheduler: scheduler)
+        appState.isBlocking = true
+
+        appState.startPause(minutes: 1)
+        #expect(scheduler.timers.count == 2)
+        let firstPauseTimer = scheduler.timers[1]
+
+        appState.startPause(minutes: 2)
+        #expect(scheduler.timers.count == 3)
+        #expect(firstPauseTimer.invalidateCallCount == 1)
+
+        appState.startPomodoro()
+        #expect(scheduler.timers.count == 4)
+        let firstPomodoroTimer = scheduler.timers[3]
+
+        appState.startPomodoro()
+        #expect(scheduler.timers.count == 5)
+        #expect(firstPomodoroTimer.invalidateCallCount == 1)
     }
 
     @Test("Rules aggregate from all active focus schedules")
@@ -748,5 +791,4 @@ struct AppStateTests {
         #expect(shouldShow(s: schedule, weekStart: week2Start, weekEnd: week2End) == false)
     }
 }
-
 

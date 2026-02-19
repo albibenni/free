@@ -83,4 +83,18 @@ struct CalendarManagerTests {
         // Then: Should unblock (in normal mode)
         #expect(appState.isBlocking == false, "Should unblock because of calendar meeting")
     }
+
+    @Test("RealCalendarManager deinit invalidates refresh timer")
+    func realCalendarManagerDeinitInvalidatesTimer() {
+        let scheduler = MockRepeatingTimerScheduler()
+        var manager: RealCalendarManager? = RealCalendarManager(timerScheduler: scheduler)
+        #expect(manager != nil)
+
+        #expect(scheduler.intervals == [300.0])
+        #expect(scheduler.timers.count == 1)
+        let timer = scheduler.timers[0]
+
+        manager = nil
+        #expect(timer.invalidateCallCount == 1)
+    }
 }

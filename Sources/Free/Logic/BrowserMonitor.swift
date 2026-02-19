@@ -9,10 +9,12 @@ protocol BrowserAutomator {
 }
 
 class BrowserMonitor {
-    private var timer: Timer?
+    private var timer: (any RepeatingTimer)?
+    private let timerLock = NSLock()
     private weak var appState: AppState?
     private let server: LocalServer?
     private let automator: BrowserAutomator
+    private let timerScheduler: any RepeatingTimerScheduling
     private let supportedBrowsers: Set<String>
     private let frontmostAppProvider: () -> NSRunningApplication?
     private let bundleIdProvider: (NSRunningApplication) -> String?
@@ -38,11 +40,13 @@ class BrowserMonitor {
         bundleIdProvider: @escaping (NSRunningApplication) -> String? = { $0.bundleIdentifier },
         nowProvider: @escaping () -> Date = Date.init,
         monitorInterval: TimeInterval = 1.0,
+        timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
         startTimer: Bool = true
     ) {
         self.appState = appState
         self.server = server
         self.automator = automator
+        self.timerScheduler = timerScheduler
         self.supportedBrowsers = supportedBrowsers
         self.frontmostAppProvider = frontmostAppProvider
         self.bundleIdProvider = bundleIdProvider
@@ -56,7 +60,7 @@ class BrowserMonitor {
     }
 
     deinit {
-        timer?.invalidate()
+        stopMonitoring()
     }
 
     func checkPermissions(prompt: Bool = false) {
@@ -65,11 +69,15 @@ class BrowserMonitor {
     }
 
     func startMonitoring() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: monitorInterval, repeats: true) { [weak self] _ in
+        let repeatingTimer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: monitorInterval) { [weak self] in
             self?.checkPermissions(prompt: false)
             self?.checkActiveTab()
         }
+        replaceTimer(with: repeatingTimer)
+    }
+
+    func stopMonitoring() {
+        replaceTimer(with: nil)
     }
 
     func checkActiveTab() {
@@ -91,4 +99,12 @@ class BrowserMonitor {
     }
 
     func getAllOpenUrls() -> [String] { automator.getAllOpenUrls(browsers: Array(supportedBrowsers)) }
+
+    private func replaceTimer(with newTimer: (any RepeatingTimer)?) {
+        timerLock.lock()
+        let oldTimer = timer
+        timer = newTimer
+        timerLock.unlock()
+        oldTimer?.invalidate()
+    }
 }
