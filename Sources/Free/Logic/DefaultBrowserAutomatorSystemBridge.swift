@@ -2,9 +2,33 @@ import Foundation
 import AppKit
 import ApplicationServices
 
-extension DefaultBrowserAutomatorRuntimeBridge {
-    static func liveSystem() -> DefaultBrowserAutomatorRuntimeBridge {
-        DefaultBrowserAutomatorRuntimeBridge(
+struct DefaultBrowserAutomatorAXAPI {
+    var makeApplication: (pid_t) -> AnyObject
+    var copyAttribute: (_ element: AnyObject, _ attribute: CFString) -> (AXError, Any?)
+
+    static func live() -> DefaultBrowserAutomatorAXAPI {
+        DefaultBrowserAutomatorAXAPI(
+            makeApplication: { pid in
+                AXUIElementCreateApplication(pid) as AnyObject
+            },
+            copyAttribute: { element, attribute in
+                var value: CFTypeRef?
+                let axElement = element as! AXUIElement
+                let error = AXUIElementCopyAttributeValue(axElement, attribute, &value)
+                return (error, value)
+            }
+        )
+    }
+}
+
+struct DefaultBrowserAutomatorSystemDependencies {
+    var checkPermissions: (_ prompt: Bool) -> Bool
+    var executeAppleScript: (_ source: String) -> String?
+    var runningApplications: () -> [NSRunningApplication]
+    var axAPI: DefaultBrowserAutomatorAXAPI
+
+    static func live() -> DefaultBrowserAutomatorSystemDependencies {
+        DefaultBrowserAutomatorSystemDependencies(
             checkPermissions: { prompt in
                 let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: prompt] as CFDictionary
                 return AXIsProcessTrustedWithOptions(options)
@@ -15,47 +39,62 @@ extension DefaultBrowserAutomatorRuntimeBridge {
             runningApplications: {
                 NSWorkspace.shared.runningApplications
             },
+            axAPI: .live()
+        )
+    }
+}
+
+extension DefaultBrowserAutomatorRuntimeBridge {
+    static func liveSystem() -> DefaultBrowserAutomatorRuntimeBridge {
+        liveSystem(dependencies: .live())
+    }
+
+    static func liveSystem(dependencies: DefaultBrowserAutomatorSystemDependencies) -> DefaultBrowserAutomatorRuntimeBridge {
+        DefaultBrowserAutomatorRuntimeBridge(
+            checkPermissions: { prompt in
+                dependencies.checkPermissions(prompt)
+            },
+            executeAppleScript: { source in
+                dependencies.executeAppleScript(source)
+            },
+            runningApplications: {
+                dependencies.runningApplications()
+            },
             arcAccessibilityURL: { pid in
-                DefaultBrowserAutomatorAccessibility.arcURL(pid: pid)
+                DefaultBrowserAutomatorAccessibility.arcURL(pid: pid, axAPI: dependencies.axAPI)
             }
         )
     }
 }
 
-private enum DefaultBrowserAutomatorAccessibility {
-    static func arcURL(pid: pid_t) -> String? {
-        let application = AXUIElementCreateApplication(pid)
-        var value: CFTypeRef?
+enum DefaultBrowserAutomatorAccessibility {
+    static func arcURL(pid: pid_t, axAPI: DefaultBrowserAutomatorAXAPI) -> String? {
+        let application = axAPI.makeApplication(pid)
 
-        if AXUIElementCopyAttributeValue(application, kAXFocusedWindowAttribute as CFString, &value) == .success,
-           let focusedWindow = value,
-           let url = findURL(in: focusedWindow as! AXUIElement) {
+        let focusedWindowResult = axAPI.copyAttribute(application, kAXFocusedWindowAttribute as CFString)
+        if focusedWindowResult.0 == .success,
+           let focusedWindow = focusedWindowResult.1 as AnyObject?,
+           let url = findURL(in: focusedWindow, axAPI: axAPI) {
             return url
         }
 
-        if AXUIElementCopyAttributeValue(application, kAXWindowsAttribute as CFString, &value) == .success,
-           let windows = value as? [AXUIElement],
+        let windowsResult = axAPI.copyAttribute(application, kAXWindowsAttribute as CFString)
+        if windowsResult.0 == .success,
+           let windows = windowsResult.1 as? [AnyObject],
            let firstWindow = windows.first {
-            return findURL(in: firstWindow)
+            return findURL(in: firstWindow, axAPI: axAPI)
         }
 
         return nil
     }
 
-    static func findURL(in element: AXUIElement, depth: Int = 0) -> String? {
+    static func findURL(in element: AnyObject, depth: Int = 0, axAPI: DefaultBrowserAutomatorAXAPI) -> String? {
         if depth > 15 { return nil }
 
-        var roleRef: CFTypeRef?
-        var titleRef: CFTypeRef?
-        var valueRef: CFTypeRef?
-
-        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
-        AXUIElementCopyAttributeValue(element, kAXTitleAttribute as CFString, &titleRef)
-        AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &valueRef)
-
-        let role = roleRef as? String ?? ""
-        let title = titleRef as? String ?? ""
-        let value = (valueRef as? String ?? "").trimmingCharacters(in: .whitespaces)
+        let role = (axAPI.copyAttribute(element, kAXRoleAttribute as CFString).1 as? String) ?? ""
+        let title = (axAPI.copyAttribute(element, kAXTitleAttribute as CFString).1 as? String) ?? ""
+        let value = ((axAPI.copyAttribute(element, kAXValueAttribute as CFString).1 as? String) ?? "")
+            .trimmingCharacters(in: .whitespaces)
 
         if ["AXTextField", "AXStaticText", "AXComboBox"].contains(role), !value.isEmpty {
             if value.lowercased().hasPrefix("http") { return value }
@@ -66,11 +105,11 @@ private enum DefaultBrowserAutomatorAccessibility {
             return title.hasPrefix("http") ? title : "https://" + title
         }
 
-        var childrenRef: CFTypeRef?
-        if AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &childrenRef) == .success,
-           let children = childrenRef as? [AXUIElement] {
+        let childrenResult = axAPI.copyAttribute(element, kAXChildrenAttribute as CFString)
+        if childrenResult.0 == .success,
+           let children = childrenResult.1 as? [AnyObject] {
             for child in children {
-                if let found = findURL(in: child, depth: depth + 1) {
+                if let found = findURL(in: child, depth: depth + 1, axAPI: axAPI) {
                     return found
                 }
             }
