@@ -1,79 +1,127 @@
 import Foundation
 import AppKit
-import ApplicationServices
+
+struct BrowserAutomationApplication {
+    let bundleIdentifier: String?
+    let localizedName: String?
+    let processIdentifier: pid_t
+}
+
+struct DefaultBrowserAutomatorRuntime {
+    var checkPermissions: (_ prompt: Bool) -> Bool
+    var executeAppleScript: (_ source: String) -> String?
+    var runningApplications: () -> [BrowserAutomationApplication]
+    var arcAccessibilityURL: (_ pid: pid_t) -> String?
+}
 
 class DefaultBrowserAutomator: BrowserAutomator {
+    static let arcBundleIdentifier = "company.thebrowser.Browser"
+    static let safariBundleIdentifier = "com.apple.Safari"
+    static let blockPageHost = "localhost:10000"
+    static let arcActiveURLScript = "tell application \"Arc\" to return URL of active tab of front window"
+
+    private let runtime: DefaultBrowserAutomatorRuntime
+
+    init(runtime: DefaultBrowserAutomatorRuntime = .live()) {
+        self.runtime = runtime
+    }
+
     func checkPermissions(prompt: Bool) -> Bool {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: prompt] as CFDictionary
-        return AXIsProcessTrustedWithOptions(options)
+        runtime.checkPermissions(prompt)
     }
 
     func redirect(app: NSRunningApplication, to url: String) {
-        let name = app.localizedName ?? "Safari", id = app.bundleIdentifier ?? ""
-        let script = id == "company.thebrowser.Browser" ? arcRedirect(url) : (id == "com.apple.Safari" ? safariRedirect(url) : chromRedirect(name, url))
-        execute(script)
+        redirect(bundleIdentifier: app.bundleIdentifier, localizedName: app.localizedName, to: url)
+    }
+
+    func redirect(bundleIdentifier: String?, localizedName: String?, to url: String) {
+        let bundleId = bundleIdentifier ?? ""
+        let appName = localizedName ?? "Safari"
+        let script = redirectScript(bundleIdentifier: bundleId, appName: appName, url: url)
+        _ = runtime.executeAppleScript(script)
     }
 
     func getActiveUrl(for app: NSRunningApplication) -> String? {
-        let id = app.bundleIdentifier ?? "", name = app.localizedName ?? "Safari"
-        if id == "company.thebrowser.Browser" {
-            if let url = execute("tell application \"Arc\" to return URL of active tab of front window"), !url.isEmpty { return url }
-            return getArcAccessibilityURL(pid: app.processIdentifier)
+        getActiveUrl(bundleIdentifier: app.bundleIdentifier, localizedName: app.localizedName, pid: app.processIdentifier)
+    }
+
+    func getActiveUrl(bundleIdentifier: String?, localizedName: String?, pid: pid_t) -> String? {
+        let bundleId = bundleIdentifier ?? ""
+        let appName = localizedName ?? "Safari"
+
+        if bundleId == Self.arcBundleIdentifier {
+            if let url = runtime.executeAppleScript(Self.arcActiveURLScript), !url.isEmpty {
+                return url
+            }
+            return runtime.arcAccessibilityURL(pid)
         }
-        let cmd = id == "com.apple.Safari" ? "tell application \"Safari\" to return URL of current tab of front window" : "tell application \"\(name)\" to return URL of active tab of front window"
-        return execute(cmd)
+
+        let command = activeURLScript(bundleIdentifier: bundleId, appName: appName)
+        return runtime.executeAppleScript(command)
     }
 
     func getAllOpenUrls(browsers: [String]) -> [String] {
+        getAllOpenUrls(applications: runtime.runningApplications(), browsers: Set(browsers))
+    }
+
+    func getAllOpenUrls(applications: [BrowserAutomationApplication], browsers: Set<String>) -> [String] {
         var urls = Set<String>()
-        for app in NSWorkspace.shared.runningApplications {
-            guard let id = app.bundleIdentifier, browsers.contains(id) else { continue }
-            let name = app.localizedName ?? ""
-            let appName = id == "com.apple.Safari" ? "Safari" : (id == "company.thebrowser.Browser" ? "Arc" : name)
-            let script = "set o to \"\"\ntell application \"\(appName)\"\nrepeat with w in windows\nrepeat with t in tabs of w\nset o to o & URL of t & \"\n\"\nend repeat\nend repeat\nend tell\nreturn o"
-            execute(script)?.components(separatedBy: "\n").forEach {
-                let t = $0.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !t.isEmpty && !t.contains("localhost:10000") { urls.insert(t) }
+
+        for app in applications {
+            guard let bundleId = app.bundleIdentifier, browsers.contains(bundleId) else { continue }
+            let appName = scriptAppName(bundleIdentifier: bundleId, localizedName: app.localizedName ?? "")
+            let script = allTabsScript(appName: appName)
+            let parsed = parseScriptOutput(runtime.executeAppleScript(script))
+            for parsedURL in parsed {
+                urls.insert(parsedURL)
             }
         }
+
         return Array(urls).sorted()
     }
 
-    @discardableResult
-    private func execute(_ source: String) -> String? {
-        NSAppleScript(source: source)?.executeAndReturnError(nil).stringValue
+    func redirectScript(bundleIdentifier: String, appName: String, url: String) -> String {
+        if bundleIdentifier == Self.arcBundleIdentifier { return arcRedirect(url) }
+        if bundleIdentifier == Self.safariBundleIdentifier { return safariRedirect(url) }
+        return chromRedirect(appName, url)
     }
 
-    private func arcRedirect(_ url: String) -> String {
+    func activeURLScript(bundleIdentifier: String, appName: String) -> String {
+        if bundleIdentifier == Self.safariBundleIdentifier {
+            return "tell application \"Safari\" to return URL of current tab of front window"
+        }
+        return "tell application \"\(appName)\" to return URL of active tab of front window"
+    }
+
+    func scriptAppName(bundleIdentifier: String, localizedName: String) -> String {
+        if bundleIdentifier == Self.safariBundleIdentifier { return "Safari" }
+        if bundleIdentifier == Self.arcBundleIdentifier { return "Arc" }
+        return localizedName
+    }
+
+    func allTabsScript(appName: String) -> String {
+        "set o to \"\"\ntell application \"\(appName)\"\nrepeat with w in windows\nrepeat with t in tabs of w\nset o to o & URL of t & \"\n\"\nend repeat\nend repeat\nend tell\nreturn o"
+    }
+
+    func parseScriptOutput(_ output: String?) -> [String] {
+        guard let output else { return [] }
+        return output.components(separatedBy: "\n").compactMap { line in
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return nil }
+            guard !trimmed.contains(Self.blockPageHost) else { return nil }
+            return trimmed
+        }
+    }
+
+    func arcRedirect(_ url: String) -> String {
         "tell application \"Arc\"\nactivate\nif (count of windows) > 0 then\ntry\nset URL of active tab of front window to \"\(url)\"\non error\ntell application \"System Events\" to tell process \"Arc\"\nkeystroke \"l\" using {command down}\ndelay 0.1\nkeystroke \"\(url)\"\nkey code 36\nend tell\nend try\nelse\nopen location \"\(url)\"\nend if\nend tell"
     }
-    private func safariRedirect(_ url: String) -> String { "tell application \"Safari\" to if (count of windows) > 0 then set URL of current tab of front window to \"\(url)\"" }
-    private func chromRedirect(_ name: String, _ url: String) -> String { "tell application \"\(name)\" to if (count of windows) > 0 then set URL of active tab of front window to \"\(url)\"" }
 
-    private func getArcAccessibilityURL(pid: pid_t) -> String? {
-        let ax = AXUIElementCreateApplication(pid)
-        var win: CFTypeRef?
-        if AXUIElementCopyAttributeValue(ax, kAXFocusedWindowAttribute as CFString, &win) == .success, let url = findURL(win as! AXUIElement) { return url }
-        if AXUIElementCopyAttributeValue(ax, kAXWindowsAttribute as CFString, &win) == .success, let list = win as? [AXUIElement], let first = list.first { return findURL(first) }
-        return nil
+    func safariRedirect(_ url: String) -> String {
+        "tell application \"Safari\" to if (count of windows) > 0 then set URL of current tab of front window to \"\(url)\""
     }
 
-    private func findURL(_ el: AXUIElement, depth: Int = 0) -> String? {
-        if depth > 15 { return nil }
-        var r: CFTypeRef?, t: CFTypeRef?, v: CFTypeRef?
-        AXUIElementCopyAttributeValue(el, kAXRoleAttribute as CFString, &r)
-        AXUIElementCopyAttributeValue(el, kAXTitleAttribute as CFString, &t)
-        AXUIElementCopyAttributeValue(el, kAXValueAttribute as CFString, &v)
-        let rs = r as? String ?? "", ts = t as? String ?? "", vs = (v as? String ?? "").trimmingCharacters(in: .whitespaces)
-        if ["AXTextField", "AXStaticText", "AXComboBox"].contains(rs) && !vs.isEmpty {
-            if vs.lowercased().hasPrefix("http") { return vs }
-            if vs.contains(".") && !vs.contains(" ") && vs.count > 3 { return "https://" + vs }
-        }
-        if depth == 0 && (ts.hasPrefix("http") || (ts.contains(".") && !ts.contains(" "))) { return ts.hasPrefix("http") ? ts : "https://" + ts }
-        var kids: CFTypeRef?
-        if AXUIElementCopyAttributeValue(el, kAXChildrenAttribute as CFString, &kids) == .success, let list = kids as? [AXUIElement] {
-            for k in list { if let found = findURL(k, depth: depth + 1) { return found } }
-        }
-        return nil
+    func chromRedirect(_ appName: String, _ url: String) -> String {
+        "tell application \"\(appName)\" to if (count of windows) > 0 then set URL of active tab of front window to \"\(url)\""
     }
 }
