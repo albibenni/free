@@ -13,12 +13,16 @@ struct WidgetCard<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(NSColor.controlBackgroundColor).opacity(colorScheme == .dark ? 0.5 : 0.8))
+        .background(Color(NSColor.controlBackgroundColor).opacity(Self.backgroundOpacity(for: colorScheme)))
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.primary.opacity(0.1), lineWidth: 1)
         )
+    }
+
+    static func backgroundOpacity(for colorScheme: ColorScheme) -> Double {
+        colorScheme == .dark ? 0.5 : 0.8
     }
 }
 
@@ -71,6 +75,10 @@ struct URLListRow: View {
         }
         .padding(.vertical, 6)
     }
+
+    func handleDelete() {
+        onDelete()
+    }
 }
 
 struct AppPrimaryButtonStyle: ButtonStyle {
@@ -86,14 +94,30 @@ struct AppPrimaryButtonStyle: ButtonStyle {
             .frame(maxWidth: maxWidth)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isProminent ? color : color.opacity(configuration.isPressed ? 0.15 : 0.08))
+                    .fill(backgroundColor(isPressed: configuration.isPressed))
             )
-            .foregroundColor(isProminent ? .white : color)
+            .foregroundColor(foregroundColor)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(color.opacity(isProminent ? 0 : 0.2), lineWidth: 1)
+                    .stroke(color.opacity(borderOpacity), lineWidth: 1)
             )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .scaleEffect(scaleEffect(isPressed: configuration.isPressed))
             .animation(.easeOut(duration: 0.2), value: configuration.isPressed)
+    }
+
+    var foregroundColor: Color {
+        isProminent ? .white : color
+    }
+
+    var borderOpacity: Double {
+        isProminent ? 0 : 0.2
+    }
+
+    func backgroundColor(isPressed: Bool) -> Color {
+        isProminent ? color : color.opacity(isPressed ? 0.15 : 0.08)
+    }
+
+    func scaleEffect(isPressed: Bool) -> CGFloat {
+        isPressed ? 0.98 : 1.0
     }
 }
