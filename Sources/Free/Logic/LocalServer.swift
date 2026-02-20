@@ -1,15 +1,63 @@
 import Foundation
 import Network
 
+protocol LocalServerConnection {
+    func start(queue: DispatchQueue)
+    func receive(
+        minimumIncompleteLength: Int,
+        maximumLength: Int,
+        completion: @escaping (_ data: Data?, _ isComplete: Bool, _ error: NWError?) -> Void
+    )
+    func send(content: Data?, completion: @escaping (NWError?) -> Void)
+    func cancel()
+}
+
+private final class LocalServerNWConnectionAdapter: LocalServerConnection {
+    private let base: NWConnection
+
+    init(base: NWConnection) {
+        self.base = base
+    }
+
+    func start(queue: DispatchQueue) {
+        base.start(queue: queue)
+    }
+
+    func receive(
+        minimumIncompleteLength: Int,
+        maximumLength: Int,
+        completion: @escaping (_ data: Data?, _ isComplete: Bool, _ error: NWError?) -> Void
+    ) {
+        base.receive(
+            minimumIncompleteLength: minimumIncompleteLength,
+            maximumLength: maximumLength
+        ) { data, _, isComplete, error in
+            completion(data, isComplete, error)
+        }
+    }
+
+    func send(content: Data?, completion: @escaping (NWError?) -> Void) {
+        base.send(content: content, completion: .contentProcessed(completion))
+    }
+
+    func cancel() {
+        base.cancel()
+    }
+}
+
 class LocalServer {
     var listener: NWListener?
     private(set) var port: NWEndpoint.Port?
     var onFailure: ((Error) -> Void)?
+    var processNameProvider: () -> String = { ProcessInfo.processInfo.processName }
+    var listenerFactory: (_ parameters: NWParameters, _ port: NWEndpoint.Port) throws -> NWListener = { parameters, port in
+        try NWListener(using: parameters, on: port)
+    }
 
     func start(on requestedPort: NWEndpoint.Port = 10000) {
         // Skip starting the server if we are running in a unit test environment
         // UNLESS we explicitly want to test it (handled by passing a different port or checking environment)
-        let isGeneralTesting = ProcessInfo.processInfo.processName.contains("Test") && requestedPort == 10000
+        let isGeneralTesting = processNameProvider().contains("Test") && requestedPort == 10000
 
         if isGeneralTesting {
             return
@@ -17,7 +65,7 @@ class LocalServer {
 
         do {
             let parameters = NWParameters.tcp
-            let listener = try NWListener(using: parameters, on: requestedPort)
+            let listener = try listenerFactory(parameters, requestedPort)
             self.port = requestedPort
 
             listener.stateUpdateHandler = { state in
@@ -35,7 +83,7 @@ class LocalServer {
             }
 
             listener.newConnectionHandler = { connection in
-                self.handleConnection(connection)
+                self.handleConnection(LocalServerNWConnectionAdapter(base: connection))
             }
 
             listener.start(queue: .global())
@@ -52,7 +100,7 @@ class LocalServer {
         port = nil
     }
 
-    private func handleConnection(_ connection: NWConnection) {
+    func handleConnection(_ connection: LocalServerConnection) {
         connection.start(queue: .global())
 
         let html = """
@@ -109,14 +157,14 @@ class LocalServer {
         """
 
         // Read the request (consume it)
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { _, _, isComplete, _ in
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { _, isComplete, _ in
             if isComplete {
                 connection.cancel()
             } else {
                 // Send response immediately
-                connection.send(content: response.data(using: .utf8), completion: .contentProcessed({ _ in
+                connection.send(content: response.data(using: .utf8)) { _ in
                     connection.cancel()
-                }))
+                }
             }
         }
     }
