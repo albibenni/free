@@ -17,9 +17,7 @@ struct SheetWrapper<Content: View>: View {
                 Text(title)
                     .font(.headline)
                 Spacer()
-                Button("Done") {
-                    isPresented = false
-                }
+                Button("Done", action: dismissSheet)
                 .buttonStyle(.borderedProminent)
             }
             .padding()
@@ -29,5 +27,9 @@ struct SheetWrapper<Content: View>: View {
 
             content
         }
+    }
+
+    func dismissSheet() {
+        isPresented = false
     }
 }
