@@ -59,9 +59,13 @@ struct PomodoroTimerView: View {
                     )
                     .gesture(
                         DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                updateDuration(location: value.location, center: center)
-                            }
+                            .onChanged(
+                                PomodoroTimerDragHandler.onChanged(
+                                    center: center,
+                                    maxMinutes: maxMinutes,
+                                    durationMinutes: $durationMinutes
+                                )
+                            )
                     )
 
                 ClockCenterContent(iconName: iconName, color: color, text: "\(Int(durationMinutes))m")
@@ -76,14 +80,6 @@ struct PomodoroTimerView: View {
         let x = center.x + radius * CGFloat(cos(angle.radians))
         let y = center.y + radius * CGFloat(sin(angle.radians))
         return CGPoint(x: x, y: y)
-    }
-
-    private func updateDuration(location: CGPoint, center: CGPoint) {
-        durationMinutes = PomodoroTimerView.calculateDuration(
-            location: location,
-            center: center,
-            maxMinutes: maxMinutes
-        )
     }
 
     static func calculateDuration(location: CGPoint, center: CGPoint, maxMinutes: Double) -> Double {
