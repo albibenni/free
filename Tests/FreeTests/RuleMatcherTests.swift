@@ -33,6 +33,17 @@ struct RuleMatcherTests {
         #expect(RuleMatcher.isAllowed("http://localhost:10000", rules: []))
     }
 
+    @Test("Raw localhost block-page URLs are treated as internal")
+    func localhostBlockPageVariants() {
+        #expect(RuleMatcher.isAllowed("localhost:10000", rules: []))
+        #expect(RuleMatcher.isAllowed("localhost:10000/focus", rules: []))
+    }
+
+    @Test("Invalid URLComponents input does not bypass allow checks")
+    func invalidURLComponentsInput() {
+        #expect(!RuleMatcher.isAllowed("http://%", rules: []))
+    }
+
     @Test("Internal scheme tokens inside query/path do not bypass blocking")
     func internalSchemeBypassProtection() {
         let rules = ["github.com"]
@@ -221,5 +232,11 @@ struct RuleMatcherTests {
         #expect(RuleMatcher.isAllowed("https://google.it", rules: rules))
         #expect(RuleMatcher.isAllowed("https://sub.google.com/search", rules: rules))
         #expect(!RuleMatcher.isAllowed("https://yahoo.com", rules: rules))
+    }
+
+    @Test("Wildcard full-url fallback handles www patterns on full cleaned URL")
+    func wildcardFullUrlFallback() {
+        let rules = ["*www.*.example.com"]
+        #expect(RuleMatcher.isAllowed("https://www.docs.example.com", rules: rules))
     }
 }
