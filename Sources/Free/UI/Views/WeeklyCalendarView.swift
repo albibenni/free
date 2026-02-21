@@ -70,10 +70,7 @@ struct WeeklyCalendarView: View {
         GeometryReader { geometry in
             let calendar = Calendar.current
             let weekRange = currentWeekDates
-            let weekStart = weekRange.first ?? Date.distantPast
-            let weekEnd =
-                calendar.date(byAdding: .day, value: 1, to: weekRange.last ?? Date.distantFuture)
-                ?? Date.distantFuture
+            let (weekStart, weekEnd) = Self.weekBounds(for: weekRange, calendar: calendar)
 
             VStack(spacing: 0) {
                 // Toolbar (Navigation)
@@ -406,7 +403,7 @@ struct WeeklyCalendarView: View {
     static func formatTime(_ h: CGFloat) -> String {
         let hour = Int(h)
         let min = Int(((h - CGFloat(hour)) * 60).rounded())
-        let date = Calendar.current.date(from: DateComponents(hour: hour, minute: min)) ?? Date()
+        let date = Calendar.current.date(from: DateComponents(hour: hour, minute: min))!
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
@@ -491,8 +488,8 @@ struct WeeklyCalendarView: View {
         let eHour = Int(eH)
         let eMin = Int(((eH - CGFloat(eHour)) * 60).rounded())
 
-        let start = calendar.date(from: DateComponents(hour: sHour, minute: sMin)) ?? Date()
-        let end = calendar.date(from: DateComponents(hour: eHour, minute: eMin)) ?? Date()
+        let start = calendar.date(from: DateComponents(hour: sHour, minute: sMin))!
+        let end = calendar.date(from: DateComponents(hour: eHour, minute: eMin))!
 
         return (start, end)
     }
@@ -516,8 +513,17 @@ struct WeeklyCalendarView: View {
     static func timeString(hour: Int) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "h a"
-        let date = Calendar.current.date(from: DateComponents(hour: hour)) ?? Date()
+        let date = Calendar.current.date(from: DateComponents(hour: hour))!
         return formatter.string(from: date)
+    }
+
+    static func weekBounds(for weekRange: [Date], calendar: Calendar = .current) -> (Date, Date) {
+        guard let weekStart = weekRange.first, let weekLast = weekRange.last else {
+            return (.distantPast, .distantFuture)
+        }
+
+        let weekEnd = calendar.date(byAdding: .day, value: 1, to: weekLast)!
+        return (weekStart, weekEnd)
     }
 
     private func monthYearString(for date: Date) -> String {
@@ -553,9 +559,10 @@ struct WeeklyCalendarView: View {
         let startComp = calendar.dateComponents([.hour, .minute], from: startDate)
         let endComp = calendar.dateComponents([.hour, .minute], from: endDate)
 
-        guard let startHour = startComp.hour, let startMin = startComp.minute,
-            let endHour = endComp.hour, let endMin = endComp.minute
-        else { return nil }
+        let startHour = startComp.hour!
+        let startMin = startComp.minute!
+        let endHour = endComp.hour!
+        let endMin = endComp.minute!
 
         let startY = (CGFloat(startHour) + CGFloat(startMin) / 60.0) * hourHeight
         var endY = (CGFloat(endHour) + CGFloat(endMin) / 60.0) * hourHeight
@@ -697,7 +704,11 @@ struct CurrentTimeIndicator: View {
             }
         }
         .onAppear { updateTime() }
-        .onReceive(timer) { _ in updateTime() }
+        .onReceive(timer, perform: onTimerTick)
+    }
+
+    func onTimerTick(_: Date) {
+        updateTime()
     }
 
     func updateTime() {

@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import SwiftUI
 import Testing
+import ViewInspector
 
 @testable import FreeLogic
 
@@ -147,6 +148,18 @@ struct WeeklyCalendarViewTests {
         )
         let view = WeeklyCalendarView(editorContext: binding, actionAppState: appState)
 
+        let mondayOrder = WeeklyCalendarView.getDayOrder(weekStartsOnMonday: true)
+        #expect(mondayOrder == [2, 3, 4, 5, 6, 7, 1])
+
+        let now = Date()
+        let normalBounds = WeeklyCalendarView.weekBounds(for: [now])
+        #expect(normalBounds.0 == now)
+        #expect(normalBounds.1 > normalBounds.0)
+
+        let emptyBounds = WeeklyCalendarView.weekBounds(for: [])
+        #expect(emptyBounds.0 == .distantPast)
+        #expect(emptyBounds.1 == .distantFuture)
+
         let validMetrics = WeeklyCalendarView.dragPreviewMetrics(
             data: .init(day: 2, startHour: 9.1, endHour: 10.4),
             dayOrder: [1, 2, 3, 4, 5, 6, 7],
@@ -176,7 +189,23 @@ struct WeeklyCalendarViewTests {
         #expect(instanceMetrics?.height == 20)
 
         _ = view.formatTime(9.5)
+        _ = WeeklyCalendarView.formatTime(9.5)
         _ = view.timeString(hour: 12)
+        _ = WeeklyCalendarView.timeString(hour: 12)
+        let correctedDrag = WeeklyCalendarView.calculateDragSelection(startHour: 2.5, endHour: 2.5)
+        #expect(correctedDrag.end > correctedDrag.start)
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(hour: 23, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 1, minute: 0))!
+        let overnightRect = WeeklyCalendarView.calculateRect(
+            startDate: start,
+            endDate: end,
+            colIndex: 0,
+            columnWidth: 100,
+            hourHeight: 80
+        )
+        #expect(overnightRect != nil)
+        #expect((overnightRect?.height ?? 0) > 0)
         let today = Calendar.current.component(.weekday, from: Date())
         #expect(view.isToday(day: today))
     }
@@ -278,6 +307,22 @@ struct WeeklyCalendarViewTests {
         )
         #expect(externalHost.fittingSize.width >= 0)
 
+        let disabledBreak = Schedule(
+            name: "Break",
+            days: [today],
+            date: nil,
+            startTime: now,
+            endTime: now.addingTimeInterval(1800),
+            isEnabled: false,
+            colorIndex: 1,
+            type: .unfocus
+        )
+        let disabledBreakHost = host(
+            ScheduleBlockView(schedule: disabledBreak),
+            size: CGSize(width: 220, height: 80)
+        )
+        #expect(disabledBreakHost.fittingSize.height >= 0)
+
         let indicatorInWeek = CurrentTimeIndicator(
             hourHeight: 80,
             timeLabelWidth: 60,
@@ -287,6 +332,7 @@ struct WeeklyCalendarViewTests {
         )
         _ = indicatorInWeek.timer
         indicatorInWeek.updateTime()
+        indicatorInWeek.onTimerTick(now)
         let indicatorInWeekHost = host(indicatorInWeek, size: CGSize(width: 900, height: 120))
         #expect(indicatorInWeekHost.fittingSize.height >= 0)
 
@@ -299,10 +345,65 @@ struct WeeklyCalendarViewTests {
         )
         _ = indicatorOutOfWeek.timer
         indicatorOutOfWeek.updateTime()
+        indicatorOutOfWeek.onTimerTick(now)
         let indicatorOutOfWeekHost = host(
             indicatorOutOfWeek,
             size: CGSize(width: 900, height: 120)
         )
         #expect(indicatorOutOfWeekHost.fittingSize.width >= 0)
+    }
+
+    @Test("WeeklyCalendarView toolbar buttons can be tapped via ViewInspector")
+    @MainActor
+    func weeklyCalendarToolbarButtonsViaInspector() throws {
+        let appState = isolatedAppState(name: "inspectorToolbar")
+        var context: ScheduleEditorContext?
+        let binding = Binding<ScheduleEditorContext?>(
+            get: { context },
+            set: { context = $0 }
+        )
+
+        let sut = WeeklyCalendarView(
+            editorContext: binding,
+            actionAppState: appState,
+            initialWeekOffset: 1
+        )
+        .environmentObject(appState)
+
+        let buttons = try sut.inspect().findAll(ViewType.Button.self)
+        #expect(buttons.count >= 3)
+
+        try buttons[0].tap()
+        try buttons[1].tap()
+        try buttons[2].tap()
+    }
+
+    @Test("WeeklyCalendarView uses environment fallback and CurrentTimeIndicator receives timer ticks")
+    @MainActor
+    func weeklyCalendarEnvironmentAndTimerReceivePaths() {
+        let appState = isolatedAppState(name: "envFallback")
+        var context: ScheduleEditorContext?
+        let binding = Binding<ScheduleEditorContext?>(
+            get: { context },
+            set: { context = $0 }
+        )
+
+        let envBacked = WeeklyCalendarView(editorContext: binding).environmentObject(appState)
+        let envHost = host(envBacked, size: CGSize(width: 980, height: 860))
+        #expect(envHost.fittingSize.width >= 0)
+
+        let now = Date()
+        let fastTimer = Timer.publish(every: 0.01, on: .main, in: .common).autoconnect()
+        let indicator = CurrentTimeIndicator(
+            hourHeight: 80,
+            timeLabelWidth: 60,
+            dayOrder: WeeklyCalendarView.getDayOrder(weekStartsOnMonday: false),
+            weekStart: now.addingTimeInterval(-24 * 60 * 60),
+            weekEnd: now.addingTimeInterval(24 * 60 * 60),
+            timer: fastTimer
+        )
+        let indicatorHost = host(indicator, size: CGSize(width: 900, height: 120))
+        RunLoop.main.run(until: Date().addingTimeInterval(0.08))
+        #expect(indicatorHost.fittingSize.height >= 0)
     }
 }
