@@ -21,7 +21,10 @@
   - [x] remove list selection from general ui
   - [x] focus session should default to the first list - not none
 - [x] add default pomodoro timer - most used ones
-- [ ] focus mode should show active list
+- [x] focus mode should show active list
+- [ ] add to login items - macos startup
+- [ ] unlock base websites like localhost, new tabs etc
+- [ ] fully test code
 
 ## Bug
 
