@@ -1,7 +1,10 @@
 import SwiftUI
+import Combine
 
 struct WeeklyCalendarView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject private var environmentAppState: AppState
+    private let actionAppState: AppState?
+    var appState: AppState { actionAppState ?? environmentAppState }
     @Binding var editorContext: ScheduleEditorContext?
 
     @State private var dragData: DragSelection?
@@ -11,6 +14,27 @@ struct WeeklyCalendarView: View {
         let day: Int
         let startHour: CGFloat
         var endHour: CGFloat
+    }
+
+    struct DragPreviewMetrics {
+        let columnWidth: CGFloat
+        let startHour: CGFloat
+        let endHour: CGFloat
+        let yOffset: CGFloat
+        let height: CGFloat
+        let columnIndex: Int
+    }
+
+    init(
+        editorContext: Binding<ScheduleEditorContext?>,
+        actionAppState: AppState? = nil,
+        initialWeekOffset: Int = 0,
+        initialDragData: DragSelection? = nil
+    ) {
+        self._editorContext = editorContext
+        self.actionAppState = actionAppState
+        _weekOffset = State(initialValue: initialWeekOffset)
+        _dragData = State(initialValue: initialDragData)
     }
 
     let hourHeight: CGFloat = 80
@@ -60,20 +84,18 @@ struct WeeklyCalendarView: View {
                     Spacer()
 
                     HStack(spacing: 8) {
-                        Button(action: { weekOffset -= 1 }) {
+                        Button(action: goToPreviousWeek) {
                             Image(systemName: "chevron.left")
                                 .padding(6)
                                 .background(Color.primary.opacity(0.05))
                                 .clipShape(Circle())
                         }.buttonStyle(.plain)
 
-                        Button("Today") {
-                            weekOffset = 0
-                        }
+                        Button("Today", action: goToCurrentWeek)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
 
-                        Button(action: { weekOffset += 1 }) {
+                        Button(action: goToNextWeek) {
                             Image(systemName: "chevron.right")
                                 .padding(6)
                                 .background(Color.primary.opacity(0.05))
@@ -154,49 +176,29 @@ struct WeeklyCalendarView: View {
                                         .frame(maxWidth: .infinity, maxHeight: 24 * hourHeight)
                                         .gesture(
                                             DragGesture(minimumDistance: 0)
-                                                .onChanged { value in
-                                                    if abs(value.translation.height) > 5 {
-                                                        let startY = value.startLocation.y
-                                                        let currentY = value.location.y
-                                                        if dragData == nil {
-                                                            dragData = DragSelection(
-                                                                day: day,
-                                                                startHour: startY / hourHeight,
-                                                                endHour: currentY / hourHeight)
-                                                        } else {
-                                                            dragData?.endHour =
-                                                                currentY / hourHeight
-                                                        }
-                                                    }
+                                                .onChanged {
+                                                    handleDragChanged(
+                                                        day: day,
+                                                        startY: $0.startLocation.y,
+                                                        currentY: $0.location.y
+                                                    )
                                                 }
-                                                .onEnded { value in
-                                                    if let data = dragData {
-                                                        finalizeDrag(data)
-                                                        dragData = nil
-                                                    } else {
-                                                        let hour = Int(
-                                                            value.startLocation.y / hourHeight)
-                                                        quickAdd(day: day, hour: hour)
-                                                    }
+                                                .onEnded {
+                                                    handleDragEnded(
+                                                        day: day,
+                                                        startY: $0.startLocation.y
+                                                    )
                                                 }
                                         )
                                 }
                             }
 
-                            if let data = dragData {
-                                let columnWidth =
-                                    (geometry.size.width - (timeLabelWidth + timeColumnGutter)) / 7
-
-                                let snap = { (h: CGFloat) -> CGFloat in
-                                    return (h * 4).rounded() / 4.0
-                                }
-
-                                let startH = snap(min(data.startHour, data.endHour))
-                                let endH = snap(max(data.startHour, data.endHour))
-                                let y = startH * hourHeight
-                                let h = max(endH - startH, 0.25) * hourHeight  // Min 15 mins
-
-                                if let colIndex = dayOrder.firstIndex(of: data.day) {
+                            if let data = dragData,
+                                let metrics = dragPreviewMetrics(
+                                    data: data,
+                                    geometryWidth: geometry.size.width
+                                )
+                            {
                                     RoundedRectangle(cornerRadius: 6)
                                         .fill(
                                             FocusColor.color(for: appState.accentColorIndex)
@@ -204,7 +206,9 @@ struct WeeklyCalendarView: View {
                                         )
                                         .overlay(
                                             VStack {
-                                                Text("\(formatTime(startH)) - \(formatTime(endH))")
+                                                Text(
+                                                    "\(formatTime(metrics.startHour)) - \(formatTime(metrics.endHour))"
+                                                )
                                                     .font(.system(size: 10, weight: .bold))
                                                     .foregroundColor(
                                                         FocusColor.color(
@@ -220,11 +224,12 @@ struct WeeklyCalendarView: View {
                                             },
                                             alignment: .top
                                         )
-                                        .frame(width: columnWidth - 4, height: h)
+                                        .frame(width: metrics.columnWidth - 4, height: metrics.height)
                                         .offset(
-                                            x: timeLabelWidth + timeColumnGutter + CGFloat(colIndex)
-                                                * columnWidth + 2, y: y)
-                                }
+                                            x: timeLabelWidth + timeColumnGutter
+                                                + CGFloat(metrics.columnIndex) * metrics.columnWidth + 2,
+                                            y: metrics.yOffset
+                                        )
                             }
 
                             HStack(spacing: 0) {
@@ -234,12 +239,8 @@ struct WeeklyCalendarView: View {
 
                                     ZStack(alignment: .topLeading) {
                                         if appState.calendarIntegrationEnabled {
-                                            ForEach(
-                                                appState.calendarProvider.events.filter {
-                                                    $0.startDate >= weekStart
-                                                        && $0.startDate < weekEnd
-                                                }
-                                            ) { event in
+                                            ForEach(visibleCalendarEvents(weekStart: weekStart, weekEnd: weekEnd))
+                                            { event in
                                                 let weekday = calendar.component(
                                                     .weekday, from: event.startDate)
                                                 if let colIndex = dayOrder.firstIndex(of: weekday),
@@ -258,14 +259,8 @@ struct WeeklyCalendarView: View {
                                         }
 
                                         ForEach(
-                                            appState.schedules.filter { schedule in
-                                                if let specificDate = schedule.date {
-                                                    let d = calendar.startOfDay(for: specificDate)
-                                                    let s = calendar.startOfDay(for: weekStart)
-                                                    let e = calendar.startOfDay(for: weekEnd)
-                                                    return d >= s && d < e
-                                                }
-                                                return true
+                                            appState.schedules.filter {
+                                                shouldDisplaySchedule($0, weekStart: weekStart, weekEnd: weekEnd)
                                             }
                                         ) { schedule in
                                             ForEach(schedule.days.sorted(), id: \.self) { day in
@@ -281,13 +276,12 @@ struct WeeklyCalendarView: View {
                                                             width: frame.width, height: frame.height
                                                         )
                                                         .position(x: frame.midX, y: frame.midY)
-                                                        .onTapGesture {
-                                                            editorContext = ScheduleEditorContext(
+                                                        .onTapGesture(
+                                                            perform: openScheduleEditorAction(
                                                                 day: day,
-                                                                schedule: schedule,
-                                                                weekOffset: weekOffset
+                                                                schedule: schedule
                                                             )
-                                                        }
+                                                        )
                                                 }
                                             }
                                         }
@@ -316,6 +310,85 @@ struct WeeklyCalendarView: View {
         let currentHour = Calendar.current.component(.hour, from: Date())
         let targetHour = max(0, currentHour - 2)
         proxy.scrollTo(targetHour, anchor: .top)
+    }
+
+    func goToPreviousWeek() {
+        weekOffset -= 1
+    }
+
+    func goToCurrentWeek() {
+        weekOffset = 0
+    }
+
+    func goToNextWeek() {
+        weekOffset += 1
+    }
+
+    func handleDragChanged(day: Int, startY: CGFloat, currentY: CGFloat) {
+        if abs(currentY - startY) > 5 {
+            if dragData == nil {
+                dragData = DragSelection(
+                    day: day,
+                    startHour: startY / hourHeight,
+                    endHour: currentY / hourHeight
+                )
+            } else {
+                dragData?.endHour = currentY / hourHeight
+            }
+        }
+    }
+
+    func handleDragEnded(day: Int, startY: CGFloat) {
+        if let data = dragData {
+            finalizeDrag(data)
+            dragData = nil
+        } else {
+            let hour = Int(startY / hourHeight)
+            quickAdd(day: day, hour: hour)
+        }
+    }
+
+    func dragPreviewMetrics(data: DragSelection, geometryWidth: CGFloat) -> DragPreviewMetrics? {
+        WeeklyCalendarView.dragPreviewMetrics(
+            data: data,
+            dayOrder: dayOrder,
+            geometryWidth: geometryWidth,
+            timeLabelWidth: timeLabelWidth,
+            timeColumnGutter: timeColumnGutter,
+            hourHeight: hourHeight
+        )
+    }
+
+    static func dragPreviewMetrics(
+        data: DragSelection,
+        dayOrder: [Int],
+        geometryWidth: CGFloat,
+        timeLabelWidth: CGFloat,
+        timeColumnGutter: CGFloat,
+        hourHeight: CGFloat
+    ) -> DragPreviewMetrics? {
+        let columnWidth = (geometryWidth - (timeLabelWidth + timeColumnGutter)) / 7
+        let snap = { (h: CGFloat) -> CGFloat in
+            (h * 4).rounded() / 4.0
+        }
+
+        let startH = snap(min(data.startHour, data.endHour))
+        let endH = snap(max(data.startHour, data.endHour))
+        let y = startH * hourHeight
+        let h = max(endH - startH, 0.25) * hourHeight
+
+        guard let colIndex = dayOrder.firstIndex(of: data.day) else {
+            return nil
+        }
+
+        return DragPreviewMetrics(
+            columnWidth: columnWidth,
+            startHour: startH,
+            endHour: endH,
+            yOffset: y,
+            height: h,
+            columnIndex: colIndex
+        )
     }
 
     func formatTime(_ h: CGFloat) -> String {
@@ -358,6 +431,35 @@ struct WeeklyCalendarView: View {
             schedule: nil,
             weekOffset: weekOffset
         )
+    }
+
+    func visibleCalendarEvents(weekStart: Date, weekEnd: Date) -> [ExternalEvent] {
+        appState.calendarProvider.events.filter {
+            $0.startDate >= weekStart && $0.startDate < weekEnd
+        }
+    }
+
+    func shouldDisplaySchedule(_ schedule: Schedule, weekStart: Date, weekEnd: Date) -> Bool {
+        let calendar = Calendar.current
+        if let specificDate = schedule.date {
+            let d = calendar.startOfDay(for: specificDate)
+            let s = calendar.startOfDay(for: weekStart)
+            let e = calendar.startOfDay(for: weekEnd)
+            return d >= s && d < e
+        }
+        return true
+    }
+
+    func openScheduleEditor(day: Int, schedule: Schedule) {
+        editorContext = ScheduleEditorContext(
+            day: day,
+            schedule: schedule,
+            weekOffset: weekOffset
+        )
+    }
+
+    func openScheduleEditorAction(day: Int, schedule: Schedule) -> () -> Void {
+        { openScheduleEditor(day: day, schedule: schedule) }
     }
 
     static func calculateDragSelection(startHour: CGFloat, endHour: CGFloat) -> (
@@ -457,6 +559,9 @@ struct WeeklyCalendarView: View {
 
         return CGRect(x: x, y: startY, width: columnWidth - 4, height: height)
     }
+
+    var weekOffsetForTesting: Int { weekOffset }
+    var dragDataForTesting: DragSelection? { dragData }
 }
 
 struct ExternalEventBlockView: View {
@@ -532,9 +637,31 @@ struct CurrentTimeIndicator: View {
     let weekStart: Date
     let weekEnd: Date
 
-    @State private var currentTimeOffset: CGFloat = 0
+    @State private var currentTimeOffset: CGFloat
     @State private var currentDayIndex: Int?
-    let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+    let timer: Publishers.Autoconnect<Timer.TimerPublisher>
+
+    init(
+        hourHeight: CGFloat,
+        timeLabelWidth: CGFloat,
+        dayOrder: [Int],
+        weekStart: Date,
+        weekEnd: Date,
+        initialCurrentTimeOffset: CGFloat = 0,
+        initialCurrentDayIndex: Int? = nil,
+        timer: Publishers.Autoconnect<Timer.TimerPublisher> = Timer.publish(
+            every: 60, on: .main, in: .common
+        ).autoconnect()
+    ) {
+        self.hourHeight = hourHeight
+        self.timeLabelWidth = timeLabelWidth
+        self.dayOrder = dayOrder
+        self.weekStart = weekStart
+        self.weekEnd = weekEnd
+        self.timer = timer
+        _currentTimeOffset = State(initialValue: initialCurrentTimeOffset)
+        _currentDayIndex = State(initialValue: initialCurrentDayIndex)
+    }
 
     var body: some View {
         Group {
