@@ -2,7 +2,7 @@ import Foundation
 
 struct RuleMatcher {
     private static let internalSchemes: Set<String> = [
-        "about", "arc", "chrome", "brave", "edge", "viva", "vivaldi", "opera", "file"
+        "about", "arc", "chrome", "brave", "edge", "viva", "vivaldi", "opera", "file",
     ]
 
     static func isAllowed(_ url: String, rules: [String]) -> Bool {
@@ -18,22 +18,23 @@ struct RuleMatcher {
             if cleanedRule.isEmpty { continue }
 
             if cleanedRule.contains("*") {
-                // Special case: *.google.com should match google.com
                 if cleanedRule.hasPrefix("*.") {
                     let baseDomain = String(cleanedRule.dropFirst(2))
                     if normalizedUrl == normalize(baseDomain) { return true }
                 }
 
                 let baseRule = normalize(cleanedRule.replacingOccurrences(of: "*", with: ""))
-                if !baseRule.isEmpty && (normalizedUrl == baseRule || normalizedUrl.hasPrefix(baseRule + "/") || normalizedUrl.hasPrefix(baseRule + "?") || normalizedUrl.hasPrefix(baseRule + "#")) {
+                if !baseRule.isEmpty
+                    && (normalizedUrl == baseRule || normalizedUrl.hasPrefix(baseRule + "/")
+                        || normalizedUrl.hasPrefix(baseRule + "?")
+                        || normalizedUrl.hasPrefix(baseRule + "#"))
+                {
                     return true
                 }
 
-                // Fallback to predicate matching on normalized strings for path wildcards (e.g. github.com/*/settings)
                 let predicate = NSPredicate(format: "SELF LIKE[cd] %@", normalize(cleanedRule))
                 if predicate.evaluate(with: normalizedUrl) { return true }
 
-                // Final fallback: match against full cleaned URL if rule seems to include protocol/www
                 if cleanedRule.contains("://") || cleanedRule.contains("www.") {
                     let fullPredicate = NSPredicate(format: "SELF LIKE[cd] %@", cleanedRule)
                     if fullPredicate.evaluate(with: cleanedUrl) { return true }
@@ -41,46 +42,43 @@ struct RuleMatcher {
             } else {
                 let normalizedRule = normalize(cleanedRule)
 
-                // Exact Match (Crucial for YouTube links)
                 if normalizedUrl == normalizedRule || cleanedUrl == cleanedRule { return true }
 
-                                // Segment Match: Ensure we don't match partial words (e.g., 'work' matching 'working')
+                if normalizedUrl.hasPrefix(normalizedRule + "/")
+                    ||
 
-                                // Match if normalizedUrl starts with normalizedRule followed by a separator
+                    normalizedUrl.hasPrefix(normalizedRule + "?")
+                    ||
 
-                                if normalizedUrl.hasPrefix(normalizedRule + "/") || 
+                    normalizedUrl.hasPrefix(normalizedRule + "#")
+                    ||
 
-                                   normalizedUrl.hasPrefix(normalizedRule + "?") ||
+                    normalizedUrl.hasPrefix(normalizedRule + "&")
+                {
 
-                                   normalizedUrl.hasPrefix(normalizedRule + "#") ||
+                    return true
 
-                                   normalizedUrl.hasPrefix(normalizedRule + "&") {
+                }
 
-                                    return true
+                if normalizedUrl.hasSuffix("." + normalizedRule)
+                    ||
 
-                                }
+                    normalizedUrl.contains("." + normalizedRule + "/")
+                    ||
 
-                
+                    normalizedUrl.contains("." + normalizedRule + "?")
+                    ||
 
-                                // Subdomain Match: e.g., rule 'google.com' should match 'mail.google.com'
+                    normalizedUrl.contains("." + normalizedRule + "#")
+                    ||
 
-                                // Match if normalizedUrl ends with "." + normalizedRule OR contains "." + normalizedRule + "/"
+                    normalizedUrl.contains("." + normalizedRule + "&")
+                {
 
-                                if normalizedUrl.hasSuffix("." + normalizedRule) || 
+                    return true
 
-                                   normalizedUrl.contains("." + normalizedRule + "/") || 
+                }
 
-                                   normalizedUrl.contains("." + normalizedRule + "?") ||
-
-                                   normalizedUrl.contains("." + normalizedRule + "#") ||
-
-                                   normalizedUrl.contains("." + normalizedRule + "&") {
-
-                                    return true
-
-                                }
-
-                
             }
         }
         return false
@@ -96,8 +94,9 @@ struct RuleMatcher {
         }
 
         if let host = components.host?.lowercased(),
-           ["localhost", "127.0.0.1", "::1"].contains(host),
-           components.port == 10000 {
+            ["localhost", "127.0.0.1", "::1"].contains(host),
+            components.port == 10000
+        {
             return true
         }
 
@@ -106,17 +105,15 @@ struct RuleMatcher {
 
     static func normalize(_ s: String) -> String {
         var out = s.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // Decode percent encoding (e.g. %20 -> space)
+
         if let decoded = out.removingPercentEncoding {
             out = decoded
         }
-        
+
         if out.hasPrefix("https://") { out = String(out.dropFirst(8)) }
         if out.hasPrefix("http://") { out = String(out.dropFirst(7)) }
         if out.hasPrefix("www.") { out = String(out.dropFirst(4)) }
 
-        // Only strip trailing slash if NOT a YouTube/Query URL to preserve IDs
         if !out.contains("?") {
             while out.hasSuffix("/") { out = String(out.dropLast()) }
         }

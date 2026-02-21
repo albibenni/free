@@ -39,13 +39,20 @@ struct PomodoroTimerView: View {
             ZStack {
                 // Background Circle (Track)
                 Circle()
-                    .stroke(Color.secondary.opacity(PomodoroConstants.trackOpacity), lineWidth: PomodoroConstants.strokeWidth)
+                    .stroke(
+                        Color.secondary.opacity(PomodoroConstants.trackOpacity),
+                        lineWidth: PomodoroConstants.strokeWidth
+                    )
                     .frame(width: radius * 2, height: radius * 2)
 
                 // Progress Arc
                 Circle()
                     .trim(from: 0, to: CGFloat(durationMinutes / maxMinutes))
-                    .stroke(color, style: StrokeStyle(lineWidth: PomodoroConstants.strokeWidth, lineCap: .round))
+                    .stroke(
+                        color,
+                        style: StrokeStyle(
+                            lineWidth: PomodoroConstants.strokeWidth, lineCap: .round)
+                    )
                     .rotationEffect(.degrees(-90))
                     .frame(width: radius * 2, height: radius * 2)
 
@@ -68,7 +75,8 @@ struct PomodoroTimerView: View {
                             )
                     )
 
-                ClockCenterContent(iconName: iconName, color: color, text: "\(Int(durationMinutes))m")
+                ClockCenterContent(
+                    iconName: iconName, color: color, text: "\(Int(durationMinutes))m")
             }
         }
         .aspectRatio(1, contentMode: .fit)
@@ -82,11 +90,11 @@ struct PomodoroTimerView: View {
         return CGPoint(x: x, y: y)
     }
 
-    static func calculateDuration(location: CGPoint, center: CGPoint, maxMinutes: Double) -> Double {
+    static func calculateDuration(location: CGPoint, center: CGPoint, maxMinutes: Double) -> Double
+    {
         let vector = CGVector(dx: location.x - center.x, dy: location.y - center.y)
         var angleRadians = atan2(vector.dy, vector.dx)
 
-        // Adjust coordinate system so -90 degrees (top) is 0
         angleRadians += .pi / 2
 
         if angleRadians < 0 { angleRadians += 2 * .pi }
@@ -111,12 +119,17 @@ struct PomodoroProgressView: View {
         ZStack {
             // Background Circle (Track)
             Circle()
-                .stroke(Color.secondary.opacity(PomodoroConstants.trackOpacity), lineWidth: PomodoroConstants.strokeWidth)
+                .stroke(
+                    Color.secondary.opacity(PomodoroConstants.trackOpacity),
+                    lineWidth: PomodoroConstants.strokeWidth)
 
             // Progress Arc
             Circle()
                 .trim(from: 0, to: CGFloat(progress))
-                .stroke(color, style: StrokeStyle(lineWidth: PomodoroConstants.strokeWidth, lineCap: .round))
+                .stroke(
+                    color,
+                    style: StrokeStyle(lineWidth: PomodoroConstants.strokeWidth, lineCap: .round)
+                )
                 .rotationEffect(.degrees(-90))
 
             ClockCenterContent(iconName: iconName, color: color, text: timeString)

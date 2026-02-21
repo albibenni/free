@@ -1,7 +1,8 @@
-import Testing
-import Foundation
 import AppKit
 import ApplicationServices
+import Foundation
+import Testing
+
 @testable import FreeLogic
 
 private final class FakeAXElement: NSObject {}
@@ -51,10 +52,13 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
         let app = FakeAXElement()
         let focused = FakeAXElement()
         axState.appByPID[77] = app
-        axState.setAttribute(app, kAXFocusedWindowAttribute as CFString, result: (.success, focused))
-        axState.setAttribute(focused, kAXRoleAttribute as CFString, result: (.success, "AXTextField"))
+        axState.setAttribute(
+            app, kAXFocusedWindowAttribute as CFString, result: (.success, focused))
+        axState.setAttribute(
+            focused, kAXRoleAttribute as CFString, result: (.success, "AXTextField"))
         axState.setAttribute(focused, kAXTitleAttribute as CFString, result: (.success, ""))
-        axState.setAttribute(focused, kAXValueAttribute as CFString, result: (.success, "https://focused.example"))
+        axState.setAttribute(
+            focused, kAXValueAttribute as CFString, result: (.success, "https://focused.example"))
 
         let dependencies = DefaultBrowserAutomatorSystemDependencies(
             checkPermissions: { prompt in
@@ -91,11 +95,14 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
         let fallbackWindow = FakeAXElement()
         state.appByPID[1] = app
         state.setAttribute(app, kAXFocusedWindowAttribute as CFString, result: (.success, focused))
-        state.setAttribute(app, kAXWindowsAttribute as CFString, result: (.success, [fallbackWindow]))
+        state.setAttribute(
+            app, kAXWindowsAttribute as CFString, result: (.success, [fallbackWindow]))
 
         state.setAttribute(focused, kAXRoleAttribute as CFString, result: (.success, "AXTextField"))
         state.setAttribute(focused, kAXTitleAttribute as CFString, result: (.success, ""))
-        state.setAttribute(focused, kAXValueAttribute as CFString, result: (.success, "https://focused-url.example"))
+        state.setAttribute(
+            focused, kAXValueAttribute as CFString,
+            result: (.success, "https://focused-url.example"))
 
         let result = DefaultBrowserAutomatorAccessibility.arcURL(pid: 1, axAPI: state.makeAPI())
         #expect(result == "https://focused-url.example")
@@ -119,7 +126,8 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
 
         state.setAttribute(window, kAXRoleAttribute as CFString, result: (.success, "AXTextField"))
         state.setAttribute(window, kAXTitleAttribute as CFString, result: (.success, ""))
-        state.setAttribute(window, kAXValueAttribute as CFString, result: (.success, "fallback.example"))
+        state.setAttribute(
+            window, kAXValueAttribute as CFString, result: (.success, "fallback.example"))
 
         let result = DefaultBrowserAutomatorAccessibility.arcURL(pid: 2, axAPI: state.makeAPI())
         #expect(result == "https://fallback.example")
@@ -131,8 +139,10 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
         let state = FakeAXState()
         let app = FakeAXElement()
         state.appByPID[3] = app
-        state.setAttribute(app, kAXFocusedWindowAttribute as CFString, result: (.attributeUnsupported, nil))
-        state.setAttribute(app, kAXWindowsAttribute as CFString, result: (.attributeUnsupported, nil))
+        state.setAttribute(
+            app, kAXFocusedWindowAttribute as CFString, result: (.attributeUnsupported, nil))
+        state.setAttribute(
+            app, kAXWindowsAttribute as CFString, result: (.attributeUnsupported, nil))
 
         let result = DefaultBrowserAutomatorAccessibility.arcURL(pid: 3, axAPI: state.makeAPI())
         #expect(result == nil)
@@ -144,21 +154,35 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
         let element = FakeAXElement()
         let api = state.makeAPI()
 
-        state.setAttribute(element, kAXRoleAttribute as CFString, result: (.success, "AXStaticText"))
-        state.setAttribute(element, kAXTitleAttribute as CFString, result: (.success, "title.example"))
-        state.setAttribute(element, kAXValueAttribute as CFString, result: (.success, "  https://value.example  "))
-        #expect(DefaultBrowserAutomatorAccessibility.findURL(in: element, axAPI: api) == "https://value.example")
+        state.setAttribute(
+            element, kAXRoleAttribute as CFString, result: (.success, "AXStaticText"))
+        state.setAttribute(
+            element, kAXTitleAttribute as CFString, result: (.success, "title.example"))
+        state.setAttribute(
+            element, kAXValueAttribute as CFString, result: (.success, "  https://value.example  "))
+        #expect(
+            DefaultBrowserAutomatorAccessibility.findURL(in: element, axAPI: api)
+                == "https://value.example")
 
-        state.setAttribute(element, kAXValueAttribute as CFString, result: (.success, "domain.example"))
-        #expect(DefaultBrowserAutomatorAccessibility.findURL(in: element, axAPI: api) == "https://domain.example")
+        state.setAttribute(
+            element, kAXValueAttribute as CFString, result: (.success, "domain.example"))
+        #expect(
+            DefaultBrowserAutomatorAccessibility.findURL(in: element, axAPI: api)
+                == "https://domain.example")
 
         state.setAttribute(element, kAXRoleAttribute as CFString, result: (.success, "AXButton"))
         state.setAttribute(element, kAXValueAttribute as CFString, result: (.success, ""))
-        state.setAttribute(element, kAXTitleAttribute as CFString, result: (.success, "https://title.example"))
-        #expect(DefaultBrowserAutomatorAccessibility.findURL(in: element, axAPI: api) == "https://title.example")
+        state.setAttribute(
+            element, kAXTitleAttribute as CFString, result: (.success, "https://title.example"))
+        #expect(
+            DefaultBrowserAutomatorAccessibility.findURL(in: element, axAPI: api)
+                == "https://title.example")
 
-        state.setAttribute(element, kAXTitleAttribute as CFString, result: (.success, "title2.example"))
-        #expect(DefaultBrowserAutomatorAccessibility.findURL(in: element, axAPI: api) == "https://title2.example")
+        state.setAttribute(
+            element, kAXTitleAttribute as CFString, result: (.success, "title2.example"))
+        #expect(
+            DefaultBrowserAutomatorAccessibility.findURL(in: element, axAPI: api)
+                == "https://title2.example")
     }
 
     @Test("findURL recurses through children and respects depth limit")
@@ -177,14 +201,20 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
         state.setAttribute(child, kAXRoleAttribute as CFString, result: (.success, "AXButton"))
         state.setAttribute(child, kAXTitleAttribute as CFString, result: (.success, ""))
         state.setAttribute(child, kAXValueAttribute as CFString, result: (.success, ""))
-        state.setAttribute(child, kAXChildrenAttribute as CFString, result: (.success, [grandchild]))
+        state.setAttribute(
+            child, kAXChildrenAttribute as CFString, result: (.success, [grandchild]))
 
-        state.setAttribute(grandchild, kAXRoleAttribute as CFString, result: (.success, "AXComboBox"))
+        state.setAttribute(
+            grandchild, kAXRoleAttribute as CFString, result: (.success, "AXComboBox"))
         state.setAttribute(grandchild, kAXTitleAttribute as CFString, result: (.success, ""))
-        state.setAttribute(grandchild, kAXValueAttribute as CFString, result: (.success, "deep.example"))
+        state.setAttribute(
+            grandchild, kAXValueAttribute as CFString, result: (.success, "deep.example"))
 
-        #expect(DefaultBrowserAutomatorAccessibility.findURL(in: parent, axAPI: api) == "https://deep.example")
-        #expect(DefaultBrowserAutomatorAccessibility.findURL(in: parent, depth: 16, axAPI: api) == nil)
+        #expect(
+            DefaultBrowserAutomatorAccessibility.findURL(in: parent, axAPI: api)
+                == "https://deep.example")
+        #expect(
+            DefaultBrowserAutomatorAccessibility.findURL(in: parent, depth: 16, axAPI: api) == nil)
     }
 
     @Test("findURL returns nil when children attribute is unavailable")
@@ -196,7 +226,8 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
         state.setAttribute(element, kAXRoleAttribute as CFString, result: (.success, "AXButton"))
         state.setAttribute(element, kAXTitleAttribute as CFString, result: (.success, ""))
         state.setAttribute(element, kAXValueAttribute as CFString, result: (.success, ""))
-        state.setAttribute(element, kAXChildrenAttribute as CFString, result: (.attributeUnsupported, nil))
+        state.setAttribute(
+            element, kAXChildrenAttribute as CFString, result: (.attributeUnsupported, nil))
 
         #expect(DefaultBrowserAutomatorAccessibility.findURL(in: element, axAPI: api) == nil)
     }
@@ -240,18 +271,25 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
         state.setAttribute(parent, kAXRoleAttribute as CFString, result: (.success, "AXButton"))
         state.setAttribute(parent, kAXTitleAttribute as CFString, result: (.success, ""))
         state.setAttribute(parent, kAXValueAttribute as CFString, result: (.success, ""))
-        state.setAttribute(parent, kAXChildrenAttribute as CFString, result: (.success, [firstChild, secondChild]))
+        state.setAttribute(
+            parent, kAXChildrenAttribute as CFString, result: (.success, [firstChild, secondChild]))
 
-        state.setAttribute(firstChild, kAXRoleAttribute as CFString, result: (.success, "AXTextField"))
+        state.setAttribute(
+            firstChild, kAXRoleAttribute as CFString, result: (.success, "AXTextField"))
         state.setAttribute(firstChild, kAXTitleAttribute as CFString, result: (.success, ""))
-        state.setAttribute(firstChild, kAXValueAttribute as CFString, result: (.success, "invalid value"))
+        state.setAttribute(
+            firstChild, kAXValueAttribute as CFString, result: (.success, "invalid value"))
         state.setAttribute(firstChild, kAXChildrenAttribute as CFString, result: (.success, []))
 
-        state.setAttribute(secondChild, kAXRoleAttribute as CFString, result: (.success, "AXComboBox"))
+        state.setAttribute(
+            secondChild, kAXRoleAttribute as CFString, result: (.success, "AXComboBox"))
         state.setAttribute(secondChild, kAXTitleAttribute as CFString, result: (.success, ""))
-        state.setAttribute(secondChild, kAXValueAttribute as CFString, result: (.success, "later.example"))
+        state.setAttribute(
+            secondChild, kAXValueAttribute as CFString, result: (.success, "later.example"))
 
-        #expect(DefaultBrowserAutomatorAccessibility.findURL(in: parent, axAPI: api) == "https://later.example")
+        #expect(
+            DefaultBrowserAutomatorAccessibility.findURL(in: parent, axAPI: api)
+                == "https://later.example")
     }
 
     @Test("liveSystem and live dependency constructors can execute without crashing")

@@ -13,7 +13,6 @@ enum FreeAppSceneFactory {
         menuIconColor: Color
     ) -> some Scene {
 #if SWIFT_PACKAGE
-        // SwiftPM tests can validate menu scene behavior deterministically.
         MenuBarExtra {
             Text(menuStatusText)
             Divider()

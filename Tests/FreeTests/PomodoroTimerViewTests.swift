@@ -1,6 +1,7 @@
-import Testing
-import SwiftUI
 import AppKit
+import SwiftUI
+import Testing
+
 @testable import FreeLogic
 
 @Suite(.serialized)
@@ -11,7 +12,9 @@ struct PomodoroTimerViewTests {
     }
 
     @MainActor
-    private func host<V: View>(_ view: V, size: CGSize = CGSize(width: 240, height: 240)) -> NSHostingView<V> {
+    private func host<V: View>(_ view: V, size: CGSize = CGSize(width: 240, height: 240))
+        -> NSHostingView<V>
+    {
         let hosted = NSHostingView(rootView: view)
         hosted.frame = NSRect(origin: .zero, size: size)
         hosted.layoutSubtreeIfNeeded()
@@ -19,8 +22,9 @@ struct PomodoroTimerViewTests {
         return hosted
     }
 
-    // DragGesture.Value has no public initializer; fabricate a deterministic instance for handler tests.
-    private func makeDragValue(location: CGPoint, startLocation: CGPoint = .zero, time: Date = Date()) -> DragGesture.Value {
+    private func makeDragValue(
+        location: CGPoint, startLocation: CGPoint = .zero, time: Date = Date()
+    ) -> DragGesture.Value {
         let size = MemoryLayout<DragGesture.Value>.size
         let alignment = MemoryLayout<DragGesture.Value>.alignment
         let raw = UnsafeMutableRawPointer.allocate(byteCount: size, alignment: alignment)
@@ -85,17 +89,19 @@ struct PomodoroTimerViewTests {
         let center = CGPoint(x: 100, y: 100)
         let maxMins: Double = 60
 
-        // Top-left makes atan2 <-pi/2, which exercises negative-angle normalization.
         let topLeft = CGPoint(x: 50, y: 50)
-        #expect(PomodoroTimerView.calculateDuration(location: topLeft, center: center, maxMinutes: maxMins) == 55)
+        #expect(
+            PomodoroTimerView.calculateDuration(
+                location: topLeft, center: center, maxMinutes: maxMins) == 55)
 
-        // Top snaps to 0 then clamps to minimum step of 5.
         let top = CGPoint(x: 100, y: 0)
-        #expect(PomodoroTimerView.calculateDuration(location: top, center: center, maxMinutes: maxMins) >= 5)
+        #expect(
+            PomodoroTimerView.calculateDuration(location: top, center: center, maxMinutes: maxMins)
+                >= 5)
 
-        // Slightly left of top should snap near full-circle and remain clamped within max.
         let nearWrap = CGPoint(x: 99.9, y: 0)
-        let wrapped = PomodoroTimerView.calculateDuration(location: nearWrap, center: center, maxMinutes: maxMins)
+        let wrapped = PomodoroTimerView.calculateDuration(
+            location: nearWrap, center: center, maxMinutes: maxMins)
         #expect(wrapped <= 60)
     }
 
@@ -149,7 +155,8 @@ struct PomodoroTimerViewTests {
             durationMinutes: binding
         )
 
-        let dragValue = makeDragValue(location: CGPoint(x: 150, y: 100), startLocation: CGPoint(x: 100, y: 100))
+        let dragValue = makeDragValue(
+            location: CGPoint(x: 150, y: 100), startLocation: CGPoint(x: 100, y: 100))
         handler(dragValue)
 
         #expect(duration.value == 15)

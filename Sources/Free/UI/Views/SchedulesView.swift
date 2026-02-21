@@ -11,7 +11,7 @@ struct ScheduleEditorContext: Identifiable {
 
 struct SchedulesView: View {
     @EnvironmentObject var appState: AppState
-    @State private var viewMode = 1 // 0 = List, 1 = Calendar
+    @State private var viewMode = 1  // 0 = List, 1 = Calendar
     @State private var editorContext: ScheduleEditorContext?
 
     var body: some View {
@@ -24,14 +24,18 @@ struct SchedulesView: View {
             .padding()
 
             if viewMode == 0 {
-                // List View
                 List {
                     ForEach($appState.schedules) { $schedule in
-                        ScheduleRow(schedule: $schedule, onDelete: {
-                            if let index = appState.schedules.firstIndex(where: { $0.id == schedule.id }) {
-                                appState.schedules.remove(at: index)
+                        ScheduleRow(
+                            schedule: $schedule,
+                            onDelete: {
+                                if let index = appState.schedules.firstIndex(where: {
+                                    $0.id == schedule.id
+                                }) {
+                                    appState.schedules.remove(at: index)
+                                }
                             }
-                        })
+                        )
                         .contentShape(Rectangle())
                         .onTapGesture {
                             editorContext = ScheduleEditorContext(schedule: schedule)
@@ -43,7 +47,6 @@ struct SchedulesView: View {
                 }
                 .listStyle(InsetListStyle())
             } else {
-                // Calendar View
                 WeeklyCalendarView(editorContext: $editorContext)
             }
 
@@ -54,10 +57,12 @@ struct SchedulesView: View {
             }) {
                 Text("Add Schedule")
             }
-            .buttonStyle(AppPrimaryButtonStyle(
-                color: FocusColor.color(for: appState.accentColorIndex),
-                maxWidth: .infinity
-            ))
+            .buttonStyle(
+                AppPrimaryButtonStyle(
+                    color: FocusColor.color(for: appState.accentColorIndex),
+                    maxWidth: .infinity
+                )
+            )
             .padding()
             .frame(maxWidth: .infinity)
         }

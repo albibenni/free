@@ -1,6 +1,7 @@
-import Testing
-import Foundation
 import AppKit
+import Foundation
+import Testing
+
 @testable import FreeLogic
 
 private final class BrowserAutomatorRuntimeState {
@@ -53,7 +54,9 @@ struct DefaultBrowserAutomatorTests {
     func redirectArcScript() {
         let state = BrowserAutomatorRuntimeState()
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
-        automator.redirect(bundleIdentifier: DefaultBrowserAutomator.arcBundleIdentifier, localizedName: "Arc", to: "https://example.com")
+        automator.redirect(
+            bundleIdentifier: DefaultBrowserAutomator.arcBundleIdentifier, localizedName: "Arc",
+            to: "https://example.com")
 
         #expect(state.scriptCalls.count == 1)
         #expect(state.scriptCalls[0].contains("tell application \"Arc\""))
@@ -64,7 +67,9 @@ struct DefaultBrowserAutomatorTests {
     func redirectSafariScript() {
         let state = BrowserAutomatorRuntimeState()
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
-        automator.redirect(bundleIdentifier: DefaultBrowserAutomator.safariBundleIdentifier, localizedName: "Safari", to: "https://apple.com")
+        automator.redirect(
+            bundleIdentifier: DefaultBrowserAutomator.safariBundleIdentifier,
+            localizedName: "Safari", to: "https://apple.com")
         automator.redirect(bundleIdentifier: nil, localizedName: nil, to: "https://fallback.com")
 
         #expect(state.scriptCalls.count == 2)
@@ -76,7 +81,9 @@ struct DefaultBrowserAutomatorTests {
     func redirectChromiumScript() {
         let state = BrowserAutomatorRuntimeState()
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
-        automator.redirect(bundleIdentifier: "com.google.Chrome", localizedName: "Google Chrome", to: "https://chromium.dev")
+        automator.redirect(
+            bundleIdentifier: "com.google.Chrome", localizedName: "Google Chrome",
+            to: "https://chromium.dev")
 
         #expect(state.scriptCalls.count == 1)
         #expect(state.scriptCalls[0].contains("tell application \"Google Chrome\""))
@@ -133,7 +140,9 @@ struct DefaultBrowserAutomatorTests {
 
         #expect(result == "https://safari.example")
         #expect(state.scriptCalls.count == 1)
-        #expect(state.scriptCalls[0] == "tell application \"Safari\" to return URL of current tab of front window")
+        #expect(
+            state.scriptCalls[0]
+                == "tell application \"Safari\" to return URL of current tab of front window")
     }
 
     @Test("getActiveUrl uses generic active-tab command for non-Safari browsers")
@@ -167,7 +176,9 @@ struct DefaultBrowserAutomatorTests {
 
         #expect(result == "https://missing-name.example")
         #expect(state.scriptCalls.count == 1)
-        #expect(state.scriptCalls[0].contains("tell application \"Safari\" to return URL of active tab of front window"))
+        #expect(
+            state.scriptCalls[0].contains(
+                "tell application \"Safari\" to return URL of active tab of front window"))
     }
 
     @Test("getAllOpenUrls filters unsupported apps, localhost page, empties, and duplicates")
@@ -188,11 +199,11 @@ struct DefaultBrowserAutomatorTests {
                 bundleIdentifier: "com.unsupported.App",
                 localizedName: "Unsupported",
                 processIdentifier: 3
-            )
+            ),
         ]
         state.scriptResults = [
             "https://z.com\nhttps://localhost:10000\n\nhttps://a.com",
-            "https://a.com\nhttps://b.com\n"
+            "https://a.com\nhttps://b.com\n",
         ]
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
 
@@ -253,18 +264,36 @@ struct DefaultBrowserAutomatorTests {
         let state = BrowserAutomatorRuntimeState()
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
 
-        #expect(automator.scriptAppName(bundleIdentifier: DefaultBrowserAutomator.safariBundleIdentifier, localizedName: "X") == "Safari")
-        #expect(automator.scriptAppName(bundleIdentifier: DefaultBrowserAutomator.arcBundleIdentifier, localizedName: "X") == "Arc")
-        #expect(automator.scriptAppName(bundleIdentifier: "com.google.Chrome", localizedName: "Google Chrome") == "Google Chrome")
+        #expect(
+            automator.scriptAppName(
+                bundleIdentifier: DefaultBrowserAutomator.safariBundleIdentifier, localizedName: "X"
+            ) == "Safari")
+        #expect(
+            automator.scriptAppName(
+                bundleIdentifier: DefaultBrowserAutomator.arcBundleIdentifier, localizedName: "X")
+                == "Arc")
+        #expect(
+            automator.scriptAppName(
+                bundleIdentifier: "com.google.Chrome", localizedName: "Google Chrome")
+                == "Google Chrome")
 
         #expect(automator.parseScriptOutput(nil).isEmpty)
-        #expect(automator.parseScriptOutput("  \nhttps://localhost:10000\nhttps://ok.example\n").count == 1)
-        #expect(automator.activeURLScript(bundleIdentifier: DefaultBrowserAutomator.safariBundleIdentifier, appName: "Safari").contains("current tab"))
-        #expect(automator.activeURLScript(bundleIdentifier: "com.brave.Browser", appName: "Brave").contains("active tab"))
+        #expect(
+            automator.parseScriptOutput("  \nhttps://localhost:10000\nhttps://ok.example\n").count
+                == 1)
+        #expect(
+            automator.activeURLScript(
+                bundleIdentifier: DefaultBrowserAutomator.safariBundleIdentifier, appName: "Safari"
+            ).contains("current tab"))
+        #expect(
+            automator.activeURLScript(bundleIdentifier: "com.brave.Browser", appName: "Brave")
+                .contains("active tab"))
         #expect(automator.allTabsScript(appName: "Safari").contains("repeat with t in tabs of w"))
         #expect(automator.arcRedirect("https://arc").contains("tell application \"Arc\""))
         #expect(automator.safariRedirect("https://safari").contains("tell application \"Safari\""))
-        #expect(automator.chromRedirect("Chrome", "https://chrome").contains("tell application \"Chrome\""))
+        #expect(
+            automator.chromRedirect("Chrome", "https://chrome").contains(
+                "tell application \"Chrome\""))
     }
 
     @Test("NSRunningApplication protocol wrappers can execute")

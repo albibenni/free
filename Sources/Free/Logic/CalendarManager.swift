@@ -1,8 +1,9 @@
-import Foundation
 import Combine
 import EventKit
+import Foundation
 
-protocol CalendarProvider: ObservableObject where ObjectWillChangePublisher == ObservableObjectPublisher {
+protocol CalendarProvider: ObservableObject
+where ObjectWillChangePublisher == ObservableObjectPublisher {
     var events: [ExternalEvent] { get set }
     var isAuthorized: Bool { get }
     func requestAccess()
@@ -32,7 +33,8 @@ class RealCalendarManager: CalendarProvider {
             self.fetchEvents()
         }
 
-        refreshTimer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 5 * 60) { [weak self] in
+        refreshTimer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 5 * 60) {
+            [weak self] in
             self?.fetchEvents()
         }
     }
@@ -59,7 +61,8 @@ class RealCalendarManager: CalendarProvider {
         guard isAuthorized else { return }
         let calendar = Calendar.current
         let now = nowProvider()
-        let startRange = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: now))!
+        let startRange = calendar.date(
+            byAdding: .day, value: -7, to: calendar.startOfDay(for: now))!
         let endRange = calendar.date(byAdding: .day, value: 7, to: calendar.startOfDay(for: now))!
 
         let snapshots = runtime.loadEvents(startRange, endRange)
@@ -67,7 +70,8 @@ class RealCalendarManager: CalendarProvider {
         let mapped = snapshots.compactMap { snapshot -> ExternalEvent? in
             if snapshot.isAllDay { return nil }
             return ExternalEvent(
-                id: "\(snapshot.eventIdentifier ?? UUID().uuidString)-\(snapshot.startDate.timeIntervalSince1970)",
+                id:
+                    "\(snapshot.eventIdentifier ?? UUID().uuidString)-\(snapshot.startDate.timeIntervalSince1970)",
                 title: snapshot.title ?? "Untitled Event",
                 startDate: snapshot.startDate,
                 endDate: snapshot.endDate
@@ -80,7 +84,6 @@ class RealCalendarManager: CalendarProvider {
     }
 }
 
-// Dummy for when we don't want any calendar logic (e.g. basic tests)
 class MockCalendarManager: CalendarProvider {
     @Published var events: [ExternalEvent] = []
     @Published var isAuthorized: Bool = true

@@ -8,9 +8,13 @@ struct AddScheduleThemeColorRow: View {
             ForEach(0..<FocusColor.all.count, id: \.self) { index in
                 Circle().fill(FocusColor.all[index]).frame(width: 30, height: 30)
                     .overlay(Circle().stroke(Color.primary, lineWidth: selectedColorIndex == index ? 2 : 0).padding(-4))
-                    .onTapGesture { selectedColorIndex = index }
+                    .onTapGesture(perform: Self.makeSelectColorAction(selectedColorIndex: $selectedColorIndex, index: index))
             }
         }
+    }
+
+    static func makeSelectColorAction(selectedColorIndex: Binding<Int>, index: Int) -> () -> Void {
+        { selectedColorIndex.wrappedValue = index }
     }
 }
 
@@ -33,11 +37,13 @@ struct AddScheduleRecurringDaysRow: View {
             HStack(spacing: 12) {
                 let order = AddScheduleView.weekDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday)
                 ForEach(order, id: \.self) { day in
-                    DayToggle(day: day, isSelected: days.contains(day)) {
-                        days = AddScheduleView.toggledDays(days, day: day)
-                    }
+                    DayToggle(day: day, isSelected: days.contains(day), action: Self.makeToggleDayAction(days: $days, day: day))
                 }
             }
         }
+    }
+
+    static func makeToggleDayAction(days: Binding<Set<Int>>, day: Int) -> () -> Void {
+        { days.wrappedValue = AddScheduleView.toggledDays(days.wrappedValue, day: day) }
     }
 }

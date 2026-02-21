@@ -1,6 +1,7 @@
-import Testing
-import Foundation
 import Combine
+import Foundation
+import Testing
+
 @testable import FreeLogic
 
 private final class CalendarRuntimeState {
@@ -45,7 +46,8 @@ struct CalendarManagerTests {
     func mockCalendarLogic() {
         let mock = MockCalendarManager()
         let now = Date()
-        let event = ExternalEvent(id: "1", title: "Test", startDate: now, endDate: now.addingTimeInterval(3600))
+        let event = ExternalEvent(
+            id: "1", title: "Test", startDate: now, endDate: now.addingTimeInterval(3600))
 
         mock.requestAccess()
         mock.fetchEvents()
@@ -72,7 +74,6 @@ struct CalendarManagerTests {
         #expect(runtimeState.dispatchCalls == 0)
         #expect(scheduler.intervals == [300.0])
 
-        // Timer runs, but fetch guard prevents store access while unauthorized.
         scheduler.fire(at: 0)
         #expect(runtimeState.loadedRanges.isEmpty)
     }
@@ -196,7 +197,6 @@ struct CalendarManagerTests {
         manager = nil
         runtimeState.accessRequests[0](true)
 
-        // Closure should return early due weak self.
         #expect(runtimeState.dispatchCalls == 0)
     }
 
@@ -239,7 +239,7 @@ struct CalendarManagerTests {
                 startDate: now.addingTimeInterval(120),
                 endDate: now.addingTimeInterval(900),
                 isAllDay: false
-            )
+            ),
         ]
         let manager = RealCalendarManager(
             timerScheduler: MockRepeatingTimerScheduler(),
@@ -255,11 +255,13 @@ struct CalendarManagerTests {
         #expect(manager.events.count == 2)
         #expect(manager.events[0].title == "Untitled Event")
         #expect(
-            manager.events[0].id.hasSuffix("-\(runtimeState.snapshots[1].startDate.timeIntervalSince1970)")
+            manager.events[0].id.hasSuffix(
+                "-\(runtimeState.snapshots[1].startDate.timeIntervalSince1970)")
         )
         #expect(manager.events[1].title == "Deep Work")
         #expect(
-            manager.events[1].id == "custom-id-\(runtimeState.snapshots[2].startDate.timeIntervalSince1970)"
+            manager.events[1].id
+                == "custom-id-\(runtimeState.snapshots[2].startDate.timeIntervalSince1970)"
         )
     }
 

@@ -1,5 +1,6 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import FreeLogic
 
 struct WeekDateCalculatorTests {
@@ -7,7 +8,7 @@ struct WeekDateCalculatorTests {
     func liveRuntimeWeekDates() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        let anchor = Date(timeIntervalSince1970: 1_708_387_200) // 2024-02-18 00:00:00 UTC (Sunday)
+        let anchor = Date(timeIntervalSince1970: 1_708_387_200)
 
         let sundayWeek = WeekDateCalculator.getWeekDates(
             at: anchor,

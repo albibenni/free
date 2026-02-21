@@ -4,8 +4,7 @@ struct FocusView: View {
     @EnvironmentObject var appState: AppState
     @Binding var showRules: Bool
     @Binding var showSchedules: Bool
-    
-    // Pomodoro Challenge (Owned by FocusView to coordinate with widget)
+
     @State private var showPomodoroChallenge = false
     @State private var pomodoroChallengeInput = ""
 
@@ -13,7 +12,7 @@ struct FocusView: View {
         VStack(alignment: .leading, spacing: 20) {
             permissionWarning
             headerView
-            
+
             if appState.isBlocking && appState.isUnblockable {
                 Text("Unblockable mode is active. You cannot disable Focus Mode.")
                     .font(.caption)
@@ -34,8 +33,6 @@ struct FocusView: View {
         .padding()
     }
 
-    // MARK: - Subviews
-    
     @ViewBuilder
     private var permissionWarning: some View {
         if !appState.isTrusted {
@@ -47,7 +44,9 @@ struct FocusView: View {
                     .bold()
                 Spacer()
                 Button("Grant") {
-                    let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+                    let options =
+                        [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+                        as CFDictionary
                     AXIsProcessTrustedWithOptions(options)
                 }
                 .foregroundColor(.black)
@@ -72,7 +71,9 @@ struct FocusView: View {
                     .font(.title2)
                     .bold()
                 HStack(spacing: 4) {
-                    Text(appState.isBlocking ? (appState.isPaused ? "Paused" : "Active") : "Inactive")
+                    Text(
+                        appState.isBlocking ? (appState.isPaused ? "Paused" : "Active") : "Inactive"
+                    )
                     if appState.isBlocking && !appState.isPaused {
                         Text("•")
                         Text(appState.currentPrimaryRuleSetName)

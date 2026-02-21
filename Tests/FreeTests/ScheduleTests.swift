@@ -70,7 +70,6 @@ struct ScheduleTests {
     func anchoredIntervalAnchorNormalization() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        // Anchor includes time; interval should still be based on that calendar day.
         let noisyAnchor = calendar.date(
             from: DateComponents(year: 2026, month: 2, day: 16, hour: 18, minute: 45))!
         let interval = Schedule.anchoredInterval(
@@ -91,16 +90,12 @@ struct ScheduleTests {
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: 22, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 2, minute: 0))!
-        // Saturday session.
         let schedule = Schedule(name: "Weekend Night", days: [7], startTime: start, endTime: end)
 
-        // Saturday 23:30 should be active.
         let saturdayLate = calendar.date(
             from: DateComponents(year: 2023, month: 1, day: 7, hour: 23, minute: 30))!
-        // Sunday 01:30 should still be active (carry from Saturday).
         let sundayEarly = calendar.date(
             from: DateComponents(year: 2023, month: 1, day: 8, hour: 1, minute: 30))!
-        // Sunday 03:00 should be inactive (past end).
         let sundayAfter = calendar.date(
             from: DateComponents(year: 2023, month: 1, day: 8, hour: 3, minute: 0))!
 
@@ -114,7 +109,7 @@ struct ScheduleTests {
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: 22, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 2, minute: 0))!
-        let oneOffDay = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2))!  // Monday
+        let oneOffDay = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2))!
         let schedule = Schedule(
             name: "One Night", days: [], date: oneOffDay, startTime: start, endTime: end)
 
@@ -132,88 +127,71 @@ struct ScheduleTests {
 
     @Test("Schedule activates correctly within time range")
     func scheduleActiveInTimeRange() {
-        // Given
         var schedule = Schedule(
             name: "Test Schedule",
-            days: [2],  // Monday (assuming Gregorian)
+            days: [2],
             startTime: Date(),
             endTime: Date(),
             isEnabled: true
         )
 
         let calendar = Calendar.current
-        // Set Monday 10:00 AM
         let monday = calendar.date(
             from: DateComponents(year: 2023, month: 1, day: 2, hour: 10, minute: 0))!
-        // 2023-01-02 is a Monday
 
-        // Schedule is 9:00 - 17:00
         schedule.startTime = calendar.date(from: DateComponents(hour: 9, minute: 0))!
         schedule.endTime = calendar.date(from: DateComponents(hour: 17, minute: 0))!
 
-        // When
         let isActive = schedule.isActive(at: monday)
 
-        // Then
         #expect(isActive, "Schedule should be active on Monday 10:00")
     }
 
     @Test("Schedule remains inactive on wrong day")
     func scheduleInactiveWrongDay() {
-        // Given
         var schedule = Schedule(
             name: "Test Schedule",
-            days: [2],  // Monday
+            days: [2],
             startTime: Date(),
             endTime: Date(),
             isEnabled: true
         )
 
         let calendar = Calendar.current
-        // Tuesday 10:00 AM
         let tuesday = calendar.date(
             from: DateComponents(year: 2023, month: 1, day: 3, hour: 10, minute: 0))!
 
         schedule.startTime = calendar.date(from: DateComponents(hour: 9, minute: 0))!
         schedule.endTime = calendar.date(from: DateComponents(hour: 17, minute: 0))!
 
-        // When
         let isActive = schedule.isActive(at: tuesday)
 
-        // Then
         #expect(!isActive, "Schedule should be inactive on Tuesday")
     }
 
     @Test("Overnight schedule logic works correctly")
     func scheduleOvernight() {
-        // Given
         var schedule = Schedule(
             name: "Night Shift",
-            days: [2],  // Monday
+            days: [2],
             startTime: Date(),
             endTime: Date(),
             isEnabled: true
         )
 
         let calendar = Calendar.current
-        // Schedule 22:00 - 02:00
         schedule.startTime = calendar.date(from: DateComponents(hour: 22, minute: 0))!
         schedule.endTime = calendar.date(from: DateComponents(hour: 2, minute: 0))!
 
-        // Monday 23:00 (Should be active)
         let mondayNight = calendar.date(
             from: DateComponents(year: 2023, month: 1, day: 2, hour: 23, minute: 0))!
-        // Tuesday 01:00 (Should be active as continuation of Monday overnight session)
         let tuesdayEarlyMorning = calendar.date(
             from: DateComponents(year: 2023, month: 1, day: 3, hour: 1, minute: 0))!
-        // Monday 01:00 (Should be inactive because it belongs to Sunday's overnight session)
         let mondayEarlyMorning = calendar.date(
             from: DateComponents(year: 2023, month: 1, day: 2, hour: 1, minute: 0))!
-        // Monday 12:00 (Should be inactive)
         let mondayNoon = calendar.date(
             from: DateComponents(year: 2023, month: 1, day: 2, hour: 12, minute: 0))!
 
-        // Then
         #expect(schedule.isActive(at: mondayNight), "Should be active at 23:00")
         #expect(schedule.isActive(at: tuesdayEarlyMorning), "Should be active Tuesday at 01:00")
         #expect(!schedule.isActive(at: mondayEarlyMorning), "Should be inactive Monday at 01:00")
@@ -248,15 +226,12 @@ struct ScheduleTests {
         let schedule = Schedule(
             name: "Hour", days: [1, 2, 3, 4, 5, 6, 7], startTime: start, endTime: end)
 
-        // Exact start (inclusive)
         let exactStart = calendar.date(from: DateComponents(hour: 9, minute: 0))!
         #expect(schedule.isActive(at: exactStart))
 
-        // Exact end (exclusive)
         let exactEnd = calendar.date(from: DateComponents(hour: 10, minute: 0))!
         #expect(!schedule.isActive(at: exactEnd))
 
-        // One minute before end
         let almostEnd = calendar.date(from: DateComponents(hour: 9, minute: 59))!
         #expect(schedule.isActive(at: almostEnd))
     }
@@ -265,7 +240,7 @@ struct ScheduleTests {
     func defaultSchedule() {
         let schedule = Schedule.defaultSchedule()
         #expect(schedule.name == "Work Hours")
-        #expect(schedule.days.count == 5)  // Mon-Fri
+        #expect(schedule.days.count == 5)
         #expect(schedule.isEnabled == true)
         #expect(schedule.type == .focus)
     }
@@ -278,15 +253,13 @@ struct ScheduleTests {
 
         let schedule = Schedule(
             name: "Work",
-            days: [2, 4, 6],  // Mon, Wed, Fri
+            days: [2, 4, 6],
             startTime: start,
             endTime: end
         )
 
-        // Verify days string
         #expect(schedule.daysString == "Mon, Wed, Fri")
 
-        // Verify time range (casing/format depends on locale, but we check structure)
         let timeRange = schedule.timeRangeString
         #expect(timeRange.contains(" - "))
         #expect(timeRange.count > 10)
@@ -294,16 +267,13 @@ struct ScheduleTests {
 
     @Test("Schedule daysString with various day counts")
     func daysStringVariations() {
-        // Single day
         let s1 = Schedule(name: "S", days: [1], startTime: Date(), endTime: Date())
         #expect(s1.daysString == "Sun")
 
-        // All days
         let s2 = Schedule(
             name: "A", days: [1, 2, 3, 4, 5, 6, 7], startTime: Date(), endTime: Date())
         #expect(s2.daysString == "Sun, Mon, Tue, Wed, Thu, Fri, Sat")
 
-        // Non-sequential
         let s3 = Schedule(name: "N", days: [1, 7], startTime: Date(), endTime: Date())
         #expect(s3.daysString == "Sun, Sat")
     }
@@ -344,41 +314,30 @@ struct ScheduleTests {
     @Test("One-off schedule logic")
     func oneOffScheduleLogic() {
         let calendar = Calendar.current
-        // Create a date for "Today" and "Tomorrow"
         let today = Date()
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
 
         let start = calendar.date(from: DateComponents(hour: 10, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 11, minute: 0))!
 
-        // Setup: A one-off schedule bonded to TODAY at 10 AM
         let schedule = Schedule(name: "Once", days: [], date: today, startTime: start, endTime: end)
 
-        // 1. Should be active today at 10:30 AM
         let testTimeToday = calendar.date(bySettingHour: 10, minute: 30, second: 0, of: today)!
         #expect(schedule.isActive(at: testTimeToday))
 
-        // 2. Should NOT be active tomorrow at 10:30 AM (even if weekday matches, date takes precedence)
         let testTimeTomorrow = calendar.date(
             bySettingHour: 10, minute: 30, second: 0, of: tomorrow)!
         #expect(!schedule.isActive(at: testTimeTomorrow))
 
-        // 3. String representation should show date
-        #expect(schedule.daysString != "One-off")  // It shows medium date style now
+        #expect(schedule.daysString != "One-off")
         #expect(schedule.daysString.count > 5)
     }
 
     @Test("calculateOneOffDate correctly maps weekdays across offsets")
     func oneOffDateCalculation() {
         let calendar = Calendar.current
-        // A known Monday (Feb 16, 2026)
         let monComps = DateComponents(year: 2026, month: 2, day: 16)
         let _ = calendar.date(from: monComps)!
-
-        // 1. Current week (Offset 0), target Wednesday (3)
-        // Monday start: Sun=1, Mon=2, Tue=3, Wed=4... wait.
-        // Sunday is always 1 in Calendar components.
-        // Feb 16 is Monday (2). Wednesday is Feb 18 (4).
 
         if let wed = Schedule.calculateOneOffDate(
             initialDay: 4, weekOffset: 0, weekStartsOnMonday: true)
@@ -389,7 +348,6 @@ struct ScheduleTests {
             Issue.record("Failed to calculate date")
         }
 
-        // 2. Next week (Offset 1), target Monday (2)
         if let nextMon = Schedule.calculateOneOffDate(
             initialDay: 2, weekOffset: 1, weekStartsOnMonday: true)
         {
@@ -398,7 +356,6 @@ struct ScheduleTests {
             Issue.record("Failed to calculate next week date")
         }
 
-        // 3. Nil initialDay should default to today's weekday
         if let inferred = Schedule.calculateOneOffDate(
             initialDay: nil, weekOffset: 0, weekStartsOnMonday: false)
         {

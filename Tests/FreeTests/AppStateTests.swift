@@ -1,10 +1,14 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import FreeLogic
 
 struct AppStateTests {
 
-    private func isolatedAppState(name: String, timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler()) -> AppState {
+    private func isolatedAppState(
+        name: String,
+        timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler()
+    ) -> AppState {
         let suite = "AppStateTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -13,21 +17,18 @@ struct AppStateTests {
 
     @Test("Pomodoro locking logic works correctly with grace period")
     func pomodoroLocking() {
-        // Given
         let appState = isolatedAppState(name: "pomodoroLocking")
 
-        // When: Start Pomodoro (Started 100s ago)
         appState.isUnblockable = true
         appState.pomodoroStatus = .focus
         appState.pomodoroStartedAt = Date().addingTimeInterval(-100)
 
-        // Then: Should be locked
-        #expect(appState.isPomodoroLocked, "Pomodoro should be locked in strict mode after grace period")
+        #expect(
+            appState.isPomodoroLocked, "Pomodoro should be locked in strict mode after grace period"
+        )
 
-        // When: Grace period (Started just now)
         appState.pomodoroStartedAt = Date()
 
-        // Then: Should NOT be locked
         #expect(!appState.isPomodoroLocked, "Pomodoro should NOT be locked during grace period")
     }
 
@@ -45,28 +46,20 @@ struct AppStateTests {
 
     @Test("Allowed rules aggregation from multiple sources")
     func allowedRulesAggregation() {
-        // Given
         let appState = isolatedAppState(name: "allowedRulesAggregation")
         let ruleSet1 = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
         let ruleSet2 = RuleSet(id: UUID(), name: "Set 2", urls: ["url2.com"])
         appState.ruleSets = [ruleSet1, ruleSet2]
 
-        // When: Manual focus active with Set 1
         appState.isBlocking = true
         appState.activeRuleSetId = ruleSet1.id
 
-        // Then
         #expect(appState.allowedRules.contains("url1.com"))
         #expect(!appState.allowedRules.contains("url2.com"))
-
-        // When: Schedule active with Set 2
-        // Note: In a real scenario, this would be integration testing.
-        // Here we just verify logic assumes active schedule contributes rules.
     }
 
     @Test("Break schedule overrides Focus schedule")
     func schedulePriorityBreakOverridesFocus() {
-        // Given
         let appState = isolatedAppState(name: "schedulePriorityBreakOverridesFocus")
         appState.isBlocking = false
         appState.isUnblockable = false
@@ -76,7 +69,6 @@ struct AppStateTests {
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: now)
 
-        // Focus: 1h ago to 1h from now
         let focusSchedule = Schedule(
             name: "Focus",
             days: [weekday],
@@ -86,7 +78,6 @@ struct AppStateTests {
             type: .focus
         )
 
-        // Break: 10m ago to 10m from now
         let breakSchedule = Schedule(
             name: "Break",
             days: [weekday],
@@ -96,36 +87,29 @@ struct AppStateTests {
             type: .unfocus
         )
 
-        // When: Both active
         appState.schedules = [focusSchedule, breakSchedule]
         appState.checkSchedules()
 
-        // Then: Break should win
-        #expect(!appState.isBlocking, "Blocking should be disabled because an internal Break session is active")
+        #expect(
+            !appState.isBlocking,
+            "Blocking should be disabled because an internal Break session is active")
 
-        // When: Only Focus active
         appState.schedules = [focusSchedule]
         appState.checkSchedules()
 
-        // Then: Should be blocking
         #expect(appState.isBlocking, "Blocking should be enabled when only Focus session is active")
     }
 
     @Test("Manual focus persists after schedule ends")
     func manualFocusOverridesScheduleStop() {
-        // Given
         let appState = AppState(isTesting: true)
 
-        // 1. Manually start blocking
         appState.isBlocking = true
-        // Note: AppState.toggleBlocking() would set wasStartedBySchedule = false
-        // Direct property set also keeps it false by default.
 
         let now = Date()
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: now)
 
-        // 2. Add an active schedule
         let schedule = Schedule(
             name: "Work",
             days: [weekday],
@@ -137,24 +121,18 @@ struct AppStateTests {
         appState.schedules = [schedule]
         appState.checkSchedules()
 
-        // Still blocking (both manual and schedule agree)
         #expect(appState.isBlocking)
 
-        // 3. When: Schedule ends (simulated by emptying list)
         appState.schedules = []
         appState.checkSchedules()
 
-        // Then: Should STILL be blocking because it was manual
         #expect(appState.isBlocking, "Manual focus should not be turned off by schedule ending")
     }
 
     @Test("Calendar events override focus sessions in normal mode")
     func calendarEventOverride() {
-        // Given
         let appState = isolatedAppState(name: "calendarEventOverride")
         appState.calendarIntegrationEnabled = true
-
-        // Reset state for test
         appState.isBlocking = false
         appState.isUnblockable = false
 
@@ -162,7 +140,6 @@ struct AppStateTests {
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: now)
 
-        // 1. Setup focus schedule
         let schedule = Schedule(
             name: "Work",
             days: [weekday],
@@ -172,14 +149,10 @@ struct AppStateTests {
             type: .focus
         )
 
-        // When: Focus schedule added
         appState.schedules = [schedule]
         appState.checkSchedules()
-
-        // Then: Should be blocking and wasStartedBySchedule should be true
         #expect(appState.isBlocking, "Should be blocking due to schedule")
 
-        // 2. Setup active calendar event
         let event = ExternalEvent(
             id: "meeting",
             title: "Meeting",
@@ -187,39 +160,29 @@ struct AppStateTests {
             endDate: now.addingTimeInterval(600)
         )
 
-        // When: Calendar event added
         appState.calendarProvider.events = [event]
         appState.checkSchedules()
-
-        // Then: Should NOT be blocking (Calendar event overrides focus in normal mode)
         #expect(!appState.isBlocking, "Calendar event should override focus in normal mode")
 
-        // 3. Enable Strict mode
         appState.isUnblockable = true
         appState.checkSchedules()
 
-        // Then: SHOULD be blocking again (Strict mode ignores calendar events)
         #expect(appState.isBlocking, "Calendar event should NOT override focus in strict mode")
     }
 
     @Test("Pause logic works correctly")
     func pauseLogic() {
-        // Given
         let appState = isolatedAppState(name: "pauseLogic")
         appState.isBlocking = true
 
-        // When: Pause started
         appState.startPause(minutes: 5)
 
-        // Then
         #expect(appState.isPaused)
         #expect(appState.pauseRemaining == 300)
 
-        // When: Cancelled
         appState.cancelPause()
         #expect(!appState.isPaused)
 
-        // When: Blocking turned off
         appState.isBlocking = true
         appState.startPause(minutes: 1)
         appState.isBlocking = false
@@ -234,9 +197,11 @@ struct AppStateTests {
         let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 10, minute: 0))!
 
-        let todayOneOff = Schedule(name: "Today One-off", days: [], date: now, startTime: start, endTime: end)
+        let todayOneOff = Schedule(
+            name: "Today One-off", days: [], date: now, startTime: start, endTime: end)
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: now)!
-        let tomorrowOneOff = Schedule(name: "Tomorrow One-off", days: [], date: tomorrow, startTime: start, endTime: end)
+        let tomorrowOneOff = Schedule(
+            name: "Tomorrow One-off", days: [], date: tomorrow, startTime: start, endTime: end)
 
         appState.schedules = [tomorrowOneOff, todayOneOff]
         let result = appState.todaySchedules
@@ -328,7 +293,8 @@ struct AppStateTests {
     @Test("skipPomodoroPhase transitions between focus and break")
     func skipPomodoroPhaseCoverage() {
         let scheduler = MockRepeatingTimerScheduler()
-        let appState = isolatedAppState(name: "skipPomodoroPhaseCoverage", timerScheduler: scheduler)
+        let appState = isolatedAppState(
+            name: "skipPomodoroPhaseCoverage", timerScheduler: scheduler)
 
         appState.startPomodoro()
         #expect(appState.pomodoroStatus == .focus)
@@ -383,7 +349,8 @@ struct AppStateTests {
     @Test("AppState covers nil self timer closures after deinit")
     func timerWeakSelfNilCoverage() {
         let scheduler = MockRepeatingTimerScheduler()
-        var appState: AppState? = isolatedAppState(name: "timerWeakSelfNilCoverage", timerScheduler: scheduler)
+        var appState: AppState? = isolatedAppState(
+            name: "timerWeakSelfNilCoverage", timerScheduler: scheduler)
         appState?.isBlocking = true
         appState?.startPause(minutes: 1)
         appState?.startPomodoro()
@@ -522,7 +489,8 @@ struct AppStateTests {
     @Test("AppState deinit invalidates schedule, pause, and pomodoro timers")
     func appStateDeinitInvalidatesTimers() {
         let scheduler = MockRepeatingTimerScheduler()
-        var appState: AppState? = isolatedAppState(name: "appStateDeinitInvalidatesTimers", timerScheduler: scheduler)
+        var appState: AppState? = isolatedAppState(
+            name: "appStateDeinitInvalidatesTimers", timerScheduler: scheduler)
         appState?.isBlocking = true
         appState?.startPause(minutes: 1)
         appState?.startPomodoro()
@@ -542,7 +510,8 @@ struct AppStateTests {
     @Test("AppState replaces active pause and pomodoro timers safely")
     func appStateReplacesTimersSafely() {
         let scheduler = MockRepeatingTimerScheduler()
-        let appState = isolatedAppState(name: "appStateReplacesTimersSafely", timerScheduler: scheduler)
+        let appState = isolatedAppState(
+            name: "appStateReplacesTimersSafely", timerScheduler: scheduler)
         appState.isBlocking = true
 
         appState.startPause(minutes: 1)
@@ -564,7 +533,6 @@ struct AppStateTests {
 
     @Test("Rules aggregate from all active focus schedules")
     func multipleSchedulesRules() {
-        // Given
         let appState = isolatedAppState(name: "multipleSchedulesRules")
         let ruleSet1 = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
         let ruleSet2 = RuleSet(id: UUID(), name: "Set 2", urls: ["url2.com"])
@@ -574,13 +542,17 @@ struct AppStateTests {
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: now)
 
-        let sch1 = Schedule(name: "S1", days: [weekday], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: ruleSet1.id)
-        let sch2 = Schedule(name: "S2", days: [weekday], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: ruleSet2.id)
+        let sch1 = Schedule(
+            name: "S1", days: [weekday], startTime: now.addingTimeInterval(-1000),
+            endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus,
+            ruleSetId: ruleSet1.id)
+        let sch2 = Schedule(
+            name: "S2", days: [weekday], startTime: now.addingTimeInterval(-1000),
+            endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus,
+            ruleSetId: ruleSet2.id)
 
-        // When
         appState.schedules = [sch1, sch2]
 
-        // Then
         let allowed = appState.allowedRules
         #expect(allowed.contains("url1.com"))
         #expect(allowed.contains("url2.com"))
@@ -588,7 +560,6 @@ struct AppStateTests {
 
     @Test("todaySchedules filters by current day and sorts by time")
     func todaySchedulesLogic() {
-        // Given
         let appState = isolatedAppState(name: "todaySchedulesLogic")
         let now = Date()
         let calendar = Calendar.current
@@ -598,14 +569,18 @@ struct AppStateTests {
         let early = calendar.date(from: DateComponents(hour: 8, minute: 0))!
         let late = calendar.date(from: DateComponents(hour: 20, minute: 0))!
 
-        let s1 = Schedule(name: "Late Today", days: [today], startTime: late, endTime: late.addingTimeInterval(3600))
-        let s2 = Schedule(name: "Early Today", days: [today], startTime: early, endTime: early.addingTimeInterval(3600))
-        let s3 = Schedule(name: "Other Day", days: [otherDay], startTime: early, endTime: early.addingTimeInterval(3600))
+        let s1 = Schedule(
+            name: "Late Today", days: [today], startTime: late,
+            endTime: late.addingTimeInterval(3600))
+        let s2 = Schedule(
+            name: "Early Today", days: [today], startTime: early,
+            endTime: early.addingTimeInterval(3600))
+        let s3 = Schedule(
+            name: "Other Day", days: [otherDay], startTime: early,
+            endTime: early.addingTimeInterval(3600))
 
-        // When
         appState.schedules = [s1, s2, s3]
 
-        // Then
         let result = appState.todaySchedules
         #expect(result.count == 2)
         #expect(result[0].name == "Early Today")
@@ -617,15 +592,17 @@ struct AppStateTests {
         let appState = isolatedAppState(name: "saveScheduleLogic")
         let start = Date()
         let end = start.addingTimeInterval(3600)
-        
-        // 1. Create new
-        appState.saveSchedule(name: "New", days: [2], date: nil, start: start, end: end, color: 1, type: .focus, ruleSet: nil, existingId: nil, modifyAllDays: true, initialDay: nil)
+
+        appState.saveSchedule(
+            name: "New", days: [2], date: nil, start: start, end: end, color: 1, type: .focus,
+            ruleSet: nil, existingId: nil, modifyAllDays: true, initialDay: nil)
         #expect(appState.schedules.count == 1)
         #expect(appState.schedules.first?.name == "New")
-        
-        // 2. Update existing
+
         let id = appState.schedules.first!.id
-        appState.saveSchedule(name: "Updated", days: [2, 3], date: nil, start: start, end: end, color: 2, type: .unfocus, ruleSet: nil, existingId: id, modifyAllDays: true, initialDay: nil)
+        appState.saveSchedule(
+            name: "Updated", days: [2, 3], date: nil, start: start, end: end, color: 2,
+            type: .unfocus, ruleSet: nil, existingId: id, modifyAllDays: true, initialDay: nil)
         #expect(appState.schedules.count == 1)
         #expect(appState.schedules.first?.name == "Updated")
         #expect(appState.schedules.first?.days.count == 2)
@@ -636,21 +613,19 @@ struct AppStateTests {
         let appState = isolatedAppState(name: "splitScheduleLogic")
         let start = Date()
         let end = start.addingTimeInterval(3600)
-        
-        // Setup: Mon-Wed schedule
+
         let originalId = UUID()
-        let original = Schedule(id: originalId, name: "Original", days: [2, 3, 4], startTime: start, endTime: end)
+        let original = Schedule(
+            id: originalId, name: "Original", days: [2, 3, 4], startTime: start, endTime: end)
         appState.schedules = [original]
-        
-        // When: User edits ONLY Tuesday (Day 3)
-        appState.saveSchedule(name: "Split", days: [3], date: nil, start: start, end: end, color: 5, type: .focus, ruleSet: nil, existingId: originalId, modifyAllDays: false, initialDay: 3)
-        
-        // Then:
-        // 1. Original should only have [2, 4] (Mon, Wed)
+
+        appState.saveSchedule(
+            name: "Split", days: [3], date: nil, start: start, end: end, color: 5, type: .focus,
+            ruleSet: nil, existingId: originalId, modifyAllDays: false, initialDay: 3)
+
         let old = appState.schedules.first { $0.id == originalId }
         #expect(old?.days == [2, 4])
-        
-        // 2. New schedule should exist for [3] (Tue)
+
         let new = appState.schedules.first { $0.name == "Split" }
         #expect(new?.days == [3])
         #expect(appState.schedules.count == 2)
@@ -661,17 +636,16 @@ struct AppStateTests {
         let appState = isolatedAppState(name: "deleteScheduleLogic")
         let start = Date()
         let end = start.addingTimeInterval(3600)
-        
-        // Setup: Mon-Tue schedule
+
         let id = UUID()
-        appState.schedules = [Schedule(id: id, name: "T", days: [2, 3], startTime: start, endTime: end)]
-        
-        // 1. Delete only Mon
+        appState.schedules = [
+            Schedule(id: id, name: "T", days: [2, 3], startTime: start, endTime: end)
+        ]
+
         appState.deleteSchedule(id: id, modifyAllDays: false, initialDay: 2)
         #expect(appState.schedules.count == 1)
         #expect(appState.schedules.first?.days == [3])
-        
-        // 2. Delete remaining
+
         appState.deleteSchedule(id: id, modifyAllDays: true, initialDay: nil)
         #expect(appState.schedules.isEmpty)
     }
@@ -682,28 +656,28 @@ struct AppStateTests {
         let set1 = RuleSet(id: UUID(), name: "Manual", urls: [])
         let set2 = RuleSet(id: UUID(), name: "Schedule", urls: [])
         appState.ruleSets = [set1, set2]
-        
+
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
-        let sch = Schedule(name: "S", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set2.id)
+        let sch = Schedule(
+            name: "S", days: [today], startTime: now.addingTimeInterval(-1000),
+            endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set2.id
+        )
         appState.schedules = [sch]
-        
-        // 1. Schedule only
+
         appState.checkSchedules()
         #expect(appState.currentPrimaryRuleSetId == set2.id)
-        
-        // 2. Manual override wins over schedule
+
         appState.activeRuleSetId = set1.id
-        appState.toggleBlocking() // Turning it OFF manually (even if schedule wants it ON)
+        appState.toggleBlocking()
         #expect(!appState.isBlocking)
-        
-        appState.toggleBlocking() // Turning it ON manually
+
+        appState.toggleBlocking()
         #expect(appState.isBlocking)
         #expect(appState.currentPrimaryRuleSetId == set1.id)
-        
-        // 3. Pomodoro wins over manual
+
         appState.pomodoroStatus = .focus
-        #expect(appState.currentPrimaryRuleSetId == set1.id) // Still set1 if it was active
+        #expect(appState.currentPrimaryRuleSetId == set1.id)
     }
 
     @Test("Manual toggle can stop a schedule-started session")
@@ -711,22 +685,20 @@ struct AppStateTests {
         let appState = isolatedAppState(name: "manualOverrideOfSchedule")
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
-        let sch = Schedule(name: "S", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus)
-        
+        let sch = Schedule(
+            name: "S", days: [today], startTime: now.addingTimeInterval(-1000),
+            endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus)
+
         appState.schedules = [sch]
         appState.checkSchedules()
         #expect(appState.isBlocking)
-        
-        // When: User manually toggles OFF
+
         appState.toggleBlocking()
-        
-        // Then: Should be OFF even though schedule is active
+
         #expect(!appState.isBlocking)
-        
-        // When: checkSchedules runs again (e.g. 1 min later)
+
         appState.checkSchedules()
-        
-        // Then: Should STAY off (wasStartedBySchedule is now false)
+
         #expect(!appState.isBlocking)
     }
 
@@ -735,41 +707,40 @@ struct AppStateTests {
         let appState = isolatedAppState(name: "nestedSchedulePriority")
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
-        
-        // Focus: 12:00 - 14:00
-        let focus = Schedule(name: "Focus", days: [today], startTime: now.addingTimeInterval(-3600), endTime: now.addingTimeInterval(3600), isEnabled: true, type: .focus)
-        
-        // Break: 12:30 - 13:00 (nested)
-        let breakSession = Schedule(name: "Break", days: [today], startTime: now.addingTimeInterval(-600), endTime: now.addingTimeInterval(600), isEnabled: true, type: .unfocus)
-        
+
+        let focus = Schedule(
+            name: "Focus", days: [today], startTime: now.addingTimeInterval(-3600),
+            endTime: now.addingTimeInterval(3600), isEnabled: true, type: .focus)
+
+        let breakSession = Schedule(
+            name: "Break", days: [today], startTime: now.addingTimeInterval(-600),
+            endTime: now.addingTimeInterval(600), isEnabled: true, type: .unfocus)
+
         appState.schedules = [focus, breakSession]
         appState.checkSchedules()
-        
-        // Break should win
+
         #expect(!appState.isBlocking)
     }
 
     @Test("Challenge phrase enforcement logic")
     func challengePhraseEnforcement() {
         let appState = isolatedAppState(name: "challengePhraseEnforcement")
-        
-        // 1. Unblockable mode
+
         appState.isUnblockable = true
         #expect(!appState.disableUnblockableWithChallenge(phrase: "wrong"))
         #expect(appState.isUnblockable)
-        
+
         #expect(appState.disableUnblockableWithChallenge(phrase: AppState.challengePhrase))
         #expect(!appState.isUnblockable)
-        
-        // 2. Pomodoro Stop
+
         appState.isUnblockable = true
         appState.startPomodoro()
-        appState.pomodoroStartedAt = Date().addingTimeInterval(-100) // Ensure it's locked
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-100)  // Ensure it's locked
         #expect(appState.isPomodoroLocked)
-        
+
         #expect(!appState.stopPomodoroWithChallenge(phrase: "wrong"))
         #expect(appState.pomodoroStatus == .focus)
-        
+
         #expect(appState.stopPomodoroWithChallenge(phrase: AppState.challengePhrase))
         #expect(appState.pomodoroStatus == .none)
     }
@@ -778,15 +749,13 @@ struct AppStateTests {
     func challengePhraseStrictness() {
         let appState = isolatedAppState(name: "challengePhraseStrictness")
         appState.isUnblockable = true
-        
-        // 1. Casing (should fail)
+
         let lowercased = AppState.challengePhrase.lowercased()
         #expect(!appState.disableUnblockableWithChallenge(phrase: lowercased))
-        
-        // 2. Leading/Trailing whitespace (should fail)
+
         let padded = " " + AppState.challengePhrase + " "
         #expect(!appState.disableUnblockableWithChallenge(phrase: padded))
-        
+
         #expect(appState.isUnblockable, "Should still be locked after bad attempts")
     }
 
@@ -794,7 +763,7 @@ struct AppStateTests {
     func pauseWhileNotBlocking() {
         let appState = isolatedAppState(name: "pauseWhileNotBlocking")
         appState.isBlocking = false
-        
+
         appState.startPause(minutes: 5)
         #expect(!appState.isPaused)
     }
@@ -803,14 +772,14 @@ struct AppStateTests {
     func duplicateRules() {
         let appState = isolatedAppState(name: "duplicateRules")
         let id = appState.ruleSets[0].id
-        
+
         appState.addRule("google.com", to: id)
         let count = appState.ruleSets[0].urls.count
-        
+
         appState.addRule("google.com", to: id)
         #expect(appState.ruleSets[0].urls.count == count, "Should not add duplicate URL")
-        
-        appState.addRule(" google.com ", to: id) // With spaces
+
+        appState.addRule(" google.com ", to: id)
         #expect(appState.ruleSets[0].urls.count == count, "Should trim and detect duplicate")
     }
 
@@ -819,25 +788,23 @@ struct AppStateTests {
         let appState = isolatedAppState(name: "stopLockedPomodoro")
         appState.isUnblockable = true
         appState.startPomodoro()
-        appState.pomodoroStartedAt = Date().addingTimeInterval(-100) // Locked
-        
-        appState.stopPomodoro() // Normal stop call
-        #expect(appState.pomodoroStatus == .focus, "Should not stop locked session without challenge")
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-100)
+
+        appState.stopPomodoro()
+        #expect(
+            appState.pomodoroStatus == .focus, "Should not stop locked session without challenge")
     }
 
     @Test("Negative: Rule management with invalid IDs")
     func ruleManagementInvalidIds() {
         let appState = isolatedAppState(name: "ruleManagementInvalidIds")
         let fakeId = UUID()
-        
-        // 1. Add rule to non-existent set
+
         appState.addRule("test.com", to: fakeId)
         #expect(!appState.ruleSets.contains { $0.urls.contains("test.com") })
-        
-        // 2. Remove rule from non-existent set
+
         appState.removeRule("google.com", from: fakeId)
-        
-        // 3. Delete non-existent set
+
         let count = appState.ruleSets.count
         appState.deleteSet(id: fakeId)
         #expect(appState.ruleSets.count == count)
@@ -846,21 +813,24 @@ struct AppStateTests {
     @Test("Rule aggregation across concurrent focus schedules")
     func concurrentSchedulesRuleAggregation() {
         let appState = isolatedAppState(name: "concurrentSchedulesRuleAggregation")
-        
-        // 1. Create two sets
+
         let set1 = RuleSet(id: UUID(), name: "Set 1", urls: ["site1.com"])
         let set2 = RuleSet(id: UUID(), name: "Set 2", urls: ["site2.com"])
         appState.ruleSets = [set1, set2]
-        
+
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
-        
-        // 2. Overlapping focus schedules
-        let sch1 = Schedule(name: "S1", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set1.id)
-        let sch2 = Schedule(name: "S2", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set2.id)
+
+        let sch1 = Schedule(
+            name: "S1", days: [today], startTime: now.addingTimeInterval(-1000),
+            endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set1.id
+        )
+        let sch2 = Schedule(
+            name: "S2", days: [today], startTime: now.addingTimeInterval(-1000),
+            endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set2.id
+        )
         appState.schedules = [sch1, sch2]
-        
-        // 3. Verify aggregation
+
         let rules = appState.allowedRules
         #expect(rules.contains("site1.com"))
         #expect(rules.contains("site2.com"))
@@ -872,24 +842,20 @@ struct AppStateTests {
         let appState = isolatedAppState(name: "strictRuleModificationProtection")
         let setId = appState.ruleSets[0].id
         let originalCount = appState.ruleSets[0].urls.count
-        
-        // Enable Strict Mode
+
         appState.isBlocking = true
         appState.isUnblockable = true
         #expect(appState.isStrictActive)
-        
-        // 1. Try add
+
         appState.addRule("cheat.com", to: setId)
         #expect(appState.ruleSets[0].urls.count == originalCount)
-        
-        // 2. Try remove
+
         if originalCount > 0 {
             let first = appState.ruleSets[0].urls[0]
             appState.removeRule(first, from: setId)
             #expect(appState.ruleSets[0].urls.contains(first))
         }
-        
-        // 3. Try delete set
+
         appState.deleteSet(id: setId)
         #expect(!appState.ruleSets.isEmpty)
     }
@@ -900,16 +866,10 @@ struct AppStateTests {
         let set1 = RuleSet(id: UUID(), name: "S1", urls: [])
         let set2 = RuleSet(id: UUID(), name: "S2", urls: [])
         appState.ruleSets = [set1, set2]
-        
-        // Setup: Blocking active with set1
+
         appState.activeRuleSetId = set1.id
         appState.isBlocking = true
-        
-        // Verification: The widget logic uses 'if !appState.isBlocking' 
-        // We verify the data dependency: even if code TRIED to change it, 
-        // we should know the blocking engine is still using the old rules 
-        // until session ends (handled by currentPrimaryRuleSetId logic).
-        
+
         #expect(appState.currentPrimaryRuleSetId == set1.id)
     }
 
@@ -917,12 +877,10 @@ struct AppStateTests {
     func pauseDurationEdgeCases() {
         let appState = isolatedAppState(name: "pauseDurationEdgeCases")
         appState.isBlocking = true
-        
-        // 1. Zero minutes
+
         appState.startPause(minutes: 0)
         #expect(!appState.isPaused)
-        
-        // 2. Negative minutes
+
         appState.startPause(minutes: -5)
         #expect(!appState.isPaused)
     }
@@ -931,17 +889,13 @@ struct AppStateTests {
     func pausePrecedence() {
         let appState = isolatedAppState(name: "pausePrecedence")
         appState.isBlocking = true
-        
-        // Start Pomodoro
+
         appState.startPomodoro()
         #expect(appState.pomodoroStatus == .focus)
-        
-        // Start Manual Pause (Break)
+
         appState.startPause(minutes: 5)
         #expect(appState.isPaused)
-        
-        // Even though Pomodoro says .focus, isPaused must remain true
-        // (The monitor uses !appState.isPaused to decide if it should block)
+
         #expect(appState.isPaused == true)
     }
 
@@ -949,16 +903,17 @@ struct AppStateTests {
     func todaySchedulesBadgeCount() {
         let appState = isolatedAppState(name: "todaySchedulesBadgeCount")
         let today = Calendar.current.component(.weekday, from: Date())
-        
-        let s1 = Schedule(name: "Enabled", days: [today], startTime: Date(), endTime: Date(), isEnabled: true)
-        let s2 = Schedule(name: "Disabled", days: [today], startTime: Date(), endTime: Date(), isEnabled: false)
-        
+
+        let s1 = Schedule(
+            name: "Enabled", days: [today], startTime: Date(), endTime: Date(), isEnabled: true)
+        let s2 = Schedule(
+            name: "Disabled", days: [today], startTime: Date(), endTime: Date(), isEnabled: false)
+
         appState.schedules = [s1, s2]
-        
+
         let result = appState.todaySchedules
         #expect(result.count == 2)
-        
-        // This is the logic used in SchedulesWidget for the badge
+
         let enabledCount = result.filter { $0.isEnabled }.count
         #expect(enabledCount == 1)
     }
@@ -968,19 +923,21 @@ struct AppStateTests {
         let appState = isolatedAppState(name: "pauseMultipleOverlappingSchedules")
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
-        
-        let s1 = Schedule(name: "S1", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus)
-        let s2 = Schedule(name: "S2", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus)
+
+        let s1 = Schedule(
+            name: "S1", days: [today], startTime: now.addingTimeInterval(-1000),
+            endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus)
+        let s2 = Schedule(
+            name: "S2", days: [today], startTime: now.addingTimeInterval(-1000),
+            endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus)
         appState.schedules = [s1, s2]
-        
+
         appState.checkSchedules()
         #expect(appState.isBlocking)
-        
-        // When: User toggles OFF
+
         appState.toggleBlocking()
         #expect(!appState.isBlocking)
-        
-        // Then: Should STAY off even after checkSchedules (both s1 and s2 are in paused set)
+
         appState.checkSchedules()
         #expect(!appState.isBlocking)
     }
@@ -990,11 +947,13 @@ struct AppStateTests {
         let appState = isolatedAppState(name: "todaySchedulesDuplicateTimes")
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
-        
+
         let time = Calendar.current.date(from: DateComponents(hour: 10, minute: 0))!
-        let s1 = Schedule(name: "A", days: [today], startTime: time, endTime: time.addingTimeInterval(3600))
-        let s2 = Schedule(name: "B", days: [today], startTime: time, endTime: time.addingTimeInterval(3600))
-        
+        let s1 = Schedule(
+            name: "A", days: [today], startTime: time, endTime: time.addingTimeInterval(3600))
+        let s2 = Schedule(
+            name: "B", days: [today], startTime: time, endTime: time.addingTimeInterval(3600))
+
         appState.schedules = [s1, s2]
         let result = appState.todaySchedules
         #expect(result.count == 2)
@@ -1003,31 +962,32 @@ struct AppStateTests {
     @Test("currentPrimaryRuleSetName correctly identifies the active list name")
     func primaryRuleSetNameLogic() {
         let appState = isolatedAppState(name: "primaryRuleSetNameLogic")
-        
-        // Setup: Two sets
+
         let set1 = RuleSet(id: UUID(), name: "Manual Set", urls: [])
         let set2 = RuleSet(id: UUID(), name: "Schedule Set", urls: [])
         appState.ruleSets = [set1, set2]
-        
+
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
-        
-        // 1. Manual focus active
+
         appState.activeRuleSetId = set1.id
         appState.isBlocking = true
         #expect(appState.currentPrimaryRuleSetName == "Manual Set")
-        
-        // 2. Schedule focus active (and manual off)
+
         appState.isBlocking = false
-        let sch = Schedule(name: "S", days: [today], startTime: now.addingTimeInterval(-1000), endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set2.id)
+        let sch = Schedule(
+            name: "S", days: [today], startTime: now.addingTimeInterval(-1000),
+            endTime: now.addingTimeInterval(1000), isEnabled: true, type: .focus, ruleSetId: set2.id
+        )
         appState.schedules = [sch]
         appState.checkSchedules()
         #expect(appState.isBlocking)
         #expect(appState.currentPrimaryRuleSetName == "Schedule Set")
-        
-        // 3. Fallback when no ID matches
-        appState.activeRuleSetId = UUID() // Non-existent
-        #expect(appState.currentPrimaryRuleSetName == "Manual Set" || appState.currentPrimaryRuleSetName == "Schedule Set")
+
+        appState.activeRuleSetId = UUID()
+        #expect(
+            appState.currentPrimaryRuleSetName == "Manual Set"
+                || appState.currentPrimaryRuleSetName == "Schedule Set")
     }
 
     @Test("Pomodoro remaining time reflects duration changes mid-run")
@@ -1036,30 +996,24 @@ struct AppStateTests {
         appState.pomodoroFocusDuration = 25
         appState.startPomodoro()
         #expect(appState.pomodoroRemaining == 25 * 60)
-        
-        // When: Duration changed to 45
+
         appState.pomodoroFocusDuration = 45
-        
-        // Then: Ideally it should adjust, but let's check current behavior
-        // (Current behavior: It DOES NOT adjust until next start)
-        // I will add code to make it adjust.
+
         #expect(appState.pomodoroRemaining == 45 * 60)
     }
 
     @Test("One-off sessions only appear in their specific week grid")
     func calendarGridFilteringLogic() {
         let calendar = Calendar.current
-        // Use a fixed Wednesday (Feb 18, 2026)
         let components = DateComponents(year: 2026, month: 2, day: 18, hour: 12)
         let testDate = calendar.date(from: components)!
-        
+
         let start = calendar.date(from: DateComponents(hour: 10, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 11, minute: 0))!
-        
-        // Setup: A one-off session for that Wednesday
-        let schedule = Schedule(name: "Feb 18 Only", days: [], date: testDate, startTime: start, endTime: end)
-        
-        // Helper to mimic WeeklyCalendarView.swift filter
+
+        let schedule = Schedule(
+            name: "Feb 18 Only", days: [], date: testDate, startTime: start, endTime: end)
+
         func shouldShow(s: Schedule, weekStart: Date, weekEnd: Date) -> Bool {
             let cal = Calendar.current
             if let specificDate = s.date {
@@ -1070,15 +1024,15 @@ struct AppStateTests {
             }
             return true
         }
-        
-        // 1. Visible week is This Week (Feb 15 - Feb 21)
-        let week1 = WeeklyCalendarView.getWeekDates(at: testDate, weekStartsOnMonday: false, offset: 0)
+
+        let week1 = WeeklyCalendarView.getWeekDates(
+            at: testDate, weekStartsOnMonday: false, offset: 0)
         let week1Start = week1.first!
         let week1End = calendar.date(byAdding: .day, value: 7, to: week1Start)!
         #expect(shouldShow(s: schedule, weekStart: week1Start, weekEnd: week1End) == true)
-        
-        // 2. Visible week is Next Week
-        let week2 = WeeklyCalendarView.getWeekDates(at: testDate, weekStartsOnMonday: false, offset: 1)
+
+        let week2 = WeeklyCalendarView.getWeekDates(
+            at: testDate, weekStartsOnMonday: false, offset: 1)
         let week2Start = week2.first!
         let week2End = calendar.date(byAdding: .day, value: 7, to: week2Start)!
         #expect(shouldShow(s: schedule, weekStart: week2Start, weekEnd: week2End) == false)

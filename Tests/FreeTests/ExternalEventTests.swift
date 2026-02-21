@@ -1,19 +1,20 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import FreeLogic
 
 struct ExternalEventTests {
-    
+
     @Test("ExternalEvent isActive logic")
     func eventActive() {
         let now = Date()
         let event = ExternalEvent(
             id: "test",
             title: "Meeting",
-            startDate: now.addingTimeInterval(-300), // 5m ago
-            endDate: now.addingTimeInterval(300)    // 5m from now
+            startDate: now.addingTimeInterval(-300),
+            endDate: now.addingTimeInterval(300)
         )
-        
+
         #expect(event.isActive(at: now))
         #expect(event.isActive(at: now.addingTimeInterval(-300)))
         #expect(event.isActive(at: now.addingTimeInterval(300)))
@@ -29,13 +30,13 @@ struct ExternalEventTests {
             startDate: Date(timeIntervalSince1970: 1000),
             endDate: Date(timeIntervalSince1970: 2000)
         )
-        
+
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
-        
+
         let data = try encoder.encode(event)
         let decoded = try decoder.decode(ExternalEvent.self, from: data)
-        
+
         #expect(decoded.id == "123")
         #expect(decoded.title == "Meeting")
         #expect(decoded.startDate.timeIntervalSince1970 == 1000)
@@ -46,7 +47,7 @@ struct ExternalEventTests {
     func zeroDuration() {
         let now = Date()
         let event = ExternalEvent(id: "z", title: "Instant", startDate: now, endDate: now)
-        
+
         #expect(event.isActive(at: now))
         #expect(!event.isActive(at: now.addingTimeInterval(1)))
     }
