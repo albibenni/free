@@ -1,14 +1,26 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject private var environmentAppState: AppState
+    private let actionAppState: AppState?
+    var appState: AppState { actionAppState ?? environmentAppState }
     @State private var showChallenge = false
     @State private var challengeInput = ""
+
+    init(
+        initialShowChallenge: Bool = false,
+        initialChallengeInput: String = "",
+        actionAppState: AppState? = nil
+    ) {
+        self.actionAppState = actionAppState
+        _showChallenge = State(initialValue: initialShowChallenge)
+        _challengeInput = State(initialValue: initialChallengeInput)
+    }
 
     var body: some View {
         Form {
             Section {
-                if appState.isBlocking && appState.isUnblockable {
+                if shouldShowStrictDisableButton {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Unblockable Mode")
@@ -18,13 +30,11 @@ struct SettingsView: View {
                                 .foregroundColor(.orange)
                         }
                         Spacer()
-                        Button("Disable...") {
-                            showChallenge = true
-                        }
+                        Button("Disable...", action: openChallenge)
                         .buttonStyle(AppPrimaryButtonStyle(color: .orange))
                     }
                 } else {
-                    Toggle(isOn: $appState.isUnblockable) {
+                    Toggle(isOn: $environmentAppState.isUnblockable) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Unblockable Mode")
                                 .font(.headline)
@@ -40,14 +50,14 @@ struct SettingsView: View {
             }
 
             Section {
-                Toggle("Start week on Monday", isOn: $appState.weekStartsOnMonday)
-                Toggle("Enable Calendar Integration", isOn: $appState.calendarIntegrationEnabled)
+                Toggle("Start week on Monday", isOn: $environmentAppState.weekStartsOnMonday)
+                Toggle("Enable Calendar Integration", isOn: $environmentAppState.calendarIntegrationEnabled)
             } header: {
                 Text("Calendar")
             }
 
             Section {
-                Picker("Theme", selection: $appState.appearanceMode) {
+                Picker("Theme", selection: $environmentAppState.appearanceMode) {
                     ForEach(AppearanceMode.allCases, id: \.self) { mode in
                         Text(mode.rawValue).tag(mode)
                     }
@@ -66,9 +76,7 @@ struct SettingsView: View {
                                     .padding(-3)
                             )
                             .contentShape(Circle())
-                            .onTapGesture {
-                                appState.accentColorIndex = index
-                            }
+                            .onTapGesture(perform: selectAccentColorAction(index: index))
                     }
                 }
                 .padding(.vertical, 4)
@@ -90,15 +98,34 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .alert("Emergency Unlock", isPresented: $showChallenge) {
             TextField("Type the phrase exactly", text: $challengeInput)
-            Button("Unlock", role: .destructive) {
-                _ = appState.disableUnblockableWithChallenge(phrase: challengeInput)
-                challengeInput = ""
-            }
-            Button("Cancel", role: .cancel) {
-                challengeInput = ""
-            }
+            Button("Unlock", role: .destructive, action: unlockWithChallenge)
+            Button("Cancel", role: .cancel, action: cancelUnlock)
         } message: {
             Text("To disable Unblockable Mode, you must type the following exactly:\n\n\"\(AppState.challengePhrase)\"")
         }
     }
+
+    var shouldShowStrictDisableButton: Bool {
+        appState.isBlocking && appState.isUnblockable
+    }
+
+    func openChallenge() {
+        showChallenge = true
+    }
+
+    func selectAccentColorAction(index: Int) -> () -> Void {
+        { appState.accentColorIndex = index }
+    }
+
+    func unlockWithChallenge() {
+        _ = appState.disableUnblockableWithChallenge(phrase: challengeInput)
+        challengeInput = ""
+    }
+
+    func cancelUnlock() {
+        challengeInput = ""
+    }
+
+    var showChallengeForTesting: Bool { showChallenge }
+    var challengeInputForTesting: String { challengeInput }
 }
