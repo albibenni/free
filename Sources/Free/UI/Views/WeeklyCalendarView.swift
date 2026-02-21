@@ -176,19 +176,8 @@ struct WeeklyCalendarView: View {
                                         .frame(maxWidth: .infinity, maxHeight: 24 * hourHeight)
                                         .gesture(
                                             DragGesture(minimumDistance: 0)
-                                                .onChanged {
-                                                    handleDragChanged(
-                                                        day: day,
-                                                        startY: $0.startLocation.y,
-                                                        currentY: $0.location.y
-                                                    )
-                                                }
-                                                .onEnded {
-                                                    handleDragEnded(
-                                                        day: day,
-                                                        startY: $0.startLocation.y
-                                                    )
-                                                }
+                                                .onChanged(dragChangedAction(day: day))
+                                                .onEnded(dragEndedAction(day: day))
                                         )
                                 }
                             }
@@ -345,6 +334,25 @@ struct WeeklyCalendarView: View {
         } else {
             let hour = Int(startY / hourHeight)
             quickAdd(day: day, hour: hour)
+        }
+    }
+
+    func dragChangedAction(day: Int) -> (DragGesture.Value) -> Void {
+        { value in
+            handleDragChanged(
+                day: day,
+                startY: value.startLocation.y,
+                currentY: value.location.y
+            )
+        }
+    }
+
+    func dragEndedAction(day: Int) -> (DragGesture.Value) -> Void {
+        { value in
+            handleDragEnded(
+                day: day,
+                startY: value.startLocation.y
+            )
         }
     }
 

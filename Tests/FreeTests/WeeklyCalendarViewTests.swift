@@ -1,7 +1,8 @@
-import Testing
-import SwiftUI
 import AppKit
 import Foundation
+import SwiftUI
+import Testing
+
 @testable import FreeLogic
 
 @Suite(.serialized)
@@ -22,6 +23,34 @@ struct WeeklyCalendarViewTests {
         hosted.layoutSubtreeIfNeeded()
         hosted.displayIfNeeded()
         return hosted
+    }
+
+    private struct RawDragGestureValue56 {
+        var a: UInt64
+        var b: UInt64
+        var c: UInt64
+        var d: UInt64
+        var e: UInt64
+        var f: UInt64
+        var g: UInt64
+    }
+
+    private func dragValue(
+        startX: CGFloat = 0,
+        startY: CGFloat,
+        currentX: CGFloat = 0,
+        currentY: CGFloat
+    ) -> DragGesture.Value {
+        let raw = RawDragGestureValue56(
+            a: 0,
+            b: Double(currentX).bitPattern,
+            c: Double(currentY).bitPattern,
+            d: Double(startX).bitPattern,
+            e: Double(startY).bitPattern,
+            f: 0,
+            g: 0
+        )
+        return unsafeBitCast(raw, to: DragGesture.Value.self)
     }
 
     private func sampleSchedule(
@@ -73,6 +102,14 @@ struct WeeklyCalendarViewTests {
         _ = view.dragDataForTesting
         view.handleDragChanged(day: today, startY: 80, currentY: 140)
         _ = view.dragDataForTesting
+
+        let changedAction = view.dragChangedAction(day: today)
+        changedAction(dragValue(startY: 80, currentY: 200))
+
+        let endedAction = view.dragEndedAction(day: today)
+        endedAction(dragValue(startY: 80, currentY: 200))
+        #expect(context?.day == today)
+
         let seeded = WeeklyCalendarView(
             editorContext: binding,
             actionAppState: appState,
@@ -194,10 +231,14 @@ struct WeeklyCalendarViewTests {
 
         #expect(view.shouldDisplaySchedule(recurring, weekStart: weekStart, weekEnd: weekEnd))
         #expect(view.shouldDisplaySchedule(oneOffInside, weekStart: weekStart, weekEnd: weekEnd))
-        #expect(view.shouldDisplaySchedule(oneOffOutside, weekStart: weekStart, weekEnd: weekEnd) == false)
+        #expect(
+            view.shouldDisplaySchedule(oneOffOutside, weekStart: weekStart, weekEnd: weekEnd)
+                == false)
     }
 
-    @Test("WeeklyCalendarView and related block views render event, drag-preview, and time-indicator paths")
+    @Test(
+        "WeeklyCalendarView and related block views render event, drag-preview, and time-indicator paths"
+    )
     @MainActor
     func weeklyCalendarRenderPaths() {
         let appState = isolatedAppState(name: "render")
