@@ -47,9 +47,10 @@ struct PomodoroWidget: View {
             Button(action: { withAnimation { isExpanded.toggle() } }) {
                 HStack {
                     Image(systemName: "timer")
+                        .font(UIConstants.Typography.header)
                         .foregroundColor(.red)
                     Text("Pomodoro Mode")
-                        .font(.headline)
+                        .font(UIConstants.Typography.header)
                     Spacer()
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption)
@@ -116,7 +117,8 @@ struct PomodoroRuleSetPicker: View {
     }
 
     var selectedRuleSetId: UUID? {
-        Self.selectedRuleSetId(activeRuleSetId: appState.activeRuleSetId, ruleSets: appState.ruleSets)
+        Self.selectedRuleSetId(
+            activeRuleSetId: appState.activeRuleSetId, ruleSets: appState.ruleSets)
     }
 
     static func selectedRuleSetId(activeRuleSetId: UUID?, ruleSets: [RuleSet]) -> UUID? {
@@ -146,7 +148,9 @@ struct PomodoroRuleSetPicker: View {
         if !appState.ruleSets.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text("SELECT LIST")
-                    .font(.caption.bold())
+                    // .font(.caption.bold())
+                    .padding(.top, 8)
+                    .font(UIConstants.Typography.sectionLabel)
                     .foregroundColor(.secondary)
 
                 ScrollView {
@@ -154,31 +158,38 @@ struct PomodoroRuleSetPicker: View {
                         ForEach(appState.ruleSets) { set in
                             Button(action: { selectRuleSet(set) }) {
                                 HStack {
-                                    Image(systemName: selectedRuleSetId == set.id ? "link.circle.fill" : "link")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(
-                                            selectedRuleSetId == set.id
-                                                ? FocusColor.color(for: appState.accentColorIndex) : .secondary
-                                        )
+                                    Image(
+                                        systemName: selectedRuleSetId == set.id
+                                            ? "link.circle.fill" : "link"
+                                    )
+                                    .font(UIConstants.Typography.regular)
+                                    .foregroundColor(
+                                        selectedRuleSetId == set.id
+                                            ? FocusColor.color(for: appState.accentColorIndex)
+                                            : .secondary
+                                    )
 
                                     Text(set.name)
                                         .font(.subheadline)
                                         .fontWeight(selectedRuleSetId == set.id ? .bold : .regular)
-                                        .foregroundColor(selectedRuleSetId == set.id ? .primary : .secondary)
+                                        .foregroundColor(
+                                            selectedRuleSetId == set.id ? .primary : .secondary)
 
                                     Spacer()
 
                                     if selectedRuleSetId == set.id {
                                         Image(systemName: "checkmark")
                                             .font(.caption.bold())
-                                            .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
+                                            .foregroundColor(
+                                                FocusColor.color(for: appState.accentColorIndex))
                                     }
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
                                 .background(
                                     selectedRuleSetId == set.id
-                                        ? FocusColor.color(for: appState.accentColorIndex).opacity(0.1)
+                                        ? FocusColor.color(for: appState.accentColorIndex).opacity(
+                                            0.1)
                                         : Color.primary.opacity(0.03)
                                 )
                                 .cornerRadius(8)
@@ -202,7 +213,7 @@ struct PomodoroSidebar: View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("PRESETS")
-                    .font(.system(size: 10, weight: .black))
+                    .font(UIConstants.Typography.sectionLabel)
                     .foregroundColor(.secondary)
 
                 VStack(spacing: 6) {
@@ -246,7 +257,7 @@ struct PomodoroSidebar: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("QUICK BREAK")
-                    .font(.system(size: 10, weight: .black))
+                    .font(UIConstants.Typography.sectionLabel)
                     .foregroundColor(.secondary)
 
                 VStack(spacing: 6) {

@@ -31,10 +31,10 @@ struct AllowedWebsitesWidget: View {
             Button(action: { withAnimation { isExpanded.toggle() } }) {
                 HStack {
                     Image(systemName: "globe")
-                        .font(.headline)
+                        .font(UIConstants.Typography.header)
                         .foregroundColor(.blue)
                     Text("Allowed Websites")
-                        .font(.headline)
+                        .font(UIConstants.Typography.header)
 
                     Spacer()
 

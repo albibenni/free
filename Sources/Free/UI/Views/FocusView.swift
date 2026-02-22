@@ -123,7 +123,7 @@ struct FocusView: View {
         WidgetCard {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Live Overview")
-                    .font(.headline)
+                    .font(UIConstants.Typography.header)
                     .padding(.bottom, 2)
 
                 if shouldShowSchedulePreview {

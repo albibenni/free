@@ -36,10 +36,10 @@ struct SchedulesWidget: View {
             Button(action: { withAnimation { isExpanded.toggle() } }) {
                 HStack {
                     Image(systemName: "calendar")
-                        .font(.headline)
+                        .font(UIConstants.Typography.header)
                         .foregroundColor(.purple)
                     Text("Focus Schedules")
-                        .font(.headline)
+                        .font(UIConstants.Typography.header)
 
                     Spacer()
 
@@ -50,7 +50,9 @@ struct SchedulesWidget: View {
                                 .font(.caption)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
-                                .background(FocusColor.color(for: appState.accentColorIndex).opacity(0.1))
+                                .background(
+                                    FocusColor.color(for: appState.accentColorIndex).opacity(0.1)
+                                )
                                 .cornerRadius(10)
                         }
                     }
@@ -126,10 +128,11 @@ struct SchedulesWidget: View {
                     Button(action: openSchedules) {
                         Text("Open Full Calendar")
                     }
-                    .buttonStyle(AppPrimaryButtonStyle(
-                        color: FocusColor.color(for: appState.accentColorIndex),
-                        maxWidth: .infinity
-                    ))
+                    .buttonStyle(
+                        AppPrimaryButtonStyle(
+                            color: FocusColor.color(for: appState.accentColorIndex),
+                            maxWidth: .infinity
+                        ))
                 }
                 .padding([.horizontal, .bottom])
             }
