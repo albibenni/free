@@ -39,3 +39,9 @@
 - [x] when first schedule it adds multiple days of the weak instead of the selected. When I schedule once more it behave correctly (select only the day selected)
 - [x] allowd list keep rotating in the ui, why? during focus mode
 - [x] should be closable if not in strict mode
+- [ ] should work with selected list on the schedule
+
+## Performance check
+
+- [ ] cpu usage
+- [ ] ram usage
