@@ -332,6 +332,38 @@ struct AppStateTests {
         #expect(appState.monitor === monitor)
     }
 
+    @Test("AppState can initialize production calendar path with injected monitor")
+    func initProductionCalendarPathCoverage() {
+        let sourceSuite = "AppStateTests.initProductionCalendarPathCoverage.source"
+        let sourceDefaults = UserDefaults(suiteName: sourceSuite)!
+        sourceDefaults.removePersistentDomain(forName: sourceSuite)
+        let sourceState = AppState(defaults: sourceDefaults, isTesting: true)
+        let injectedMonitor = BrowserMonitor(
+            appState: sourceState,
+            server: nil,
+            automator: MockBrowserAutomator(),
+            startTimer: false
+        )
+
+        let targetSuite = "AppStateTests.initProductionCalendarPathCoverage.target"
+        let targetDefaults = UserDefaults(suiteName: targetSuite)!
+        targetDefaults.removePersistentDomain(forName: targetSuite)
+
+        let appState = AppState(
+            defaults: targetDefaults,
+            monitor: injectedMonitor,
+            calendar: nil,
+            isTesting: false
+        )
+
+        #expect(appState.monitor === injectedMonitor)
+        #expect(appState.calendarProvider is RealCalendarManager)
+        if let real = appState.calendarProvider as? RealCalendarManager {
+            real.isAuthorized = true
+            real.fetchEvents()
+        }
+    }
+
     @Test("skipPomodoroPhase transitions between focus and break")
     func skipPomodoroPhaseCoverage() {
         let scheduler = MockRepeatingTimerScheduler()
@@ -816,6 +848,86 @@ struct AppStateTests {
         #expect(appState.currentPrimaryRuleSetId == scheduleSet.id)
         #expect(appState.allowedRules.contains("schedule.example"))
         #expect(!appState.allowedRules.contains("pomodoro.example"))
+    }
+
+    @Test("currentPrimaryRuleSetName returns Unknown List when active schedule points to missing ruleset")
+    func primaryRuleSetNameUnknownForMissingScheduleSet() {
+        let appState = isolatedAppState(name: "primaryRuleSetNameUnknownForMissingScheduleSet")
+        let knownSet = RuleSet(id: UUID(), name: "Known", urls: ["known.example"])
+        appState.ruleSets = [knownSet]
+        appState.activeRuleSetId = knownSet.id
+
+        let now = Date()
+        let weekday = Calendar.current.component(.weekday, from: now)
+        let missingRuleSetId = UUID()
+        appState.schedules = [
+            Schedule(
+                name: "Missing RuleSet Schedule",
+                days: [weekday],
+                startTime: now.addingTimeInterval(-600),
+                endTime: now.addingTimeInterval(600),
+                isEnabled: true,
+                type: .focus,
+                ruleSetId: missingRuleSetId
+            )
+        ]
+        appState.checkSchedules()
+
+        #expect(appState.currentPrimaryRuleSetId == missingRuleSetId)
+        #expect(appState.currentPrimaryRuleSetName == "Unknown List")
+    }
+
+    @Test("allowedRules handles pomodoro focus when there are no rulesets")
+    func allowedRulesPomodoroWithNoRuleSets() {
+        let appState = isolatedAppState(name: "allowedRulesPomodoroWithNoRuleSets")
+        appState.ruleSets = []
+        appState.activeRuleSetId = nil
+        appState.pomodoroStatus = .focus
+        appState.isBlocking = false
+
+        let rules = appState.allowedRules
+        #expect(rules.isEmpty)
+    }
+
+    @Test("allowedRules falls back to first ruleset during schedule-driven blocking without schedule ruleset")
+    func allowedRulesScheduleFallbackToFirstSet() {
+        let appState = isolatedAppState(name: "allowedRulesScheduleFallbackToFirstSet")
+        let fallback = RuleSet(id: UUID(), name: "Fallback", urls: ["fallback.example"])
+        appState.ruleSets = [fallback]
+        appState.activeRuleSetId = nil
+
+        let now = Date()
+        let weekday = Calendar.current.component(.weekday, from: now)
+        appState.schedules = [
+            Schedule(
+                name: "Focus Without List",
+                days: [weekday],
+                startTime: now.addingTimeInterval(-600),
+                endTime: now.addingTimeInterval(600),
+                isEnabled: true,
+                type: .focus,
+                ruleSetId: nil
+            )
+        ]
+        appState.checkSchedules()
+
+        #expect(appState.isBlocking)
+        #expect(appState.allowedRules.contains("fallback.example"))
+    }
+
+    @Test("startPomodoro rehydrates ruleset from active selection when started from break state")
+    func startPomodoroFromBreakUsesActiveRuleSetSelection() {
+        let appState = isolatedAppState(name: "startPomodoroFromBreakUsesActiveRuleSetSelection")
+        let set = RuleSet(id: UUID(), name: "Selected", urls: ["selected.example"])
+        appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+        appState.pomodoroStatus = .breakTime
+
+        appState.startPomodoro()
+
+        #expect(appState.pomodoroStatus == .focus)
+        #expect(appState.currentPrimaryRuleSetId == set.id)
+        #expect(appState.allowedRules.contains("selected.example"))
     }
 
     @Test("Manual toggle can stop a schedule-started session")

@@ -119,9 +119,6 @@ class AppState: ObservableObject {
             if let set = ruleSet(for: pomodoroRuleSetId ?? activeRuleSetId) {
                 return set.urls
             }
-            if isBlocking, let firstSet = ruleSets.first {
-                return firstSet.urls
-            }
             return []
         }
 
@@ -169,7 +166,7 @@ class AppState: ObservableObject {
         self.defaults = defaults
         self.calendarProvider =
             calendar
-            ?? (isTesting ? MockCalendarManager() : RealCalendarManager(nowProvider: Date.init))
+            ?? (isTesting ? MockCalendarManager() : RealCalendarManager(nowProvider: { Date() }))
         self.timerScheduler = timerScheduler
 
         self.isBlocking = defaults.bool(forKey: "IsBlocking")
