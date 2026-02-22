@@ -22,7 +22,7 @@
   - [x] focus session should default to the first list - not none
 - [x] add default pomodoro timer - most used ones
 - [x] focus mode should show active list
-- [ ] add to login items - macos startup
+- [x] add to login items - macos startup
 - [ ] unlock base websites like localhost, new tabs etc
 - [x] fully test code
 - [x] add list selection in pomodoro mode - default on selected from allowed lists
