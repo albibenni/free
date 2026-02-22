@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import SwiftUI
 import Testing
+import ViewInspector
 
 @testable import FreeLogic
 
@@ -62,11 +63,81 @@ struct FocusViewTests {
         #expect(!FocusView.shouldShowPauseDashboard(isBlocking: true, isPaused: false))
         #expect(!FocusView.shouldShowPauseDashboard(isBlocking: false, isPaused: true))
 
+        #expect(
+            FocusView.shouldShowAllowListPreview(
+                isBlocking: true,
+                pomodoroStatus: .none,
+                hasActiveFocusSchedule: false,
+                hasCurrentRuleSet: true
+            )
+        )
+        #expect(
+            FocusView.shouldShowAllowListPreview(
+                isBlocking: false,
+                pomodoroStatus: .focus,
+                hasActiveFocusSchedule: false,
+                hasCurrentRuleSet: true
+            )
+        )
+        #expect(
+            FocusView.shouldShowAllowListPreview(
+                isBlocking: false,
+                pomodoroStatus: .none,
+                hasActiveFocusSchedule: true,
+                hasCurrentRuleSet: true
+            )
+        )
+        #expect(
+            !FocusView.shouldShowAllowListPreview(
+                isBlocking: false,
+                pomodoroStatus: .none,
+                hasActiveFocusSchedule: false,
+                hasCurrentRuleSet: true
+            )
+        )
+        #expect(
+            !FocusView.shouldShowAllowListPreview(
+                isBlocking: true,
+                pomodoroStatus: .focus,
+                hasActiveFocusSchedule: true,
+                hasCurrentRuleSet: false
+            )
+        )
+
+        #expect(FocusView.pomodoroPhaseLabel(status: .none) == "Inactive")
+        #expect(FocusView.pomodoroPhaseLabel(status: .focus) == "Focus")
+        #expect(FocusView.pomodoroPhaseLabel(status: .breakTime) == "Break")
+
         let appState = isolatedAppState(name: "cancelPauseAction")
         appState.isPaused = true
         let cancelPause = FocusView.makeCancelPauseAction(appState: appState)
         cancelPause()
         #expect(appState.isPaused == false)
+    }
+
+    @Test("Focus section shows live overview instead of full widgets")
+    @MainActor
+    func focusViewLiveOverviewRender() {
+        let appState = isolatedAppState(name: "liveOverview")
+        appState.isBlocking = true
+        appState.ruleSets = [RuleSet(name: "Work", urls: ["example.com", "developer.apple.com"])]
+        appState.activeRuleSetId = appState.ruleSets.first?.id
+
+        var showRules = false
+        var showSchedules = false
+        let view = FocusView(
+            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
+            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 }),
+            section: .all
+        )
+        .environmentObject(appState)
+        _ = host(view)
+
+        #expect((try? view.inspect().find(text: "Live Overview")) != nil)
+        #expect((try? view.inspect().find(text: "Allow List")) != nil)
+        #expect((try? view.inspect().find(text: "Pomodoro Mode")) == nil)
+        #expect((try? view.inspect().find(text: "Focus Schedules")) == nil)
+        #expect((try? view.inspect().find(text: "Allowed Websites")) == nil)
     }
 
     @Test("FocusView renders trusted inactive state")

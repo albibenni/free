@@ -46,6 +46,9 @@ struct FocusView: View {
             }
 
             pauseDashboard
+            if shouldShowOverview {
+                liveOverview
+            }
             if shouldShowPomodoroWidget {
                 PomodoroWidget(
                     showPomodoroChallenge: $showPomodoroChallenge,
@@ -71,16 +74,109 @@ struct FocusView: View {
         .padding()
     }
 
+    var shouldShowOverview: Bool {
+        section == .all
+    }
+
     var shouldShowPomodoroWidget: Bool {
-        section == .all || section == .pomodoro
+        section == .pomodoro
     }
 
     var shouldShowSchedulesWidget: Bool {
-        section == .all || section == .schedules
+        section == .schedules
     }
 
     var shouldShowAllowedWebsitesWidget: Bool {
-        section == .all || section == .allowedWebsites
+        section == .allowedWebsites
+    }
+
+    var activeFocusScheduleNames: [String] {
+        appState.schedules
+            .filter { $0.type == .focus && $0.isActive() }
+            .map(\.name)
+    }
+
+    var currentRuleSet: RuleSet? {
+        guard let id = appState.currentPrimaryRuleSetId else { return nil }
+        return appState.ruleSets.first(where: { $0.id == id })
+    }
+
+    var shouldShowAllowListPreview: Bool {
+        Self.shouldShowAllowListPreview(
+            isBlocking: appState.isBlocking,
+            pomodoroStatus: appState.pomodoroStatus,
+            hasActiveFocusSchedule: !activeFocusScheduleNames.isEmpty,
+            hasCurrentRuleSet: currentRuleSet != nil
+        )
+    }
+
+    var shouldShowPomodoroPreview: Bool {
+        appState.pomodoroStatus != .none
+    }
+
+    var shouldShowSchedulePreview: Bool {
+        !activeFocusScheduleNames.isEmpty
+    }
+
+    @ViewBuilder
+    private var liveOverview: some View {
+        WidgetCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Live Overview")
+                    .font(.headline)
+                    .padding(.bottom, 2)
+
+                if shouldShowSchedulePreview {
+                    previewRow(
+                        icon: "calendar",
+                        title: "Active Schedules",
+                        value: activeFocusScheduleNames.joined(separator: ", ")
+                    )
+                }
+
+                if shouldShowAllowListPreview, let ruleSet = currentRuleSet {
+                    previewRow(
+                        icon: "globe",
+                        title: "Allow List",
+                        value: "\(ruleSet.name) • \(ruleSet.urls.count) rules"
+                    )
+                }
+
+                if shouldShowPomodoroPreview {
+                    previewRow(
+                        icon: "timer",
+                        title: "Pomodoro",
+                        value:
+                            "\(Self.pomodoroPhaseLabel(status: appState.pomodoroStatus)) • \(appState.timeString(time: appState.pomodoroRemaining))"
+                    )
+                }
+
+                if !shouldShowSchedulePreview && !shouldShowAllowListPreview && !shouldShowPomodoroPreview
+                {
+                    Text("No active schedule, allow list, or pomodoro session.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding()
+        }
+    }
+
+    @ViewBuilder
+    private func previewRow(icon: String, title: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
+                .frame(width: 14)
+            Text(title)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Spacer(minLength: 10)
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .multilineTextAlignment(.trailing)
+        }
     }
 
     @ViewBuilder
@@ -210,6 +306,26 @@ struct FocusView: View {
 
     static func shouldShowPauseDashboard(isBlocking: Bool, isPaused: Bool) -> Bool {
         isBlocking && isPaused
+    }
+
+    static func shouldShowAllowListPreview(
+        isBlocking: Bool,
+        pomodoroStatus: AppState.PomodoroStatus,
+        hasActiveFocusSchedule: Bool,
+        hasCurrentRuleSet: Bool
+    ) -> Bool {
+        hasCurrentRuleSet && (isBlocking || pomodoroStatus != .none || hasActiveFocusSchedule)
+    }
+
+    static func pomodoroPhaseLabel(status: AppState.PomodoroStatus) -> String {
+        switch status {
+        case .none:
+            return "Inactive"
+        case .focus:
+            return "Focus"
+        case .breakTime:
+            return "Break"
+        }
     }
 
     static func makeCancelPauseAction(appState: AppState) -> () -> Void {
