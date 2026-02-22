@@ -80,15 +80,38 @@ struct AllowedWebsitesWidgetTests {
         #expect(showRules == true)
     }
 
-    @Test("AllowedWebsitesWidget blocks list switching while focus blocking is active")
+    @Test("AllowedWebsitesWidget allows list switching while blocking when strict mode is off")
     @MainActor
-    func allowedWebsitesExpandedBlockingPreventsSwitch() throws {
-        let appState = isolatedAppState(name: "blockingGuard")
+    func allowedWebsitesExpandedBlockingAllowsSwitchWhenNotStrict() throws {
+        let appState = isolatedAppState(name: "blockingAllowsSwitchWhenNotStrict")
         let work = sampleRuleSet(name: "Work", url: "https://work.example")
         let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
         appState.ruleSets = [work, personal]
         appState.activeRuleSetId = work.id
         appState.isBlocking = true
+        appState.isUnblockable = false
+
+        var showRules = false
+        let binding = Binding(get: { showRules }, set: { showRules = $0 })
+        let sut = AllowedWebsitesWidget(showRules: binding, initialIsExpanded: true)
+            .environmentObject(appState)
+        let buttons = try sut.inspect().findAll(ViewType.Button.self)
+        #expect(buttons.count >= 4)
+
+        try buttons[2].tap()
+        #expect(appState.activeRuleSetId == personal.id)
+    }
+
+    @Test("AllowedWebsitesWidget blocks list switching during strict mode")
+    @MainActor
+    func allowedWebsitesExpandedStrictBlockingPreventsSwitch() throws {
+        let appState = isolatedAppState(name: "strictBlockingGuard")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
+        appState.ruleSets = [work, personal]
+        appState.activeRuleSetId = work.id
+        appState.isBlocking = true
+        appState.isUnblockable = true
 
         var showRules = false
         let binding = Binding(get: { showRules }, set: { showRules = $0 })

@@ -25,6 +25,8 @@
 - [ ] add to login items - macos startup
 - [ ] unlock base websites like localhost, new tabs etc
 - [x] fully test code
+- [ ] add list selection in pomodoro mode - default on selected from allowed lists
+
 - [ ] rule for calendar imports - if title contain `*study*` or `*work*`
   - [ ] allow personalization on this rule with settings
   - [ ] allow imports to be all focus
@@ -36,3 +38,4 @@
 
 - [x] when first schedule it adds multiple days of the weak instead of the selected. When I schedule once more it behave correctly (select only the day selected)
 - [x] allowd list keep rotating in the ui, why? during focus mode
+- [ ] should be closable if not in strict mode

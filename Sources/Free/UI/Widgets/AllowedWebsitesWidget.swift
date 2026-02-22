@@ -10,8 +10,12 @@ struct AllowedWebsitesWidget: View {
         self._isExpanded = State(initialValue: initialIsExpanded)
     }
 
+    var canSwitchRuleSetSelection: Bool {
+        !appState.isStrictActive
+    }
+
     func selectRuleSet(_ set: RuleSet) {
-        if !appState.isBlocking {
+        if canSwitchRuleSetSelection {
             withAnimation(.easeInOut(duration: 0.2)) {
                 appState.activeRuleSetId = set.id
             }
@@ -98,7 +102,7 @@ struct AllowedWebsitesWidget: View {
                                             .cornerRadius(8)
                                         }
                                         .buttonStyle(.plain)
-                                        .disabled(appState.isBlocking)
+                                        .disabled(!canSwitchRuleSetSelection)
                                     }
                                 }
                             }

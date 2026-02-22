@@ -147,12 +147,12 @@ struct ContentView: View {
         switch section {
         case .focus:
             return .all
+        case .pomodoro:
+            return .pomodoro
         case .schedules:
             return .schedules
         case .allowedWebsites:
             return .allowedWebsites
-        case .pomodoro:
-            return .pomodoro
         case .settings:
             return .all
         }
