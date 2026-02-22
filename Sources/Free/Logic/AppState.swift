@@ -18,6 +18,7 @@ class AppState: ObservableObject {
     static let challengePhrase =
         "I am choosing to break my focus and I acknowledge that this may impact my productivity."
     private static let wasStartedByScheduleKey = "WasStartedBySchedule"
+    private static let launchAtLoginPromptShownKey = "LaunchAtLoginPromptShown"
     private let defaults: UserDefaults
 
     @Published var isBlocking = false {
@@ -81,6 +82,8 @@ class AppState: ObservableObject {
     let calendarProvider: any CalendarProvider
     private var calendarCancellable: AnyCancellable?
     private let timerScheduler: any RepeatingTimerScheduling
+    private let launchAtLoginManager: any LaunchAtLoginManaging
+    private let canPromptForLaunchAtLogin: () -> Bool
     private let timerLock = NSLock()
     private var pauseTimer: (any RepeatingTimer)?
     private var pomodoroTimer: (any RepeatingTimer)?
@@ -161,6 +164,10 @@ class AppState: ObservableObject {
         defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil,
         calendar: (any CalendarProvider)? = nil,
         timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
+        launchAtLoginManager: any LaunchAtLoginManaging = DefaultLaunchAtLoginManager(),
+        canPromptForLaunchAtLogin: @escaping () -> Bool = {
+            ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
+        },
         isTesting: Bool = false
     ) {
         self.defaults = defaults
@@ -168,6 +175,8 @@ class AppState: ObservableObject {
             calendar
             ?? (isTesting ? MockCalendarManager() : RealCalendarManager(nowProvider: { Date() }))
         self.timerScheduler = timerScheduler
+        self.launchAtLoginManager = launchAtLoginManager
+        self.canPromptForLaunchAtLogin = canPromptForLaunchAtLogin
 
         self.isBlocking = defaults.bool(forKey: "IsBlocking")
         self.isUnblockable = defaults.bool(forKey: "IsUnblockable")
@@ -375,6 +384,44 @@ class AppState: ObservableObject {
         replacePauseTimer(with: nil)
     }
     func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }
+
+    func prepareLaunchAtLoginPromptIfNeeded() -> Bool {
+        guard canPromptForLaunchAtLogin() else { return false }
+        if defaults.bool(forKey: Self.launchAtLoginPromptShownKey) {
+            return false
+        }
+        defaults.set(true, forKey: Self.launchAtLoginPromptShownKey)
+        return !launchAtLoginManager.isEnabled
+    }
+
+    func launchAtLoginStatus() -> Bool {
+        launchAtLoginManager.isEnabled
+    }
+
+    @discardableResult
+    func enableLaunchAtLogin() -> Bool {
+        do {
+            try launchAtLoginManager.enable()
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    @discardableResult
+    func setLaunchAtLoginEnabled(_ enabled: Bool) -> Bool {
+        if enabled {
+            return enableLaunchAtLogin()
+        }
+
+        do {
+            try launchAtLoginManager.disable()
+            return true
+        } catch {
+            return false
+        }
+    }
+
     func timeString(time: TimeInterval) -> String {
         String(format: "%02d:%02d", Int(time) / 60, Int(time) % 60)
     }

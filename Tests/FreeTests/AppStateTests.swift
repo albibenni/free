@@ -3,6 +3,44 @@ import Testing
 
 @testable import FreeLogic
 
+private enum LaunchAtLoginTestError: Error {
+    case enableFailed
+}
+
+private final class MockLaunchAtLoginManager: LaunchAtLoginManaging {
+    var isEnabledValue: Bool
+    var isEnabledCallCount = 0
+    var enableCallCount = 0
+    var disableCallCount = 0
+    var enableError: Error?
+    var disableError: Error?
+
+    init(isEnabled: Bool) {
+        self.isEnabledValue = isEnabled
+    }
+
+    var isEnabled: Bool {
+        isEnabledCallCount += 1
+        return isEnabledValue
+    }
+
+    func enable() throws {
+        enableCallCount += 1
+        if let enableError {
+            throw enableError
+        }
+        isEnabledValue = true
+    }
+
+    func disable() throws {
+        disableCallCount += 1
+        if let disableError {
+            throw disableError
+        }
+        isEnabledValue = false
+    }
+}
+
 struct AppStateTests {
 
     private func isolatedAppState(
@@ -169,6 +207,123 @@ struct AppStateTests {
 
         #expect(!appState.isBlocking)
         #expect(defaults.bool(forKey: "WasStartedBySchedule") == false)
+    }
+
+    @Test("AppState prompts for launch-at-login only once on first startup when disabled")
+    func launchAtLoginPromptOnceWhenDisabled() {
+        let suite = "AppStateTests.launchAtLoginPromptOnceWhenDisabled"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let manager = MockLaunchAtLoginManager(isEnabled: false)
+
+        let appState = AppState(
+            defaults: defaults,
+            launchAtLoginManager: manager,
+            canPromptForLaunchAtLogin: { true },
+            isTesting: true
+        )
+
+        #expect(appState.prepareLaunchAtLoginPromptIfNeeded() == true)
+        #expect(appState.prepareLaunchAtLoginPromptIfNeeded() == false)
+        #expect(manager.isEnabledCallCount == 1)
+    }
+
+    @Test("AppState does not prompt for launch-at-login when prompting is suppressed")
+    func launchAtLoginPromptSuppressed() {
+        let suite = "AppStateTests.launchAtLoginPromptSuppressed"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let manager = MockLaunchAtLoginManager(isEnabled: false)
+
+        let appState = AppState(
+            defaults: defaults,
+            launchAtLoginManager: manager,
+            canPromptForLaunchAtLogin: { false },
+            isTesting: true
+        )
+
+        #expect(appState.prepareLaunchAtLoginPromptIfNeeded() == false)
+        #expect(manager.isEnabledCallCount == 0)
+    }
+
+    @Test("AppState skips launch-at-login prompt when already enabled")
+    func launchAtLoginPromptSkippedWhenAlreadyEnabled() {
+        let suite = "AppStateTests.launchAtLoginPromptSkippedWhenAlreadyEnabled"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let manager = MockLaunchAtLoginManager(isEnabled: true)
+
+        let appState = AppState(
+            defaults: defaults,
+            launchAtLoginManager: manager,
+            canPromptForLaunchAtLogin: { true },
+            isTesting: true
+        )
+
+        #expect(appState.prepareLaunchAtLoginPromptIfNeeded() == false)
+        #expect(manager.isEnabledCallCount == 1)
+    }
+
+    @Test("AppState enableLaunchAtLogin reports success and failure")
+    func enableLaunchAtLoginResultHandling() {
+        let successSuite = "AppStateTests.enableLaunchAtLoginResultHandling.success"
+        let successDefaults = UserDefaults(suiteName: successSuite)!
+        successDefaults.removePersistentDomain(forName: successSuite)
+        let successManager = MockLaunchAtLoginManager(isEnabled: false)
+        let successAppState = AppState(
+            defaults: successDefaults,
+            launchAtLoginManager: successManager,
+            canPromptForLaunchAtLogin: { true },
+            isTesting: true
+        )
+
+        #expect(successAppState.enableLaunchAtLogin() == true)
+        #expect(successManager.enableCallCount == 1)
+
+        let failureSuite = "AppStateTests.enableLaunchAtLoginResultHandling.failure"
+        let failureDefaults = UserDefaults(suiteName: failureSuite)!
+        failureDefaults.removePersistentDomain(forName: failureSuite)
+        let failureManager = MockLaunchAtLoginManager(isEnabled: false)
+        failureManager.enableError = LaunchAtLoginTestError.enableFailed
+        let failureAppState = AppState(
+            defaults: failureDefaults,
+            launchAtLoginManager: failureManager,
+            canPromptForLaunchAtLogin: { true },
+            isTesting: true
+        )
+
+        #expect(failureAppState.enableLaunchAtLogin() == false)
+        #expect(failureManager.enableCallCount == 1)
+    }
+
+    @Test("AppState setLaunchAtLoginEnabled toggles and handles disable failures")
+    func setLaunchAtLoginEnabledResultHandling() {
+        let suite = "AppStateTests.setLaunchAtLoginEnabledResultHandling"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let manager = MockLaunchAtLoginManager(isEnabled: false)
+        let appState = AppState(
+            defaults: defaults,
+            launchAtLoginManager: manager,
+            canPromptForLaunchAtLogin: { true },
+            isTesting: true
+        )
+
+        #expect(appState.launchAtLoginStatus() == false)
+        #expect(appState.setLaunchAtLoginEnabled(true) == true)
+        #expect(manager.enableCallCount == 1)
+        #expect(appState.launchAtLoginStatus() == true)
+
+        #expect(appState.setLaunchAtLoginEnabled(false) == true)
+        #expect(manager.disableCallCount == 1)
+        #expect(appState.launchAtLoginStatus() == false)
+
+        manager.isEnabledValue = true
+        manager.disableError = LaunchAtLoginTestError.enableFailed
+        #expect(appState.setLaunchAtLoginEnabled(false) == false)
+        #expect(manager.disableCallCount == 2)
+        #expect(appState.launchAtLoginStatus() == true)
     }
 
     @Test("Calendar events override focus sessions in normal mode")

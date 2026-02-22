@@ -2,7 +2,42 @@ import Testing
 import SwiftUI
 import AppKit
 import Foundation
+import ViewInspector
 @testable import FreeLogic
+
+private enum SettingsLaunchAtLoginTestError: Error {
+    case disableFailed
+}
+
+private final class SettingsMockLaunchAtLoginManager: LaunchAtLoginManaging {
+    var isEnabledValue: Bool
+    var isEnabledCallCount = 0
+    var enableCallCount = 0
+    var disableCallCount = 0
+    var disableError: Error?
+
+    init(isEnabled: Bool) {
+        self.isEnabledValue = isEnabled
+    }
+
+    var isEnabled: Bool {
+        isEnabledCallCount += 1
+        return isEnabledValue
+    }
+
+    func enable() throws {
+        enableCallCount += 1
+        isEnabledValue = true
+    }
+
+    func disable() throws {
+        disableCallCount += 1
+        if let disableError {
+            throw disableError
+        }
+        isEnabledValue = false
+    }
+}
 
 @Suite(.serialized)
 struct SettingsViewTests {
@@ -11,6 +46,18 @@ struct SettingsViewTests {
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
         return AppState(defaults: defaults, isTesting: true)
+    }
+
+    private func isolatedAppState(name: String, launchManager: any LaunchAtLoginManaging) -> AppState {
+        let suite = "SettingsViewTests.\(name)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return AppState(
+            defaults: defaults,
+            launchAtLoginManager: launchManager,
+            canPromptForLaunchAtLogin: { true },
+            isTesting: true
+        )
     }
 
     @MainActor
@@ -55,6 +102,25 @@ struct SettingsViewTests {
         #expect(appState.isUnblockable == true)
     }
 
+    @Test("SettingsView launch-at-login actions load and toggle state with failure fallback")
+    func settingsViewLaunchAtLoginActions() {
+        let launchManager = SettingsMockLaunchAtLoginManager(isEnabled: false)
+        let appState = isolatedAppState(name: "launchAtLoginActions", launchManager: launchManager)
+
+        let view = SettingsView(actionAppState: appState)
+        #expect(appState.launchAtLoginStatus() == false)
+
+        view.setLaunchAtLogin(true)
+        #expect(appState.launchAtLoginStatus() == true)
+        #expect(launchManager.enableCallCount == 1)
+
+        launchManager.disableError = SettingsLaunchAtLoginTestError.disableFailed
+        launchManager.isEnabledValue = true
+        view.setLaunchAtLogin(false)
+        #expect(appState.launchAtLoginStatus() == true)
+        #expect(launchManager.disableCallCount == 1)
+    }
+
     @Test("SettingsView strict-disable visibility helper covers false branch")
     func settingsViewStrictDisableFalseBranch() {
         let appState = isolatedAppState(name: "strictFalse")
@@ -75,6 +141,7 @@ struct SettingsViewTests {
         let view = SettingsView().environmentObject(appState)
         let hosted = host(view)
         #expect(hosted.fittingSize.width >= 0)
+        #expect((try? view.inspect().find(text: "Launch at Login")) != nil)
     }
 
     @Test("SettingsView renders strict-mode disable branch")

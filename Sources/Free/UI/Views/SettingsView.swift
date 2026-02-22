@@ -6,6 +6,7 @@ struct SettingsView: View {
     var appState: AppState { actionAppState ?? environmentAppState }
     @State private var showChallenge = false
     @State private var challengeInput = ""
+    @State private var launchAtLoginEnabled = false
 
     init(
         initialShowChallenge: Bool = false,
@@ -67,6 +68,27 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle(
+                        isOn: Binding(
+                            get: { launchAtLoginEnabled },
+                            set: { setLaunchAtLogin($0) }
+                        )
+                    ) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Launch at Login")
+                                .font(UIConstants.Typography.sectionLabel)
+                            Text("Start Free automatically when you sign in.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .toggleStyle(.switch)
+                } header: {
+                    Text("Startup")
+                        .font(UIConstants.Typography.header)
+                }
+
+                Section {
                     Picker("Theme", selection: $environmentAppState.appearanceMode) {
                         ForEach(AppearanceMode.allCases, id: \.self) { mode in
                             Text(mode.rawValue).tag(mode)
@@ -123,6 +145,7 @@ struct SettingsView: View {
                 "To disable Unblockable Mode, you must type the following exactly:\n\n\"\(AppState.challengePhrase)\""
             )
         }
+        .onAppear(perform: loadLaunchAtLoginState)
     }
 
     var shouldShowStrictDisableButton: Bool {
@@ -146,6 +169,19 @@ struct SettingsView: View {
         challengeInput = ""
     }
 
+    func loadLaunchAtLoginState() {
+        launchAtLoginEnabled = appState.launchAtLoginStatus()
+    }
+
+    func setLaunchAtLogin(_ enabled: Bool) {
+        if appState.setLaunchAtLoginEnabled(enabled) {
+            launchAtLoginEnabled = enabled
+        } else {
+            launchAtLoginEnabled = appState.launchAtLoginStatus()
+        }
+    }
+
     var showChallengeForTesting: Bool { showChallenge }
     var challengeInputForTesting: String { challengeInput }
+    var launchAtLoginEnabledForTesting: Bool { launchAtLoginEnabled }
 }

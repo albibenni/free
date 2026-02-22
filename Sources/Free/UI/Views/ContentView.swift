@@ -31,6 +31,7 @@ struct ContentView: View {
     @State private var selectedSection: MainContentSection = .focus
     @State private var showRules = false
     @State private var showSchedules = false
+    @State private var showLaunchAtLoginPrompt = false
 
     init(
         initialShowSidebar: Bool = false,
@@ -61,9 +62,20 @@ struct ContentView: View {
         .preferredColorScheme(Self.preferredColorScheme(for: appState.appearanceMode))
         .onAppear {
             applyMacOSAppearance(appState.appearanceMode)
+            if appState.prepareLaunchAtLoginPromptIfNeeded() {
+                showLaunchAtLoginPrompt = true
+            }
         }
         .onChange(of: appState.appearanceMode) { _, mode in
             applyMacOSAppearance(mode)
+        }
+        .alert("Do you want to launch at Login", isPresented: $showLaunchAtLoginPrompt) {
+            Button("Not Now", role: .cancel) {}
+            Button("Enable") {
+                _ = appState.enableLaunchAtLogin()
+            }
+        } message: {
+            Text("Would you like Free to start automatically when you log in?")
         }
     }
 
