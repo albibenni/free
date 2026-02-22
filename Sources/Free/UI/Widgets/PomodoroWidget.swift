@@ -1,12 +1,46 @@
 import SwiftUI
 
 struct PomodoroWidget: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject private var environmentAppState: AppState
+    private let actionAppState: AppState?
+    var appState: AppState { actionAppState ?? environmentAppState }
     @Binding var showPomodoroChallenge: Bool
     @Binding var pomodoroChallengeInput: String
     @State private var isExpanded = false
     @State private var showCustomTimer = false
     @State private var customMinutesString = ""
+
+    init(
+        showPomodoroChallenge: Binding<Bool>,
+        pomodoroChallengeInput: Binding<String>,
+        actionAppState: AppState? = nil,
+        initialIsExpanded: Bool = false,
+        initialShowCustomTimer: Bool = false,
+        initialCustomMinutesString: String = ""
+    ) {
+        self._showPomodoroChallenge = showPomodoroChallenge
+        self._pomodoroChallengeInput = pomodoroChallengeInput
+        self.actionAppState = actionAppState
+        self._isExpanded = State(initialValue: initialIsExpanded)
+        self._showCustomTimer = State(initialValue: initialShowCustomTimer)
+        self._customMinutesString = State(initialValue: initialCustomMinutesString)
+    }
+
+    func startCustomBreakFromInput() {
+        if let minutes = Double(customMinutesString) {
+            appState.startPause(minutes: minutes)
+        }
+        customMinutesString = ""
+    }
+
+    func stopPomodoroFromChallengeInput() {
+        _ = appState.stopPomodoroWithChallenge(phrase: pomodoroChallengeInput)
+        pomodoroChallengeInput = ""
+    }
+
+    func cancelChallengeInput() {
+        pomodoroChallengeInput = ""
+    }
 
     var body: some View {
         WidgetCard {
@@ -53,25 +87,15 @@ struct PomodoroWidget: View {
         }
         .alert("Custom Break", isPresented: $showCustomTimer) {
             TextField("Minutes", text: $customMinutesString)
-            Button("Start") {
-                if let minutes = Double(customMinutesString) {
-                    appState.startPause(minutes: minutes)
-                }
-                customMinutesString = ""
-            }
+            Button("Start", action: startCustomBreakFromInput)
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Enter duration in minutes:")
         }
         .alert("Emergency Unlock", isPresented: $showPomodoroChallenge) {
             TextField("Type the phrase exactly", text: $pomodoroChallengeInput)
-            Button("Stop Pomodoro", role: .destructive) {
-                _ = appState.stopPomodoroWithChallenge(phrase: pomodoroChallengeInput)
-                pomodoroChallengeInput = ""
-            }
-            Button("Cancel", role: .cancel) {
-                pomodoroChallengeInput = ""
-            }
+            Button("Stop Pomodoro", role: .destructive, action: stopPomodoroFromChallengeInput)
+            Button("Cancel", role: .cancel, action: cancelChallengeInput)
         } message: {
             Text(
                 "To stop a Strict Pomodoro session, you must type the following exactly:\n\n\"\(AppState.challengePhrase)\""
