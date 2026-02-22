@@ -29,6 +29,8 @@
   - [ ] allow personalization on this rule with settings
   - [ ] allow imports to be all focus
   - [ ] allow personal imports rule about title search and focus time
+- [ ] add git steps
+  - [ ] build and tests
 
 ## Bug
 
