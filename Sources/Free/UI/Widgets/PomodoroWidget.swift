@@ -77,6 +77,10 @@ struct PomodoroWidget: View {
                         .padding(.bottom, 12)
                     }
 
+                    PomodoroRuleSetPicker()
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 12)
+
                     PomodoroActionButtons(
                         showPomodoroChallenge: $showPomodoroChallenge
                     )
@@ -100,6 +104,80 @@ struct PomodoroWidget: View {
             Text(
                 "To stop a Strict Pomodoro session, you must type the following exactly:\n\n\"\(AppState.challengePhrase)\""
             )
+        }
+    }
+}
+
+struct PomodoroRuleSetPicker: View {
+    @EnvironmentObject var appState: AppState
+
+    var canSwitchRuleSetSelection: Bool {
+        !appState.isStrictActive
+    }
+
+    var selectedRuleSetId: UUID? {
+        Self.selectedRuleSetId(activeRuleSetId: appState.activeRuleSetId, ruleSets: appState.ruleSets)
+    }
+
+    static func selectedRuleSetId(activeRuleSetId: UUID?, ruleSets: [RuleSet]) -> UUID? {
+        activeRuleSetId ?? ruleSets.first?.id
+    }
+
+    func selectRuleSet(_ set: RuleSet) {
+        guard canSwitchRuleSetSelection else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            appState.activeRuleSetId = set.id
+        }
+    }
+
+    var body: some View {
+        if !appState.ruleSets.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("SELECT LIST")
+                    .font(.caption.bold())
+                    .foregroundColor(.secondary)
+
+                ScrollView {
+                    VStack(spacing: 4) {
+                        ForEach(appState.ruleSets) { set in
+                            Button(action: { selectRuleSet(set) }) {
+                                HStack {
+                                    Image(systemName: selectedRuleSetId == set.id ? "link.circle.fill" : "link")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(
+                                            selectedRuleSetId == set.id
+                                                ? FocusColor.color(for: appState.accentColorIndex) : .secondary
+                                        )
+
+                                    Text(set.name)
+                                        .font(.subheadline)
+                                        .fontWeight(selectedRuleSetId == set.id ? .bold : .regular)
+                                        .foregroundColor(selectedRuleSetId == set.id ? .primary : .secondary)
+
+                                    Spacer()
+
+                                    if selectedRuleSetId == set.id {
+                                        Image(systemName: "checkmark")
+                                            .font(.caption.bold())
+                                            .foregroundColor(FocusColor.color(for: appState.accentColorIndex))
+                                    }
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    selectedRuleSetId == set.id
+                                        ? FocusColor.color(for: appState.accentColorIndex).opacity(0.1)
+                                        : Color.primary.opacity(0.03)
+                                )
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(!canSwitchRuleSetSelection)
+                        }
+                    }
+                }
+                .frame(maxHeight: 140)
+            }
         }
     }
 }

@@ -141,6 +141,62 @@ struct PomodoroWidgetTests {
         #expect(showCustomTimer == false)
     }
 
+    @Test("PomodoroRuleSetPicker shares active list selection and enforces strict-mode lock")
+    @MainActor
+    func pomodoroRuleSetPickerSelectionAndStrictLock() throws {
+        let appState = isolatedAppState(name: "ruleSetPickerSelectionAndStrictLock")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
+        appState.ruleSets = [work, personal]
+        appState.activeRuleSetId = nil
+
+        #expect(
+            PomodoroRuleSetPicker.selectedRuleSetId(
+                activeRuleSetId: appState.activeRuleSetId,
+                ruleSets: appState.ruleSets
+            ) == work.id
+        )
+
+        let picker = PomodoroRuleSetPicker().environmentObject(appState)
+        _ = host(picker, size: CGSize(width: 520, height: 320))
+        #expect((try? picker.inspect().find(text: "SELECT LIST")) != nil)
+        let personalButton = try picker.inspect().find(button: "Personal")
+        try personalButton.tap()
+        #expect(appState.activeRuleSetId == personal.id)
+
+        appState.activeRuleSetId = work.id
+        appState.isBlocking = true
+        appState.isUnblockable = true
+
+        let strictPicker = PomodoroRuleSetPicker().environmentObject(appState)
+        _ = host(strictPicker, size: CGSize(width: 520, height: 320))
+        _ = try? strictPicker.inspect().find(button: "Personal").tap()
+        #expect(appState.activeRuleSetId == work.id)
+    }
+
+    @Test("Pomodoro list selection is reflected in Allowed Websites widget selection")
+    @MainActor
+    func pomodoroSelectionSharedWithAllowedWebsitesWidget() throws {
+        let appState = isolatedAppState(name: "selectionSharedAcrossWidgets")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
+        appState.ruleSets = [work, personal]
+        appState.activeRuleSetId = work.id
+
+        let picker = PomodoroRuleSetPicker().environmentObject(appState)
+        _ = host(picker, size: CGSize(width: 520, height: 320))
+        try picker.inspect().find(button: "Personal").tap()
+        #expect(appState.activeRuleSetId == personal.id)
+
+        var showRules = false
+        let allowedWidget = AllowedWebsitesWidget(
+            showRules: Binding(get: { showRules }, set: { showRules = $0 })
+        )
+        .environmentObject(appState)
+        _ = host(allowedWidget, size: CGSize(width: 520, height: 320))
+        #expect((try? allowedWidget.inspect().find(text: "Personal")) != nil)
+    }
+
     @Test("PomodoroSetupView +/- controls enforce min and max limits")
     @MainActor
     func pomodoroSetupViewDurationButtons() throws {
