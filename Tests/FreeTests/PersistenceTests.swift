@@ -63,6 +63,7 @@ struct PersistenceTests {
 
         var appState: AppState? = AppState(defaults: defaults, isTesting: true)
         appState?.isBlocking = true
+        defaults.set(false, forKey: "WasStartedBySchedule")
         appState?.isUnblockable = true
         appState?.accentColorIndex = 5
         appState = nil

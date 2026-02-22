@@ -17,6 +17,7 @@ enum AppearanceMode: String, Codable, CaseIterable {
 class AppState: ObservableObject {
     static let challengePhrase =
         "I am choosing to break my focus and I acknowledge that this may impact my productivity."
+    private static let wasStartedByScheduleKey = "WasStartedBySchedule"
     private let defaults: UserDefaults
 
     @Published var isBlocking = false {
@@ -86,6 +87,7 @@ class AppState: ObservableObject {
     private var scheduleTimer: (any RepeatingTimer)?
     private var wasStartedBySchedule = false
     private var manuallyPausedScheduleIds: Set<UUID> = []
+    private var pomodoroRuleSetId: UUID?
 
     enum PomodoroStatus: String, Codable { case none, focus, breakTime }
 
@@ -98,11 +100,13 @@ class AppState: ObservableObject {
     var isStrictActive: Bool { isBlocking && isUnblockable }
 
     var currentPrimaryRuleSetId: UUID? {
-        if (isBlocking && !wasStartedBySchedule) || pomodoroStatus == .focus {
-            return activeRuleSetId ?? ruleSets.first?.id
+        if pomodoroStatus == .focus {
+            return normalizedRuleSetId(pomodoroRuleSetId ?? activeRuleSetId)
         }
-        return schedules.first { $0.isActive() && $0.type == .focus }?.ruleSetId ?? activeRuleSetId
-            ?? ruleSets.first?.id
+        if isBlocking && !wasStartedBySchedule {
+            return normalizedRuleSetId(activeRuleSetId)
+        }
+        return activeScheduleRuleSetId() ?? ruleSets.first?.id
     }
 
     var currentPrimaryRuleSetName: String {
@@ -117,10 +121,14 @@ class AppState: ObservableObject {
                 urls.formUnion(set.urls)
             }
         }
-        if (isBlocking && !wasStartedBySchedule) || pomodoroStatus == .focus {
-            if let set = ruleSets.first(where: { $0.id == activeRuleSetId ?? ruleSets.first?.id }) {
+        if pomodoroStatus == .focus {
+            if let set = ruleSet(for: pomodoroRuleSetId ?? activeRuleSetId) {
                 urls.formUnion(set.urls)
             }
+        } else if isBlocking && !wasStartedBySchedule,
+            let set = ruleSet(for: activeRuleSetId)
+        {
+            urls.formUnion(set.urls)
         }
         if urls.isEmpty && isBlocking, let firstSet = ruleSets.first {
             urls.formUnion(firstSet.urls)
@@ -177,6 +185,16 @@ class AppState: ObservableObject {
         self.schedules = loadJSON(key: "Schedules", as: [Schedule].self) ?? []
         self.activeRuleSetId =
             UUID(uuidString: defaults.string(forKey: "ActiveRuleSetId") ?? "") ?? ruleSets.first?.id
+        self.wasStartedBySchedule = defaults.bool(forKey: Self.wasStartedByScheduleKey)
+
+        // Migration for older builds that persisted IsBlocking but not its source.
+        if defaults.object(forKey: Self.wasStartedByScheduleKey) == nil, isBlocking {
+            let shouldBeBlockingNow = automaticBlockingState()
+            if !shouldBeBlockingNow {
+                isBlocking = false
+            }
+            setWasStartedBySchedule(shouldBeBlockingNow)
+        }
 
         if let monitor = monitor {
             self.monitor = monitor
@@ -211,33 +229,19 @@ class AppState: ObservableObject {
                 manuallyPausedScheduleIds.removeAll()
             }
             isBlocking.toggle()
-            wasStartedBySchedule = false
+            setWasStartedBySchedule(false)
         }
     }
 
     func checkSchedules() {
-        let active = schedules.filter { $0.isActive() }
-        let focusSchedules = active.filter { $0.type == .focus }
-
-        let activeFocusIds = Set(focusSchedules.map { $0.id })
-        manuallyPausedScheduleIds.formIntersection(activeFocusIds)
-
-        let hasFocus =
-            (focusSchedules.contains { !manuallyPausedScheduleIds.contains($0.id) })
-            || pomodoroStatus == .focus
-        let hasBreak = active.contains { $0.type == .unfocus } || pomodoroStatus == .breakTime
-        let hasMeeting =
-            calendarIntegrationEnabled && !isUnblockable
-            && calendarProvider.events.contains { $0.isActive() }
-
-        let shouldBeBlocking = hasFocus && !hasBreak && !hasMeeting
+        let shouldBeBlocking = automaticBlockingState()
 
         if shouldBeBlocking && !isBlocking {
             isBlocking = true
-            wasStartedBySchedule = true
+            setWasStartedBySchedule(true)
         } else if !shouldBeBlocking && isBlocking && wasStartedBySchedule {
             isBlocking = false
-            wasStartedBySchedule = false
+            setWasStartedBySchedule(false)
         }
     }
 
@@ -323,6 +327,10 @@ class AppState: ObservableObject {
     }
 
     func startPomodoro() {
+        if pomodoroStatus == .none {
+            pomodoroRuleSetId = normalizedRuleSetId(activeRuleSetId)
+        }
+        pomodoroRuleSetId = normalizedRuleSetId(pomodoroRuleSetId ?? activeRuleSetId)
         pomodoroStatus = .focus
         pomodoroRemaining = pomodoroFocusDuration * 60
         pomodoroStartedAt = Date()
@@ -331,6 +339,7 @@ class AppState: ObservableObject {
     func stopPomodoro() {
         if !isPomodoroLocked {
             pomodoroStatus = .none
+            pomodoroRuleSetId = nil
             replacePomodoroTimer(with: nil)
             checkSchedules()
         }
@@ -398,6 +407,24 @@ class AppState: ObservableObject {
         return calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
     }
 
+    private func normalizedRuleSetId(_ id: UUID?) -> UUID? {
+        if let id, ruleSets.contains(where: { $0.id == id }) {
+            return id
+        }
+        return ruleSets.first?.id
+    }
+
+    private func ruleSet(for id: UUID?) -> RuleSet? {
+        guard let normalizedId = normalizedRuleSetId(id) else { return nil }
+        return ruleSets.first(where: { $0.id == normalizedId })
+    }
+
+    private func activeScheduleRuleSetId() -> UUID? {
+        schedules
+            .first(where: { $0.isActive() && $0.type == .focus && $0.ruleSetId != nil })?
+            .ruleSetId
+    }
+
     private func replacePauseTimer(with newTimer: (any RepeatingTimer)?) {
         replaceTimer(keyPath: \.pauseTimer, with: newTimer)
     }
@@ -408,6 +435,28 @@ class AppState: ObservableObject {
 
     private func replaceScheduleTimer(with newTimer: (any RepeatingTimer)?) {
         replaceTimer(keyPath: \.scheduleTimer, with: newTimer)
+    }
+
+    private func automaticBlockingState() -> Bool {
+        let active = schedules.filter { $0.isActive() }
+        let focusSchedules = active.filter { $0.type == .focus }
+        let activeFocusIds = Set(focusSchedules.map { $0.id })
+        manuallyPausedScheduleIds.formIntersection(activeFocusIds)
+
+        let hasFocus =
+            (focusSchedules.contains { !manuallyPausedScheduleIds.contains($0.id) })
+            || pomodoroStatus == .focus
+        let hasBreak = active.contains { $0.type == .unfocus } || pomodoroStatus == .breakTime
+        let hasMeeting =
+            calendarIntegrationEnabled && !isUnblockable
+            && calendarProvider.events.contains { $0.isActive() }
+
+        return hasFocus && !hasBreak && !hasMeeting
+    }
+
+    private func setWasStartedBySchedule(_ value: Bool) {
+        wasStartedBySchedule = value
+        defaults.set(value, forKey: Self.wasStartedByScheduleKey)
     }
 
     private func invalidateAllTimers() {

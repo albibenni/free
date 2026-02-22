@@ -279,6 +279,24 @@ struct PomodoroWidgetTests {
         #expect((try? breakView.inspect().find(text: "Work")) == nil)
     }
 
+    @Test("PomodoroActiveView keeps showing the session list after global selection changes")
+    @MainActor
+    func pomodoroActiveViewUsesSessionRuleSet() throws {
+        let appState = isolatedAppState(name: "activeViewUsesSessionRuleSet")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
+        appState.ruleSets = [work, personal]
+        appState.activeRuleSetId = work.id
+
+        appState.startPomodoro()
+        appState.activeRuleSetId = personal.id
+
+        let view = PomodoroActiveView().environmentObject(appState)
+        _ = host(view, size: CGSize(width: 520, height: 520))
+        #expect((try? view.inspect().find(text: "Work")) != nil)
+        #expect((try? view.inspect().find(text: "Personal")) == nil)
+    }
+
     @Test("PomodoroActionButtons cover start, skip/stop, and locked challenge paths")
     @MainActor
     func pomodoroActionButtonsBranches() throws {

@@ -385,7 +385,7 @@ struct PomodoroActiveView: View {
                     .frame(width: 240, height: 240)
                 }
 
-                if let activeId = appState.activeRuleSetId,
+                if let activeId = appState.currentPrimaryRuleSetId,
                     let setName = appState.ruleSets.first(where: { $0.id == activeId })?.name,
                     appState.pomodoroStatus == .focus
                 {

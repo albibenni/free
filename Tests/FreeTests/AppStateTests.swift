@@ -129,6 +129,48 @@ struct AppStateTests {
         #expect(appState.isBlocking, "Manual focus should not be turned off by schedule ending")
     }
 
+    @Test("AppState migrates legacy stale blocking state to inactive when no automatic reason exists")
+    func legacyBlockingMigrationClearsStaleState() {
+        let suite = "AppStateTests.legacyBlockingMigrationClearsStaleState"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defaults.set(true, forKey: "IsBlocking")
+        defaults.removeObject(forKey: "WasStartedBySchedule")
+
+        let appState = AppState(defaults: defaults, isTesting: true)
+
+        #expect(!appState.isBlocking)
+        #expect(defaults.bool(forKey: "WasStartedBySchedule") == false)
+    }
+
+    @Test("AppState preserves persisted manual blocking when source is manual")
+    func persistedManualBlockingRemainsActive() {
+        let suite = "AppStateTests.persistedManualBlockingRemainsActive"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defaults.set(true, forKey: "IsBlocking")
+        defaults.set(false, forKey: "WasStartedBySchedule")
+
+        let appState = AppState(defaults: defaults, isTesting: true)
+
+        #expect(appState.isBlocking)
+    }
+
+    @Test("AppState auto-disables persisted automatic blocking when focus schedule has ended")
+    func persistedAutomaticBlockingStopsWhenScheduleEnds() {
+        let suite = "AppStateTests.persistedAutomaticBlockingStopsWhenScheduleEnds"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defaults.set(true, forKey: "IsBlocking")
+        defaults.set(true, forKey: "WasStartedBySchedule")
+
+        let appState = AppState(defaults: defaults, isTesting: true)
+        appState.checkSchedules()
+
+        #expect(!appState.isBlocking)
+        #expect(defaults.bool(forKey: "WasStartedBySchedule") == false)
+    }
+
     @Test("Calendar events override focus sessions in normal mode")
     func calendarEventOverride() {
         let appState = isolatedAppState(name: "calendarEventOverride")
@@ -245,7 +287,7 @@ struct AppStateTests {
         #expect(appState.currentPrimaryRuleSetId == set.id)
 
         appState.activeRuleSetId = UUID()
-        #expect(appState.currentPrimaryRuleSetName == "Unknown List")
+        #expect(appState.currentPrimaryRuleSetName == "Main")
 
         appState.isBlocking = false
         let now = Date()
@@ -678,6 +720,57 @@ struct AppStateTests {
 
         appState.pomodoroStatus = .focus
         #expect(appState.currentPrimaryRuleSetId == set1.id)
+    }
+
+    @Test("Pomodoro keeps enforcing the session-captured list while selection changes")
+    func pomodoroUsesCapturedRuleSetDuringActiveSession() {
+        let appState = isolatedAppState(name: "pomodoroUsesCapturedRuleSetDuringActiveSession")
+        let set1 = RuleSet(id: UUID(), name: "Set 1", urls: ["set1.example"])
+        let set2 = RuleSet(id: UUID(), name: "Set 2", urls: ["set2.example"])
+        appState.ruleSets = [set1, set2]
+        appState.activeRuleSetId = set1.id
+
+        appState.startPomodoro()
+        #expect(appState.currentPrimaryRuleSetId == set1.id)
+        #expect(appState.allowedRules.contains("set1.example"))
+        #expect(!appState.allowedRules.contains("set2.example"))
+
+        appState.activeRuleSetId = set2.id
+        #expect(appState.currentPrimaryRuleSetId == set1.id)
+        #expect(appState.allowedRules.contains("set1.example"))
+        #expect(!appState.allowedRules.contains("set2.example"))
+    }
+
+    @Test("Schedule enforcement ignores active list selection changes while schedule is active")
+    func scheduleUsesAssignedRuleSetDuringActiveSession() {
+        let appState = isolatedAppState(name: "scheduleUsesAssignedRuleSetDuringActiveSession")
+        let set1 = RuleSet(id: UUID(), name: "Schedule Set", urls: ["schedule.example"])
+        let set2 = RuleSet(id: UUID(), name: "Manual Set", urls: ["manual.example"])
+        appState.ruleSets = [set1, set2]
+        appState.activeRuleSetId = set2.id
+
+        let now = Date()
+        let weekday = Calendar.current.component(.weekday, from: now)
+        let schedule = Schedule(
+            name: "Focus",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-1000),
+            endTime: now.addingTimeInterval(1000),
+            isEnabled: true,
+            type: .focus,
+            ruleSetId: set1.id
+        )
+        appState.schedules = [schedule]
+        appState.checkSchedules()
+
+        #expect(appState.currentPrimaryRuleSetId == set1.id)
+        #expect(appState.allowedRules.contains("schedule.example"))
+        #expect(!appState.allowedRules.contains("manual.example"))
+
+        appState.activeRuleSetId = set2.id
+        #expect(appState.currentPrimaryRuleSetId == set1.id)
+        #expect(appState.allowedRules.contains("schedule.example"))
+        #expect(!appState.allowedRules.contains("manual.example"))
     }
 
     @Test("Manual toggle can stop a schedule-started session")
