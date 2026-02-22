@@ -72,8 +72,8 @@ struct ContentView: View {
             if showSidebar {
                 Divider()
                 VStack(alignment: .leading, spacing: 8) {
-                    Button(action: { showRules = true }) {
-                        Label("Schedule", systemImage: "lock.fill")
+                    Button(action: openRules) {
+                        Label("Rules", systemImage: "lock.fill")
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
@@ -105,6 +105,10 @@ struct ContentView: View {
 
     func openSettings() {
         showSettings = true
+    }
+
+    func openRules() {
+        showRules = true
     }
 
     func toggleSettingsSidebar() {
@@ -158,4 +162,8 @@ struct ContentView: View {
     func applyMacOSAppearance(_ mode: AppearanceMode) {
         NSApp?.appearance = Self.nsAppearance(for: mode)
     }
+
+    var isSidebarVisibleForTesting: Bool { showSidebar }
+    var showSettingsForTesting: Bool { showSettings }
+    var showRulesForTesting: Bool { showRules }
 }
