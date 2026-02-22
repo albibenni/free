@@ -5,6 +5,23 @@ struct AllowedWebsitesWidget: View {
     @Binding var showRules: Bool
     @State private var isExpanded = false
 
+    init(showRules: Binding<Bool>, initialIsExpanded: Bool = false) {
+        self._showRules = showRules
+        self._isExpanded = State(initialValue: initialIsExpanded)
+    }
+
+    func selectRuleSet(_ set: RuleSet) {
+        if !appState.isBlocking {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                appState.activeRuleSetId = set.id
+            }
+        }
+    }
+
+    func openRules() {
+        showRules = true
+    }
+
     var body: some View {
         WidgetCard {
             Button(action: { withAnimation { isExpanded.toggle() } }) {
@@ -37,13 +54,7 @@ struct AllowedWebsitesWidget: View {
                             ScrollView {
                                 VStack(spacing: 4) {
                                     ForEach(appState.ruleSets) { set in
-                                        Button(action: {
-                                            if !appState.isBlocking {
-                                                withAnimation(.easeInOut(duration: 0.2)) {
-                                                    appState.activeRuleSetId = set.id
-                                                }
-                                            }
-                                        }) {
+                                        Button(action: { selectRuleSet(set) }) {
                                             HStack {
                                                 Image(
                                                     systemName: appState.activeRuleSetId == set.id
@@ -97,7 +108,7 @@ struct AllowedWebsitesWidget: View {
 
                     Divider().opacity(0.5)
 
-                    Button(action: { showRules = true }) {
+                    Button(action: openRules) {
                         Text("Manage & Edit Lists")
                     }
                     .buttonStyle(
