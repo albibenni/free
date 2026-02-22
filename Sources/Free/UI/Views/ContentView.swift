@@ -78,6 +78,7 @@ struct ContentView: View {
                 showSchedules: $showSchedules,
                 section: focusSection(for: selectedSection)
             )
+            .id(selectedSection.id)
         }
     }
 

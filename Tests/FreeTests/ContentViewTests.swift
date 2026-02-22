@@ -120,6 +120,26 @@ struct ContentViewTests {
         try settingsButton.tap()
     }
 
+    @Test("ContentView schedules section shows expanded widget by default")
+    @MainActor
+    func contentViewSchedulesSectionOpensWidget() {
+        let appState = isolatedAppState(name: "sectionSelectionOpensWidget")
+        appState.schedules = [
+            Schedule(
+                name: "Morning Focus",
+                days: [Calendar.current.component(.weekday, from: Date())],
+                startTime: Date(),
+                endTime: Date().addingTimeInterval(3600),
+                isEnabled: true,
+                type: .focus
+            )
+        ]
+
+        let view = ContentView(initialSection: .schedules).environmentObject(appState)
+        _ = host(view)
+        #expect((try? view.inspect().find(text: "Open Full Calendar")) != nil)
+    }
+
     @Test("ContentView settings section renders in main content")
     @MainActor
     func contentViewSettingsMainContentRender() {
