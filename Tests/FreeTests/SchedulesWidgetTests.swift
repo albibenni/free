@@ -108,4 +108,32 @@ struct SchedulesWidgetTests {
         #expect((try? sut.inspect().find(text: "Break")) != nil)
         #expect((try? sut.inspect().find(text: "Disabled")) != nil)
     }
+
+    @Test("SchedulesWidget indicator color follows accent for focus and keeps theme for break")
+    func schedulesWidgetIndicatorColorMapping() {
+        let focusSchedule = schedule(
+            name: "Focus",
+            enabled: true,
+            startOffsetMinutes: -10,
+            endOffsetMinutes: 10,
+            type: .focus
+        )
+        #expect(
+            SchedulesWidget.indicatorColor(for: focusSchedule, accentColorIndex: 5)
+                == FocusColor.color(for: 5)
+        )
+
+        var breakSchedule = schedule(
+            name: "Break",
+            enabled: true,
+            startOffsetMinutes: -10,
+            endOffsetMinutes: 10,
+            type: .unfocus
+        )
+        breakSchedule.colorIndex = 7
+        #expect(
+            SchedulesWidget.indicatorColor(for: breakSchedule, accentColorIndex: 5)
+                == breakSchedule.themeColor
+        )
+    }
 }

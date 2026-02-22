@@ -75,4 +75,14 @@ struct ScheduleRowTests {
         #expect(schedule.value.type == .unfocus)
         #expect(schedule.value.isEnabled == false)
     }
+
+    @Test("ScheduleRow indicator color follows accent for focus and keeps theme for break")
+    func scheduleRowIndicatorColorMapping() {
+        let focusSchedule = makeSchedule(type: .focus)
+        #expect(ScheduleRow.indicatorColor(for: focusSchedule, accentColorIndex: 3) == FocusColor.color(for: 3))
+
+        var breakSchedule = makeSchedule(type: .unfocus)
+        breakSchedule.colorIndex = 6
+        #expect(ScheduleRow.indicatorColor(for: breakSchedule, accentColorIndex: 3) == breakSchedule.themeColor)
+    }
 }

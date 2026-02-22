@@ -36,6 +36,7 @@ struct SchedulesView: View {
                     ForEach($environmentAppState.schedules) { $schedule in
                         ScheduleRow(
                             schedule: $schedule,
+                            accentColorIndex: appState.accentColorIndex,
                             onDelete: deleteScheduleAction(scheduleId: schedule.id)
                         )
                         .contentShape(Rectangle())

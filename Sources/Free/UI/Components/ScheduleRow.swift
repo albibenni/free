@@ -2,12 +2,31 @@ import SwiftUI
 
 struct ScheduleRow: View {
     @Binding var schedule: Schedule
+    var accentColorIndex: Int
     var onDelete: () -> Void
+
+    init(
+        schedule: Binding<Schedule>,
+        accentColorIndex: Int = 0,
+        onDelete: @escaping () -> Void
+    ) {
+        self._schedule = schedule
+        self.accentColorIndex = accentColorIndex
+        self.onDelete = onDelete
+    }
+
+    var indicatorColor: Color {
+        Self.indicatorColor(for: schedule, accentColorIndex: accentColorIndex)
+    }
+
+    static func indicatorColor(for schedule: Schedule, accentColorIndex: Int) -> Color {
+        schedule.type == .focus ? FocusColor.color(for: accentColorIndex) : schedule.themeColor
+    }
 
     var body: some View {
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 4)
-                .fill(schedule.themeColor)
+                .fill(indicatorColor)
                 .frame(width: 4, height: 35)
 
             VStack(alignment: .leading, spacing: 4) {

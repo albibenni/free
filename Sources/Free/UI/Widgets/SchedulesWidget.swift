@@ -20,6 +20,17 @@ struct SchedulesWidget: View {
         return f
     }()
 
+    func indicatorColor(for schedule: Schedule) -> Color {
+        Self.indicatorColor(
+            for: schedule,
+            accentColorIndex: appState.accentColorIndex
+        )
+    }
+
+    static func indicatorColor(for schedule: Schedule, accentColorIndex: Int) -> Color {
+        schedule.type == .focus ? FocusColor.color(for: accentColorIndex) : schedule.themeColor
+    }
+
     var body: some View {
         WidgetCard {
             Button(action: { withAnimation { isExpanded.toggle() } }) {
@@ -76,7 +87,7 @@ struct SchedulesWidget: View {
                                     .frame(width: 65)
 
                                     Capsule()
-                                        .fill(schedule.themeColor)
+                                        .fill(indicatorColor(for: schedule))
                                         .frame(width: 4)
                                         .frame(height: 24)
 

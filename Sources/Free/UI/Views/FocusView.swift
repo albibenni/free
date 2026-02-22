@@ -151,7 +151,8 @@ struct FocusView: View {
                     )
                 }
 
-                if !shouldShowSchedulePreview && !shouldShowAllowListPreview && !shouldShowPomodoroPreview
+                if !shouldShowSchedulePreview && !shouldShowAllowListPreview
+                    && !shouldShowPomodoroPreview
                 {
                     Text("No active schedule, allow list, or pomodoro session.")
                         .font(.subheadline)
