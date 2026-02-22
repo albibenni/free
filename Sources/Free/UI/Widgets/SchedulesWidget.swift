@@ -5,6 +5,15 @@ struct SchedulesWidget: View {
     @Binding var showSchedules: Bool
     @State private var isExpanded = false
 
+    init(showSchedules: Binding<Bool>, initialIsExpanded: Bool = false) {
+        self._showSchedules = showSchedules
+        self._isExpanded = State(initialValue: initialIsExpanded)
+    }
+
+    func openSchedules() {
+        showSchedules = true
+    }
+
     private let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.timeStyle = .short
@@ -103,7 +112,7 @@ struct SchedulesWidget: View {
 
                     Divider().opacity(0.5)
 
-                    Button(action: { showSchedules = true }) {
+                    Button(action: openSchedules) {
                         Text("Open Full Calendar")
                     }
                     .buttonStyle(AppPrimaryButtonStyle(
