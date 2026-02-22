@@ -27,17 +27,11 @@ struct ContentViewTests {
     func contentViewHelperLogic() {
         let contentView = ContentView()
         #expect(contentView.isSidebarVisibleForTesting == false)
-        #expect(contentView.showSettingsForTesting == false)
         #expect(contentView.showRulesForTesting == false)
         contentView.openSettings()
         contentView.toggleSettingsSidebar()
         contentView.openRules()
-
-        var showSettings = false
-        let settingsBinding = Binding(get: { showSettings }, set: { showSettings = $0 })
-        let openSettings = ContentView.makeShowSettingsAction(showSettings: settingsBinding)
-        openSettings()
-        #expect(showSettings == true)
+        #expect(contentView.selectedSectionForTesting == .focus)
 
         #expect(ContentView.tintColor(accentColorIndex: 3) == FocusColor.color(for: 3))
         #expect(ContentView.preferredColorScheme(for: .light) == .light)
@@ -46,6 +40,11 @@ struct ContentViewTests {
         #expect(ContentView.nsAppearance(for: .light)?.name == .aqua)
         #expect(ContentView.nsAppearance(for: .dark)?.name == .darkAqua)
         #expect(ContentView.nsAppearance(for: .system) == nil)
+        #expect(contentView.focusSection(for: .focus) == .all)
+        #expect(contentView.focusSection(for: .schedules) == .schedules)
+        #expect(contentView.focusSection(for: .allowedWebsites) == .allowedWebsites)
+        #expect(contentView.focusSection(for: .pomodoro) == .pomodoro)
+        #expect(contentView.focusSection(for: .settings) == .all)
     }
 
     @Test("ContentView renders with environment object")
@@ -60,7 +59,7 @@ struct ContentViewTests {
         #expect(hosted.fittingSize.width >= 0)
     }
 
-    @Test("ContentView renders expanded sidebar menu with rules and settings entries")
+    @Test("ContentView renders expanded sidebar menu with section entries and settings")
     @MainActor
     func contentViewExpandedSidebarRender() {
         let appState = isolatedAppState(name: "expandedSidebar")
@@ -68,8 +67,17 @@ struct ContentViewTests {
         let hosted = host(view)
         #expect(hosted.fittingSize.width >= 0)
         #expect((try? view.inspect().find(text: "Menu")) != nil)
-        #expect((try? view.inspect().find(text: "Rules")) != nil)
+        #expect((try? view.inspect().find(text: "Focus")) != nil)
+        #expect((try? view.inspect().find(text: "Schedules")) != nil)
+        #expect((try? view.inspect().find(text: "Allowed Websites")) != nil)
+        #expect((try? view.inspect().find(text: "Pomodoro")) != nil)
         #expect((try? view.inspect().find(text: "Settings")) != nil)
+    }
+
+    @Test("ContentView selected section accessor reflects initial section")
+    func contentViewSelectedSectionAccessor() {
+        let pomodoro = ContentView(initialSection: .pomodoro)
+        #expect(pomodoro.selectedSectionForTesting == .pomodoro)
     }
 
     @Test("ContentView applies appearance changes on appear and mode updates")
@@ -108,19 +116,19 @@ struct ContentViewTests {
         #expect(expandedButtons.count >= 3)
         try expandedButtons[1].tap()
         try expandedButtons[2].tap()
+        let settingsButton = try expanded.inspect().find(button: "Settings")
+        try settingsButton.tap()
     }
 
-    @Test("ContentView settings sheet helper renders")
+    @Test("ContentView settings section renders in main content")
     @MainActor
-    func contentViewSettingsSheetRender() {
-        let appState = isolatedAppState(name: "settingsSheet")
-        var showSettings = true
-        let binding = Binding(get: { showSettings }, set: { showSettings = $0 })
-
-        let view = ContentView.settingsSheet(showSettings: binding)
+    func contentViewSettingsMainContentRender() {
+        let appState = isolatedAppState(name: "settingsMainContent")
+        let view = ContentView(initialSection: .settings)
             .environmentObject(appState)
-        let hosted = host(view, size: CGSize(width: 500, height: 420))
+        let hosted = host(view, size: CGSize(width: 900, height: 900))
         #expect(hosted.fittingSize.height >= 0)
+        #expect((try? view.inspect().find(text: "Strict Mode")) != nil)
     }
 
     @Test("ContentView rules sheet helper renders")
@@ -147,15 +155,6 @@ struct ContentViewTests {
             .environmentObject(appState)
         let hosted = host(view, size: CGSize(width: 820, height: 760))
         #expect(hosted.fittingSize.height >= 0)
-    }
-
-    @Test("ContentView renders with settings sheet initially presented")
-    @MainActor
-    func contentViewInitialSettingsSheetRender() {
-        let appState = isolatedAppState(name: "initialSettingsSheet")
-        let view = ContentView(initialShowSettings: true).environmentObject(appState)
-        let hosted = host(view, size: CGSize(width: 900, height: 900))
-        #expect(hosted.fittingSize.width >= 0)
     }
 
     @Test("ContentView renders with rules sheet initially presented")

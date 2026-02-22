@@ -1,9 +1,17 @@
 import SwiftUI
 
+enum FocusContentSection {
+    case all
+    case schedules
+    case allowedWebsites
+    case pomodoro
+}
+
 struct FocusView: View {
     @EnvironmentObject var appState: AppState
     @Binding var showRules: Bool
     @Binding var showSchedules: Bool
+    let section: FocusContentSection
 
     @State private var showPomodoroChallenge: Bool
     @State private var pomodoroChallengeInput: String
@@ -11,11 +19,13 @@ struct FocusView: View {
     init(
         showRules: Binding<Bool>,
         showSchedules: Binding<Bool>,
+        section: FocusContentSection = .all,
         initialShowPomodoroChallenge: Bool = false,
         initialPomodoroChallengeInput: String = ""
     ) {
         _showRules = showRules
         _showSchedules = showSchedules
+        self.section = section
         _showPomodoroChallenge = State(initialValue: initialShowPomodoroChallenge)
         _pomodoroChallengeInput = State(initialValue: initialPomodoroChallengeInput)
     }
@@ -36,16 +46,41 @@ struct FocusView: View {
             }
 
             pauseDashboard
-            PomodoroWidget(
-                showPomodoroChallenge: $showPomodoroChallenge,
-                pomodoroChallengeInput: $pomodoroChallengeInput
-            )
-            SchedulesWidget(showSchedules: $showSchedules)
-            AllowedWebsitesWidget(showRules: $showRules)
+            if shouldShowPomodoroWidget {
+                PomodoroWidget(
+                    showPomodoroChallenge: $showPomodoroChallenge,
+                    pomodoroChallengeInput: $pomodoroChallengeInput,
+                    initialIsExpanded: section == .pomodoro
+                )
+            }
+            if shouldShowSchedulesWidget {
+                SchedulesWidget(
+                    showSchedules: $showSchedules,
+                    initialIsExpanded: section == .schedules
+                )
+            }
+            if shouldShowAllowedWebsitesWidget {
+                AllowedWebsitesWidget(
+                    showRules: $showRules,
+                    initialIsExpanded: section == .allowedWebsites
+                )
+            }
 
             Spacer()
         }
         .padding()
+    }
+
+    var shouldShowPomodoroWidget: Bool {
+        section == .all || section == .pomodoro
+    }
+
+    var shouldShowSchedulesWidget: Bool {
+        section == .all || section == .schedules
+    }
+
+    var shouldShowAllowedWebsitesWidget: Bool {
+        section == .all || section == .allowedWebsites
     }
 
     @ViewBuilder

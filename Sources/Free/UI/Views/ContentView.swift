@@ -1,20 +1,45 @@
 import SwiftUI
 
+enum MainContentSection: String, CaseIterable, Identifiable {
+    case focus = "Focus"
+    case schedules = "Schedules"
+    case allowedWebsites = "Allowed Websites"
+    case pomodoro = "Pomodoro"
+    case settings = "Settings"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .focus:
+            return "leaf.fill"
+        case .schedules:
+            return "calendar"
+        case .allowedWebsites:
+            return "lock.fill"
+        case .pomodoro:
+            return "timer"
+        case .settings:
+            return "gearshape.fill"
+        }
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @State private var showSidebar = false
-    @State private var showSettings = false
+    @State private var selectedSection: MainContentSection = .focus
     @State private var showRules = false
     @State private var showSchedules = false
 
     init(
         initialShowSidebar: Bool = false,
-        initialShowSettings: Bool = false,
+        initialSection: MainContentSection = .focus,
         initialShowRules: Bool = false,
         initialShowSchedules: Bool = false
     ) {
         _showSidebar = State(initialValue: initialShowSidebar)
-        _showSettings = State(initialValue: initialShowSettings)
+        _selectedSection = State(initialValue: initialSection)
         _showRules = State(initialValue: initialShowRules)
         _showSchedules = State(initialValue: initialShowSchedules)
     }
@@ -23,12 +48,9 @@ struct ContentView: View {
         HStack(spacing: 0) {
             settingsSidebar
             Divider()
-            FocusView(showRules: $showRules, showSchedules: $showSchedules)
+            mainContent
         }
         .frame(minWidth: 900, minHeight: 800)
-        .sheet(isPresented: $showSettings) {
-            Self.settingsSheet(showSettings: $showSettings)
-        }
         .sheet(isPresented: $showRules) {
             Self.rulesSheet(showRules: $showRules)
         }
@@ -42,6 +64,20 @@ struct ContentView: View {
         }
         .onChange(of: appState.appearanceMode) { _, mode in
             applyMacOSAppearance(mode)
+        }
+    }
+
+    @ViewBuilder
+    private var mainContent: some View {
+        switch selectedSection {
+        case .settings:
+            SettingsView()
+        case .focus, .schedules, .allowedWebsites, .pomodoro:
+            FocusView(
+                showRules: $showRules,
+                showSchedules: $showSchedules,
+                section: focusSection(for: selectedSection)
+            )
         }
     }
 
@@ -72,23 +108,9 @@ struct ContentView: View {
             if showSidebar {
                 Divider()
                 VStack(alignment: .leading, spacing: 8) {
-                    Button(action: openRules) {
-                        Label("Rules", systemImage: "lock.fill")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.primary.opacity(0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    ForEach(MainContentSection.allCases) { section in
+                        sidebarItemButton(section)
                     }
-                    .buttonStyle(.plain)
-
-                    Button(action: openSettings) {
-                        Label("Settings", systemImage: "gearshape.fill")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.plain)
 
                     Spacer()
                 }
@@ -103,8 +125,40 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.2), value: showSidebar)
     }
 
+    @ViewBuilder
+    private func sidebarItemButton(_ section: MainContentSection) -> some View {
+        Button(action: { selectedSection = section }) {
+            Label(section.rawValue, systemImage: section.icon)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    selectedSection == section
+                        ? Color.primary.opacity(0.12)
+                        : Color.clear
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+    }
+
+    func focusSection(for section: MainContentSection) -> FocusContentSection {
+        switch section {
+        case .focus:
+            return .all
+        case .schedules:
+            return .schedules
+        case .allowedWebsites:
+            return .allowedWebsites
+        case .pomodoro:
+            return .pomodoro
+        case .settings:
+            return .all
+        }
+    }
+
     func openSettings() {
-        showSettings = true
+        selectedSection = .settings
     }
 
     func openRules() {
@@ -113,17 +167,6 @@ struct ContentView: View {
 
     func toggleSettingsSidebar() {
         showSidebar.toggle()
-    }
-
-    static func makeShowSettingsAction(showSettings: Binding<Bool>) -> () -> Void {
-        { showSettings.wrappedValue = true }
-    }
-
-    static func settingsSheet(showSettings: Binding<Bool>) -> some View {
-        SheetWrapper(title: "Settings", isPresented: showSettings) {
-            SettingsView()
-        }
-        .frame(width: 400, height: 350)
     }
 
     static func rulesSheet(showRules: Binding<Bool>) -> some View {
@@ -164,6 +207,6 @@ struct ContentView: View {
     }
 
     var isSidebarVisibleForTesting: Bool { showSidebar }
-    var showSettingsForTesting: Bool { showSettings }
     var showRulesForTesting: Bool { showRules }
+    var selectedSectionForTesting: MainContentSection { selectedSection }
 }
