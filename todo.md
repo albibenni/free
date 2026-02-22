@@ -25,6 +25,10 @@
 - [ ] add to login items - macos startup
 - [ ] unlock base websites like localhost, new tabs etc
 - [ ] fully test code
+- [ ] rule for calendar imports - if title contain `*study*` or `*work*`
+  - [ ] allow personalization on this rule with settings
+  - [ ] allow imports to be all focus
+  - [ ] allow personal imports rule about title search and focus time
 
 ## Bug
 
