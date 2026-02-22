@@ -5,6 +5,32 @@ import Foundation
 import ViewInspector
 @testable import FreeLogic
 
+private final class ContentViewMockLaunchAtLoginManager: LaunchAtLoginManaging {
+    var isEnabledValue: Bool
+    var isEnabledCallCount = 0
+    var enableCallCount = 0
+    var disableCallCount = 0
+
+    init(isEnabled: Bool) {
+        self.isEnabledValue = isEnabled
+    }
+
+    var isEnabled: Bool {
+        isEnabledCallCount += 1
+        return isEnabledValue
+    }
+
+    func enable() throws {
+        enableCallCount += 1
+        isEnabledValue = true
+    }
+
+    func disable() throws {
+        disableCallCount += 1
+        isEnabledValue = false
+    }
+}
+
 @Suite(.serialized)
 struct ContentViewTests {
     private func isolatedAppState(name: String) -> AppState {
@@ -12,6 +38,22 @@ struct ContentViewTests {
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
         return AppState(defaults: defaults, isTesting: true)
+    }
+
+    private func isolatedAppState(
+        name: String,
+        launchAtLoginManager: any LaunchAtLoginManaging,
+        canPromptForLaunchAtLogin: @escaping () -> Bool
+    ) -> AppState {
+        let suite = "ContentViewTests.\(name)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return AppState(
+            defaults: defaults,
+            launchAtLoginManager: launchAtLoginManager,
+            canPromptForLaunchAtLogin: canPromptForLaunchAtLogin,
+            isTesting: true
+        )
     }
 
     @MainActor
@@ -193,5 +235,37 @@ struct ContentViewTests {
         let view = ContentView(initialShowSchedules: true).environmentObject(appState)
         let hosted = host(view, size: CGSize(width: 900, height: 900))
         #expect(hosted.fittingSize.width >= 0)
+    }
+
+    @Test("ContentView launch-at-login alert enable action triggers app-state registration")
+    @MainActor
+    func contentViewLaunchAtLoginAlertEnableAction() throws {
+        let launchManager = ContentViewMockLaunchAtLoginManager(isEnabled: false)
+        let appState = isolatedAppState(
+            name: "launchAtLoginAlertEnableAction",
+            launchAtLoginManager: launchManager,
+            canPromptForLaunchAtLogin: { true }
+        )
+
+        let view = ContentView(initialShowLaunchAtLoginPrompt: true).environmentObject(appState)
+        _ = host(view)
+
+        let alert = try view.inspect().find(ViewType.Alert.self)
+        try alert.actions().button(1).tap()
+
+        #expect(launchManager.enableCallCount == 1)
+        #expect(appState.launchAtLoginStatus() == true)
+
+        let cancelManager = ContentViewMockLaunchAtLoginManager(isEnabled: false)
+        let cancelState = isolatedAppState(
+            name: "launchAtLoginAlertCancelAction",
+            launchAtLoginManager: cancelManager,
+            canPromptForLaunchAtLogin: { true }
+        )
+        let cancelView = ContentView(initialShowLaunchAtLoginPrompt: true).environmentObject(cancelState)
+        _ = host(cancelView)
+        let cancelAlert = try cancelView.inspect().find(ViewType.Alert.self)
+        try cancelAlert.actions().button(0).tap()
+        #expect(cancelManager.enableCallCount == 0)
     }
 }

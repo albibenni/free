@@ -156,4 +156,25 @@ struct SettingsViewTests {
         let hosted = host(view)
         #expect(hosted.fittingSize.height >= 0)
     }
+
+    @Test("SettingsView launch-at-login toggle binding setter is exercised through UI interaction")
+    @MainActor
+    func settingsViewLaunchAtLoginToggleBindingInteraction() throws {
+        let launchManager = SettingsMockLaunchAtLoginManager(isEnabled: false)
+        let appState = isolatedAppState(
+            name: "launchAtLoginToggleBindingInteraction",
+            launchManager: launchManager
+        )
+        let rawView = SettingsView()
+        _ = rawView.launchAtLoginEnabledForTesting
+        let view = rawView.environmentObject(appState)
+        _ = host(view)
+
+        let toggles = try view.inspect().findAll(ViewType.Toggle.self)
+        #expect(toggles.count >= 4)
+
+        try toggles[3].tap()
+        #expect(launchManager.enableCallCount == 1)
+        #expect(appState.launchAtLoginStatus() == true)
+    }
 }

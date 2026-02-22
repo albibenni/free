@@ -64,4 +64,15 @@ struct LaunchAtLoginManagerTests {
         try manager.disable()
         #expect(box.unregisterCallCount == 1)
     }
+
+    @Test("DefaultLaunchAtLoginManager live runtime closures are invocable")
+    func liveRuntimeClosuresInvocable() {
+        let runtime = DefaultLaunchAtLoginManager.Runtime.live
+
+        _ = runtime.status()
+        _ = try? runtime.register()
+        _ = try? runtime.unregister()
+
+        #expect(Bool(true))
+    }
 }

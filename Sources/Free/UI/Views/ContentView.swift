@@ -37,12 +37,14 @@ struct ContentView: View {
         initialShowSidebar: Bool = false,
         initialSection: MainContentSection = .focus,
         initialShowRules: Bool = false,
-        initialShowSchedules: Bool = false
+        initialShowSchedules: Bool = false,
+        initialShowLaunchAtLoginPrompt: Bool = false
     ) {
         _showSidebar = State(initialValue: initialShowSidebar)
         _selectedSection = State(initialValue: initialSection)
         _showRules = State(initialValue: initialShowRules)
         _showSchedules = State(initialValue: initialShowSchedules)
+        _showLaunchAtLoginPrompt = State(initialValue: initialShowLaunchAtLoginPrompt)
     }
 
     var body: some View {
