@@ -18,6 +18,8 @@ private final class MockAppDelegateSystem: AppDelegateSystem {
     var activateForAlertCalls = 0
     var confirmMoveCalls = 0
     var confirmMoveResult = false
+    var confirmQuitCalls = 0
+    var confirmQuitResult = false
 
     var existingPaths: Set<String> = []
     var removedPaths: [String] = []
@@ -38,6 +40,11 @@ private final class MockAppDelegateSystem: AppDelegateSystem {
     func confirmMoveToApplications() -> Bool {
         confirmMoveCalls += 1
         return confirmMoveResult
+    }
+
+    func confirmQuitWhileBlocking() -> Bool {
+        confirmQuitCalls += 1
+        return confirmQuitResult
     }
 
     func fileExists(atPath: String) -> Bool {
@@ -223,29 +230,71 @@ struct AppDelegateTests {
 
         defaults.set(false, forKey: "IsBlocking")
         #expect(delegate.shouldPreventTermination() == false)
+        #expect(delegate.shouldConfirmTerminationWhileBlocking() == false)
 
         defaults.set(true, forKey: "IsBlocking")
+        defaults.set(false, forKey: "IsUnblockable")
+        #expect(delegate.shouldPreventTermination() == false)
+        #expect(delegate.shouldConfirmTerminationWhileBlocking() == true)
+
+        defaults.set(true, forKey: "IsUnblockable")
         #expect(delegate.shouldPreventTermination() == true)
+        #expect(delegate.shouldConfirmTerminationWhileBlocking() == false)
     }
 
-    @Test("applicationShouldTerminate returns correct reply and triggers alert")
-    func applicationTerminationReply() {
+    @Test("applicationShouldTerminate blocks strict mode quit and triggers custom alert")
+    func applicationTerminationStrictReply() {
         let (delegate, system, defaults) = setupIsolatedDelegate(
-            name: "applicationTerminationReply")
+            name: "applicationTerminationStrictReply")
 
         var alertWasShown = false
         delegate.onShowAlert = { alertWasShown = true }
 
         defaults.set(true, forKey: "IsBlocking")
+        defaults.set(true, forKey: "IsUnblockable")
         let reply1 = delegate.applicationShouldTerminate(NSApplication.shared)
         #expect(reply1 == .terminateCancel)
         #expect(alertWasShown == true)
+        #expect(system.confirmQuitCalls == 0)
 
         alertWasShown = false
         defaults.set(false, forKey: "IsBlocking")
+        defaults.set(false, forKey: "IsUnblockable")
         let reply2 = delegate.applicationShouldTerminate(NSApplication.shared)
         #expect(reply2 == .terminateNow)
         #expect(alertWasShown == false)
+        #expect(system.blockingAlertCalls == 0)
+    }
+
+    @Test("applicationShouldTerminate asks confirmation while non-strict blocking and respects confirm")
+    func applicationTerminationNonStrictConfirm() {
+        let (delegate, system, defaults) = setupIsolatedDelegate(
+            name: "applicationTerminationNonStrictConfirm")
+        delegate.onShowAlert = nil
+        defaults.set(true, forKey: "IsBlocking")
+        defaults.set(false, forKey: "IsUnblockable")
+        system.confirmQuitResult = true
+
+        let reply = delegate.applicationShouldTerminate(NSApplication.shared)
+
+        #expect(reply == .terminateNow)
+        #expect(system.confirmQuitCalls == 1)
+        #expect(system.blockingAlertCalls == 0)
+    }
+
+    @Test("applicationShouldTerminate asks confirmation while non-strict blocking and respects cancel")
+    func applicationTerminationNonStrictCancel() {
+        let (delegate, system, defaults) = setupIsolatedDelegate(
+            name: "applicationTerminationNonStrictCancel")
+        delegate.onShowAlert = nil
+        defaults.set(true, forKey: "IsBlocking")
+        defaults.set(false, forKey: "IsUnblockable")
+        system.confirmQuitResult = false
+
+        let reply = delegate.applicationShouldTerminate(NSApplication.shared)
+
+        #expect(reply == .terminateCancel)
+        #expect(system.confirmQuitCalls == 1)
         #expect(system.blockingAlertCalls == 0)
     }
 
@@ -255,11 +304,13 @@ struct AppDelegateTests {
             name: "applicationTerminationDefaultAlert")
         delegate.onShowAlert = nil
         defaults.set(true, forKey: "IsBlocking")
+        defaults.set(true, forKey: "IsUnblockable")
 
         let reply = delegate.applicationShouldTerminate(NSApplication.shared)
 
         #expect(reply == .terminateCancel)
         #expect(system.blockingAlertCalls == 1)
+        #expect(system.confirmQuitCalls == 0)
     }
 
     @Test("isInApplications identifies correct paths")

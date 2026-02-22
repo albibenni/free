@@ -7,6 +7,7 @@ protocol AppDelegateSystem {
 
     func activateForAlert()
     func confirmMoveToApplications() -> Bool
+    func confirmQuitWhileBlocking() -> Bool
 
     func fileExists(atPath: String) -> Bool
     func removeItem(atPath: String) throws
@@ -104,6 +105,17 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
         return alert.runModal() == .alertFirstButtonReturn
     }
 
+    func confirmQuitWhileBlocking() -> Bool {
+        let alert = runtime.makeAlert()
+        alert.messageText = "Focus Mode is Active"
+        alert.informativeText =
+            "Focus Mode is currently active. Closing the app now will stop protection. Do you want to close the app?"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Close App")
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+
     func fileExists(atPath: String) -> Bool {
         runtime.fileManager.fileExists(atPath: atPath)
     }
@@ -137,8 +149,8 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
 
     func showBlockingAlert() {
         let alert = runtime.makeAlert()
-        alert.messageText = "Focus Mode is Active"
-        alert.informativeText = "You must disable Focus Mode before quitting the app."
+        alert.messageText = "Unblockable Mode is Active"
+        alert.informativeText = "Disable Unblockable Mode in Settings before quitting the app."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK")
         _ = alert.runModal()

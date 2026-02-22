@@ -53,10 +53,19 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return .terminateCancel
         }
+
+        if shouldConfirmTerminationWhileBlocking() {
+            return system.confirmQuitWhileBlocking() ? .terminateNow : .terminateCancel
+        }
+
         return .terminateNow
     }
 
     public func shouldPreventTermination() -> Bool {
-        return defaults.bool(forKey: "IsBlocking")
+        return defaults.bool(forKey: "IsBlocking") && defaults.bool(forKey: "IsUnblockable")
+    }
+
+    public func shouldConfirmTerminationWhileBlocking() -> Bool {
+        return defaults.bool(forKey: "IsBlocking") && !defaults.bool(forKey: "IsUnblockable")
     }
 }

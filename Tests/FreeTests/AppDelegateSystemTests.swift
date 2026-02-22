@@ -180,6 +180,27 @@ struct AppDelegateSystemTests {
         #expect(capturedAlert.runModalCalls == 2)
     }
 
+    @Test("confirmQuitWhileBlocking configures warning alert and maps modal response")
+    func confirmQuitWhileBlockingAlertConfiguration() {
+        let alert = MockAlertPresenter()
+        let (system, capturedAlert, _, _, _, _) = makeSystem(alert: alert)
+
+        capturedAlert.modalResponse = .alertFirstButtonReturn
+        #expect(system.confirmQuitWhileBlocking() == true)
+
+        capturedAlert.modalResponse = .alertSecondButtonReturn
+        #expect(system.confirmQuitWhileBlocking() == false)
+
+        #expect(capturedAlert.messageText == "Focus Mode is Active")
+        #expect(capturedAlert.informativeText.contains("Closing the app now will stop protection"))
+        #expect(capturedAlert.alertStyle == .warning)
+        #expect(
+            capturedAlert.buttonTitles == [
+                "Close App", "Cancel", "Close App", "Cancel",
+            ])
+        #expect(capturedAlert.runModalCalls == 2)
+    }
+
     @Test("file operations delegate to runtime file manager")
     func fileOperations() throws {
         let fileManager = MockFileManager()
@@ -264,9 +285,10 @@ struct AppDelegateSystemTests {
 
         system.showBlockingAlert()
 
-        #expect(capturedAlert.messageText == "Focus Mode is Active")
+        #expect(capturedAlert.messageText == "Unblockable Mode is Active")
         #expect(
-            capturedAlert.informativeText == "You must disable Focus Mode before quitting the app.")
+            capturedAlert.informativeText
+                == "Disable Unblockable Mode in Settings before quitting the app.")
         #expect(capturedAlert.alertStyle == .warning)
         #expect(capturedAlert.buttonTitles == ["OK"])
         #expect(capturedAlert.runModalCalls == 1)
