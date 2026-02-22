@@ -156,6 +156,20 @@ struct PomodoroWidgetTests {
                 ruleSets: appState.ruleSets
             ) == work.id
         )
+        #expect(
+            PomodoroRuleSetPicker.updatedActiveRuleSetId(
+                currentActiveRuleSetId: work.id,
+                selectedRuleSetId: personal.id,
+                canSwitchRuleSetSelection: true
+            ) == personal.id
+        )
+        #expect(
+            PomodoroRuleSetPicker.updatedActiveRuleSetId(
+                currentActiveRuleSetId: work.id,
+                selectedRuleSetId: personal.id,
+                canSwitchRuleSetSelection: false
+            ) == work.id
+        )
 
         let picker = PomodoroRuleSetPicker().environmentObject(appState)
         _ = host(picker, size: CGSize(width: 520, height: 320))
@@ -172,6 +186,25 @@ struct PomodoroWidgetTests {
         _ = host(strictPicker, size: CGSize(width: 520, height: 320))
         _ = try? strictPicker.inspect().find(button: "Personal").tap()
         #expect(appState.activeRuleSetId == work.id)
+    }
+
+    @Test("PomodoroRuleSetPicker hides list when no rule sets exist")
+    @MainActor
+    func pomodoroRuleSetPickerEmptyState() {
+        let appState = isolatedAppState(name: "ruleSetPickerEmptyState")
+        appState.ruleSets = []
+        appState.activeRuleSetId = nil
+
+        #expect(
+            PomodoroRuleSetPicker.selectedRuleSetId(
+                activeRuleSetId: appState.activeRuleSetId,
+                ruleSets: appState.ruleSets
+            ) == nil
+        )
+
+        let picker = PomodoroRuleSetPicker().environmentObject(appState)
+        _ = host(picker, size: CGSize(width: 520, height: 320))
+        #expect((try? picker.inspect().find(text: "SELECT LIST")) == nil)
     }
 
     @Test("Pomodoro list selection is reflected in Allowed Websites widget selection")

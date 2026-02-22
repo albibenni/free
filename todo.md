@@ -25,7 +25,7 @@
 - [ ] add to login items - macos startup
 - [ ] unlock base websites like localhost, new tabs etc
 - [x] fully test code
-- [ ] add list selection in pomodoro mode - default on selected from allowed lists
+- [x] add list selection in pomodoro mode - default on selected from allowed lists
 
 - [ ] rule for calendar imports - if title contain `*study*` or `*work*`
   - [ ] allow personalization on this rule with settings

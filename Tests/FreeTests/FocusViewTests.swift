@@ -140,6 +140,110 @@ struct FocusViewTests {
         #expect((try? view.inspect().find(text: "Allowed Websites")) == nil)
     }
 
+    @Test("Focus section live overview renders active schedules and pomodoro previews")
+    @MainActor
+    func focusViewLiveOverviewActivePreviews() {
+        let appState = isolatedAppState(name: "liveOverviewActivePreviews")
+        appState.isBlocking = true
+        let rules = RuleSet(name: "Work", urls: ["example.com"])
+        appState.ruleSets = [rules]
+        appState.activeRuleSetId = rules.id
+        appState.pomodoroStatus = .focus
+        appState.pomodoroRemaining = 900
+
+        let now = Date()
+        let today = Calendar.current.component(.weekday, from: now)
+        appState.schedules = [
+            Schedule(
+                name: "Deep Work",
+                days: [today],
+                startTime: now.addingTimeInterval(-1800),
+                endTime: now.addingTimeInterval(1800),
+                isEnabled: true,
+                type: .focus
+            )
+        ]
+
+        var showRules = false
+        var showSchedules = false
+        let view = FocusView(
+            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
+            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 }),
+            section: .all
+        )
+        .environmentObject(appState)
+        _ = host(view)
+
+        #expect((try? view.inspect().find(text: "Active Schedules")) != nil)
+        #expect((try? view.inspect().find(text: "Pomodoro")) != nil)
+        #expect((try? view.inspect().find(text: "No active schedule, allow list, or pomodoro session.")) == nil)
+    }
+
+    @Test("FocusView pomodoro section renders Pomodoro widget")
+    @MainActor
+    func focusViewPomodoroSectionRender() {
+        let appState = isolatedAppState(name: "pomodoroSection")
+        appState.isTrusted = true
+
+        var showRules = false
+        var showSchedules = false
+        let view = FocusView(
+            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
+            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 }),
+            section: .pomodoro
+        )
+        .environmentObject(appState)
+        _ = host(view)
+
+        #expect((try? view.inspect().find(text: "Pomodoro Mode")) != nil)
+        #expect((try? view.inspect().find(text: "Live Overview")) == nil)
+    }
+
+    @Test("FocusView allowed-websites section renders allowed websites widget")
+    @MainActor
+    func focusViewAllowedWebsitesSectionRender() {
+        let appState = isolatedAppState(name: "allowedWebsitesSection")
+        appState.isTrusted = true
+        appState.ruleSets = [RuleSet(name: "Default", urls: ["example.com"])]
+        appState.activeRuleSetId = appState.ruleSets.first?.id
+
+        var showRules = false
+        var showSchedules = false
+        let view = FocusView(
+            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
+            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 }),
+            section: .allowedWebsites
+        )
+        .environmentObject(appState)
+        _ = host(view)
+
+        #expect((try? view.inspect().find(text: "Allowed Websites")) != nil)
+        #expect((try? view.inspect().find(text: "Live Overview")) == nil)
+    }
+
+    @Test("FocusView live overview handles missing rule-set context")
+    @MainActor
+    func focusViewLiveOverviewMissingRuleSetContext() {
+        let appState = isolatedAppState(name: "missingRuleSetContext")
+        appState.ruleSets = []
+        appState.activeRuleSetId = nil
+        appState.isBlocking = false
+        appState.pomodoroStatus = .none
+
+        var showRules = false
+        var showSchedules = false
+        let view = FocusView(
+            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
+            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 }),
+            section: .all
+        )
+        .environmentObject(appState)
+        _ = host(view)
+
+        #expect((try? view.inspect().find(text: "Allow List")) == nil)
+        #expect((try? view.inspect().find(text: "No active schedule, allow list, or pomodoro session.")) != nil)
+    }
+
     @Test("FocusView renders trusted inactive state")
     @MainActor
     func focusViewRenderTrustedInactive() {

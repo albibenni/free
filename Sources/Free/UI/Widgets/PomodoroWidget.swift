@@ -123,10 +123,22 @@ struct PomodoroRuleSetPicker: View {
         activeRuleSetId ?? ruleSets.first?.id
     }
 
+    static func updatedActiveRuleSetId(
+        currentActiveRuleSetId: UUID?,
+        selectedRuleSetId: UUID,
+        canSwitchRuleSetSelection: Bool
+    ) -> UUID? {
+        canSwitchRuleSetSelection ? selectedRuleSetId : currentActiveRuleSetId
+    }
+
     func selectRuleSet(_ set: RuleSet) {
-        guard canSwitchRuleSetSelection else { return }
+        let updatedId = Self.updatedActiveRuleSetId(
+            currentActiveRuleSetId: appState.activeRuleSetId,
+            selectedRuleSetId: set.id,
+            canSwitchRuleSetSelection: canSwitchRuleSetSelection
+        )
         withAnimation(.easeInOut(duration: 0.2)) {
-            appState.activeRuleSetId = set.id
+            appState.activeRuleSetId = updatedId
         }
     }
 
