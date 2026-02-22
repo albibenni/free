@@ -115,17 +115,23 @@ class AppState: ObservableObject {
     }
 
     var allowedRules: [String] {
+        if pomodoroStatus == .focus {
+            if let set = ruleSet(for: pomodoroRuleSetId ?? activeRuleSetId) {
+                return set.urls
+            }
+            if isBlocking, let firstSet = ruleSets.first {
+                return firstSet.urls
+            }
+            return []
+        }
+
         var urls = Set<String>()
         schedules.filter { $0.isActive() && $0.type == .focus }.forEach { s in
             if let id = s.ruleSetId, let set = ruleSets.first(where: { $0.id == id }) {
                 urls.formUnion(set.urls)
             }
         }
-        if pomodoroStatus == .focus {
-            if let set = ruleSet(for: pomodoroRuleSetId ?? activeRuleSetId) {
-                urls.formUnion(set.urls)
-            }
-        } else if isBlocking && !wasStartedBySchedule,
+        if isBlocking && !wasStartedBySchedule,
             let set = ruleSet(for: activeRuleSetId)
         {
             urls.formUnion(set.urls)

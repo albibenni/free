@@ -773,6 +773,51 @@ struct AppStateTests {
         #expect(!appState.allowedRules.contains("manual.example"))
     }
 
+    @Test("Pomodoro temporarily overrides schedule allow list, then schedule resumes after pomodoro stops")
+    func pomodoroOverrideRevertsToScheduleRules() {
+        let appState = isolatedAppState(name: "pomodoroOverrideRevertsToScheduleRules")
+        let scheduleSet = RuleSet(id: UUID(), name: "Schedule Set", urls: ["schedule.example"])
+        let pomodoroSet = RuleSet(id: UUID(), name: "Pomodoro Set", urls: ["pomodoro.example"])
+        appState.ruleSets = [scheduleSet, pomodoroSet]
+        appState.activeRuleSetId = scheduleSet.id
+
+        let now = Date()
+        let weekday = Calendar.current.component(.weekday, from: now)
+        let schedule = Schedule(
+            name: "Active Focus",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-1000),
+            endTime: now.addingTimeInterval(1000),
+            isEnabled: true,
+            type: .focus,
+            ruleSetId: scheduleSet.id
+        )
+
+        appState.schedules = [schedule]
+        appState.checkSchedules()
+
+        #expect(appState.isBlocking)
+        #expect(appState.currentPrimaryRuleSetId == scheduleSet.id)
+        #expect(appState.allowedRules.contains("schedule.example"))
+        #expect(!appState.allowedRules.contains("pomodoro.example"))
+
+        appState.activeRuleSetId = pomodoroSet.id
+        appState.startPomodoro()
+
+        #expect(appState.pomodoroStatus == .focus)
+        #expect(appState.currentPrimaryRuleSetId == pomodoroSet.id)
+        #expect(appState.allowedRules.contains("pomodoro.example"))
+        #expect(!appState.allowedRules.contains("schedule.example"))
+
+        appState.stopPomodoro()
+
+        #expect(appState.pomodoroStatus == .none)
+        #expect(appState.isBlocking, "Schedule should keep blocking active after pomodoro stops")
+        #expect(appState.currentPrimaryRuleSetId == scheduleSet.id)
+        #expect(appState.allowedRules.contains("schedule.example"))
+        #expect(!appState.allowedRules.contains("pomodoro.example"))
+    }
+
     @Test("Manual toggle can stop a schedule-started session")
     func manualOverrideOfSchedule() {
         let appState = isolatedAppState(name: "manualOverrideOfSchedule")
