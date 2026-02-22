@@ -24,7 +24,7 @@
 - [x] focus mode should show active list
 - [ ] add to login items - macos startup
 - [ ] unlock base websites like localhost, new tabs etc
-- [ ] fully test code
+- [x] fully test code
 - [ ] rule for calendar imports - if title contain `*study*` or `*work*`
   - [ ] allow personalization on this rule with settings
   - [ ] allow imports to be all focus

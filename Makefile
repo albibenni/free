@@ -32,11 +32,16 @@ coverage:
 	@$(SWIFT) test --enable-code-coverage
 	@profdata=$$(find .build -path "*/debug/codecov/default.profdata" | head -n 1); \
 	bin=$$(find .build -path "*/debug/FreePackageTests.xctest/Contents/MacOS/FreePackageTests" -not -path "*.dSYM/*" | head -n 1); \
+	src_files=$$(find Sources -type f -name "*.swift" | sort); \
 	if [[ -z "$$profdata" || -z "$$bin" ]]; then \
 		echo "Could not locate coverage artifacts."; \
 		exit 1; \
 	fi; \
-	xcrun llvm-cov report "$$bin" -instr-profile="$$profdata"
+	if [[ -z "$$src_files" ]]; then \
+		echo "Could not locate source files for coverage report."; \
+		exit 1; \
+	fi; \
+	xcrun llvm-cov report "$$bin" -instr-profile="$$profdata" $$src_files
 
 app:
 	@./build.sh
