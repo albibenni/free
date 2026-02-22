@@ -52,7 +52,7 @@ struct AllowedWebsitesWidget: View {
                     if !appState.ruleSets.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("SELECT LIST")
-                                .font(.caption.bold())
+                                .font(UIConstants.Typography.sectionLabel)
                                 .foregroundColor(.secondary)
 
                             ScrollView {
@@ -64,7 +64,7 @@ struct AllowedWebsitesWidget: View {
                                                     systemName: appState.activeRuleSetId == set.id
                                                         ? "link.circle.fill" : "link"
                                                 )
-                                                .font(.system(size: 12))
+                                                .font(UIConstants.Typography.regular)
                                                 .foregroundColor(
                                                     appState.activeRuleSetId == set.id
                                                         ? FocusColor.color(
