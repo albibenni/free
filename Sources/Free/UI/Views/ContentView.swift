@@ -3,8 +3,8 @@ import SwiftUI
 enum MainContentSection: String, CaseIterable, Identifiable {
     case focus = "Focus"
     case schedules = "Schedules"
-    case allowedWebsites = "Allowed Websites"
     case pomodoro = "Pomodoro"
+    case allowedWebsites = "Allowed Websites"
     case settings = "Settings"
 
     var id: String { rawValue }
@@ -121,11 +121,16 @@ struct ContentView: View {
             if showSidebar {
                 Divider()
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(MainContentSection.allCases) { section in
+                    ForEach(topSidebarSections) { section in
                         sidebarItemButton(section)
                     }
 
                     Spacer()
+
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    sidebarItemButton(.settings)
                 }
                 .padding(12)
                 .transition(.move(edge: .leading).combined(with: .opacity))
@@ -153,6 +158,10 @@ struct ContentView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
+    }
+
+    var topSidebarSections: [MainContentSection] {
+        [.focus, .schedules, .pomodoro, .allowedWebsites]
     }
 
     func focusSection(for section: MainContentSection) -> FocusContentSection {
