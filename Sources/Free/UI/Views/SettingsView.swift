@@ -18,90 +18,110 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                if shouldShowStrictDisableButton {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Settings")
+                .font(UIConstants.Typography.header)
+                .padding(.horizontal)
+                .padding(.top, 8)
+
+            Form {
+                Section {
+                    if shouldShowStrictDisableButton {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Unblockable Mode")
+                                    .font(UIConstants.Typography.sectionLabel)
+                                Text("Active and Locking Focus Mode.")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                            Spacer()
+                            Button("Disable...", action: openChallenge)
+                                .buttonStyle(AppPrimaryButtonStyle(color: .orange))
+                        }
+                    } else {
+                        Toggle(isOn: $environmentAppState.isUnblockable) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Unblockable Mode")
+                                    .font(UIConstants.Typography.sectionLabel)
+                                Text("When active, you cannot disable Focus Mode.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .toggleStyle(.switch)
+                    }
+                } header: {
+                    Text("Strict Mode")
+                        .font(UIConstants.Typography.header)
+                }
+
+                Section {
+                    Toggle("Start week on Monday", isOn: $environmentAppState.weekStartsOnMonday)
+                    Toggle(
+                        "Enable Calendar Integration",
+                        isOn: $environmentAppState.calendarIntegrationEnabled)
+                } header: {
+                    Text("Calendar")
+                        .font(UIConstants.Typography.header)
+                }
+
+                Section {
+                    Picker("Theme", selection: $environmentAppState.appearanceMode) {
+                        ForEach(AppearanceMode.allCases, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.vertical, 4)
+
+                    HStack(spacing: 12) {
+                        ForEach(0..<FocusColor.all.count, id: \.self) { index in
+                            Circle()
+                                .fill(FocusColor.all[index])
+                                .frame(width: 24, height: 24)
+                                .overlay(
+                                    Circle()
+                                        .stroke(
+                                            Color.primary,
+                                            lineWidth: appState.accentColorIndex == index ? 2 : 0
+                                        )
+                                        .padding(-3)
+                                )
+                                .contentShape(Circle())
+                                .onTapGesture(perform: selectAccentColorAction(index: index))
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Appearance")
+                        .font(UIConstants.Typography.header)
+                }
+
+                Section {
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Unblockable Mode")
-                                .font(.headline)
-                            Text("Active and Locking Focus Mode.")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
+                        Text("Version")
+                            .font(UIConstants.Typography.sectionLabel)
                         Spacer()
-                        Button("Disable...", action: openChallenge)
-                        .buttonStyle(AppPrimaryButtonStyle(color: .orange))
+                        Text("1.0.0")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
-                } else {
-                    Toggle(isOn: $environmentAppState.isUnblockable) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Unblockable Mode")
-                                .font(.headline)
-                            Text("When active, you cannot disable Focus Mode.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .toggleStyle(.switch)
+                } header: {
+                    Text("About")
+                        .font(UIConstants.Typography.header)
                 }
-            } header: {
-                Text("Strict Mode")
             }
-
-            Section {
-                Toggle("Start week on Monday", isOn: $environmentAppState.weekStartsOnMonday)
-                Toggle("Enable Calendar Integration", isOn: $environmentAppState.calendarIntegrationEnabled)
-            } header: {
-                Text("Calendar")
-            }
-
-            Section {
-                Picker("Theme", selection: $environmentAppState.appearanceMode) {
-                    ForEach(AppearanceMode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.vertical, 4)
-
-                HStack(spacing: 12) {
-                    ForEach(0..<FocusColor.all.count, id: \.self) { index in
-                        Circle()
-                            .fill(FocusColor.all[index])
-                            .frame(width: 24, height: 24)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.primary, lineWidth: appState.accentColorIndex == index ? 2 : 0)
-                                    .padding(-3)
-                            )
-                            .contentShape(Circle())
-                            .onTapGesture(perform: selectAccentColorAction(index: index))
-                    }
-                }
-                .padding(.vertical, 4)
-            } header: {
-                Text("Appearance")
-            }
-
-            Section {
-                HStack {
-                    Text("Version")
-                    Spacer()
-                    Text("1.0.0")
-                        .foregroundColor(.secondary)
-                }
-            } header: {
-                Text("About")
-            }
+            .formStyle(.grouped)
         }
-        .formStyle(.grouped)
         .alert("Emergency Unlock", isPresented: $showChallenge) {
             TextField("Type the phrase exactly", text: $challengeInput)
             Button("Unlock", role: .destructive, action: unlockWithChallenge)
             Button("Cancel", role: .cancel, action: cancelUnlock)
         } message: {
-            Text("To disable Unblockable Mode, you must type the following exactly:\n\n\"\(AppState.challengePhrase)\"")
+            Text(
+                "To disable Unblockable Mode, you must type the following exactly:\n\n\"\(AppState.challengePhrase)\""
+            )
         }
     }
 
