@@ -27,13 +27,18 @@
 - [x] lock/unlock new tabs
 - [x] fully test code
 - [x] add list selection in pomodoro mode - default on selected from allowed lists
+- [ ] add git steps
+  - [ ] build and tests
+
+### Calendar
 
 - [ ] rule for calendar imports - if title contain `*study*` or `*work*`
   - [ ] allow personalization on this rule with settings
   - [ ] allow imports to be all focus
   - [ ] allow personal imports rule about title search and focus time
-- [ ] add git steps
-  - [ ] build and tests
+- [ ] cannot delete imported schdule
+  - [ ] future impl: allow modification to calendar if flag is toggled
+- [ ] delete multiple scheduled day pop alert out
 
 ## Bug
 
