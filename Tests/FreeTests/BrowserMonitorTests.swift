@@ -168,6 +168,36 @@ struct BrowserMonitorTests {
         #expect(mock.redirectedUrls.isEmpty)
     }
 
+    @Test("BrowserMonitor allows new-tab pages by default")
+    func allowsNewTabByDefault() {
+        let appState = isolatedAppState(name: "allowsNewTabByDefault")
+        appState.isBlocking = true
+        #expect(appState.blockNewTabs == false)
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "chrome://newtab/"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls.isEmpty)
+    }
+
+    @Test("BrowserMonitor can block new-tab pages when enabled")
+    func blocksNewTabWhenEnabled() {
+        let appState = isolatedAppState(name: "blocksNewTabWhenEnabled")
+        appState.isBlocking = true
+        appState.blockNewTabs = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "chrome://newtab/"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls == ["http://localhost:10000"])
+    }
+
     @Test("BrowserMonitor throttles repeated redirects per bundle")
     func redirectThrottle() {
         let appState = isolatedAppState(name: "redirectThrottle")

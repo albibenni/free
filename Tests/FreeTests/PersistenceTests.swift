@@ -66,12 +66,14 @@ struct PersistenceTests {
         defaults.set(false, forKey: "WasStartedBySchedule")
         appState?.isUnblockable = true
         appState?.accentColorIndex = 5
+        appState?.blockNewTabs = true
         appState = nil
 
         let newAppState = AppState(defaults: defaults, isTesting: true)
         #expect(newAppState.isBlocking == true)
         #expect(newAppState.isUnblockable == true)
         #expect(newAppState.accentColorIndex == 5)
+        #expect(newAppState.blockNewTabs == true)
 
         UserDefaults.standard.removePersistentDomain(forName: testSuite)
     }

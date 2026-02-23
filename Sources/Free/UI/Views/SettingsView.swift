@@ -89,6 +89,22 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle(isOn: $environmentAppState.blockNewTabs) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Block New Tabs")
+                                .font(UIConstants.Typography.sectionLabel)
+                            Text("When off, blank/new-tab pages are allowed by default.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .toggleStyle(.switch)
+                } header: {
+                    Text("Browser")
+                        .font(UIConstants.Typography.header)
+                }
+
+                Section {
                     Picker("Theme", selection: $environmentAppState.appearanceMode) {
                         ForEach(AppearanceMode.allCases, id: \.self) { mode in
                             Text(mode.rawValue).tag(mode)

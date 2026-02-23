@@ -30,6 +30,21 @@ class BrowserMonitor {
         "com.operasoftware.Opera",
         "com.vivaldi.Vivaldi",
     ]
+    private static let newTabTokens: Set<String> = [
+        "new tab",
+        "start page",
+        "startpage",
+        "about:blank",
+        "about:newtab",
+        "chrome://newtab",
+        "brave://newtab",
+        "edge://newtab",
+        "arc://newtab",
+        "vivaldi://newtab",
+        "opera://startpage",
+        "favorites://",
+        "topsites://",
+    ]
 
     init(
         appState: AppState,
@@ -93,6 +108,14 @@ class BrowserMonitor {
 
         if let currentURL = automator.getActiveUrl(for: frontApp) {
             if currentURL.contains("localhost:10000") { return }
+
+            if Self.isNewTabLike(currentURL) {
+                guard appState.blockNewTabs else { return }
+                lastRedirectTime[bundleId] = now
+                automator.redirect(app: frontApp, to: "http://localhost:10000")
+                return
+            }
+
             if !RuleMatcher.isAllowed(currentURL, rules: appState.allowedRules) {
                 lastRedirectTime[bundleId] = now
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
@@ -108,5 +131,19 @@ class BrowserMonitor {
         timer = newTimer
         timerLock.unlock()
         oldTimer?.invalidate()
+    }
+
+    private static func isNewTabLike(_ rawUrl: String) -> Bool {
+        let cleaned = rawUrl.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        if newTabTokens.contains(cleaned) { return true }
+        if cleaned.hasPrefix("chrome://newtab/")
+            || cleaned.hasPrefix("brave://newtab/")
+            || cleaned.hasPrefix("edge://newtab/")
+            || cleaned.hasPrefix("arc://newtab/")
+            || cleaned.hasPrefix("vivaldi://newtab/")
+        {
+            return true
+        }
+        return false
     }
 }

@@ -47,6 +47,9 @@ class AppState: ObservableObject {
             checkSchedules()
         }
     }
+    @Published var blockNewTabs = false {
+        didSet { defaults.set(blockNewTabs, forKey: "BlockNewTabs") }
+    }
     @Published var ruleSets: [RuleSet] = [] { didSet { saveJSON(ruleSets, key: "RuleSets") } }
     @Published var activeRuleSetId: UUID? = nil {
         didSet { defaults.set(activeRuleSetId?.uuidString, forKey: "ActiveRuleSetId") }
@@ -183,6 +186,7 @@ class AppState: ObservableObject {
         self.weekStartsOnMonday = defaults.bool(forKey: "WeekStartsOnMonday")
         self.accentColorIndex = defaults.integer(forKey: "AccentColorIndex")
         self.calendarIntegrationEnabled = defaults.bool(forKey: "CalendarIntegrationEnabled")
+        self.blockNewTabs = defaults.bool(forKey: "BlockNewTabs")
         self.pomodoroFocusDuration =
             defaults.double(forKey: "PomodoroFocusDuration") == 0
             ? 25 : defaults.double(forKey: "PomodoroFocusDuration")

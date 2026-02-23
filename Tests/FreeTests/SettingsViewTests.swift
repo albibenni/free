@@ -142,6 +142,7 @@ struct SettingsViewTests {
         let hosted = host(view)
         #expect(hosted.fittingSize.width >= 0)
         #expect((try? view.inspect().find(text: "Launch at Login")) != nil)
+        #expect((try? view.inspect().find(text: "Block New Tabs")) != nil)
     }
 
     @Test("SettingsView renders strict-mode disable branch")
