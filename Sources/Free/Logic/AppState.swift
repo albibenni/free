@@ -50,6 +50,9 @@ class AppState: ObservableObject {
     @Published var blockNewTabs = false {
         didSet { defaults.set(blockNewTabs, forKey: "BlockNewTabs") }
     }
+    @Published var blockDeveloperHosts = false {
+        didSet { defaults.set(blockDeveloperHosts, forKey: "BlockDeveloperHosts") }
+    }
     @Published var ruleSets: [RuleSet] = [] { didSet { saveJSON(ruleSets, key: "RuleSets") } }
     @Published var activeRuleSetId: UUID? = nil {
         didSet { defaults.set(activeRuleSetId?.uuidString, forKey: "ActiveRuleSetId") }
@@ -187,6 +190,7 @@ class AppState: ObservableObject {
         self.accentColorIndex = defaults.integer(forKey: "AccentColorIndex")
         self.calendarIntegrationEnabled = defaults.bool(forKey: "CalendarIntegrationEnabled")
         self.blockNewTabs = defaults.bool(forKey: "BlockNewTabs")
+        self.blockDeveloperHosts = defaults.bool(forKey: "BlockDeveloperHosts")
         self.pomodoroFocusDuration =
             defaults.double(forKey: "PomodoroFocusDuration") == 0
             ? 25 : defaults.double(forKey: "PomodoroFocusDuration")

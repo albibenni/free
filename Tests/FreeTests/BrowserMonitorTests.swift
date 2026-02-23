@@ -198,6 +198,36 @@ struct BrowserMonitorTests {
         #expect(mock.redirectedUrls == ["http://localhost:10000"])
     }
 
+    @Test("BrowserMonitor allows localhost and loopback URLs by default")
+    func allowsDeveloperHostsByDefault() {
+        let appState = isolatedAppState(name: "allowsDeveloperHostsByDefault")
+        appState.isBlocking = true
+        #expect(appState.blockDeveloperHosts == false)
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "http://localhost:3000"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls.isEmpty)
+    }
+
+    @Test("BrowserMonitor can block localhost and loopback URLs when enabled")
+    func blocksDeveloperHostsWhenEnabled() {
+        let appState = isolatedAppState(name: "blocksDeveloperHostsWhenEnabled")
+        appState.isBlocking = true
+        appState.blockDeveloperHosts = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "http://127.0.0.1:5173"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls == ["http://localhost:10000"])
+    }
+
     @Test("BrowserMonitor throttles repeated redirects per bundle")
     func redirectThrottle() {
         let appState = isolatedAppState(name: "redirectThrottle")

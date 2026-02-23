@@ -116,6 +116,13 @@ class BrowserMonitor {
                 return
             }
 
+            if Self.isDeveloperLocalUrl(currentURL) {
+                guard appState.blockDeveloperHosts else { return }
+                lastRedirectTime[bundleId] = now
+                automator.redirect(app: frontApp, to: "http://localhost:10000")
+                return
+            }
+
             if !RuleMatcher.isAllowed(currentURL, rules: appState.allowedRules) {
                 lastRedirectTime[bundleId] = now
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
@@ -145,5 +152,16 @@ class BrowserMonitor {
             return true
         }
         return false
+    }
+
+    private static func isDeveloperLocalUrl(_ rawUrl: String) -> Bool {
+        let cleaned = rawUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.isEmpty { return false }
+
+        let direct = URLComponents(string: cleaned)
+        let withHTTP = URLComponents(string: "http://" + cleaned)
+        let host = (direct?.host ?? withHTTP?.host)?.lowercased()
+
+        return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "0.0.0.0"
     }
 }

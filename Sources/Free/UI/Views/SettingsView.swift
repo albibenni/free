@@ -99,6 +99,17 @@ struct SettingsView: View {
                         }
                     }
                     .toggleStyle(.switch)
+
+                    Toggle(isOn: $environmentAppState.blockDeveloperHosts) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Block Localhost/Dev Ports")
+                                .font(UIConstants.Typography.sectionLabel)
+                            Text("When off, localhost and loopback hosts are allowed.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .toggleStyle(.switch)
                 } header: {
                     Text("Browser")
                         .font(UIConstants.Typography.header)
