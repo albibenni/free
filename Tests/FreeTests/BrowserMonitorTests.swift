@@ -228,6 +228,36 @@ struct BrowserMonitorTests {
         #expect(mock.redirectedUrls == ["http://localhost:10000"])
     }
 
+    @Test("BrowserMonitor allows private-network router URLs by default")
+    func allowsPrivateNetworkUrlsByDefault() {
+        let appState = isolatedAppState(name: "allowsPrivateNetworkUrlsByDefault")
+        appState.isBlocking = true
+        #expect(appState.blockLocalNetworkHosts == false)
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "http://192.168.0.1/"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls.isEmpty)
+    }
+
+    @Test("BrowserMonitor can block private-network router URLs when enabled")
+    func blocksPrivateNetworkUrlsWhenEnabled() {
+        let appState = isolatedAppState(name: "blocksPrivateNetworkUrlsWhenEnabled")
+        appState.isBlocking = true
+        appState.blockLocalNetworkHosts = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "http://192.168.0.1/"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls == ["http://localhost:10000"])
+    }
+
     @Test("BrowserMonitor throttles repeated redirects per bundle")
     func redirectThrottle() {
         let appState = isolatedAppState(name: "redirectThrottle")

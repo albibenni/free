@@ -123,6 +123,13 @@ class BrowserMonitor {
                 return
             }
 
+            if Self.isPrivateNetworkUrl(currentURL) {
+                guard appState.blockLocalNetworkHosts else { return }
+                lastRedirectTime[bundleId] = now
+                automator.redirect(app: frontApp, to: "http://localhost:10000")
+                return
+            }
+
             if !RuleMatcher.isAllowed(currentURL, rules: appState.allowedRules) {
                 lastRedirectTime[bundleId] = now
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
@@ -155,13 +162,31 @@ class BrowserMonitor {
     }
 
     private static func isDeveloperLocalUrl(_ rawUrl: String) -> Bool {
+        guard let host = host(from: rawUrl) else { return false }
+        return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "0.0.0.0"
+    }
+
+    private static func isPrivateNetworkUrl(_ rawUrl: String) -> Bool {
+        guard let host = host(from: rawUrl) else { return false }
+        let parts = host.split(separator: ".")
+        guard parts.count == 4 else { return false }
+        let octets = parts.compactMap { Int($0) }
+        guard octets.count == 4, octets.allSatisfy({ 0...255 ~= $0 }) else { return false }
+
+        let first = octets[0]
+        let second = octets[1]
+        if first == 10 { return true }
+        if first == 192 && second == 168 { return true }
+        if first == 172 && (16...31).contains(second) { return true }
+        return false
+    }
+
+    private static func host(from rawUrl: String) -> String? {
         let cleaned = rawUrl.trimmingCharacters(in: .whitespacesAndNewlines)
-        if cleaned.isEmpty { return false }
+        if cleaned.isEmpty { return nil }
 
         let direct = URLComponents(string: cleaned)
         let withHTTP = URLComponents(string: "http://" + cleaned)
-        let host = (direct?.host ?? withHTTP?.host)?.lowercased()
-
-        return host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "0.0.0.0"
+        return (direct?.host ?? withHTTP?.host)?.lowercased()
     }
 }

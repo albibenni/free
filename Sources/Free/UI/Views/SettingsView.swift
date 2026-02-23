@@ -110,6 +110,17 @@ struct SettingsView: View {
                         }
                     }
                     .toggleStyle(.switch)
+
+                    Toggle(isOn: $environmentAppState.blockLocalNetworkHosts) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Block Local Network IPs")
+                                .font(UIConstants.Typography.sectionLabel)
+                            Text("When off, router/private IPs (e.g. 192.168.x.x) are allowed.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .toggleStyle(.switch)
                 } header: {
                     Text("Browser")
                         .font(UIConstants.Typography.header)

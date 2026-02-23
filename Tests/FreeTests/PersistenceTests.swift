@@ -68,6 +68,7 @@ struct PersistenceTests {
         appState?.accentColorIndex = 5
         appState?.blockNewTabs = true
         appState?.blockDeveloperHosts = true
+        appState?.blockLocalNetworkHosts = true
         appState = nil
 
         let newAppState = AppState(defaults: defaults, isTesting: true)
@@ -76,6 +77,7 @@ struct PersistenceTests {
         #expect(newAppState.accentColorIndex == 5)
         #expect(newAppState.blockNewTabs == true)
         #expect(newAppState.blockDeveloperHosts == true)
+        #expect(newAppState.blockLocalNetworkHosts == true)
 
         UserDefaults.standard.removePersistentDomain(forName: testSuite)
     }

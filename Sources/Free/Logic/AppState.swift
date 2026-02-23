@@ -53,6 +53,9 @@ class AppState: ObservableObject {
     @Published var blockDeveloperHosts = false {
         didSet { defaults.set(blockDeveloperHosts, forKey: "BlockDeveloperHosts") }
     }
+    @Published var blockLocalNetworkHosts = false {
+        didSet { defaults.set(blockLocalNetworkHosts, forKey: "BlockLocalNetworkHosts") }
+    }
     @Published var ruleSets: [RuleSet] = [] { didSet { saveJSON(ruleSets, key: "RuleSets") } }
     @Published var activeRuleSetId: UUID? = nil {
         didSet { defaults.set(activeRuleSetId?.uuidString, forKey: "ActiveRuleSetId") }
@@ -191,6 +194,7 @@ class AppState: ObservableObject {
         self.calendarIntegrationEnabled = defaults.bool(forKey: "CalendarIntegrationEnabled")
         self.blockNewTabs = defaults.bool(forKey: "BlockNewTabs")
         self.blockDeveloperHosts = defaults.bool(forKey: "BlockDeveloperHosts")
+        self.blockLocalNetworkHosts = defaults.bool(forKey: "BlockLocalNetworkHosts")
         self.pomodoroFocusDuration =
             defaults.double(forKey: "PomodoroFocusDuration") == 0
             ? 25 : defaults.double(forKey: "PomodoroFocusDuration")

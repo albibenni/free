@@ -144,6 +144,7 @@ struct SettingsViewTests {
         #expect((try? view.inspect().find(text: "Launch at Login")) != nil)
         #expect((try? view.inspect().find(text: "Block New Tabs")) != nil)
         #expect((try? view.inspect().find(text: "Block Localhost/Dev Ports")) != nil)
+        #expect((try? view.inspect().find(text: "Block Local Network IPs")) != nil)
     }
 
     @Test("SettingsView renders strict-mode disable branch")
