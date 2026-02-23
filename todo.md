@@ -23,12 +23,12 @@
 - [x] add default pomodoro timer - most used ones
 - [x] focus mode should show active list
 - [x] add to login items - macos startup
-- [ ] unlock base websites like localhost
+- [x] unlock base websites like localhost
 - [x] lock/unlock new tabs
 - [x] fully test code
 - [x] add list selection in pomodoro mode - default on selected from allowed lists
-- [ ] add git steps
-  - [ ] build and tests
+- [x] add git steps
+  - [x] build and tests
 
 ### Calendar
 
