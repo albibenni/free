@@ -336,24 +336,39 @@ struct ScheduleTests {
     @Test("calculateOneOffDate correctly maps weekdays across offsets")
     func oneOffDateCalculation() {
         let calendar = Calendar.current
-        let monComps = DateComponents(year: 2026, month: 2, day: 16)
-        let _ = calendar.date(from: monComps)!
+        let thisWeek = WeekDateCalculator.getWeekDates(
+            weekStartsOnMonday: true,
+            offset: 0,
+            calendar: calendar
+        )
+        let nextWeek = WeekDateCalculator.getWeekDates(
+            weekStartsOnMonday: true,
+            offset: 1,
+            calendar: calendar
+        )
+
+        #expect(thisWeek.count == 7)
+        #expect(nextWeek.count == 7)
 
         if let wed = Schedule.calculateOneOffDate(
             initialDay: 4, weekOffset: 0, weekStartsOnMonday: true)
         {
-            #expect(calendar.component(.day, from: wed) == 18)
-            #expect(calendar.component(.month, from: wed) == 2)
+            #expect(calendar.component(.weekday, from: wed) == 4)
+            #expect(thisWeek.contains { calendar.isDate($0, inSameDayAs: wed) })
         } else {
-            Issue.record("Failed to calculate date")
+            Issue.record("Failed to calculate current-week weekday")
         }
 
-        if let nextMon = Schedule.calculateOneOffDate(
-            initialDay: 2, weekOffset: 1, weekStartsOnMonday: true)
+        if let thisMon = Schedule.calculateOneOffDate(
+            initialDay: 2, weekOffset: 0, weekStartsOnMonday: true),
+            let nextMon = Schedule.calculateOneOffDate(
+                initialDay: 2, weekOffset: 1, weekStartsOnMonday: true)
         {
-            #expect(calendar.component(.day, from: nextMon) == 23)
+            #expect(calendar.component(.weekday, from: nextMon) == 2)
+            #expect(nextWeek.contains { calendar.isDate($0, inSameDayAs: nextMon) })
+            #expect(calendar.dateComponents([.day], from: thisMon, to: nextMon).day == 7)
         } else {
-            Issue.record("Failed to calculate next week date")
+            Issue.record("Failed to calculate monday dates across week offsets")
         }
 
         if let inferred = Schedule.calculateOneOffDate(
