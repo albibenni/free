@@ -47,6 +47,12 @@ class AppState: ObservableObject {
             checkSchedules()
         }
     }
+    @Published var calendarImportsBlockTime = false {
+        didSet {
+            defaults.set(calendarImportsBlockTime, forKey: "CalendarImportsBlockTime")
+            checkSchedules()
+        }
+    }
     @Published var blockNewTabs = false {
         didSet { defaults.set(blockNewTabs, forKey: "BlockNewTabs") }
     }
@@ -100,6 +106,7 @@ class AppState: ObservableObject {
     private var wasStartedBySchedule = false
     private var manuallyPausedScheduleIds: Set<UUID> = []
     private var pomodoroRuleSetId: UUID?
+    private var isSynchronizingImportedSchedules = false
 
     enum PomodoroStatus: String, Codable { case none, focus, breakTime }
 
@@ -192,6 +199,7 @@ class AppState: ObservableObject {
         self.weekStartsOnMonday = defaults.bool(forKey: "WeekStartsOnMonday")
         self.accentColorIndex = defaults.integer(forKey: "AccentColorIndex")
         self.calendarIntegrationEnabled = defaults.bool(forKey: "CalendarIntegrationEnabled")
+        self.calendarImportsBlockTime = defaults.bool(forKey: "CalendarImportsBlockTime")
         self.blockNewTabs = defaults.bool(forKey: "BlockNewTabs")
         self.blockDeveloperHosts = defaults.bool(forKey: "BlockDeveloperHosts")
         self.blockLocalNetworkHosts = defaults.bool(forKey: "BlockLocalNetworkHosts")
@@ -258,6 +266,7 @@ class AppState: ObservableObject {
     }
 
     func checkSchedules() {
+        synchronizeImportedCalendarSchedulesIfNeeded()
         let shouldBeBlocking = automaticBlockingState()
 
         if shouldBeBlocking && !isBlocking {
@@ -511,9 +520,59 @@ class AppState: ObservableObject {
         let hasBreak = active.contains { $0.type == .unfocus } || pomodoroStatus == .breakTime
         let hasMeeting =
             calendarIntegrationEnabled && !isUnblockable
+            && !calendarImportsBlockTime
             && calendarProvider.events.contains { $0.isActive() }
 
         return hasFocus && !hasBreak && !hasMeeting
+    }
+
+    private func synchronizeImportedCalendarSchedulesIfNeeded() {
+        guard !isSynchronizingImportedSchedules else { return }
+
+        // Imported event mirroring is only active when calendar integration is enabled
+        // and the user explicitly uses imports as blocking focus time.
+        let shouldImportCalendarEvents = calendarIntegrationEnabled && calendarImportsBlockTime
+
+        let manualSchedules = schedules.filter { $0.importedCalendarEventKey == nil }
+        let existingImported = schedules.filter { $0.importedCalendarEventKey != nil }
+
+        let importedSchedules: [Schedule]
+        if shouldImportCalendarEvents {
+            let existingByKey: [String: Schedule] = Dictionary(
+                uniqueKeysWithValues: existingImported.compactMap { schedule in
+                    guard let key = schedule.importedCalendarEventKey else { return nil }
+                    return (key, schedule)
+                }
+            )
+
+            let sortedEvents = calendarProvider.events.sorted { $0.startDate < $1.startDate }
+            importedSchedules = sortedEvents.map { event in
+                let key = event.id
+                let existing = existingByKey[key]
+                return Schedule(
+                    id: existing?.id ?? UUID(),
+                    name: event.title,
+                    days: [],
+                    date: event.startDate,
+                    startTime: event.startDate,
+                    endTime: event.endDate,
+                    isEnabled: existing?.isEnabled ?? true,
+                    colorIndex: existing?.colorIndex ?? 0,
+                    type: .focus,
+                    ruleSetId: existing?.ruleSetId,
+                    importedCalendarEventKey: key
+                )
+            }
+        } else {
+            importedSchedules = []
+        }
+
+        let merged = manualSchedules + importedSchedules
+        guard merged != schedules else { return }
+
+        isSynchronizingImportedSchedules = true
+        schedules = merged
+        isSynchronizingImportedSchedules = false
     }
 
     private func setWasStartedBySchedule(_ value: Bool) {

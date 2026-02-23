@@ -62,6 +62,8 @@ struct SettingsView: View {
                     Toggle(
                         "Enable Calendar Integration",
                         isOn: $environmentAppState.calendarIntegrationEnabled)
+                    Toggle("Calendar Imports Block Time", isOn: $environmentAppState.calendarImportsBlockTime)
+                        .disabled(!environmentAppState.calendarIntegrationEnabled)
                 } header: {
                     Text("Calendar")
                         .font(UIConstants.Typography.header)

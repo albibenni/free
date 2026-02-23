@@ -142,6 +142,7 @@ struct SettingsViewTests {
         let hosted = host(view)
         #expect(hosted.fittingSize.width >= 0)
         #expect((try? view.inspect().find(text: "Launch at Login")) != nil)
+        #expect((try? view.inspect().find(text: "Calendar Imports Block Time")) != nil)
         #expect((try? view.inspect().find(text: "Block New Tabs")) != nil)
         #expect((try? view.inspect().find(text: "Block Localhost/Dev Ports")) != nil)
         #expect((try? view.inspect().find(text: "Block Local Network IPs")) != nil)
@@ -174,9 +175,9 @@ struct SettingsViewTests {
         _ = host(view)
 
         let toggles = try view.inspect().findAll(ViewType.Toggle.self)
-        #expect(toggles.count >= 4)
+        #expect(toggles.count >= 5)
 
-        try toggles[3].tap()
+        try toggles[4].tap()
         #expect(launchManager.enableCallCount == 1)
         #expect(appState.launchAtLoginStatus() == true)
     }

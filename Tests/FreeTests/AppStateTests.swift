@@ -330,6 +330,7 @@ struct AppStateTests {
     func calendarEventOverride() {
         let appState = isolatedAppState(name: "calendarEventOverride")
         appState.calendarIntegrationEnabled = true
+        #expect(appState.calendarImportsBlockTime == false)
         appState.isBlocking = false
         appState.isUnblockable = false
 
@@ -365,6 +366,107 @@ struct AppStateTests {
         appState.checkSchedules()
 
         #expect(appState.isBlocking, "Calendar event should NOT override focus in strict mode")
+    }
+
+    @Test("Calendar imports can block time when enabled")
+    func calendarImportsBlockTimeToggle() {
+        let appState = isolatedAppState(name: "calendarImportsBlockTimeToggle")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+        appState.isBlocking = false
+
+        let now = Date()
+        let event = ExternalEvent(
+            id: "imported-focus",
+            title: "Imported Focus",
+            startDate: now.addingTimeInterval(-600),
+            endDate: now.addingTimeInterval(600)
+        )
+
+        appState.calendarProvider.events = [event]
+        appState.checkSchedules()
+        #expect(appState.isBlocking == true)
+    }
+
+    @Test("Calendar import sync upserts and removes mirrored schedules without duplication")
+    func calendarImportSyncUpsertAndRemove() {
+        let appState = isolatedAppState(name: "calendarImportSyncUpsertAndRemove")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+
+        let now = Date()
+        let eventA = ExternalEvent(
+            id: "event-a",
+            title: "Imported A",
+            startDate: now.addingTimeInterval(-1200),
+            endDate: now.addingTimeInterval(-600)
+        )
+        let eventB = ExternalEvent(
+            id: "event-b",
+            title: "Imported B",
+            startDate: now.addingTimeInterval(600),
+            endDate: now.addingTimeInterval(1200)
+        )
+
+        appState.calendarProvider.events = [eventA, eventB]
+        appState.checkSchedules()
+
+        var imported = appState.schedules.filter { $0.importedCalendarEventKey != nil }
+        #expect(imported.count == 2)
+        #expect(Set(imported.compactMap(\.importedCalendarEventKey)).count == 2)
+
+        let setId = appState.ruleSets[0].id
+        if let idx = appState.schedules.firstIndex(where: { $0.importedCalendarEventKey == "event-a" }) {
+            appState.schedules[idx].ruleSetId = setId
+            appState.schedules = appState.schedules
+        } else {
+            Issue.record("Expected mirrored schedule for event-a")
+        }
+
+        let updatedA = ExternalEvent(
+            id: "event-a",
+            title: "Imported A Updated",
+            startDate: now.addingTimeInterval(1800),
+            endDate: now.addingTimeInterval(2400)
+        )
+        let eventC = ExternalEvent(
+            id: "event-c",
+            title: "Imported C",
+            startDate: now.addingTimeInterval(3000),
+            endDate: now.addingTimeInterval(3600)
+        )
+
+        appState.calendarProvider.events = [updatedA, eventC]
+        appState.checkSchedules()
+
+        imported = appState.schedules.filter { $0.importedCalendarEventKey != nil }
+        #expect(imported.count == 2)
+        #expect(Set(imported.compactMap(\.importedCalendarEventKey)) == Set(["event-a", "event-c"]))
+        #expect(imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.name == "Imported A Updated")
+        #expect(imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.ruleSetId == setId)
+    }
+
+    @Test("Disabling calendar import blocking removes mirrored imported schedules")
+    func calendarImportDisableRemovesMirroredSchedules() {
+        let appState = isolatedAppState(name: "calendarImportDisableRemovesMirroredSchedules")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+
+        let now = Date()
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "event-remove",
+                title: "Imported",
+                startDate: now,
+                endDate: now.addingTimeInterval(600)
+            )
+        ]
+        appState.checkSchedules()
+        #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-remove" }))
+
+        appState.calendarImportsBlockTime = false
+        appState.checkSchedules()
+        #expect(!appState.schedules.contains(where: { $0.importedCalendarEventKey != nil }))
     }
 
     @Test("Pause logic works correctly")

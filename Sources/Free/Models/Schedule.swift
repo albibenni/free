@@ -16,6 +16,7 @@ struct Schedule: Identifiable, Codable, Equatable {
     var colorIndex: Int = 0
     var type: ScheduleType = .focus
     var ruleSetId: UUID? = nil
+    var importedCalendarEventKey: String? = nil
 
     static func defaultSchedule() -> Schedule {
         let calendar = Calendar.current

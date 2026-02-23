@@ -66,6 +66,7 @@ struct PersistenceTests {
         defaults.set(false, forKey: "WasStartedBySchedule")
         appState?.isUnblockable = true
         appState?.accentColorIndex = 5
+        appState?.calendarImportsBlockTime = true
         appState?.blockNewTabs = true
         appState?.blockDeveloperHosts = true
         appState?.blockLocalNetworkHosts = true
@@ -75,6 +76,7 @@ struct PersistenceTests {
         #expect(newAppState.isBlocking == true)
         #expect(newAppState.isUnblockable == true)
         #expect(newAppState.accentColorIndex == 5)
+        #expect(newAppState.calendarImportsBlockTime == true)
         #expect(newAppState.blockNewTabs == true)
         #expect(newAppState.blockDeveloperHosts == true)
         #expect(newAppState.blockLocalNetworkHosts == true)

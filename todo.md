@@ -32,6 +32,11 @@
 
 ### Calendar
 
+- current impl
+- import with duplication inside
+  - cannot do modification on calendar but on list i can
+  - it shouldn't allow delete
+  - it should be allow edit only of allowed list and break/focus
 - [ ] rule for calendar imports - if title contain `*study*` or `*work*`
   - [ ] allow personalization on this rule with settings
   - [ ] allow imports to be all focus
