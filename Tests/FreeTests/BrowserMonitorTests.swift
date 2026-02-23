@@ -258,6 +258,114 @@ struct BrowserMonitorTests {
         #expect(mock.redirectedUrls == ["http://localhost:10000"])
     }
 
+    @Test("BrowserMonitor blocks explicit new-tab token URLs when enabled")
+    func blocksNewTabTokenWhenEnabled() {
+        let appState = isolatedAppState(name: "blocksNewTabTokenWhenEnabled")
+        appState.isBlocking = true
+        appState.blockNewTabs = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "about:newtab"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls == ["http://localhost:10000"])
+    }
+
+    @Test("BrowserMonitor blocks schemeless localhost URL when developer-host blocking is enabled")
+    func blocksSchemelessLocalhostWhenEnabled() {
+        let appState = isolatedAppState(name: "blocksSchemelessLocalhostWhenEnabled")
+        appState.isBlocking = true
+        appState.blockDeveloperHosts = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "localhost:3000"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls == ["http://localhost:10000"])
+    }
+
+    @Test("BrowserMonitor does not redirect when active URL is empty")
+    func emptyActiveUrlNoRedirect() {
+        let appState = isolatedAppState(name: "emptyActiveUrlNoRedirect")
+        appState.isBlocking = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "   "
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls.isEmpty)
+    }
+
+    @Test("BrowserMonitor blocks 10.x private-network hosts when enabled")
+    func blocksTenRangeWhenEnabled() {
+        let appState = isolatedAppState(name: "blocksTenRangeWhenEnabled")
+        appState.isBlocking = true
+        appState.blockLocalNetworkHosts = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "http://10.0.0.5:8080"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls == ["http://localhost:10000"])
+    }
+
+    @Test("BrowserMonitor blocks 172.16-31 private-network hosts when enabled")
+    func blocksOneSevenTwoPrivateRangeWhenEnabled() {
+        let appState = isolatedAppState(name: "blocksOneSevenTwoPrivateRangeWhenEnabled")
+        appState.isBlocking = true
+        appState.blockLocalNetworkHosts = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "http://172.20.10.2/"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls == ["http://localhost:10000"])
+    }
+
+    @Test("BrowserMonitor allows non-private IP hosts when private-network blocking is enabled")
+    func allowsPublicIpWhenPrivateBlockingEnabled() {
+        let appState = isolatedAppState(name: "allowsPublicIpWhenPrivateBlockingEnabled")
+        appState.isBlocking = true
+        appState.blockLocalNetworkHosts = true
+        appState.ruleSets = [RuleSet(name: "All", urls: ["*"])]
+        appState.activeRuleSetId = appState.ruleSets.first?.id
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "http://203.0.113.10:8080"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls.isEmpty)
+    }
+
+    @Test("BrowserMonitor treats out-of-range IP octets as non-private hosts")
+    func outOfRangeOctetFallsBackToNonPrivate() {
+        let appState = isolatedAppState(name: "outOfRangeOctetFallsBackToNonPrivate")
+        appState.isBlocking = true
+        appState.blockLocalNetworkHosts = true
+        appState.ruleSets = [RuleSet(name: "All", urls: ["*"])]
+        appState.activeRuleSetId = appState.ruleSets.first?.id
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "http://300.168.0.1/"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls.isEmpty)
+    }
+
     @Test("BrowserMonitor throttles repeated redirects per bundle")
     func redirectThrottle() {
         let appState = isolatedAppState(name: "redirectThrottle")
