@@ -136,24 +136,31 @@ struct CalendarManagerRuntimeTests {
     }
 
     @Test("live runtime dispatchMain enqueues work on the main queue")
-    func liveDispatchMain() {
+    func liveDispatchMain() async {
         let store = RuntimeEventStoreDouble()
         let runtime = CalendarManagerRuntime.live(eventStore: store)
+        let didRunOnMain = await withTaskGroup(of: Bool?.self) { group in
+            group.addTask {
+                await withCheckedContinuation { continuation in
+                    runtime.dispatchMain {
+                        continuation.resume(returning: Thread.isMainThread)
+                    }
+                }
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                return nil
+            }
 
-        var executed = false
-        var onMainThread = false
-
-        runtime.dispatchMain {
-            onMainThread = Thread.isMainThread
-            executed = true
+            for await result in group {
+                if let value = result {
+                    group.cancelAll()
+                    return value
+                }
+            }
+            return false
         }
 
-        let deadline = Date().addingTimeInterval(0.5)
-        while !executed && Date() < deadline {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
-        }
-
-        #expect(executed == true)
-        #expect(onMainThread == true)
+        #expect(didRunOnMain == true)
     }
 }
