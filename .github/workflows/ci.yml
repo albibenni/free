@@ -1,0 +1,72 @@
+name: CI
+
+on:
+    push:
+        branches:
+            - "main"
+    pull_request:
+
+concurrency:
+    group: ci-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    test-and-coverage:
+        runs-on: macos-latest
+        timeout-minutes: 15
+        env:
+            COVERAGE_MIN_LINES: "95"
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Show tool versions
+              run: |
+                  sw_vers
+                  xcodebuild -version
+                  swift --version
+
+            - name: Resolve dependencies
+              run: swift package resolve
+
+            - name: Build
+              run: make build
+
+            - name: Test
+              run: make test
+
+            - name: Coverage
+              run: |
+                  set -euo pipefail
+                  make coverage | tee coverage-report.txt
+                  line_cov="$(awk '/^TOTAL/{gsub("%","",$4); print $4}' coverage-report.txt | tail -n1)"
+                  if [[ -z "${line_cov}" ]]; then
+                    echo "Could not parse TOTAL line coverage."
+                    exit 1
+                  fi
+                  awk -v got="${line_cov}" -v min="${COVERAGE_MIN_LINES}" \
+                    'BEGIN { if (got + 0 < min + 0) { printf("Line coverage %.2f%% is below minimum %.2f%%\n", got, min); exit 1 } }'
+                  echo "Line coverage ${line_cov}% meets minimum ${COVERAGE_MIN_LINES}%."
+
+            - name: Upload coverage report
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-report
+                  path: coverage-report.txt
+
+    package-dmg:
+        runs-on: macos-latest
+        timeout-minutes: 10
+        needs: test-and-coverage
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Build DMG
+              run: make package
+
+            - name: Upload DMG artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: Free-dmg
+                  path: Free.dmg
