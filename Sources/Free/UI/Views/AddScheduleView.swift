@@ -57,6 +57,19 @@ struct AddScheduleView: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    if Self.isImportedSchedule(existingSchedule) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "calendar.badge.clock")
+                                .foregroundColor(.secondary)
+                            Text("Imported from Calendar")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(Color.secondary.opacity(0.12))
+                        .cornerRadius(8)
+                    }
                     section("SESSION TYPE") {
                         Picker("", selection: $sessionType) {
                             ForEach(ScheduleType.allCases, id: \.self) { type in
@@ -253,6 +266,10 @@ struct AddScheduleView: View {
 
     static func shouldShowAllowedList(for sessionType: ScheduleType) -> Bool {
         sessionType == .focus
+    }
+
+    static func isImportedSchedule(_ existingSchedule: Schedule?) -> Bool {
+        existingSchedule?.importedCalendarEventKey != nil
     }
 
     static func canDeleteSchedule(existingSchedule: Schedule?) -> Bool {
