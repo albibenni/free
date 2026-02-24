@@ -39,6 +39,7 @@ struct AddScheduleViewTests {
 
         #expect(AddScheduleView.shouldShowAllowedList(for: .focus))
         #expect(!AddScheduleView.shouldShowAllowedList(for: .unfocus))
+        #expect(AddScheduleView.canDeleteSchedule(existingSchedule: existing))
 
         #expect(AddScheduleView.shouldShowEditScope(existingSchedule: existing, initialDay: 2))
         #expect(!AddScheduleView.shouldShowEditScope(existingSchedule: existing, initialDay: nil))
@@ -71,6 +72,11 @@ struct AddScheduleViewTests {
 
         #expect(AddScheduleView.shouldApplyNewScheduleDefaults(existingSchedule: nil))
         #expect(!AddScheduleView.shouldApplyNewScheduleDefaults(existingSchedule: existing))
+
+        var imported = existing
+        imported.importedCalendarEventKey = "imported-event"
+        #expect(!AddScheduleView.canDeleteSchedule(existingSchedule: imported))
+        #expect(!AddScheduleView.canDeleteSchedule(existingSchedule: nil))
 
         #expect(AddScheduleView.dayName(for: 1) == Calendar.current.weekdaySymbols[0])
     }

@@ -134,7 +134,7 @@ struct AddScheduleView: View {
                                 maxWidth: .infinity, isProminent: true)
                         )
                         .disabled(Self.isSaveDisabled(days: days, modifyAllDays: modifyAllDays))
-                        if existingSchedule != nil {
+                        if Self.canDeleteSchedule(existingSchedule: existingSchedule) {
                             Button(action: performDeleteAction) {
                                 Text("Delete Schedule").foregroundColor(.red).font(.subheadline)
                                     .frame(maxWidth: .infinity)
@@ -253,6 +253,11 @@ struct AddScheduleView: View {
 
     static func shouldShowAllowedList(for sessionType: ScheduleType) -> Bool {
         sessionType == .focus
+    }
+
+    static func canDeleteSchedule(existingSchedule: Schedule?) -> Bool {
+        guard let existingSchedule else { return false }
+        return existingSchedule.importedCalendarEventKey == nil
     }
 
     static func shouldShowEditScope(existingSchedule: Schedule?, initialDay: Int?) -> Bool {

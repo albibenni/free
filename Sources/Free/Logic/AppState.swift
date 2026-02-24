@@ -19,6 +19,7 @@ class AppState: ObservableObject {
         "I am choosing to break my focus and I acknowledge that this may impact my productivity."
     private static let wasStartedByScheduleKey = "WasStartedBySchedule"
     private static let launchAtLoginPromptShownKey = "LaunchAtLoginPromptShown"
+    private static let suppressedImportedCalendarEventKeysKey = "SuppressedImportedCalendarEventKeys"
     private let defaults: UserDefaults
 
     @Published var isBlocking = false {
@@ -107,6 +108,7 @@ class AppState: ObservableObject {
     private var manuallyPausedScheduleIds: Set<UUID> = []
     private var pomodoroRuleSetId: UUID?
     private var isSynchronizingImportedSchedules = false
+    private var suppressedImportedCalendarEventKeys: Set<String> = []
 
     enum PomodoroStatus: String, Codable { case none, focus, breakTime }
 
@@ -218,6 +220,9 @@ class AppState: ObservableObject {
         self.activeRuleSetId =
             UUID(uuidString: defaults.string(forKey: "ActiveRuleSetId") ?? "") ?? ruleSets.first?.id
         self.wasStartedBySchedule = defaults.bool(forKey: Self.wasStartedByScheduleKey)
+        self.suppressedImportedCalendarEventKeys = Set(
+            defaults.stringArray(forKey: Self.suppressedImportedCalendarEventKeysKey) ?? []
+        )
 
         // Migration for older builds that persisted IsBlocking but not its source.
         if defaults.object(forKey: Self.wasStartedByScheduleKey) == nil, isBlocking {
@@ -337,8 +342,12 @@ class AppState: ObservableObject {
         if let i = schedules.firstIndex(where: { $0.id == id }) {
             if !modifyAllDays, let day = initialDay {
                 schedules[i].days.remove(day)
-                if schedules[i].days.isEmpty { schedules.remove(at: i) }
+                if schedules[i].days.isEmpty {
+                    suppressImportedCalendarEventIfNeeded(schedules[i])
+                    schedules.remove(at: i)
+                }
             } else {
+                suppressImportedCalendarEventIfNeeded(schedules[i])
                 schedules.remove(at: i)
             }
         }
@@ -547,7 +556,8 @@ class AppState: ObservableObject {
             let defaultImportedRuleSetId = normalizedRuleSetId(activeRuleSetId)
 
             let sortedEvents = calendarProvider.events.sorted { $0.startDate < $1.startDate }
-            importedSchedules = sortedEvents.map { event in
+            importedSchedules = sortedEvents.compactMap { event in
+                guard !suppressedImportedCalendarEventKeys.contains(event.id) else { return nil }
                 let key = event.id
                 let existing = existingByKey[key]
                 return Schedule(
@@ -574,6 +584,16 @@ class AppState: ObservableObject {
         isSynchronizingImportedSchedules = true
         schedules = merged
         isSynchronizingImportedSchedules = false
+    }
+
+    private func suppressImportedCalendarEventIfNeeded(_ schedule: Schedule) {
+        guard let key = schedule.importedCalendarEventKey else { return }
+        if suppressedImportedCalendarEventKeys.insert(key).inserted {
+            defaults.set(
+                Array(suppressedImportedCalendarEventKeys).sorted(),
+                forKey: Self.suppressedImportedCalendarEventKeysKey
+            )
+        }
     }
 
     private func setWasStartedBySchedule(_ value: Bool) {

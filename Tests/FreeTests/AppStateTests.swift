@@ -469,6 +469,35 @@ struct AppStateTests {
         #expect(!appState.schedules.contains(where: { $0.importedCalendarEventKey != nil }))
     }
 
+    @Test("Deleting imported schedule suppresses re-import while source event remains present")
+    func deletingImportedScheduleSuppressesReimport() {
+        let appState = isolatedAppState(name: "deletingImportedScheduleSuppressesReimport")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+
+        let now = Date()
+        let event = ExternalEvent(
+            id: "event-suppress",
+            title: "Imported Deletable",
+            startDate: now.addingTimeInterval(-300),
+            endDate: now.addingTimeInterval(300)
+        )
+
+        appState.calendarProvider.events = [event]
+        appState.checkSchedules()
+        let imported = appState.schedules.first(where: { $0.importedCalendarEventKey == "event-suppress" })
+        #expect(imported != nil)
+
+        if let imported {
+            appState.deleteSchedule(id: imported.id, modifyAllDays: true, initialDay: nil)
+        } else {
+            Issue.record("Expected imported schedule to exist before delete")
+        }
+
+        appState.checkSchedules()
+        #expect(!appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-suppress" }))
+    }
+
     @Test("Imported calendar schedules default to the active allowed list")
     func calendarImportDefaultsToActiveRuleSet() {
         let appState = isolatedAppState(name: "calendarImportDefaultsToActiveRuleSet")

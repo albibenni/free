@@ -279,6 +279,12 @@ struct WeeklyCalendarViewTests {
         let placements = view.schedulePlacements(for: importedOneOff, weekRange: week)
         #expect(placements.count == 1)
         #expect(placements.first?.day == calendar.component(.weekday, from: weekStart))
+
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = false
+        #expect(view.shouldShowExternalCalendarOverlay == true)
+        appState.calendarImportsBlockTime = true
+        #expect(view.shouldShowExternalCalendarOverlay == false)
     }
 
     @Test(

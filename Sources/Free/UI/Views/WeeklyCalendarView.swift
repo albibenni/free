@@ -66,6 +66,10 @@ struct WeeklyCalendarView: View {
             at: Date(), weekStartsOnMonday: appState.weekStartsOnMonday, offset: weekOffset)
     }
 
+    var shouldShowExternalCalendarOverlay: Bool {
+        appState.calendarIntegrationEnabled && !appState.calendarImportsBlockTime
+    }
+
     static func getWeekDates(at date: Date = Date(), weekStartsOnMonday: Bool, offset: Int = 0)
         -> [Date]
     {
@@ -231,7 +235,7 @@ struct WeeklyCalendarView: View {
                                     let columnWidth = innerGeo.size.width / 7
 
                                     ZStack(alignment: .topLeading) {
-                                        if appState.calendarIntegrationEnabled {
+                                        if shouldShowExternalCalendarOverlay {
                                             ForEach(visibleCalendarEvents(weekStart: weekStart, weekEnd: weekEnd))
                                             { event in
                                                 let weekday = calendar.component(

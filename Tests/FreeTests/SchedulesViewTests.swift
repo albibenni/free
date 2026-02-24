@@ -85,6 +85,44 @@ struct SchedulesViewTests {
         #expect(hostedSheet.fittingSize.height >= 0)
     }
 
+    @Test("SchedulesView does not delete imported schedules from row or swipe actions")
+    @MainActor
+    func schedulesViewPreventsImportedDeletion() {
+        let appState = isolatedAppState(name: "preventsImportedDeletion")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+
+        let now = Date()
+        let importedEvent = ExternalEvent(
+            id: "calendar-import",
+            title: "Imported",
+            startDate: now.addingTimeInterval(-300),
+            endDate: now.addingTimeInterval(300)
+        )
+        appState.calendarProvider.events = [importedEvent]
+        let local = sampleSchedule(name: "Local")
+        appState.schedules = [local]
+        appState.checkSchedules()
+
+        guard let imported = appState.schedules.first(where: { $0.importedCalendarEventKey == "calendar-import" }) else {
+            Issue.record("Expected imported schedule to be mirrored before delete checks")
+            return
+        }
+
+        let root = SchedulesView(initialViewMode: 0, actionAppState: appState)
+
+        let deleteImported = root.deleteScheduleAction(scheduleId: imported.id)
+        deleteImported()
+        #expect(appState.schedules.contains(where: { $0.id == imported.id }))
+
+        root.removeSchedules(at: IndexSet(integer: 0))
+        #expect(appState.schedules.contains(where: { $0.id == imported.id }))
+
+        root.removeSchedules(at: IndexSet(integer: 1))
+        #expect(!appState.schedules.contains(where: { $0.id == local.id }))
+        #expect(appState.schedules.contains(where: { $0.id == imported.id }))
+    }
+
     @Test("SchedulesView renders list mode with schedules")
     @MainActor
     func schedulesViewListModeRender() {
