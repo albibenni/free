@@ -130,6 +130,19 @@ struct SettingsViewTests {
         #expect(view.shouldShowStrictDisableButton == false)
     }
 
+    @Test("SettingsView calendar controls lock only during strict active mode")
+    func settingsViewCalendarControlsLockState() {
+        let appState = isolatedAppState(name: "calendarControlsLockState")
+        appState.isBlocking = false
+        appState.isUnblockable = true
+        let notStrictView = SettingsView(actionAppState: appState)
+        #expect(notStrictView.calendarControlsLocked == false)
+
+        appState.isBlocking = true
+        let strictView = SettingsView(actionAppState: appState)
+        #expect(strictView.calendarControlsLocked == true)
+    }
+
     @Test("SettingsView renders default toggle branch")
     @MainActor
     func settingsViewRenderDefaultBranch() {

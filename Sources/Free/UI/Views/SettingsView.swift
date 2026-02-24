@@ -62,8 +62,9 @@ struct SettingsView: View {
                     Toggle(
                         "Enable Calendar Integration",
                         isOn: $environmentAppState.calendarIntegrationEnabled)
+                        .disabled(calendarControlsLocked)
                     Toggle("Calendar Imports Block Time", isOn: $environmentAppState.calendarImportsBlockTime)
-                        .disabled(!environmentAppState.calendarIntegrationEnabled)
+                        .disabled(calendarControlsLocked || !environmentAppState.calendarIntegrationEnabled)
                 } header: {
                     Text("Calendar")
                         .font(UIConstants.Typography.header)
@@ -190,6 +191,10 @@ struct SettingsView: View {
 
     var shouldShowStrictDisableButton: Bool {
         appState.isBlocking && appState.isUnblockable
+    }
+
+    var calendarControlsLocked: Bool {
+        appState.isStrictActive
     }
 
     func openChallenge() {

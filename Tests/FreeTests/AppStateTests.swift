@@ -469,6 +469,33 @@ struct AppStateTests {
         #expect(!appState.schedules.contains(where: { $0.importedCalendarEventKey != nil }))
     }
 
+    @Test("Imported calendar schedules default to the active allowed list")
+    func calendarImportDefaultsToActiveRuleSet() {
+        let appState = isolatedAppState(name: "calendarImportDefaultsToActiveRuleSet")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+
+        let defaultSet = appState.ruleSets[0]
+        let secondSet = RuleSet(name: "Second", urls: ["example.com"])
+        appState.ruleSets = [defaultSet, secondSet]
+        appState.activeRuleSetId = secondSet.id
+
+        let now = Date()
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "event-default-list",
+                title: "Imported",
+                startDate: now.addingTimeInterval(-300),
+                endDate: now.addingTimeInterval(300)
+            )
+        ]
+        appState.checkSchedules()
+
+        let imported = appState.schedules.first(where: { $0.importedCalendarEventKey == "event-default-list" })
+        #expect(imported != nil)
+        #expect(imported?.ruleSetId == secondSet.id)
+    }
+
     @Test("Pause logic works correctly")
     func pauseLogic() {
         let appState = isolatedAppState(name: "pauseLogic")

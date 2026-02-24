@@ -544,6 +544,7 @@ class AppState: ObservableObject {
                     return (key, schedule)
                 }
             )
+            let defaultImportedRuleSetId = normalizedRuleSetId(activeRuleSetId)
 
             let sortedEvents = calendarProvider.events.sorted { $0.startDate < $1.startDate }
             importedSchedules = sortedEvents.map { event in
@@ -559,7 +560,7 @@ class AppState: ObservableObject {
                     isEnabled: existing?.isEnabled ?? true,
                     colorIndex: existing?.colorIndex ?? 0,
                     type: .focus,
-                    ruleSetId: existing?.ruleSetId,
+                    ruleSetId: existing?.ruleSetId ?? defaultImportedRuleSetId,
                     importedCalendarEventKey: key
                 )
             }
