@@ -23,6 +23,10 @@ struct ScheduleRow: View {
         schedule.type == .focus ? FocusColor.color(for: accentColorIndex) : schedule.themeColor
     }
 
+    static func isImported(_ schedule: Schedule) -> Bool {
+        schedule.importedCalendarEventKey != nil
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 4)
@@ -36,6 +40,15 @@ struct ScheduleRow: View {
                         .foregroundColor(.secondary)
                     Text(schedule.name)
                         .font(.headline)
+                    if Self.isImported(schedule) {
+                        Label("Imported", systemImage: "calendar.badge.clock")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.1))
+                            .cornerRadius(4)
+                    }
                 }
                 Text(schedule.timeRangeString)
                     .font(.caption)

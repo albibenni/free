@@ -25,6 +25,13 @@ struct WeeklyCalendarView: View {
         let columnIndex: Int
     }
 
+    struct SchedulePlacement: Identifiable {
+        let id: String
+        let day: Int
+        let startDate: Date
+        let endDate: Date
+    }
+
     init(
         editorContext: Binding<ScheduleEditorContext?>,
         actionAppState: AppState? = nil,
@@ -249,12 +256,18 @@ struct WeeklyCalendarView: View {
                                                 shouldDisplaySchedule($0, weekStart: weekStart, weekEnd: weekEnd)
                                             }
                                         ) { schedule in
-                                            ForEach(schedule.days.sorted(), id: \.self) { day in
-                                                if let colIndex = dayOrder.firstIndex(of: day),
+                                            ForEach(
+                                                schedulePlacements(
+                                                    for: schedule,
+                                                    weekRange: weekRange
+                                                )
+                                            ) { placement in
+                                                if let colIndex = dayOrder.firstIndex(of: placement.day),
                                                     let frame = calculateRect(
-                                                        startDate: schedule.startTime,
-                                                        endDate: schedule.endTime,
-                                                        colIndex: colIndex, columnWidth: columnWidth
+                                                        startDate: placement.startDate,
+                                                        endDate: placement.endDate,
+                                                        colIndex: colIndex,
+                                                        columnWidth: columnWidth
                                                     )
                                                 {
                                                     ScheduleBlockView(schedule: schedule)
@@ -264,7 +277,7 @@ struct WeeklyCalendarView: View {
                                                         .position(x: frame.midX, y: frame.midY)
                                                         .onTapGesture(
                                                             perform: openScheduleEditorAction(
-                                                                day: day,
+                                                                day: placement.day,
                                                                 schedule: schedule
                                                             )
                                                         )
@@ -467,6 +480,35 @@ struct WeeklyCalendarView: View {
         { openScheduleEditor(day: day, schedule: schedule) }
     }
 
+    func schedulePlacements(for schedule: Schedule, weekRange: [Date]) -> [SchedulePlacement] {
+        let calendar = Calendar.current
+
+        if let specificDate = schedule.date {
+            guard let inWeekDate = weekRange.first(where: { calendar.isDate($0, inSameDayAs: specificDate) }) else {
+                return []
+            }
+            let day = calendar.component(.weekday, from: inWeekDate)
+            let startOfDay = calendar.startOfDay(for: inWeekDate).timeIntervalSince1970
+            return [
+                SchedulePlacement(
+                    id: "\(schedule.id.uuidString)-\(startOfDay)",
+                    day: day,
+                    startDate: schedule.startTime,
+                    endDate: schedule.endTime
+                )
+            ]
+        }
+
+        return schedule.days.sorted().map { day in
+            SchedulePlacement(
+                id: "\(schedule.id.uuidString)-\(day)",
+                day: day,
+                startDate: schedule.startTime,
+                endDate: schedule.endTime
+            )
+        }
+    }
+
     static func calculateDragSelection(startHour: CGFloat, endHour: CGFloat) -> (
         start: Date, end: Date
     ) {
@@ -624,6 +666,10 @@ struct ScheduleBlockView: View {
                         Text(schedule.name)
                             .font(.caption)
                             .bold()
+                        if isImported {
+                            Image(systemName: "calendar.badge.clock")
+                                .font(.system(size: 9, weight: .bold))
+                        }
                     }
                     .foregroundColor(.white)
                     .lineLimit(1)
@@ -642,6 +688,10 @@ struct ScheduleBlockView: View {
         let f = DateFormatter()
         f.timeStyle = .short
         return "\(f.string(from: s.startTime))"
+    }
+
+    var isImported: Bool {
+        schedule.importedCalendarEventKey != nil
     }
 }
 

@@ -263,6 +263,22 @@ struct WeeklyCalendarViewTests {
         #expect(
             view.shouldDisplaySchedule(oneOffOutside, weekStart: weekStart, weekEnd: weekEnd)
                 == false)
+
+        let importedOneOff = Schedule(
+            name: "Imported One-off",
+            days: [],
+            date: weekStart,
+            startTime: oneOffInside.startTime,
+            endTime: oneOffInside.endTime,
+            isEnabled: true,
+            colorIndex: 0,
+            type: .focus,
+            ruleSetId: nil,
+            importedCalendarEventKey: "imported-key"
+        )
+        let placements = view.schedulePlacements(for: importedOneOff, weekRange: week)
+        #expect(placements.count == 1)
+        #expect(placements.first?.day == calendar.component(.weekday, from: weekStart))
     }
 
     @Test(
