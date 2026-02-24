@@ -27,16 +27,16 @@
 - [x] lock/unlock new tabs
 - [x] fully test code
 - [x] add list selection in pomodoro mode - default on selected from allowed lists
+- [ ] allow with toggle search engines searches
 - [x] add git steps
   - [x] build and tests
 
 ### Calendar
 
-- current impl
-- import with duplication inside
-  - cannot do modification on calendar but on list i can
-  - it shouldn't allow delete
-  - it should be allow edit only of allowed list and break/focus
+- [ ] allow modification on calendar imports
+  - [ ] it shouldn't allow delete
+  - [ ] it should be allow edit only of allowed list and break/focus
+
 - [ ] rule for calendar imports - if title contain `*study*` or `*work*`
   - [ ] allow personalization on this rule with settings
   - [ ] allow imports to be all focus
