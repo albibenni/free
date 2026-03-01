@@ -281,6 +281,8 @@ struct WeeklyCalendarViewTests {
         #expect(placements.first?.day == calendar.component(.weekday, from: weekStart))
         #expect(ScheduleBlockView.fillOpacity(isImported: false) == 0.8)
         #expect(ScheduleBlockView.fillOpacity(isImported: true) == 0.5)
+        #expect(ScheduleBlockView.borderOpacity(isImported: false) == 0.95)
+        #expect(ScheduleBlockView.borderOpacity(isImported: true) == 0.72)
 
         let overlappingA = Schedule(
             name: "Overlap A",
