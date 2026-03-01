@@ -1011,6 +1011,8 @@ struct AppStateTests {
         let allowed = appState.allowedRules
         #expect(allowed.contains("url1.com"))
         #expect(allowed.contains("url2.com"))
+        #expect(appState.currentPrimaryRuleSetId == nil)
+        #expect(appState.currentPrimaryRuleSetName == "Multiple Lists")
     }
 
     @Test("todaySchedules filters by current day and sorts by time")

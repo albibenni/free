@@ -24,6 +24,16 @@ The app features a powerful, interactive weekly calendar to manage your focus ti
 *   **Smart Overrides:** Manual pauses and "Break" schedules intelligently override focus sessions.
 *   **Smart Splitting:** Edit recurring schedules globally or for specific days only.
 
+### Schedule Precedence
+
+When multiple automatic sessions overlap, Free resolves them with explicit precedence:
+
+*   **Break beats Focus:** any active Break schedule disables blocking for that overlap.
+*   **Focus schedules merge allowlists:** if two or more Focus schedules overlap, their allowed URLs are combined.
+*   **Pomodoro follows the same model:** Pomodoro Focus enforces its captured list, while Pomodoro Break disables blocking.
+*   **Calendar meetings act like a break override** only when calendar imports are not being used as blocking focus time.
+*   **UI label behavior:** if overlapping Focus schedules contribute different lists, the app shows `Multiple Lists` instead of choosing one arbitrarily.
+
 ## 🛠 Installation & Building
 
 The app is built using Swift and SwiftUI.
