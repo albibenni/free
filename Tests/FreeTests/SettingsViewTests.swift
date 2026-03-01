@@ -156,6 +156,7 @@ struct SettingsViewTests {
         #expect(hosted.fittingSize.width >= 0)
         #expect((try? view.inspect().find(text: "Launch at Login")) != nil)
         #expect((try? view.inspect().find(text: "Calendar Imports Block Time")) != nil)
+        #expect((try? view.inspect().find(text: "Resync Imported Schedules")) != nil)
         #expect((try? view.inspect().find(text: "Block New Tabs")) != nil)
         #expect((try? view.inspect().find(text: "Block Localhost/Dev Ports")) != nil)
         #expect((try? view.inspect().find(text: "Block Local Network IPs")) != nil)

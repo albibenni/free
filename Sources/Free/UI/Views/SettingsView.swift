@@ -65,6 +65,8 @@ struct SettingsView: View {
                         .disabled(calendarControlsLocked)
                     Toggle("Calendar Imports Block Time", isOn: $environmentAppState.calendarImportsBlockTime)
                         .disabled(calendarControlsLocked || !environmentAppState.calendarIntegrationEnabled)
+                    Button("Resync Imported Schedules", action: resyncImportedSchedules)
+                        .disabled(!environmentAppState.calendarIntegrationEnabled)
                 } header: {
                     Text("Calendar")
                         .font(UIConstants.Typography.header)
@@ -224,6 +226,10 @@ struct SettingsView: View {
         } else {
             launchAtLoginEnabled = appState.launchAtLoginStatus()
         }
+    }
+
+    func resyncImportedSchedules() {
+        appState.resyncImportedCalendarSchedules()
     }
 
     var showChallengeForTesting: Bool { showChallenge }

@@ -525,6 +525,74 @@ struct AppStateTests {
         #expect(imported?.ruleSetId == secondSet.id)
     }
 
+    @Test("Resync imported schedules removes legacy duplicates and rebuilds mirrored entries")
+    func resyncImportedSchedulesDeduplicatesLegacy() {
+        let appState = isolatedAppState(name: "resyncImportedSchedulesDeduplicatesLegacy")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+
+        let now = Date()
+        let event = ExternalEvent(
+            id: "event-resync",
+            title: "Calendar Focus",
+            startDate: now.addingTimeInterval(-300),
+            endDate: now.addingTimeInterval(300)
+        )
+        appState.calendarProvider.events = [event]
+
+        let legacyDuplicate = Schedule(
+            name: event.title,
+            days: [Calendar.current.component(.weekday, from: event.startDate)],
+            date: event.startDate,
+            startTime: event.startDate,
+            endTime: event.endDate,
+            isEnabled: true,
+            colorIndex: 0,
+            type: .focus,
+            ruleSetId: nil,
+            importedCalendarEventKey: nil
+        )
+        let keyedImported = Schedule(
+            name: event.title,
+            days: [Calendar.current.component(.weekday, from: event.startDate)],
+            date: event.startDate,
+            startTime: event.startDate,
+            endTime: event.endDate,
+            isEnabled: false,
+            colorIndex: 5,
+            type: .focus,
+            ruleSetId: appState.ruleSets.first?.id,
+            importedCalendarEventKey: event.id
+        )
+        let manual = Schedule(
+            name: "Manual Focus",
+            days: [Calendar.current.component(.weekday, from: now)],
+            startTime: now.addingTimeInterval(3600),
+            endTime: now.addingTimeInterval(7200),
+            isEnabled: true,
+            colorIndex: 1,
+            type: .focus
+        )
+
+        appState.schedules = [legacyDuplicate, keyedImported, manual]
+        appState.resyncImportedCalendarSchedules()
+
+        let importedSchedules = appState.schedules.filter { $0.importedCalendarEventKey != nil }
+        #expect(importedSchedules.count == 1)
+        #expect(importedSchedules.first?.importedCalendarEventKey == event.id)
+        #expect(importedSchedules.first?.isEnabled == false)
+        #expect(importedSchedules.first?.colorIndex == 5)
+        #expect(importedSchedules.first?.ruleSetId == appState.ruleSets.first?.id)
+        #expect(appState.schedules.contains(where: { $0.name == "Manual Focus" }))
+        #expect(
+            appState.schedules.filter {
+                $0.name == event.title
+                    && $0.startTime == event.startDate
+                    && $0.endTime == event.endDate
+            }.count == 1
+        )
+    }
+
     @Test("Pause logic works correctly")
     func pauseLogic() {
         let appState = isolatedAppState(name: "pauseLogic")

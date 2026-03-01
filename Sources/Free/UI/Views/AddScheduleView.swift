@@ -146,7 +146,13 @@ struct AddScheduleView: View {
                                     accentColorIndex: appState.accentColorIndex),
                                 maxWidth: .infinity, isProminent: true)
                         )
-                        .disabled(Self.isSaveDisabled(days: days, modifyAllDays: modifyAllDays))
+                        .disabled(
+                            Self.isSaveDisabled(
+                                days: days,
+                                modifyAllDays: modifyAllDays,
+                                isRecurring: isRecurring
+                            )
+                        )
                         if Self.canDeleteSchedule(existingSchedule: existingSchedule) {
                             Button(action: performDeleteAction) {
                                 Text("Delete Schedule").foregroundColor(.red).font(.subheadline)
@@ -316,8 +322,9 @@ struct AddScheduleView: View {
         sessionType == .focus ? FocusColor.color(for: accentColorIndex) : .orange
     }
 
-    static func isSaveDisabled(days: Set<Int>, modifyAllDays: Bool) -> Bool {
-        days.isEmpty && modifyAllDays
+    static func isSaveDisabled(days: Set<Int>, modifyAllDays: Bool, isRecurring: Bool) -> Bool {
+        if !isRecurring { return false }
+        return days.isEmpty && modifyAllDays
     }
 
     static func shouldApplyNewScheduleDefaults(existingSchedule: Schedule?) -> Bool {
