@@ -8,5 +8,4 @@ if [ ! -e AGENTS.md ]; then
 	exit 1
 fi
 
-ln -sf AGENTS.md GEMINI.md
 ln -sf AGENTS.md CLAUDE.md

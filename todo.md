@@ -37,6 +37,11 @@
   - [x] it shouldn't allow delete
   - [x] it should be allow edit only of allowed list and break/focus
   - [ ] multiple scheduled at the same time
+    - [ ] UI
+    - [ ] logic
+      - [ ] who manage the list
+      - [ ] who manage break or focus
+      - [ ] if the other is longer keep it in memory after end
 
 - [ ] rule for calendar imports - if title contain `*study*` or `*work*`
   - [ ] allow personalization on this rule with settings
