@@ -696,7 +696,7 @@ struct ScheduleBlockView: View {
     }
 
     static func fillOpacity(isImported: Bool) -> Double {
-        isImported ? 0.62 : 0.8
+        isImported ? 0.5 : 0.8
     }
 
     func timeRange(_ s: Schedule) -> String {

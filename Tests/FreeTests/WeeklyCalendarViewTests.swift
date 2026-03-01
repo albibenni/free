@@ -280,7 +280,7 @@ struct WeeklyCalendarViewTests {
         #expect(placements.count == 1)
         #expect(placements.first?.day == calendar.component(.weekday, from: weekStart))
         #expect(ScheduleBlockView.fillOpacity(isImported: false) == 0.8)
-        #expect(ScheduleBlockView.fillOpacity(isImported: true) == 0.62)
+        #expect(ScheduleBlockView.fillOpacity(isImported: true) == 0.5)
 
         appState.calendarIntegrationEnabled = true
         appState.calendarImportsBlockTime = false
