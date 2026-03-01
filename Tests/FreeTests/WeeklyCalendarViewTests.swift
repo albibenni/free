@@ -282,6 +282,44 @@ struct WeeklyCalendarViewTests {
         #expect(ScheduleBlockView.fillOpacity(isImported: false) == 0.8)
         #expect(ScheduleBlockView.fillOpacity(isImported: true) == 0.5)
 
+        let overlappingA = Schedule(
+            name: "Overlap A",
+            days: [weekday],
+            startTime: calendar.date(bySettingHour: 9, minute: 0, second: 0, of: weekStart)
+                ?? weekStart,
+            endTime: calendar.date(bySettingHour: 10, minute: 0, second: 0, of: weekStart)
+                ?? weekStart
+        )
+        let overlappingB = Schedule(
+            name: "Overlap B",
+            days: [weekday],
+            startTime: calendar.date(bySettingHour: 9, minute: 30, second: 0, of: weekStart)
+                ?? weekStart,
+            endTime: calendar.date(bySettingHour: 10, minute: 30, second: 0, of: weekStart)
+                ?? weekStart
+        )
+        let positioned = WeeklyCalendarView.positionedSchedules(
+            from: [
+                (schedule: overlappingA, placement: view.schedulePlacements(for: overlappingA, weekRange: week)[0]),
+                (schedule: overlappingB, placement: view.schedulePlacements(for: overlappingB, weekRange: week)[0]),
+            ]
+        )
+        #expect(positioned.count == 2)
+        #expect(Set(positioned.map(\.laneIndex)) == [0, 1])
+        #expect(positioned.allSatisfy { $0.laneCount == 2 })
+
+        let splitRect = WeeklyCalendarView.calculateRect(
+            startDate: overlappingA.startTime,
+            endDate: overlappingA.endTime,
+            colIndex: 0,
+            columnWidth: 100,
+            laneIndex: 1,
+            laneCount: 2,
+            hourHeight: 80
+        )
+        #expect(splitRect?.width == 48)
+        #expect(splitRect?.minX == 50)
+
         appState.calendarIntegrationEnabled = true
         appState.calendarImportsBlockTime = false
         #expect(view.shouldShowExternalCalendarOverlay == true)

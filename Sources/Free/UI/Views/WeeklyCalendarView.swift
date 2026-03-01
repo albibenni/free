@@ -32,6 +32,14 @@ struct WeeklyCalendarView: View {
         let endDate: Date
     }
 
+    struct PositionedSchedule: Identifiable {
+        let id: String
+        let schedule: Schedule
+        let placement: SchedulePlacement
+        let laneIndex: Int
+        let laneCount: Int
+    }
+
     init(
         editorContext: Binding<ScheduleEditorContext?>,
         actionAppState: AppState? = nil,
@@ -255,37 +263,29 @@ struct WeeklyCalendarView: View {
                                             }
                                         }
 
-                                        ForEach(
-                                            appState.schedules.filter {
-                                                shouldDisplaySchedule($0, weekStart: weekStart, weekEnd: weekEnd)
-                                            }
-                                        ) { schedule in
-                                            ForEach(
-                                                schedulePlacements(
-                                                    for: schedule,
-                                                    weekRange: weekRange
+                                        ForEach(positionedSchedules(weekRange: weekRange)) { entry in
+                                            if let colIndex = dayOrder.firstIndex(of: entry.placement.day),
+                                                let frame = Self.calculateRect(
+                                                    startDate: entry.placement.startDate,
+                                                    endDate: entry.placement.endDate,
+                                                    colIndex: colIndex,
+                                                    columnWidth: columnWidth,
+                                                    laneIndex: entry.laneIndex,
+                                                    laneCount: entry.laneCount,
+                                                    hourHeight: hourHeight
                                                 )
-                                            ) { placement in
-                                                if let colIndex = dayOrder.firstIndex(of: placement.day),
-                                                    let frame = calculateRect(
-                                                        startDate: placement.startDate,
-                                                        endDate: placement.endDate,
-                                                        colIndex: colIndex,
-                                                        columnWidth: columnWidth
+                                            {
+                                                ScheduleBlockView(schedule: entry.schedule)
+                                                    .frame(
+                                                        width: frame.width, height: frame.height
                                                     )
-                                                {
-                                                    ScheduleBlockView(schedule: schedule)
-                                                        .frame(
-                                                            width: frame.width, height: frame.height
+                                                    .position(x: frame.midX, y: frame.midY)
+                                                    .onTapGesture(
+                                                        perform: openScheduleEditorAction(
+                                                            day: entry.placement.day,
+                                                            schedule: entry.schedule
                                                         )
-                                                        .position(x: frame.midX, y: frame.midY)
-                                                        .onTapGesture(
-                                                            perform: openScheduleEditorAction(
-                                                                day: placement.day,
-                                                                schedule: schedule
-                                                            )
-                                                        )
-                                                }
+                                                    )
                                             }
                                         }
                                     }
@@ -513,6 +513,78 @@ struct WeeklyCalendarView: View {
         }
     }
 
+    func positionedSchedules(weekRange: [Date]) -> [PositionedSchedule] {
+        let visible = appState.schedules.filter {
+            let bounds = Self.weekBounds(for: weekRange)
+            return shouldDisplaySchedule($0, weekStart: bounds.0, weekEnd: bounds.1)
+        }
+        let placements = visible.flatMap { schedule in
+            schedulePlacements(for: schedule, weekRange: weekRange).map {
+                (schedule: schedule, placement: $0)
+            }
+        }
+        return Self.positionedSchedules(from: placements)
+    }
+
+    static func positionedSchedules(
+        from placements: [(schedule: Schedule, placement: SchedulePlacement)],
+        calendar: Calendar = .current
+    ) -> [PositionedSchedule] {
+        Dictionary(grouping: placements, by: { $0.placement.day })
+            .values
+            .flatMap { dayPlacements in
+                let sorted = dayPlacements.sorted {
+                    let lhs = normalizedInterval(for: $0.placement, calendar: calendar)
+                    let rhs = normalizedInterval(for: $1.placement, calendar: calendar)
+                    if lhs.start != rhs.start { return lhs.start < rhs.start }
+                    if lhs.end != rhs.end { return lhs.end < rhs.end }
+                    return $0.placement.id < $1.placement.id
+                }
+
+                var laneAssignments: [String: Int] = [:]
+                var laneEnds: [Date] = []
+
+                for entry in sorted {
+                    let interval = normalizedInterval(for: entry.placement, calendar: calendar)
+                    var laneIndex = 0
+                    while laneIndex < laneEnds.count && laneEnds[laneIndex] > interval.start {
+                        laneIndex += 1
+                    }
+                    if laneIndex < laneEnds.count {
+                        laneEnds[laneIndex] = interval.end
+                    } else {
+                        laneEnds.append(interval.end)
+                    }
+                    laneAssignments[entry.placement.id] = laneIndex
+                }
+
+                return sorted.map { entry in
+                    PositionedSchedule(
+                        id: entry.placement.id,
+                        schedule: entry.schedule,
+                        placement: entry.placement,
+                        laneIndex: laneAssignments[entry.placement.id] ?? 0,
+                        laneCount: max(
+                            1,
+                            concurrentLaneCount(
+                                for: entry.placement,
+                                among: sorted.map(\.placement),
+                                calendar: calendar
+                            )
+                        )
+                    )
+                }
+            }
+            .sorted { lhs, rhs in
+                if lhs.placement.day != rhs.placement.day { return lhs.placement.day < rhs.placement.day }
+                let lhsInterval = normalizedInterval(for: lhs.placement, calendar: calendar)
+                let rhsInterval = normalizedInterval(for: rhs.placement, calendar: calendar)
+                if lhsInterval.start != rhsInterval.start { return lhsInterval.start < rhsInterval.start }
+                if lhs.laneIndex != rhs.laneIndex { return lhs.laneIndex < rhs.laneIndex }
+                return lhs.id < rhs.id
+            }
+    }
+
     static func calculateDragSelection(startHour: CGFloat, endHour: CGFloat) -> (
         start: Date, end: Date
     ) {
@@ -594,12 +666,20 @@ struct WeeklyCalendarView: View {
             endDate: endDate,
             colIndex: colIndex,
             columnWidth: columnWidth,
+            laneIndex: 0,
+            laneCount: 1,
             hourHeight: hourHeight
         )
     }
 
     static func calculateRect(
-        startDate: Date, endDate: Date, colIndex: Int, columnWidth: CGFloat, hourHeight: CGFloat
+        startDate: Date,
+        endDate: Date,
+        colIndex: Int,
+        columnWidth: CGFloat,
+        laneIndex: Int = 0,
+        laneCount: Int = 1,
+        hourHeight: CGFloat
     ) -> CGRect? {
         let calendar = Calendar.current
         let startComp = calendar.dateComponents([.hour, .minute], from: startDate)
@@ -616,13 +696,67 @@ struct WeeklyCalendarView: View {
         if startY >= endY { endY = 24 * hourHeight }
 
         let height = max(endY - startY, 15)
-        let x = CGFloat(colIndex) * columnWidth + 2
+        let horizontalPadding: CGFloat = 2
+        let usableWidth = max(columnWidth - horizontalPadding * 2, 1)
+        let clampedLaneCount = max(laneCount, 1)
+        let laneWidth = usableWidth / CGFloat(clampedLaneCount)
+        let laneX = CGFloat(min(max(laneIndex, 0), clampedLaneCount - 1)) * laneWidth
+        let x = CGFloat(colIndex) * columnWidth + horizontalPadding + laneX
 
-        return CGRect(x: x, y: startY, width: columnWidth - 4, height: height)
+        return CGRect(x: x, y: startY, width: laneWidth, height: height)
     }
 
     var weekOffsetForTesting: Int { weekOffset }
     var dragDataForTesting: DragSelection? { dragData }
+
+    private static func normalizedInterval(
+        for placement: SchedulePlacement,
+        calendar: Calendar
+    ) -> (start: Date, end: Date) {
+        let anchor = calendar.startOfDay(for: Date(timeIntervalSinceReferenceDate: 0))
+        let startComponents = calendar.dateComponents([.hour, .minute], from: placement.startDate)
+        let endComponents = calendar.dateComponents([.hour, .minute], from: placement.endDate)
+        let start = calendar.date(
+            bySettingHour: startComponents.hour ?? 0,
+            minute: startComponents.minute ?? 0,
+            second: 0,
+            of: anchor
+        ) ?? anchor
+        var end = calendar.date(
+            bySettingHour: endComponents.hour ?? 0,
+            minute: endComponents.minute ?? 0,
+            second: 0,
+            of: anchor
+        ) ?? anchor
+        if end <= start {
+            end = calendar.date(byAdding: .day, value: 1, to: end) ?? end
+        }
+        return (start, end)
+    }
+
+    private static func concurrentLaneCount(
+        for target: SchedulePlacement,
+        among placements: [SchedulePlacement],
+        calendar: Calendar
+    ) -> Int {
+        let targetInterval = normalizedInterval(for: target, calendar: calendar)
+        let candidateStarts = placements.map { normalizedInterval(for: $0, calendar: calendar).start }
+        let candidateEnds = placements.map { normalizedInterval(for: $0, calendar: calendar).end }
+        let checkpoints = Set(candidateStarts + candidateEnds)
+            .filter { $0 >= targetInterval.start && $0 < targetInterval.end }
+
+        var maxConcurrent = 1
+        for checkpoint in checkpoints {
+            let concurrent = placements.reduce(into: 0) { count, placement in
+                let interval = normalizedInterval(for: placement, calendar: calendar)
+                if interval.start <= checkpoint && checkpoint < interval.end {
+                    count += 1
+                }
+            }
+            maxConcurrent = max(maxConcurrent, concurrent)
+        }
+        return maxConcurrent
+    }
 }
 
 struct ExternalEventBlockView: View {

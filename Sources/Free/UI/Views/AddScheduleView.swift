@@ -72,6 +72,14 @@ struct AddScheduleView: View {
                         .background(Color.secondary.opacity(0.12))
                         .cornerRadius(8)
                     }
+                    if importedSchedule {
+                        section("SCHEDULE NAME") {
+                            TextField(Self.scheduleNamePlaceholder(for: sessionType), text: $name)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.title3)
+                                .disabled(true)
+                        }
+                    }
                     section("SESSION TYPE") {
                         Picker("", selection: $sessionType) {
                             ForEach(ScheduleType.allCases, id: \.self) { type in
@@ -104,7 +112,8 @@ struct AddScheduleView: View {
                         }
                         section("SCHEDULE NAME") {
                             TextField(Self.scheduleNamePlaceholder(for: sessionType), text: $name)
-                                .textFieldStyle(.roundedBorder).font(.title3)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.title3)
                         }
                     }
                     section("THEME COLOR") {

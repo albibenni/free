@@ -206,7 +206,7 @@ struct UITransformationTests {
 
         let narrowRect = WeeklyCalendarView.calculateRect(
             startDate: start, endDate: end, colIndex: 0, columnWidth: 2, hourHeight: 100)
-        #expect(narrowRect?.size.width == -2)
+        #expect(narrowRect?.size.width == 1)
     }
 
     @Test("WeeklyCalendar zero-duration drag selection")
