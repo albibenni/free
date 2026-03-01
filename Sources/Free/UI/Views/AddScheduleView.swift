@@ -57,7 +57,9 @@ struct AddScheduleView: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    if Self.isImportedSchedule(existingSchedule) {
+                    let importedSchedule = Self.isImportedSchedule(existingSchedule)
+
+                    if importedSchedule {
                         HStack(spacing: 8) {
                             Image(systemName: "calendar.badge.clock")
                                 .foregroundColor(.secondary)
@@ -89,48 +91,56 @@ struct AddScheduleView: View {
                             }
                         }
                     }
-                    if Self.shouldShowEditScope(
-                        existingSchedule: existingSchedule, initialDay: initialDay)
-                    {
-                        section("EDIT SCOPE") {
-                            Picker("", selection: $modifyAllDays) {
-                                Text("All Days").tag(true)
-                                Text("Only \(Self.dayName(for: initialDay!))").tag(false)
-                            }.pickerStyle(.segmented)
+                    if Self.canEditImportedScheduleDetails(existingSchedule: existingSchedule) {
+                        if Self.shouldShowEditScope(
+                            existingSchedule: existingSchedule, initialDay: initialDay)
+                        {
+                            section("EDIT SCOPE") {
+                                Picker("", selection: $modifyAllDays) {
+                                    Text("All Days").tag(true)
+                                    Text("Only \(Self.dayName(for: initialDay!))").tag(false)
+                                }.pickerStyle(.segmented)
+                            }
                         }
-                    }
-                    section("SCHEDULE NAME") {
-                        TextField(Self.scheduleNamePlaceholder(for: sessionType), text: $name)
-                            .textFieldStyle(.roundedBorder).font(.title3)
+                        section("SCHEDULE NAME") {
+                            TextField(Self.scheduleNamePlaceholder(for: sessionType), text: $name)
+                                .textFieldStyle(.roundedBorder).font(.title3)
+                        }
                     }
                     section("THEME COLOR") {
                         AddScheduleThemeColorRow(selectedColorIndex: $selectedColorIndex)
                     }
-                    HStack(spacing: 40) {
-                        section("START TIME") {
-                            DatePicker(
-                                "", selection: $startTime, displayedComponents: .hourAndMinute
-                            ).labelsHidden().datePickerStyle(.field).scaleEffect(1.1).frame(
-                                width: 90, height: 35)
-                        }
-                        section("END TIME") {
-                            DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
+                    if Self.canEditImportedScheduleDetails(existingSchedule: existingSchedule) {
+                        HStack(spacing: 40) {
+                            section("START TIME") {
+                                DatePicker(
+                                    "", selection: $startTime, displayedComponents: .hourAndMinute
+                                ).labelsHidden().datePickerStyle(.field).scaleEffect(1.1).frame(
+                                    width: 90, height: 35)
+                            }
+                            section("END TIME") {
+                                DatePicker(
+                                    "", selection: $endTime, displayedComponents: .hourAndMinute
+                                )
                                 .labelsHidden().datePickerStyle(.field).scaleEffect(1.1).frame(
                                     width: 90, height: 35)
+                            }
                         }
-                    }
 
-                    Toggle("Repeat weekly", isOn: $isRecurring)
-                        .toggleStyle(.checkbox)
-                        .font(.headline)
+                        Toggle("Repeat weekly", isOn: $isRecurring)
+                            .toggleStyle(.checkbox)
+                            .font(.headline)
 
-                    if isRecurring {
-                        section("DAYS OF THE WEEK") {
-                            AddScheduleRecurringDaysRow(
-                                existingSchedule: existingSchedule, modifyAllDays: modifyAllDays,
-                                initialDay: initialDay, days: $days
-                            )
-                            .environmentObject(appState)
+                        if isRecurring {
+                            section("DAYS OF THE WEEK") {
+                                AddScheduleRecurringDaysRow(
+                                    existingSchedule: existingSchedule,
+                                    modifyAllDays: modifyAllDays,
+                                    initialDay: initialDay,
+                                    days: $days
+                                )
+                                .environmentObject(appState)
+                            }
                         }
                     }
                     VStack(spacing: 12) {
@@ -221,6 +231,9 @@ struct AddScheduleView: View {
         isPresented = false
     }
     static func dayName(for day: Int) -> String { Calendar.current.weekdaySymbols[day - 1] }
+    static func canEditImportedScheduleDetails(existingSchedule: Schedule?) -> Bool {
+        !isImportedSchedule(existingSchedule)
+    }
 
     struct Configuration {
         let name: String

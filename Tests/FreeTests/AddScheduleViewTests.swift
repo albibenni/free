@@ -41,6 +41,7 @@ struct AddScheduleViewTests {
         #expect(!AddScheduleView.shouldShowAllowedList(for: .unfocus))
         #expect(!AddScheduleView.isImportedSchedule(existing))
         #expect(AddScheduleView.canDeleteSchedule(existingSchedule: existing))
+        #expect(AddScheduleView.canEditImportedScheduleDetails(existingSchedule: existing))
 
         #expect(AddScheduleView.shouldShowEditScope(existingSchedule: existing, initialDay: 2))
         #expect(!AddScheduleView.shouldShowEditScope(existingSchedule: existing, initialDay: nil))
@@ -79,6 +80,8 @@ struct AddScheduleViewTests {
         imported.importedCalendarEventKey = "imported-event"
         #expect(AddScheduleView.isImportedSchedule(imported))
         #expect(!AddScheduleView.canDeleteSchedule(existingSchedule: imported))
+        #expect(!AddScheduleView.canEditImportedScheduleDetails(existingSchedule: imported))
+        #expect(AddScheduleView.canEditImportedScheduleDetails(existingSchedule: nil))
         #expect(!AddScheduleView.canDeleteSchedule(existingSchedule: nil))
 
         #expect(AddScheduleView.dayName(for: 1) == Calendar.current.weekdaySymbols[0])
@@ -222,6 +225,35 @@ struct AddScheduleViewTests {
         .environmentObject(appState)
         let hosted = host(view)
         #expect(hosted.fittingSize.height >= 0)
+    }
+
+    @Test("AddScheduleView renders imported schedule editor with limited editable sections")
+    @MainActor
+    func addScheduleViewImportedPath() {
+        let appState = isolatedAppState(name: "importedPath")
+        appState.ruleSets = [RuleSet(name: "Allowlist", urls: ["example.com"])]
+
+        var imported = Schedule(
+            name: "Imported Focus",
+            days: [2],
+            date: Date(),
+            startTime: Date(),
+            endTime: Date().addingTimeInterval(1800),
+            colorIndex: 1,
+            type: .focus
+        )
+        imported.importedCalendarEventKey = "calendar-event"
+
+        var presented = true
+        let binding = Binding(get: { presented }, set: { presented = $0 })
+        let view = AddScheduleView(
+            isPresented: binding,
+            existingSchedule: imported,
+            initialIsRecurring: false
+        )
+        .environmentObject(appState)
+        let hosted = host(view)
+        #expect(hosted.fittingSize.width >= 0)
     }
 
     @Test("DayToggle helper logic and render path are covered")
