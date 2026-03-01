@@ -357,6 +357,52 @@ class AppState: ObservableObject {
         }
     }
 
+    func updateScheduleOccurrence(
+        id: UUID,
+        originalDay: Int,
+        targetDay: Int,
+        targetDate: Date?,
+        start: Date,
+        end: Date
+    ) {
+        guard let index = schedules.firstIndex(where: { $0.id == id }) else { return }
+        let schedule = schedules[index]
+        guard schedule.importedCalendarEventKey == nil else { return }
+
+        if schedule.date != nil {
+            schedules[index].date = targetDate
+            schedules[index].days = [targetDay]
+            schedules[index].startTime = start
+            schedules[index].endTime = end
+            return
+        }
+
+        if schedule.days.count == 1, schedule.days.contains(originalDay) {
+            schedules[index].days = [targetDay]
+            schedules[index].startTime = start
+            schedules[index].endTime = end
+            return
+        }
+
+        schedules[index].days.remove(originalDay)
+        if schedules[index].days.isEmpty {
+            schedules.remove(at: index)
+        }
+
+        schedules.append(
+            Schedule(
+                name: schedule.name,
+                days: [targetDay],
+                startTime: start,
+                endTime: end,
+                isEnabled: schedule.isEnabled,
+                colorIndex: schedule.colorIndex,
+                type: schedule.type,
+                ruleSetId: schedule.ruleSetId
+            )
+        )
+    }
+
     func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
         if let i = schedules.firstIndex(where: { $0.id == id }) {
             if !modifyAllDays, let day = initialDay {
@@ -471,7 +517,6 @@ class AppState: ObservableObject {
         isSynchronizingImportedSchedules = true
         schedules = rebuilt
         isSynchronizingImportedSchedules = false
-        checkSchedules()
     }
 
     func prepareLaunchAtLoginPromptIfNeeded() -> Bool {

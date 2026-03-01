@@ -41,11 +41,12 @@ private final class MockLaunchAtLoginManager: LaunchAtLoginManaging {
     }
 }
 
+@Suite(.serialized)
 struct AppStateTests {
 
     private func isolatedAppState(
         name: String,
-        timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler()
+        timerScheduler: any RepeatingTimerScheduling = MockRepeatingTimerScheduler()
     ) -> AppState {
         let suite = "AppStateTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -1105,6 +1106,80 @@ struct AppStateTests {
 
         appState.deleteSchedule(id: id, modifyAllDays: true, initialDay: nil)
         #expect(appState.schedules.isEmpty)
+    }
+
+    @Test("updateScheduleOccurrence updates one-off, recurring, and split recurring schedules")
+    func updateScheduleOccurrenceLogic() {
+        let appState = isolatedAppState(name: "updateScheduleOccurrenceLogic")
+        let calendar = Calendar.current
+        let oneOffDate = calendar.startOfDay(for: Date())
+        let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 10, minute: 0))!
+        let movedStart = calendar.date(from: DateComponents(hour: 11, minute: 0))!
+        let movedEnd = calendar.date(from: DateComponents(hour: 12, minute: 0))!
+
+        let oneOff = Schedule(
+            name: "One Off",
+            days: [2],
+            date: oneOffDate,
+            startTime: start,
+            endTime: end
+        )
+        let recurringSingle = Schedule(
+            name: "Recurring Single",
+            days: [2],
+            startTime: start,
+            endTime: end
+        )
+        let recurringMulti = Schedule(
+            name: "Recurring Multi",
+            days: [2, 4],
+            startTime: start,
+            endTime: end
+        )
+
+        appState.schedules = [oneOff, recurringSingle, recurringMulti]
+
+        let shiftedDate = calendar.date(byAdding: .day, value: 1, to: oneOffDate)!
+        appState.updateScheduleOccurrence(
+            id: oneOff.id,
+            originalDay: 2,
+            targetDay: 3,
+            targetDate: shiftedDate,
+            start: movedStart,
+            end: movedEnd
+        )
+        #expect(appState.schedules.first(where: { $0.id == oneOff.id })?.date == shiftedDate)
+        #expect(appState.schedules.first(where: { $0.id == oneOff.id })?.days == [3])
+        #expect(appState.schedules.first(where: { $0.id == oneOff.id })?.startTime == movedStart)
+
+        appState.updateScheduleOccurrence(
+            id: recurringSingle.id,
+            originalDay: 2,
+            targetDay: 5,
+            targetDate: nil,
+            start: movedStart,
+            end: movedEnd
+        )
+        #expect(appState.schedules.first(where: { $0.id == recurringSingle.id })?.days == [5])
+        #expect(appState.schedules.first(where: { $0.id == recurringSingle.id })?.endTime == movedEnd)
+
+        let beforeSplitCount = appState.schedules.count
+        appState.updateScheduleOccurrence(
+            id: recurringMulti.id,
+            originalDay: 2,
+            targetDay: 6,
+            targetDate: nil,
+            start: movedStart,
+            end: movedEnd
+        )
+        #expect(appState.schedules.count == beforeSplitCount + 1)
+        #expect(appState.schedules.first(where: { $0.id == recurringMulti.id })?.days == [4])
+        #expect(
+            appState.schedules.contains {
+                $0.name == recurringMulti.name && $0.days == [6] && $0.startTime == movedStart
+            }
+        )
     }
 
     @Test("currentPrimaryRuleSetId priority logic")

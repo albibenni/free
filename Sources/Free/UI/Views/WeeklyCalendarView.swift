@@ -8,6 +8,7 @@ struct WeeklyCalendarView: View {
     @Binding var editorContext: ScheduleEditorContext?
 
     @State private var dragData: DragSelection?
+    @State private var scheduleInteraction: ScheduleInteraction?
     @State private var weekOffset: Int = 0
 
     struct DragSelection {
@@ -38,6 +39,20 @@ struct WeeklyCalendarView: View {
         let placement: SchedulePlacement
         let laneIndex: Int
         let laneCount: Int
+    }
+
+    enum ScheduleInteractionMode {
+        case move
+        case resizeStart
+        case resizeEnd
+    }
+
+    struct ScheduleInteraction {
+        let placementId: String
+        let schedule: Schedule
+        let originalDay: Int
+        let mode: ScheduleInteractionMode
+        var translation: CGSize = .zero
     }
 
     init(
@@ -265,7 +280,7 @@ struct WeeklyCalendarView: View {
 
                                         ForEach(positionedSchedules(weekRange: weekRange)) { entry in
                                             if let colIndex = dayOrder.firstIndex(of: entry.placement.day),
-                                                let frame = Self.calculateRect(
+                                                let baseFrame = Self.calculateRect(
                                                     startDate: entry.placement.startDate,
                                                     endDate: entry.placement.endDate,
                                                     colIndex: colIndex,
@@ -275,17 +290,31 @@ struct WeeklyCalendarView: View {
                                                     hourHeight: hourHeight
                                                 )
                                             {
-                                                ScheduleBlockView(schedule: entry.schedule)
-                                                    .frame(
-                                                        width: frame.width, height: frame.height
+                                                let frame = previewFrame(
+                                                    for: entry,
+                                                    baseFrame: baseFrame
+                                                )
+
+                                                if Self.canDirectlyManipulate(entry.schedule) {
+                                                    interactiveScheduleBlock(
+                                                        entry: entry,
+                                                        frame: frame,
+                                                        columnWidth: columnWidth,
+                                                        weekRange: weekRange
                                                     )
-                                                    .position(x: frame.midX, y: frame.midY)
-                                                    .onTapGesture(
-                                                        perform: openScheduleEditorAction(
-                                                            day: entry.placement.day,
-                                                            schedule: entry.schedule
+                                                } else {
+                                                    ScheduleBlockView(schedule: entry.schedule)
+                                                        .frame(
+                                                            width: frame.width, height: frame.height
                                                         )
-                                                    )
+                                                        .position(x: frame.midX, y: frame.midY)
+                                                        .onTapGesture(
+                                                            perform: openScheduleEditorAction(
+                                                                day: entry.placement.day,
+                                                                schedule: entry.schedule
+                                                            )
+                                                        )
+                                                }
                                             }
                                         }
                                     }
@@ -484,6 +513,152 @@ struct WeeklyCalendarView: View {
         { openScheduleEditor(day: day, schedule: schedule) }
     }
 
+    @ViewBuilder
+    private func interactiveScheduleBlock(
+        entry: PositionedSchedule,
+        frame: CGRect,
+        columnWidth: CGFloat,
+        weekRange: [Date]
+    ) -> some View {
+        ScheduleBlockView(schedule: entry.schedule)
+            .frame(width: frame.width, height: frame.height)
+            .position(x: frame.midX, y: frame.midY)
+            .overlay(alignment: .top) {
+                resizeHandle
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged(
+                                scheduleInteractionChangedAction(
+                                    entry: entry,
+                                    mode: .resizeStart,
+                                    columnWidth: columnWidth
+                                )
+                            )
+                            .onEnded(
+                                scheduleInteractionEndedAction(
+                                    entry: entry,
+                                    mode: .resizeStart,
+                                    columnWidth: columnWidth,
+                                    weekRange: weekRange
+                                )
+                            )
+                    )
+            }
+            .overlay(alignment: .bottom) {
+                resizeHandle
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged(
+                                scheduleInteractionChangedAction(
+                                    entry: entry,
+                                    mode: .resizeEnd,
+                                    columnWidth: columnWidth
+                                )
+                            )
+                            .onEnded(
+                                scheduleInteractionEndedAction(
+                                    entry: entry,
+                                    mode: .resizeEnd,
+                                    columnWidth: columnWidth,
+                                    weekRange: weekRange
+                                )
+                            )
+                    )
+            }
+            .gesture(
+                DragGesture(minimumDistance: 6)
+                    .onChanged(
+                        scheduleInteractionChangedAction(
+                            entry: entry,
+                            mode: .move,
+                            columnWidth: columnWidth
+                        )
+                    )
+                    .onEnded(
+                        scheduleInteractionEndedAction(
+                            entry: entry,
+                            mode: .move,
+                            columnWidth: columnWidth,
+                            weekRange: weekRange
+                        )
+                    )
+            )
+            .onTapGesture(
+                perform: openScheduleEditorAction(
+                    day: entry.placement.day,
+                    schedule: entry.schedule
+                )
+            )
+    }
+
+    private var resizeHandle: some View {
+        Capsule()
+            .fill(Color.white.opacity(0.95))
+            .frame(width: 28, height: 4)
+            .padding(.vertical, 4)
+            .shadow(color: Color.black.opacity(0.15), radius: 1, y: 1)
+    }
+
+    private func previewFrame(for entry: PositionedSchedule, baseFrame: CGRect) -> CGRect {
+        guard let scheduleInteraction, scheduleInteraction.placementId == entry.id else {
+            return baseFrame
+        }
+        return Self.previewFrame(
+            baseFrame: baseFrame,
+            translation: scheduleInteraction.translation,
+            mode: scheduleInteraction.mode
+        )
+    }
+
+    func scheduleInteractionChangedAction(
+        entry: PositionedSchedule,
+        mode: ScheduleInteractionMode,
+        columnWidth: CGFloat
+    ) -> (DragGesture.Value) -> Void {
+        { value in
+            scheduleInteraction = ScheduleInteraction(
+                placementId: entry.id,
+                schedule: entry.schedule,
+                originalDay: entry.placement.day,
+                mode: mode,
+                translation: Self.snappedInteractionTranslation(
+                    translation: value.translation,
+                    mode: mode,
+                    columnWidth: columnWidth,
+                    hourHeight: hourHeight
+                )
+            )
+        }
+    }
+
+    func scheduleInteractionEndedAction(
+        entry: PositionedSchedule,
+        mode: ScheduleInteractionMode,
+        columnWidth: CGFloat,
+        weekRange: [Date]
+    ) -> (DragGesture.Value) -> Void {
+        { value in
+            let update = Self.scheduleUpdate(
+                placement: entry.placement,
+                translation: value.translation,
+                mode: mode,
+                columnWidth: columnWidth,
+                hourHeight: hourHeight,
+                weekRange: weekRange
+            )
+            scheduleInteraction = nil
+            guard let update else { return }
+            appState.updateScheduleOccurrence(
+                id: entry.schedule.id,
+                originalDay: entry.placement.day,
+                targetDay: update.targetDay,
+                targetDate: update.targetDate,
+                start: update.start,
+                end: update.end
+            )
+        }
+    }
+
     func schedulePlacements(for schedule: Schedule, weekRange: [Date]) -> [SchedulePlacement] {
         let calendar = Calendar.current
 
@@ -612,6 +787,152 @@ struct WeeklyCalendarView: View {
         return (start, end)
     }
 
+    struct ScheduleUpdate {
+        let targetDay: Int
+        let targetDate: Date?
+        let start: Date
+        let end: Date
+    }
+
+    static func previewFrame(
+        baseFrame: CGRect,
+        translation: CGSize,
+        mode: ScheduleInteractionMode,
+        minimumHeight: CGFloat = 15
+    ) -> CGRect {
+        switch mode {
+        case .move:
+            return baseFrame.offsetBy(dx: translation.width, dy: translation.height)
+        case .resizeStart:
+            let clampedDelta = min(translation.height, baseFrame.height - minimumHeight)
+            return CGRect(
+                x: baseFrame.minX,
+                y: baseFrame.minY + clampedDelta,
+                width: baseFrame.width,
+                height: baseFrame.height - clampedDelta
+            )
+        case .resizeEnd:
+            return CGRect(
+                x: baseFrame.minX,
+                y: baseFrame.minY,
+                width: baseFrame.width,
+                height: max(baseFrame.height + translation.height, minimumHeight)
+            )
+        }
+    }
+
+    static func snappedInteractionTranslation(
+        translation: CGSize,
+        mode: ScheduleInteractionMode,
+        columnWidth: CGFloat,
+        hourHeight: CGFloat
+    ) -> CGSize {
+        let snappedY = CGFloat(
+            snappedMinuteDelta(
+                translationHeight: translation.height,
+                hourHeight: hourHeight
+            )
+        ) * hourHeight / 60
+
+        switch mode {
+        case .move:
+            let snappedX = CGFloat(
+                snappedDayDelta(
+                    translationWidth: translation.width,
+                    columnWidth: columnWidth
+                )
+            ) * columnWidth
+            return CGSize(width: snappedX, height: snappedY)
+        case .resizeStart, .resizeEnd:
+            return CGSize(width: 0, height: snappedY)
+        }
+    }
+
+    static func scheduleUpdate(
+        placement: SchedulePlacement,
+        translation: CGSize,
+        mode: ScheduleInteractionMode,
+        columnWidth: CGFloat,
+        hourHeight: CGFloat,
+        weekRange: [Date],
+        calendar: Calendar = .current
+    ) -> ScheduleUpdate? {
+        let dayDelta = mode == .move ? snappedDayDelta(translationWidth: translation.width, columnWidth: columnWidth) : 0
+        let minuteDelta = snappedMinuteDelta(translationHeight: translation.height, hourHeight: hourHeight)
+        let targetDay = shiftedWeekday(placement.day, by: dayDelta)
+        let adjustedTimes = adjustedTimes(
+            start: placement.startDate,
+            end: placement.endDate,
+            minuteDelta: minuteDelta,
+            mode: mode,
+            calendar: calendar
+        )
+
+        let targetDate = weekRange.first {
+            calendar.component(.weekday, from: $0) == targetDay
+        }
+
+        return ScheduleUpdate(
+            targetDay: targetDay,
+            targetDate: targetDate,
+            start: adjustedTimes.start,
+            end: adjustedTimes.end
+        )
+    }
+
+    static func snappedMinuteDelta(translationHeight: CGFloat, hourHeight: CGFloat) -> Int {
+        Int((translationHeight / hourHeight * 4).rounded()) * 15
+    }
+
+    static func snappedDayDelta(translationWidth: CGFloat, columnWidth: CGFloat) -> Int {
+        Int((translationWidth / columnWidth).rounded())
+    }
+
+    static func shiftedWeekday(_ weekday: Int, by delta: Int) -> Int {
+        let zeroBased = weekday - 1
+        return ((zeroBased + delta) % 7 + 7) % 7 + 1
+    }
+
+    static func adjustedTimes(
+        start: Date,
+        end: Date,
+        minuteDelta: Int,
+        mode: ScheduleInteractionMode,
+        calendar: Calendar = .current
+    ) -> (start: Date, end: Date) {
+        let interval = normalizedInterval(
+            startDate: start,
+            endDate: end,
+            calendar: calendar
+        )
+        let delta = TimeInterval(minuteDelta * 60)
+        let minimumDuration: TimeInterval = 15 * 60
+
+        let updatedInterval: DateInterval
+        switch mode {
+        case .move:
+            updatedInterval = DateInterval(
+                start: interval.start.addingTimeInterval(delta),
+                end: interval.end.addingTimeInterval(delta)
+            )
+        case .resizeStart:
+            let newStart = min(interval.start.addingTimeInterval(delta), interval.end.addingTimeInterval(-minimumDuration))
+            updatedInterval = DateInterval(start: newStart, end: interval.end)
+        case .resizeEnd:
+            let newEnd = max(interval.end.addingTimeInterval(delta), interval.start.addingTimeInterval(minimumDuration))
+            updatedInterval = DateInterval(start: interval.start, end: newEnd)
+        }
+
+        return (
+            timeOnlyDate(from: updatedInterval.start, calendar: calendar),
+            timeOnlyDate(from: updatedInterval.end, calendar: calendar)
+        )
+    }
+
+    static func canDirectlyManipulate(_ schedule: Schedule) -> Bool {
+        schedule.importedCalendarEventKey == nil
+    }
+
     func dayName(for day: Int) -> String {
         WeeklyCalendarView.dayName(for: day)
     }
@@ -713,9 +1034,22 @@ struct WeeklyCalendarView: View {
         for placement: SchedulePlacement,
         calendar: Calendar
     ) -> (start: Date, end: Date) {
+        let interval = normalizedInterval(
+            startDate: placement.startDate,
+            endDate: placement.endDate,
+            calendar: calendar
+        )
+        return (interval.start, interval.end)
+    }
+
+    private static func normalizedInterval(
+        startDate: Date,
+        endDate: Date,
+        calendar: Calendar
+    ) -> DateInterval {
         let anchor = calendar.startOfDay(for: Date(timeIntervalSinceReferenceDate: 0))
-        let startComponents = calendar.dateComponents([.hour, .minute], from: placement.startDate)
-        let endComponents = calendar.dateComponents([.hour, .minute], from: placement.endDate)
+        let startComponents = calendar.dateComponents([.hour, .minute], from: startDate)
+        let endComponents = calendar.dateComponents([.hour, .minute], from: endDate)
         let start = calendar.date(
             bySettingHour: startComponents.hour ?? 0,
             minute: startComponents.minute ?? 0,
@@ -731,7 +1065,14 @@ struct WeeklyCalendarView: View {
         if end <= start {
             end = calendar.date(byAdding: .day, value: 1, to: end) ?? end
         }
-        return (start, end)
+        return DateInterval(start: start, end: end)
+    }
+
+    private static func timeOnlyDate(from date: Date, calendar: Calendar) -> Date {
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        return calendar.date(
+            from: DateComponents(hour: components.hour, minute: components.minute)
+        ) ?? date
     }
 
     private static func concurrentLaneCount(

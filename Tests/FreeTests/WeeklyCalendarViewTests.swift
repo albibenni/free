@@ -188,6 +188,51 @@ struct WeeklyCalendarViewTests {
         #expect(instanceMetrics != nil)
         #expect(instanceMetrics?.height == 20)
 
+        let snappedMoveTranslation = WeeklyCalendarView.snappedInteractionTranslation(
+            translation: CGSize(width: 15, height: 30),
+            mode: .move,
+            columnWidth: 100,
+            hourHeight: 80
+        )
+        #expect(snappedMoveTranslation.width == 0)
+        #expect(snappedMoveTranslation.height == 40)
+
+        let movedPreview = WeeklyCalendarView.previewFrame(
+            baseFrame: CGRect(x: 10, y: 20, width: 50, height: 80),
+            translation: snappedMoveTranslation,
+            mode: .move
+        )
+        #expect(movedPreview.origin.x == 10)
+        #expect(movedPreview.origin.y == 60)
+
+        let snappedResizeTranslation = WeeklyCalendarView.snappedInteractionTranslation(
+            translation: CGSize(width: 18, height: 30),
+            mode: .resizeStart,
+            columnWidth: 100,
+            hourHeight: 80
+        )
+        #expect(snappedResizeTranslation.width == 0)
+        #expect(snappedResizeTranslation.height == 40)
+
+        let resizedTopPreview = WeeklyCalendarView.previewFrame(
+            baseFrame: CGRect(x: 10, y: 20, width: 50, height: 80),
+            translation: snappedResizeTranslation,
+            mode: .resizeStart
+        )
+        #expect(resizedTopPreview.origin.y == 60)
+        #expect(resizedTopPreview.height == 40)
+
+        let resizedBottomPreview = WeeklyCalendarView.previewFrame(
+            baseFrame: CGRect(x: 10, y: 20, width: 50, height: 20),
+            translation: CGSize(width: 0, height: -30),
+            mode: .resizeEnd
+        )
+        #expect(resizedBottomPreview.height == 15)
+
+        #expect(WeeklyCalendarView.snappedMinuteDelta(translationHeight: 40, hourHeight: 80) == 30)
+        #expect(WeeklyCalendarView.snappedDayDelta(translationWidth: 120, columnWidth: 100) == 1)
+        #expect(WeeklyCalendarView.shiftedWeekday(1, by: -1) == 7)
+
         _ = view.formatTime(9.5)
         _ = WeeklyCalendarView.formatTime(9.5)
         _ = view.timeString(hour: 12)
@@ -208,6 +253,60 @@ struct WeeklyCalendarViewTests {
         #expect((overnightRect?.height ?? 0) > 0)
         let today = Calendar.current.component(.weekday, from: Date())
         #expect(view.isToday(day: today))
+    }
+
+    @Test("WeeklyCalendarView schedule drag and resize update helpers produce snapped results")
+    func weeklyCalendarScheduleUpdateHelpers() {
+        let calendar = Calendar.current
+        let anchorDay = calendar.startOfDay(for: Date())
+        let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 10, minute: 0))!
+        let placement = WeeklyCalendarView.SchedulePlacement(
+            id: "placement",
+            day: 2,
+            startDate: start,
+            endDate: end
+        )
+        let weekRange = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: anchorDay) }
+
+        let moved = WeeklyCalendarView.scheduleUpdate(
+            placement: placement,
+            translation: CGSize(width: 120, height: 40),
+            mode: .move,
+            columnWidth: 100,
+            hourHeight: 80,
+            weekRange: weekRange
+        )
+        #expect(moved?.targetDay == 3)
+        #expect(calendar.component(.hour, from: moved?.start ?? start) == 9)
+        #expect(calendar.component(.minute, from: moved?.start ?? start) == 30)
+
+        let resizedStart = WeeklyCalendarView.scheduleUpdate(
+            placement: placement,
+            translation: CGSize(width: 0, height: 40),
+            mode: .resizeStart,
+            columnWidth: 100,
+            hourHeight: 80,
+            weekRange: weekRange
+        )
+        #expect(calendar.component(.hour, from: resizedStart?.start ?? start) == 9)
+        #expect(calendar.component(.minute, from: resizedStart?.start ?? start) == 30)
+
+        let resizedEnd = WeeklyCalendarView.scheduleUpdate(
+            placement: placement,
+            translation: CGSize(width: 0, height: -200),
+            mode: .resizeEnd,
+            columnWidth: 100,
+            hourHeight: 80,
+            weekRange: weekRange
+        )
+        #expect(calendar.component(.hour, from: resizedEnd?.end ?? end) == 9)
+        #expect(calendar.component(.minute, from: resizedEnd?.end ?? end) == 15)
+
+        var imported = sampleSchedule(day: 2)
+        imported.importedCalendarEventKey = "imported"
+        #expect(!WeeklyCalendarView.canDirectlyManipulate(imported))
+        #expect(WeeklyCalendarView.canDirectlyManipulate(sampleSchedule(day: 2)))
     }
 
     @Test("WeeklyCalendarView calendar-event and schedule visibility helpers")
