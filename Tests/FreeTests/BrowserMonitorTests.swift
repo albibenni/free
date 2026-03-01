@@ -452,17 +452,22 @@ struct BrowserMonitorTests {
 
         let mock = MockBrowserAutomator()
         mock.activeUrl = "http://localhost:10000"
+        let scheduler = MockRepeatingTimerScheduler()
         let monitor = makeMonitor(
             appState: appState,
             mock: mock,
             monitorInterval: 0.01,
+            timerScheduler: scheduler,
             startTimer: true
         )
 
         mock.checkedPermissions = false
         mock.getActiveUrlCalls = 0
 
-        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        #expect(scheduler.intervals == [0.01])
+        #expect(scheduler.handlers.count == 1)
+
+        scheduler.fire(at: 0)
 
         #expect(mock.checkedPermissions)
         #expect(mock.getActiveUrlCalls > 0)
