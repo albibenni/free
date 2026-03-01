@@ -34,8 +34,9 @@
 ### Calendar
 
 - [ ] allow modification on calendar imports
-  - [ ] it shouldn't allow delete
-  - [ ] it should be allow edit only of allowed list and break/focus
+  - [x] it shouldn't allow delete
+  - [x] it should be allow edit only of allowed list and break/focus
+  - [ ] multiple scheduled at the same time
 
 - [ ] rule for calendar imports - if title contain `*study*` or `*work*`
   - [ ] allow personalization on this rule with settings
