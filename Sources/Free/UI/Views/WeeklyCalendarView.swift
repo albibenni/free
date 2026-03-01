@@ -659,7 +659,7 @@ struct ScheduleBlockView: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: 6)
-            .fill(schedule.isEnabled ? schedule.themeColor.opacity(0.8) : Color.gray.opacity(0.5))
+            .fill(blockFillColor)
             .overlay(
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 4) {
@@ -686,6 +686,17 @@ struct ScheduleBlockView: View {
                 .padding(4)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             )
+    }
+
+    var blockFillColor: Color {
+        if !schedule.isEnabled {
+            return Color.gray.opacity(0.5)
+        }
+        return schedule.themeColor.opacity(Self.fillOpacity(isImported: isImported))
+    }
+
+    static func fillOpacity(isImported: Bool) -> Double {
+        isImported ? 0.62 : 0.8
     }
 
     func timeRange(_ s: Schedule) -> String {
