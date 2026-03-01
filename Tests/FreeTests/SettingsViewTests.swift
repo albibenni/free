@@ -130,6 +130,19 @@ struct SettingsViewTests {
         #expect(view.shouldShowStrictDisableButton == false)
     }
 
+    @Test("SettingsView calendar controls lock only during strict active mode")
+    func settingsViewCalendarControlsLockState() {
+        let appState = isolatedAppState(name: "calendarControlsLockState")
+        appState.isBlocking = false
+        appState.isUnblockable = true
+        let notStrictView = SettingsView(actionAppState: appState)
+        #expect(notStrictView.calendarControlsLocked == false)
+
+        appState.isBlocking = true
+        let strictView = SettingsView(actionAppState: appState)
+        #expect(strictView.calendarControlsLocked == true)
+    }
+
     @Test("SettingsView renders default toggle branch")
     @MainActor
     func settingsViewRenderDefaultBranch() {
@@ -143,6 +156,7 @@ struct SettingsViewTests {
         #expect(hosted.fittingSize.width >= 0)
         #expect((try? view.inspect().find(text: "Launch at Login")) != nil)
         #expect((try? view.inspect().find(text: "Calendar Imports Block Time")) != nil)
+        #expect((try? view.inspect().find(text: "Resync Imported Schedules")) != nil)
         #expect((try? view.inspect().find(text: "Block New Tabs")) != nil)
         #expect((try? view.inspect().find(text: "Block Localhost/Dev Ports")) != nil)
         #expect((try? view.inspect().find(text: "Block Local Network IPs")) != nil)

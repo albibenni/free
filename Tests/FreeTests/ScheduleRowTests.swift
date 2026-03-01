@@ -85,4 +85,15 @@ struct ScheduleRowTests {
         breakSchedule.colorIndex = 6
         #expect(ScheduleRow.indicatorColor(for: breakSchedule, accentColorIndex: 3) == breakSchedule.themeColor)
     }
+
+    @Test("ScheduleRow import marker helper reflects imported key state")
+    func scheduleRowImportedHelper() {
+        var local = makeSchedule(type: .focus)
+        local.importedCalendarEventKey = nil
+        #expect(ScheduleRow.isImported(local) == false)
+
+        var imported = makeSchedule(type: .focus)
+        imported.importedCalendarEventKey = "calendar-event-1"
+        #expect(ScheduleRow.isImported(imported) == true)
+    }
 }

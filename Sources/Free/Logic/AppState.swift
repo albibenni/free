@@ -19,6 +19,7 @@ class AppState: ObservableObject {
         "I am choosing to break my focus and I acknowledge that this may impact my productivity."
     private static let wasStartedByScheduleKey = "WasStartedBySchedule"
     private static let launchAtLoginPromptShownKey = "LaunchAtLoginPromptShown"
+    private static let suppressedImportedCalendarEventKeysKey = "SuppressedImportedCalendarEventKeys"
     private let defaults: UserDefaults
 
     @Published var isBlocking = false {
@@ -107,6 +108,13 @@ class AppState: ObservableObject {
     private var manuallyPausedScheduleIds: Set<UUID> = []
     private var pomodoroRuleSetId: UUID?
     private var isSynchronizingImportedSchedules = false
+    private var suppressedImportedCalendarEventKeys: Set<String> = []
+
+    struct CalendarEventSignature: Hashable {
+        let title: String
+        let start: TimeInterval
+        let end: TimeInterval
+    }
 
     enum PomodoroStatus: String, Codable { case none, focus, breakTime }
 
@@ -218,6 +226,9 @@ class AppState: ObservableObject {
         self.activeRuleSetId =
             UUID(uuidString: defaults.string(forKey: "ActiveRuleSetId") ?? "") ?? ruleSets.first?.id
         self.wasStartedBySchedule = defaults.bool(forKey: Self.wasStartedByScheduleKey)
+        self.suppressedImportedCalendarEventKeys = Set(
+            defaults.stringArray(forKey: Self.suppressedImportedCalendarEventKeysKey) ?? []
+        )
 
         // Migration for older builds that persisted IsBlocking but not its source.
         if defaults.object(forKey: Self.wasStartedByScheduleKey) == nil, isBlocking {
@@ -337,8 +348,12 @@ class AppState: ObservableObject {
         if let i = schedules.firstIndex(where: { $0.id == id }) {
             if !modifyAllDays, let day = initialDay {
                 schedules[i].days.remove(day)
-                if schedules[i].days.isEmpty { schedules.remove(at: i) }
+                if schedules[i].days.isEmpty {
+                    suppressImportedCalendarEventIfNeeded(schedules[i])
+                    schedules.remove(at: i)
+                }
             } else {
+                suppressImportedCalendarEventIfNeeded(schedules[i])
                 schedules.remove(at: i)
             }
         }
@@ -405,6 +420,44 @@ class AppState: ObservableObject {
         replacePauseTimer(with: nil)
     }
     func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }
+
+    func resyncImportedCalendarSchedules() {
+        guard calendarIntegrationEnabled else { return }
+
+        let preservedImportedByKey: [String: Schedule] = Dictionary(
+            uniqueKeysWithValues: schedules.compactMap { schedule in
+                guard let key = schedule.importedCalendarEventKey else { return nil }
+                return (key, schedule)
+            }
+        )
+
+        let signatures = Set(
+            calendarProvider.events.map {
+                CalendarEventSignature(
+                    title: $0.title,
+                    start: $0.startDate.timeIntervalSince1970,
+                    end: $0.endDate.timeIntervalSince1970
+                )
+            }
+        )
+
+        let cleaned = schedules.filter { schedule in
+            if schedule.importedCalendarEventKey != nil { return false }
+            if isLegacyImportedCalendarDuplicate(schedule, signatures: signatures) {
+                return false
+            }
+            return true
+        }
+
+        if cleaned != schedules {
+            isSynchronizingImportedSchedules = true
+            schedules = cleaned
+            isSynchronizingImportedSchedules = false
+        }
+
+        synchronizeImportedCalendarSchedulesIfNeeded(preservedImportedByKey: preservedImportedByKey)
+        checkSchedules()
+    }
 
     func prepareLaunchAtLoginPromptIfNeeded() -> Bool {
         guard canPromptForLaunchAtLogin() else { return false }
@@ -526,7 +579,9 @@ class AppState: ObservableObject {
         return hasFocus && !hasBreak && !hasMeeting
     }
 
-    private func synchronizeImportedCalendarSchedulesIfNeeded() {
+    private func synchronizeImportedCalendarSchedulesIfNeeded(
+        preservedImportedByKey: [String: Schedule] = [:]
+    ) {
         guard !isSynchronizingImportedSchedules else { return }
 
         // Imported event mirroring is only active when calendar integration is enabled
@@ -544,11 +599,13 @@ class AppState: ObservableObject {
                     return (key, schedule)
                 }
             )
+            let defaultImportedRuleSetId = normalizedRuleSetId(activeRuleSetId)
 
             let sortedEvents = calendarProvider.events.sorted { $0.startDate < $1.startDate }
-            importedSchedules = sortedEvents.map { event in
+            importedSchedules = sortedEvents.compactMap { event in
+                guard !suppressedImportedCalendarEventKeys.contains(event.id) else { return nil }
                 let key = event.id
-                let existing = existingByKey[key]
+                let existing = existingByKey[key] ?? preservedImportedByKey[key]
                 return Schedule(
                     id: existing?.id ?? UUID(),
                     name: event.title,
@@ -559,7 +616,7 @@ class AppState: ObservableObject {
                     isEnabled: existing?.isEnabled ?? true,
                     colorIndex: existing?.colorIndex ?? 0,
                     type: .focus,
-                    ruleSetId: existing?.ruleSetId,
+                    ruleSetId: existing?.ruleSetId ?? defaultImportedRuleSetId,
                     importedCalendarEventKey: key
                 )
             }
@@ -573,6 +630,29 @@ class AppState: ObservableObject {
         isSynchronizingImportedSchedules = true
         schedules = merged
         isSynchronizingImportedSchedules = false
+    }
+
+    private func isLegacyImportedCalendarDuplicate(
+        _ schedule: Schedule,
+        signatures: Set<CalendarEventSignature>
+    ) -> Bool {
+        guard schedule.type == .focus, schedule.date != nil else { return false }
+        let signature = CalendarEventSignature(
+            title: schedule.name,
+            start: schedule.startTime.timeIntervalSince1970,
+            end: schedule.endTime.timeIntervalSince1970
+        )
+        return signatures.contains(signature)
+    }
+
+    private func suppressImportedCalendarEventIfNeeded(_ schedule: Schedule) {
+        guard let key = schedule.importedCalendarEventKey else { return }
+        if suppressedImportedCalendarEventKeys.insert(key).inserted {
+            defaults.set(
+                Array(suppressedImportedCalendarEventKeys).sorted(),
+                forKey: Self.suppressedImportedCalendarEventKeysKey
+            )
+        }
     }
 
     private func setWasStartedBySchedule(_ value: Bool) {

@@ -68,9 +68,9 @@ struct SchedulesView: View {
 
     func deleteScheduleAction(scheduleId: UUID) -> () -> Void {
         {
-            if let index = appState.schedules.firstIndex(where: { $0.id == scheduleId }) {
-                appState.schedules.remove(at: index)
-            }
+            guard let schedule = appState.schedules.first(where: { $0.id == scheduleId }) else { return }
+            guard schedule.importedCalendarEventKey == nil else { return }
+            appState.deleteSchedule(id: scheduleId, modifyAllDays: true, initialDay: nil)
         }
     }
 
@@ -81,7 +81,15 @@ struct SchedulesView: View {
     }
 
     func removeSchedules(at indexSet: IndexSet) {
-        appState.schedules.remove(atOffsets: indexSet)
+        let idsToDelete: [UUID] = indexSet.compactMap { offset in
+            guard appState.schedules.indices.contains(offset) else { return nil }
+            let schedule = appState.schedules[offset]
+            guard schedule.importedCalendarEventKey == nil else { return nil }
+            return schedule.id
+        }
+        for id in idsToDelete {
+            appState.deleteSchedule(id: id, modifyAllDays: true, initialDay: nil)
+        }
     }
 
     func openAddSchedule() {

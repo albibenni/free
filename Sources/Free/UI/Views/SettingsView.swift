@@ -62,7 +62,10 @@ struct SettingsView: View {
                     Toggle(
                         "Enable Calendar Integration",
                         isOn: $environmentAppState.calendarIntegrationEnabled)
+                        .disabled(calendarControlsLocked)
                     Toggle("Calendar Imports Block Time", isOn: $environmentAppState.calendarImportsBlockTime)
+                        .disabled(calendarControlsLocked || !environmentAppState.calendarIntegrationEnabled)
+                    Button("Resync Imported Schedules", action: resyncImportedSchedules)
                         .disabled(!environmentAppState.calendarIntegrationEnabled)
                 } header: {
                     Text("Calendar")
@@ -192,6 +195,10 @@ struct SettingsView: View {
         appState.isBlocking && appState.isUnblockable
     }
 
+    var calendarControlsLocked: Bool {
+        appState.isStrictActive
+    }
+
     func openChallenge() {
         showChallenge = true
     }
@@ -219,6 +226,10 @@ struct SettingsView: View {
         } else {
             launchAtLoginEnabled = appState.launchAtLoginStatus()
         }
+    }
+
+    func resyncImportedSchedules() {
+        appState.resyncImportedCalendarSchedules()
     }
 
     var showChallengeForTesting: Bool { showChallenge }

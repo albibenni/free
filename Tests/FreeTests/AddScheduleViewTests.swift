@@ -39,6 +39,8 @@ struct AddScheduleViewTests {
 
         #expect(AddScheduleView.shouldShowAllowedList(for: .focus))
         #expect(!AddScheduleView.shouldShowAllowedList(for: .unfocus))
+        #expect(!AddScheduleView.isImportedSchedule(existing))
+        #expect(AddScheduleView.canDeleteSchedule(existingSchedule: existing))
 
         #expect(AddScheduleView.shouldShowEditScope(existingSchedule: existing, initialDay: 2))
         #expect(!AddScheduleView.shouldShowEditScope(existingSchedule: existing, initialDay: nil))
@@ -65,12 +67,19 @@ struct AddScheduleViewTests {
         #expect(AddScheduleView.primaryButtonColor(sessionType: .unfocus, accentColorIndex: 0) == .orange)
         #expect(AddScheduleView.primaryButtonColor(sessionType: .focus, accentColorIndex: 3) == FocusColor.color(for: 3))
 
-        #expect(AddScheduleView.isSaveDisabled(days: [], modifyAllDays: true))
-        #expect(!AddScheduleView.isSaveDisabled(days: [2], modifyAllDays: true))
-        #expect(!AddScheduleView.isSaveDisabled(days: [], modifyAllDays: false))
+        #expect(AddScheduleView.isSaveDisabled(days: [], modifyAllDays: true, isRecurring: true))
+        #expect(!AddScheduleView.isSaveDisabled(days: [2], modifyAllDays: true, isRecurring: true))
+        #expect(!AddScheduleView.isSaveDisabled(days: [], modifyAllDays: false, isRecurring: true))
+        #expect(!AddScheduleView.isSaveDisabled(days: [], modifyAllDays: true, isRecurring: false))
 
         #expect(AddScheduleView.shouldApplyNewScheduleDefaults(existingSchedule: nil))
         #expect(!AddScheduleView.shouldApplyNewScheduleDefaults(existingSchedule: existing))
+
+        var imported = existing
+        imported.importedCalendarEventKey = "imported-event"
+        #expect(AddScheduleView.isImportedSchedule(imported))
+        #expect(!AddScheduleView.canDeleteSchedule(existingSchedule: imported))
+        #expect(!AddScheduleView.canDeleteSchedule(existingSchedule: nil))
 
         #expect(AddScheduleView.dayName(for: 1) == Calendar.current.weekdaySymbols[0])
     }
