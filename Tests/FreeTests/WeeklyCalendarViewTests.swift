@@ -344,7 +344,7 @@ struct WeeklyCalendarViewTests {
         let bounds = CGRect(x: 0, y: 0, width: 100, height: 120)
         #expect(
             WeeklyCalendarView.interactionMode(
-                at: CGPoint(x: 50, y: 8),
+                at: CGPoint(x: 50, y: 5),
                 in: bounds,
                 edgeHeight: 18
             ) == .resizeStart
@@ -358,7 +358,7 @@ struct WeeklyCalendarViewTests {
         )
         #expect(
             WeeklyCalendarView.interactionMode(
-                at: CGPoint(x: 50, y: 112),
+                at: CGPoint(x: 50, y: 115),
                 in: bounds,
                 edgeHeight: 18
             ) == .resizeEnd

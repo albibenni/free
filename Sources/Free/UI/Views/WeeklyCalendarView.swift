@@ -687,11 +687,13 @@ struct WeeklyCalendarView: View {
     static func effectiveResizeHandleHeight(
         boundsHeight: CGFloat,
         preferredHeight: CGFloat,
-        minimumHeight: CGFloat = 5
+        minimumHeight: CGFloat = 4,
+        maximumHeight: CGFloat = 6
     ) -> CGFloat {
         guard boundsHeight > 0 else { return 0 }
         let cappedByHeight = max(minimumHeight, boundsHeight * 0.25)
-        return min(max(preferredHeight, minimumHeight), cappedByHeight)
+        let cappedMaximum = min(maximumHeight, boundsHeight / 2)
+        return min(max(preferredHeight, minimumHeight), min(cappedByHeight, cappedMaximum))
     }
 
     static func adjustedTimes(
