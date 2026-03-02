@@ -1594,7 +1594,7 @@ struct WeeklyCalendarView: View {
         private var interactionMode: WeeklyCalendarView.ScheduleInteractionMode?
         private var hasDragged = false
         private var isInteractionActive = false
-        private var resizePreviewLabels: (start: String, end: String)?
+        private var interactionPreviewLabels: (start: String, end: String)?
 
         override var isFlipped: Bool { true }
 
@@ -1626,7 +1626,7 @@ struct WeeklyCalendarView: View {
             self.onUpdateSchedule = onUpdateSchedule
             self.onInteractionDidBegin = onInteractionDidBegin
             self.onInteractionDidEnd = onInteractionDidEnd
-            self.resizePreviewLabels = nil
+            self.interactionPreviewLabels = nil
             self.frame = frame
             needsDisplay = true
             window?.invalidateCursorRects(for: self)
@@ -1671,7 +1671,7 @@ struct WeeklyCalendarView: View {
             guard let entry else { return }
             mouseDownPointInWindow = event.locationInWindow
             hasDragged = false
-            resizePreviewLabels = nil
+            setInteractionPreviewLabels(nil)
 
             if WeeklyCalendarView.canDirectlyManipulate(entry.schedule) {
                 let localPoint = convert(event.locationInWindow, from: nil)
@@ -1719,15 +1719,17 @@ struct WeeklyCalendarView: View {
                 )
             }
             hasDragged = abs(snapped.width) > 0 || abs(snapped.height) > 0
-            if hasDragged, interactionMode == .resizeStart || interactionMode == .resizeEnd {
-                resizePreviewLabels = WeeklyCalendarView.schedulePreviewLabels(
-                    placement: entry.placement,
-                    translation: snapped,
-                    mode: interactionMode,
-                    hourHeight: hourHeight
+            if hasDragged {
+                setInteractionPreviewLabels(
+                    WeeklyCalendarView.schedulePreviewLabels(
+                        placement: entry.placement,
+                        translation: snapped,
+                        mode: interactionMode,
+                        hourHeight: hourHeight
+                    )
                 )
             } else {
-                resizePreviewLabels = nil
+                setInteractionPreviewLabels(nil)
             }
             let previewFrame = WeeklyCalendarView.previewFrame(
                 baseFrame: originalFrame,
@@ -1744,7 +1746,7 @@ struct WeeklyCalendarView: View {
                 interactionMode = nil
                 hasDragged = false
                 isInteractionActive = false
-                resizePreviewLabels = nil
+                setInteractionPreviewLabels(nil)
             }
 
             guard let entry else { return }
@@ -1810,8 +1812,8 @@ struct WeeklyCalendarView: View {
             path.lineWidth = 1
             path.stroke()
 
-            if let resizePreviewLabels {
-                drawResizePreviewLabels(resizePreviewLabels)
+            if let interactionPreviewLabels {
+                drawInteractionPreviewLabels(interactionPreviewLabels)
                 return
             }
 
@@ -1920,7 +1922,7 @@ struct WeeklyCalendarView: View {
             return configuredImage ?? baseImage
         }
 
-        private func drawResizePreviewLabels(_ labels: (start: String, end: String)) {
+        private func drawInteractionPreviewLabels(_ labels: (start: String, end: String)) {
             let labelAttributes: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
                 .foregroundColor: NSColor.white.withAlphaComponent(0.95),
@@ -1958,6 +1960,16 @@ struct WeeklyCalendarView: View {
                 in: endRect,
                 withAttributes: textAttributes
             )
+        }
+
+        private func setInteractionPreviewLabels(_ labels: (start: String, end: String)?) {
+            let didChange =
+                interactionPreviewLabels?.start != labels?.start
+                || interactionPreviewLabels?.end != labels?.end
+            interactionPreviewLabels = labels
+            if didChange {
+                needsDisplay = true
+            }
         }
     }
 #endif
