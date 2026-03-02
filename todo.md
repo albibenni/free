@@ -57,6 +57,7 @@
 - [x] allowd list keep rotating in the ui, why? during focus mode
 - [x] should be closable if not in strict mode
 - [ ] should work with selected list on the schedule
+- [ ] change to break doesn't work for imported schedules
 
 ## Performance check
 
