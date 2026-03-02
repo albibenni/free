@@ -250,6 +250,9 @@ struct WeeklyCalendarViewTests {
             ) == 0
         )
         #expect(WeeklyCalendarView.shiftedWeekday(1, by: -1) == 7)
+        let previewLabels = WeeklyCalendarView.selectionPreviewLabels(startHour: 9.1, endHour: 10.2)
+        #expect(previewLabels.start == WeeklyCalendarView.formatTime(9.0))
+        #expect(previewLabels.end == WeeklyCalendarView.formatTime(10.25))
 
         _ = view.formatTime(9.5)
         _ = WeeklyCalendarView.formatTime(9.5)
