@@ -1463,6 +1463,7 @@ struct WeeklyCalendarView: View {
                 .foregroundColor: NSColor.gray.withAlphaComponent(0.8),
             ]
             let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = .right
             paragraph.lineBreakMode = .byTruncatingTail
             let textAttributes = labelAttributes.merging([.paragraphStyle: paragraph]) { _, new in
                 new
