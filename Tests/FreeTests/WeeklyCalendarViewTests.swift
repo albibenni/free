@@ -327,6 +327,32 @@ struct WeeklyCalendarViewTests {
         )
         #expect(movedByCursorColumn?.targetDay == 3)
 
+        let resizeStartPreview = WeeklyCalendarView.schedulePreviewLabels(
+            placement: placement,
+            translation: CGSize(width: 0, height: 40),
+            mode: .resizeStart,
+            hourHeight: 80,
+            calendar: calendar
+        )
+        #expect(resizeStartPreview.start == WeeklyCalendarView.formattedTime(
+            calendar.date(from: DateComponents(hour: 9, minute: 30))!,
+            calendar: calendar
+        ))
+        #expect(resizeStartPreview.end == WeeklyCalendarView.formattedTime(end, calendar: calendar))
+
+        let resizeEndPreview = WeeklyCalendarView.schedulePreviewLabels(
+            placement: placement,
+            translation: CGSize(width: 0, height: -200),
+            mode: .resizeEnd,
+            hourHeight: 80,
+            calendar: calendar
+        )
+        #expect(resizeEndPreview.start == WeeklyCalendarView.formattedTime(start, calendar: calendar))
+        #expect(resizeEndPreview.end == WeeklyCalendarView.formattedTime(
+            calendar.date(from: DateComponents(hour: 9, minute: 15))!,
+            calendar: calendar
+        ))
+
         let resizedStart = WeeklyCalendarView.scheduleUpdate(
             placement: placement,
             translation: CGSize(width: 0, height: 40),

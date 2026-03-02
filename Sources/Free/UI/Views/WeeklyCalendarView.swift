@@ -668,6 +668,30 @@ struct WeeklyCalendarView: View {
         )
     }
 
+    static func schedulePreviewLabels(
+        placement: SchedulePlacement,
+        translation: CGSize,
+        mode: ScheduleInteractionMode,
+        hourHeight: CGFloat,
+        calendar: Calendar = .current
+    ) -> (start: String, end: String) {
+        let minuteDelta = snappedMinuteDelta(
+            translationHeight: translation.height,
+            hourHeight: hourHeight
+        )
+        let adjustedTimes = adjustedTimes(
+            start: placement.startDate,
+            end: placement.endDate,
+            minuteDelta: minuteDelta,
+            mode: mode,
+            calendar: calendar
+        )
+        return (
+            formattedTime(adjustedTimes.start, calendar: calendar),
+            formattedTime(adjustedTimes.end, calendar: calendar)
+        )
+    }
+
     static func snappedMinuteDelta(translationHeight: CGFloat, hourHeight: CGFloat) -> Int {
         Int((translationHeight / hourHeight * 4).rounded()) * 15
     }
@@ -788,6 +812,13 @@ struct WeeklyCalendarView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "h a"
         let date = Calendar.current.date(from: DateComponents(hour: hour))!
+        return formatter.string(from: date)
+    }
+
+    static func formattedTime(_ date: Date, calendar: Calendar = .current) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeStyle = .short
         return formatter.string(from: date)
     }
 
@@ -1563,6 +1594,7 @@ struct WeeklyCalendarView: View {
         private var interactionMode: WeeklyCalendarView.ScheduleInteractionMode?
         private var hasDragged = false
         private var isInteractionActive = false
+        private var resizePreviewLabels: (start: String, end: String)?
 
         override var isFlipped: Bool { true }
 
@@ -1594,6 +1626,7 @@ struct WeeklyCalendarView: View {
             self.onUpdateSchedule = onUpdateSchedule
             self.onInteractionDidBegin = onInteractionDidBegin
             self.onInteractionDidEnd = onInteractionDidEnd
+            self.resizePreviewLabels = nil
             self.frame = frame
             needsDisplay = true
             window?.invalidateCursorRects(for: self)
@@ -1638,6 +1671,7 @@ struct WeeklyCalendarView: View {
             guard let entry else { return }
             mouseDownPointInWindow = event.locationInWindow
             hasDragged = false
+            resizePreviewLabels = nil
 
             if WeeklyCalendarView.canDirectlyManipulate(entry.schedule) {
                 let localPoint = convert(event.locationInWindow, from: nil)
@@ -1685,6 +1719,16 @@ struct WeeklyCalendarView: View {
                 )
             }
             hasDragged = abs(snapped.width) > 0 || abs(snapped.height) > 0
+            if hasDragged, interactionMode == .resizeStart || interactionMode == .resizeEnd {
+                resizePreviewLabels = WeeklyCalendarView.schedulePreviewLabels(
+                    placement: entry.placement,
+                    translation: snapped,
+                    mode: interactionMode,
+                    hourHeight: hourHeight
+                )
+            } else {
+                resizePreviewLabels = nil
+            }
             let previewFrame = WeeklyCalendarView.previewFrame(
                 baseFrame: originalFrame,
                 translation: snapped,
@@ -1700,6 +1744,7 @@ struct WeeklyCalendarView: View {
                 interactionMode = nil
                 hasDragged = false
                 isInteractionActive = false
+                resizePreviewLabels = nil
             }
 
             guard let entry else { return }
@@ -1764,6 +1809,11 @@ struct WeeklyCalendarView: View {
             borderColor.setStroke()
             path.lineWidth = 1
             path.stroke()
+
+            if let resizePreviewLabels {
+                drawResizePreviewLabels(resizePreviewLabels)
+                return
+            }
 
             let titleAttributes: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
@@ -1868,6 +1918,46 @@ struct WeeklyCalendarView: View {
                 .withSymbolConfiguration(.init(paletteColors: [color]))
 
             return configuredImage ?? baseImage
+        }
+
+        private func drawResizePreviewLabels(_ labels: (start: String, end: String)) {
+            let labelAttributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
+                .foregroundColor: NSColor.white.withAlphaComponent(0.95),
+            ]
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = .right
+            paragraph.lineBreakMode = .byTruncatingTail
+            let textAttributes = labelAttributes.merging([.paragraphStyle: paragraph]) { _, new in
+                new
+            }
+
+            let labelHeight: CGFloat = 14
+            let horizontalInset: CGFloat = 6
+            let verticalInset: CGFloat = 6
+            let textWidth = max(bounds.width - horizontalInset * 2, 0)
+
+            let startRect = CGRect(
+                x: horizontalInset,
+                y: verticalInset,
+                width: textWidth,
+                height: labelHeight
+            )
+            (labels.start as NSString).draw(
+                in: startRect,
+                withAttributes: textAttributes
+            )
+
+            let endRect = CGRect(
+                x: horizontalInset,
+                y: max(bounds.height - verticalInset - labelHeight, startRect.maxY),
+                width: textWidth,
+                height: labelHeight
+            )
+            (labels.end as NSString).draw(
+                in: endRect,
+                withAttributes: textAttributes
+            )
         }
     }
 #endif
