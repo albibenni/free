@@ -1679,7 +1679,50 @@ private final class WeeklyCalendarScheduleBlockNSView: NSView {
             .foregroundColor: NSColor.white.withAlphaComponent(0.9)
         ]
 
-        let titleRect = CGRect(x: 6, y: 6, width: bounds.width - 12, height: 14)
+        let titleLineRect = CGRect(x: 6, y: 6, width: bounds.width - 12, height: 14)
+        var titleMinX = titleLineRect.minX
+        var titleMaxX = titleLineRect.maxX
+
+        if let typeIcon = symbolImage(
+            named: ScheduleBlockView.primarySymbolName(for: schedule),
+            pointSize: 10,
+            weight: .bold,
+            color: .white
+        ) {
+            let iconRect = CGRect(
+                x: titleMinX,
+                y: titleLineRect.midY - 5,
+                width: 10,
+                height: 10
+            )
+            typeIcon.draw(in: iconRect)
+            titleMinX = iconRect.maxX + 4
+        }
+
+        if let importedSymbolName = ScheduleBlockView.importedSymbolName(for: schedule),
+            let importedIcon = symbolImage(
+                named: importedSymbolName,
+                pointSize: 9,
+                weight: .bold,
+                color: .white
+            )
+        {
+            let iconRect = CGRect(
+                x: titleMaxX - 10,
+                y: titleLineRect.midY - 5,
+                width: 10,
+                height: 10
+            )
+            importedIcon.draw(in: iconRect)
+            titleMaxX = iconRect.minX - 4
+        }
+
+        let titleRect = CGRect(
+            x: titleMinX,
+            y: titleLineRect.minY,
+            width: max(titleMaxX - titleMinX, 0),
+            height: titleLineRect.height
+        )
         (schedule.name as NSString).draw(in: titleRect, withAttributes: titleAttributes)
 
         let timeRect = CGRect(x: 6, y: 20, width: bounds.width - 12, height: 12)
@@ -1709,6 +1752,24 @@ private final class WeeklyCalendarScheduleBlockNSView: NSView {
     private func finishInteraction(rebuildImmediately: Bool) {
         guard isInteractionActive else { return }
         onInteractionDidEnd?(rebuildImmediately)
+    }
+
+    private func symbolImage(
+        named symbolName: String,
+        pointSize: CGFloat,
+        weight: NSFont.Weight,
+        color: NSColor
+    ) -> NSImage? {
+        guard let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) else {
+            return nil
+        }
+
+        let configuredImage =
+            baseImage
+            .withSymbolConfiguration(.init(pointSize: pointSize, weight: weight))?
+            .withSymbolConfiguration(.init(paletteColors: [color]))
+
+        return configuredImage ?? baseImage
     }
 }
 #endif
@@ -1755,15 +1816,13 @@ struct ScheduleBlockView: View {
             .overlay(
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: 4) {
-                        Image(
-                            systemName: schedule.type == .focus ? "target" : "cup.and.saucer.fill"
-                        )
+                        Image(systemName: Self.primarySymbolName(for: schedule))
                         .font(.system(size: 10, weight: .bold))
                         Text(schedule.name)
                             .font(.caption)
                             .bold()
-                        if isImported {
-                            Image(systemName: "calendar.badge.clock")
+                        if let importedSymbolName = Self.importedSymbolName(for: schedule) {
+                            Image(systemName: importedSymbolName)
                                 .font(.system(size: 9, weight: .bold))
                         }
                     }
@@ -1800,6 +1859,14 @@ struct ScheduleBlockView: View {
 
     static func borderOpacity(isImported: Bool) -> Double {
         isImported ? 0.72 : 0.95
+    }
+
+    static func primarySymbolName(for schedule: Schedule) -> String {
+        schedule.type == .focus ? "target" : "cup.and.saucer.fill"
+    }
+
+    static func importedSymbolName(for schedule: Schedule) -> String? {
+        schedule.importedCalendarEventKey != nil ? "calendar.badge.clock" : nil
     }
 
     func timeRange(_ s: Schedule) -> String {

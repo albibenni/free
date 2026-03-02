@@ -275,6 +275,16 @@ struct WeeklyCalendarViewTests {
         let schedule = sampleSchedule(day: today)
         let blockView = ScheduleBlockView(schedule: schedule)
         #expect(blockView.timeRange(schedule) == schedule.timeRangeString)
+        #expect(ScheduleBlockView.primarySymbolName(for: schedule) == "target")
+
+        var importedSchedule = schedule
+        importedSchedule.importedCalendarEventKey = "imported"
+        #expect(ScheduleBlockView.importedSymbolName(for: schedule) == nil)
+        #expect(ScheduleBlockView.importedSymbolName(for: importedSchedule) == "calendar.badge.clock")
+
+        var breakSchedule = schedule
+        breakSchedule.type = .unfocus
+        #expect(ScheduleBlockView.primarySymbolName(for: breakSchedule) == "cup.and.saucer.fill")
     }
 
     @Test("WeeklyCalendarView schedule drag and resize update helpers produce snapped results")
