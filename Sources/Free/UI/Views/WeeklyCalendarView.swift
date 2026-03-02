@@ -73,10 +73,10 @@ struct WeeklyCalendarView: View {
 
     let hourHeight: CGFloat = 80
     let dayHeaderHeight: CGFloat = 40
-    let timeLabelWidth: CGFloat = 50
-    let timeColumnGutter: CGFloat = 10
+    let timeLabelWidth: CGFloat = 60
+    let timeColumnGutter: CGFloat = 12
     let resizeHandleHitHeight: CGFloat = 18
-    let toolbarHeight: CGFloat = 56
+    let toolbarHeight: CGFloat = 44
 
     var dayOrder: [Int] {
         WeeklyCalendarView.getDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday)
@@ -179,7 +179,7 @@ struct WeeklyCalendarView: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 12)
+            .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .background(Color(NSColor.windowBackgroundColor))
         }

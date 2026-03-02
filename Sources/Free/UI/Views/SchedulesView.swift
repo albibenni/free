@@ -15,7 +15,7 @@ struct SchedulesView: View {
     var appState: AppState { actionAppState ?? environmentAppState }
     @State private var viewMode = 1  // 0 = List, 1 = Calendar
     @State private var editorContext: ScheduleEditorContext?
-    private let pickerAreaHeight: CGFloat = 52
+    private let pickerAreaHeight: CGFloat = 42
 
     init(initialViewMode: Int = 1, initialEditorContext: ScheduleEditorContext? = nil, actionAppState: AppState? = nil) {
         self.actionAppState = actionAppState
@@ -35,7 +35,8 @@ struct SchedulesView: View {
                     Image(systemName: "calendar").tag(1)
                 }
                 .pickerStyle(.segmented)
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
                 .background(Color(NSColor.windowBackgroundColor))
             }
@@ -77,6 +78,8 @@ struct SchedulesView: View {
             .listStyle(InsetListStyle())
         } else {
             WeeklyCalendarView(editorContext: $editorContext)
+                .padding(.leading, 14)
+                .padding(.trailing, 8)
         }
     }
 
