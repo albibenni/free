@@ -645,7 +645,7 @@ class AppState: ObservableObject {
                     endTime: event.endDate,
                     isEnabled: existing?.isEnabled ?? true,
                     colorIndex: existing?.colorIndex ?? 0,
-                    type: .focus,
+                    type: existing?.type ?? .focus,
                     ruleSetId: existing?.ruleSetId ?? defaultImportedRuleSetId,
                     importedCalendarEventKey: event.id
                 )

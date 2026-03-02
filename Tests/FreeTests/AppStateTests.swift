@@ -419,6 +419,7 @@ struct AppStateTests {
         let setId = appState.ruleSets[0].id
         if let idx = appState.schedules.firstIndex(where: { $0.importedCalendarEventKey == "event-a" }) {
             appState.schedules[idx].ruleSetId = setId
+            appState.schedules[idx].type = .unfocus
             appState.schedules = appState.schedules
         } else {
             Issue.record("Expected mirrored schedule for event-a")
@@ -444,6 +445,7 @@ struct AppStateTests {
         #expect(imported.count == 2)
         #expect(Set(imported.compactMap(\.importedCalendarEventKey)) == Set(["event-a", "event-c"]))
         #expect(imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.name == "Imported A Updated")
+        #expect(imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.type == .unfocus)
         #expect(imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.ruleSetId == setId)
     }
 
@@ -583,6 +585,7 @@ struct AppStateTests {
         #expect(importedSchedules.first?.importedCalendarEventKey == event.id)
         #expect(importedSchedules.first?.isEnabled == false)
         #expect(importedSchedules.first?.colorIndex == 5)
+        #expect(importedSchedules.first?.type == .focus)
         #expect(importedSchedules.first?.ruleSetId == appState.ruleSets.first?.id)
         #expect(appState.schedules.contains(where: { $0.name == "Manual Focus" }))
         #expect(
