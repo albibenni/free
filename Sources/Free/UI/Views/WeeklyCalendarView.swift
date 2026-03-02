@@ -76,6 +76,7 @@ struct WeeklyCalendarView: View {
     let timeLabelWidth: CGFloat = 50
     let timeColumnGutter: CGFloat = 10
     let resizeHandleHitHeight: CGFloat = 18
+    let toolbarHeight: CGFloat = 56
 
     var dayOrder: [Int] {
         WeeklyCalendarView.getDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday)
@@ -110,38 +111,7 @@ struct WeeklyCalendarView: View {
         let weekRange = currentWeekDates
         let (weekStart, weekEnd) = Self.weekBounds(for: weekRange, calendar: calendar)
 
-        VStack(spacing: 0) {
-            HStack {
-                Text(monthYearString(for: weekStart))
-                    .font(.title3.bold())
-
-                Spacer()
-
-                HStack(spacing: 8) {
-                    Button(action: goToPreviousWeek) {
-                        Image(systemName: "chevron.left")
-                            .padding(6)
-                            .background(Color.primary.opacity(0.05))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-
-                    Button("Today", action: goToCurrentWeek)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-
-                    Button(action: goToNextWeek) {
-                        Image(systemName: "chevron.right")
-                            .padding(6)
-                            .background(Color.primary.opacity(0.05))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 12)
-
+        ZStack(alignment: .top) {
             WeeklyCalendarAppKitView(
                 dayOrder: dayOrder,
                 weekRange: weekRange,
@@ -177,7 +147,43 @@ struct WeeklyCalendarView: View {
                     )
                 }
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.top, toolbarHeight)
+
+            HStack {
+                Text(monthYearString(for: weekStart))
+                    .font(.title3.bold())
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    Button(action: goToPreviousWeek) {
+                        Image(systemName: "chevron.left")
+                            .padding(6)
+                            .background(Color.primary.opacity(0.05))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button("Today", action: goToCurrentWeek)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+
+                    Button(action: goToNextWeek) {
+                        Image(systemName: "chevron.right")
+                            .padding(6)
+                            .background(Color.primary.opacity(0.05))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .background(Color(NSColor.windowBackgroundColor))
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private func scrollToCurrentTime(proxy: ScrollViewProxy) {

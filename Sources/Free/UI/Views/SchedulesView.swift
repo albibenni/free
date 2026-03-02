@@ -15,6 +15,7 @@ struct SchedulesView: View {
     var appState: AppState { actionAppState ?? environmentAppState }
     @State private var viewMode = 1  // 0 = List, 1 = Calendar
     @State private var editorContext: ScheduleEditorContext?
+    private let pickerAreaHeight: CGFloat = 52
 
     init(initialViewMode: Int = 1, initialEditorContext: ScheduleEditorContext? = nil, actionAppState: AppState? = nil) {
         self.actionAppState = actionAppState
@@ -24,30 +25,21 @@ struct SchedulesView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("View Mode", selection: $viewMode) {
-                Image(systemName: "list.bullet").tag(0)
-                Image(systemName: "calendar").tag(1)
-            }
-            .pickerStyle(.segmented)
-            .padding()
+            ZStack(alignment: .top) {
+                currentContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(.top, pickerAreaHeight)
 
-            if viewMode == 0 {
-                List {
-                    ForEach($environmentAppState.schedules) { $schedule in
-                        ScheduleRow(
-                            schedule: $schedule,
-                            accentColorIndex: appState.accentColorIndex,
-                            onDelete: deleteScheduleAction(scheduleId: schedule.id)
-                        )
-                        .contentShape(Rectangle())
-                        .onTapGesture(perform: selectScheduleAction(schedule: schedule))
-                    }
-                    .onDelete(perform: removeSchedules(at:))
+                Picker("View Mode", selection: $viewMode) {
+                    Image(systemName: "list.bullet").tag(0)
+                    Image(systemName: "calendar").tag(1)
                 }
-                .listStyle(InsetListStyle())
-            } else {
-                WeeklyCalendarView(editorContext: $editorContext)
+                .pickerStyle(.segmented)
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color(NSColor.windowBackgroundColor))
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
             Divider()
 
@@ -63,7 +55,29 @@ struct SchedulesView: View {
             .padding()
             .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .sheet(item: $editorContext, content: makeAddScheduleSheet(context:))
+    }
+
+    @ViewBuilder
+    private var currentContent: some View {
+        if viewMode == 0 {
+            List {
+                ForEach($environmentAppState.schedules) { $schedule in
+                    ScheduleRow(
+                        schedule: $schedule,
+                        accentColorIndex: appState.accentColorIndex,
+                        onDelete: deleteScheduleAction(scheduleId: schedule.id)
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: selectScheduleAction(schedule: schedule))
+                }
+                .onDelete(perform: removeSchedules(at:))
+            }
+            .listStyle(InsetListStyle())
+        } else {
+            WeeklyCalendarView(editorContext: $editorContext)
+        }
     }
 
     func deleteScheduleAction(scheduleId: UUID) -> () -> Void {
