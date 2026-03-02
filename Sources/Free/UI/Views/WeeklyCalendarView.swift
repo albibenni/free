@@ -1683,17 +1683,6 @@ private final class WeeklyCalendarScheduleBlockNSView: NSView {
         let timeRect = CGRect(x: 6, y: 20, width: bounds.width - 12, height: 12)
         (schedule.timeRangeString as NSString).draw(in: timeRect, withAttributes: timeAttributes)
 
-        if WeeklyCalendarView.canDirectlyManipulate(schedule) && bounds.height >= 22 {
-            drawHandle(atY: 6)
-            drawHandle(atY: bounds.height - 11)
-        }
-    }
-
-    private func drawHandle(atY y: CGFloat) {
-        let handleRect = CGRect(x: bounds.midX - 17, y: y, width: 34, height: 5)
-        let handlePath = NSBezierPath(roundedRect: handleRect, xRadius: 2.5, yRadius: 2.5)
-        NSColor.white.withAlphaComponent(0.95).setFill()
-        handlePath.fill()
     }
 
     private func translation(for event: NSEvent) -> CGSize {
