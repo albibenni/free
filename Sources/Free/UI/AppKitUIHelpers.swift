@@ -6,13 +6,20 @@ class AppKitFlippedView: NSView {
 
 final class ActionButton: NSButton {
     var onAction: (() -> Void)?
+    private let backgroundGradientLayer = CAGradientLayer()
 
     init(title: String = "", image: NSImage? = nil) {
         super.init(frame: .zero)
         self.title = title
         self.image = image
+        wantsLayer = true
         target = self
         action = #selector(handleAction)
+
+        backgroundGradientLayer.startPoint = CGPoint(x: 0.5, y: 1.0)
+        backgroundGradientLayer.endPoint = CGPoint(x: 0.5, y: 0.0)
+        backgroundGradientLayer.isHidden = true
+        layer?.insertSublayer(backgroundGradientLayer, at: 0)
     }
 
     @available(*, unavailable)
@@ -23,6 +30,25 @@ final class ActionButton: NSButton {
     @objc
     private func handleAction() {
         onAction?()
+    }
+
+    override func layout() {
+        super.layout()
+        backgroundGradientLayer.frame = bounds
+        backgroundGradientLayer.cornerRadius = layer?.cornerRadius ?? 0
+    }
+
+    func setGradientBackground(
+        colors: [NSColor],
+        borderColor: NSColor? = nil,
+        borderWidth: CGFloat = 1
+    ) {
+        backgroundGradientLayer.isHidden = false
+        backgroundGradientLayer.colors = colors.map(\.cgColor)
+        layer?.backgroundColor = nil
+        layer?.borderColor = borderColor?.cgColor
+        layer?.borderWidth = borderWidth
+        needsLayout = true
     }
 }
 
@@ -87,31 +113,48 @@ func appKitSymbolImage(
     return baseImage.withSymbolConfiguration(configuration) ?? baseImage
 }
 
+private func blendedColor(
+    _ color: NSColor,
+    with other: NSColor,
+    fraction: CGFloat
+) -> NSColor {
+    color.blended(withFraction: fraction, of: other) ?? color
+}
+
 func makeAppKitPrimaryButton(title: String, color: NSColor) -> ActionButton {
     let button = ActionButton(title: title)
     button.isBordered = false
-    button.wantsLayer = true
     button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
-    button.layer?.backgroundColor = color.cgColor
-    button.font = AppKitUIConstants.Typography.buttonLabel
+    button.setGradientBackground(
+        colors: [
+            color.withAlphaComponent(0.14),
+            color.withAlphaComponent(0.08),
+        ],
+        borderColor: color.withAlphaComponent(0.24)
+    )
     button.attributedTitle = NSAttributedString(
         string: title,
         attributes: [
             .font: AppKitUIConstants.Typography.buttonLabel,
-            .foregroundColor: NSColor.white,
+            .foregroundColor: color,
         ]
     )
+    button.contentTintColor = color
+    button.heightAnchor.constraint(equalToConstant: 32).isActive = true
     return button
 }
 
 func makeAppKitSecondaryButton(title: String, color: NSColor) -> ActionButton {
     let button = ActionButton(title: title)
     button.isBordered = false
-    button.wantsLayer = true
     button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
-    button.layer?.backgroundColor = color.withAlphaComponent(0.1).cgColor
-    button.layer?.borderColor = color.withAlphaComponent(0.25).cgColor
-    button.layer?.borderWidth = 1
+    button.setGradientBackground(
+        colors: [
+            color.withAlphaComponent(0.14),
+            color.withAlphaComponent(0.08),
+        ],
+        borderColor: color.withAlphaComponent(0.28)
+    )
     button.attributedTitle = NSAttributedString(
         string: title,
         attributes: [

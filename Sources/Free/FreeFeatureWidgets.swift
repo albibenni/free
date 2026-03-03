@@ -59,14 +59,17 @@ private func makePresetButton(
     action: @escaping () -> Void
 ) -> ActionButton {
     let button = makeAppKitSecondaryButton(title: title, color: isSelected ? color : .secondaryLabelColor)
-    button.layer?.backgroundColor =
-        isSelected
-        ? color.withAlphaComponent(0.16).cgColor
-        : NSColor.labelColor.withAlphaComponent(0.04).cgColor
-    button.layer?.borderColor =
-        isSelected
-        ? color.withAlphaComponent(0.3).cgColor
-        : NSColor.separatorColor.withAlphaComponent(0.25).cgColor
+    button.setGradientBackground(
+        colors: isSelected
+            ? [color.withAlphaComponent(0.18), color.withAlphaComponent(0.11)]
+            : [
+                NSColor.labelColor.withAlphaComponent(0.07),
+                NSColor.labelColor.withAlphaComponent(0.03),
+            ],
+        borderColor: isSelected
+            ? color.withAlphaComponent(0.30)
+            : NSColor.separatorColor.withAlphaComponent(0.25)
+    )
     button.onAction = action
     return button
 }
@@ -83,12 +86,18 @@ private func makeSelectableRuleSetRowButton(
 ) -> ActionButton {
     let button = ActionButton(title: title)
     button.isBordered = false
-    button.wantsLayer = true
     button.layer?.cornerRadius = 8
-    button.layer?.backgroundColor =
-        isSelected
-        ? accentColor.withAlphaComponent(0.10).cgColor
-        : NSColor.labelColor.withAlphaComponent(0.03).cgColor
+    button.setGradientBackground(
+        colors: isSelected
+            ? [accentColor.withAlphaComponent(0.14), accentColor.withAlphaComponent(0.08)]
+            : [
+                NSColor.labelColor.withAlphaComponent(0.05),
+                NSColor.labelColor.withAlphaComponent(0.02),
+            ],
+        borderColor: isSelected
+            ? accentColor.withAlphaComponent(0.22)
+            : NSColor.separatorColor.withAlphaComponent(0.18)
+    )
     button.image = appKitSymbolImage(
         named: isSelected ? "link.circle.fill" : "link",
         pointSize: 13,
@@ -573,7 +582,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         row.spacing = 12
         row.distribution = .fillEqually
 
-        let skipButton = makeAppKitSecondaryButton(title: "Skip", color: accentColor)
+        let skipButton = makeAppKitPrimaryButton(title: "Skip", color: accentColor)
         skipButton.onAction = { [weak appState] in appState?.skipPomodoroPhase() }
         skipButton.isEnabled = !appState.isPomodoroLocked
 
@@ -726,12 +735,18 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     ) -> ActionButton {
         let button = ActionButton(title: title)
         button.isBordered = false
-        button.wantsLayer = true
         button.layer?.cornerRadius = 6
-        button.layer?.backgroundColor =
-            isSelected
-            ? color.withAlphaComponent(0.15).cgColor
-            : NSColor.labelColor.withAlphaComponent(0.05).cgColor
+        button.setGradientBackground(
+            colors: isSelected
+                ? [color.withAlphaComponent(0.20), color.withAlphaComponent(0.12)]
+                : [
+                    NSColor.labelColor.withAlphaComponent(0.08),
+                    NSColor.labelColor.withAlphaComponent(0.04),
+                ],
+            borderColor: isSelected
+                ? color.withAlphaComponent(0.24)
+                : NSColor.separatorColor.withAlphaComponent(0.18)
+        )
         button.attributedTitle = NSAttributedString(
             string: title,
             attributes: [
