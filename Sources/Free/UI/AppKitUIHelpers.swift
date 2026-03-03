@@ -76,6 +76,16 @@ final class LeadingInsetActionButton: ActionButton {
         get { LeadingInsetButtonCell.self }
         set { }
     }
+
+    var leadingInset: CGFloat {
+        get { (cell as? LeadingInsetButtonCell)?.leadingInset ?? 0 }
+        set { (cell as? LeadingInsetButtonCell)?.leadingInset = newValue }
+    }
+
+    var titleAdditionalInset: CGFloat {
+        get { (cell as? LeadingInsetButtonCell)?.titleAdditionalInset ?? 0 }
+        set { (cell as? LeadingInsetButtonCell)?.titleAdditionalInset = newValue }
+    }
 }
 
 class AppKitCardView: AppKitFlippedView {
@@ -340,6 +350,8 @@ func makeAppKitSelectableRowButton(
     action: @escaping () -> Void
 ) -> ActionButton {
     let button = LeadingInsetActionButton(title: title)
+    button.leadingInset = 8
+    button.titleAdditionalInset = 8
     button.isBordered = false
     button.layer?.cornerRadius = 8
     button.imageHugsTitle = false

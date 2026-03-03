@@ -486,8 +486,12 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func sidebarButton(for section: MainContentSection) -> NSButton {
-        let button = NSButton(title: section.rawValue, target: self, action: #selector(handleSidebarButton(_:)))
+        let button = LeadingInsetActionButton(title: section.rawValue)
         button.identifier = NSUserInterfaceItemIdentifier(section.rawValue)
+        button.target = self
+        button.action = #selector(handleSidebarButton(_:))
+        button.leadingInset = 0
+        button.titleAdditionalInset = 6
         button.isBordered = false
         button.wantsLayer = true
         button.layer?.cornerRadius = 10
