@@ -313,10 +313,18 @@ final class FocusAllowedWebsitesWidgetView: AppKitCardView {
 final class FocusPomodoroWidgetView: AppKitCardView {
     private let appState: AppState
     private let accentColor: NSColor
+    private let onDialInteractionDidBegin: (() -> Void)?
+    private let onDialInteractionDidEnd: (() -> Void)?
 
-    init(appState: AppState) {
+    init(
+        appState: AppState,
+        onDialInteractionDidBegin: (() -> Void)? = nil,
+        onDialInteractionDidEnd: (() -> Void)? = nil
+    ) {
         self.appState = appState
         self.accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        self.onDialInteractionDidBegin = onDialInteractionDidBegin
+        self.onDialInteractionDidEnd = onDialInteractionDidEnd
         super.init(frame: .zero)
 
         contentStack.addArrangedSubview(
@@ -666,6 +674,8 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             maxMinutes: Double(maxMinutes),
             iconName: iconName,
             color: title == "FOCUS" ? accentColor : .systemOrange,
+            onInteractionDidBegin: onDialInteractionDidBegin,
+            onInteractionDidEnd: onDialInteractionDidEnd,
             onCommit: onCommit
         )
         dial.widthAnchor.constraint(equalToConstant: 176).isActive = true

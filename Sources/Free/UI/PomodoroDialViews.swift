@@ -6,6 +6,8 @@ final class PomodoroDurationDialView: NSView {
     private let centerStack = NSStackView()
     private let maxMinutes: Double
     private let color: NSColor
+    private let onInteractionDidBegin: (() -> Void)?
+    private let onInteractionDidEnd: (() -> Void)?
     private let onCommit: (Double) -> Void
     private(set) var titleForTesting: String
     private(set) var durationMinutes: Double {
@@ -26,12 +28,16 @@ final class PomodoroDurationDialView: NSView {
         maxMinutes: Double,
         iconName: String,
         color: NSColor,
+        onInteractionDidBegin: (() -> Void)? = nil,
+        onInteractionDidEnd: (() -> Void)? = nil,
         onCommit: @escaping (Double) -> Void
     ) {
         self.titleForTesting = title
         self.durationMinutes = durationMinutes
         self.maxMinutes = maxMinutes
         self.color = color
+        self.onInteractionDidBegin = onInteractionDidBegin
+        self.onInteractionDidEnd = onInteractionDidEnd
         self.onCommit = onCommit
         super.init(frame: .zero)
 
@@ -130,6 +136,7 @@ final class PomodoroDurationDialView: NSView {
 
     override func mouseDown(with event: NSEvent) {
         isDragging = true
+        onInteractionDidBegin?()
         applyInteraction(at: convert(event.locationInWindow, from: nil), commit: false)
     }
 
@@ -142,6 +149,7 @@ final class PomodoroDurationDialView: NSView {
         guard isDragging else { return }
         applyInteraction(at: convert(event.locationInWindow, from: nil), commit: true)
         isDragging = false
+        onInteractionDidEnd?()
     }
 
     func applyLocationForTesting(_ point: CGPoint, commit: Bool = true) {

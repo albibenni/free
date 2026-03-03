@@ -105,6 +105,8 @@ final class FocusSectionViewController: NSViewController {
 
     private var widgetView: NSView?
     private var cancellables: Set<AnyCancellable> = []
+    private var pomodoroWidgetInteractionDepth = 0
+    private var needsReloadAfterPomodoroInteraction = false
 
     init(appState: AppState, shellState: FreeShellState, section: FocusContentSection) {
         self.appState = appState
@@ -152,10 +154,33 @@ final class FocusSectionViewController: NSViewController {
         appState.objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.reloadContent()
+                self?.handleObservedAppStateChange()
             }
             .store(in: &cancellables)
 
+        reloadContent()
+    }
+
+    private func handleObservedAppStateChange() {
+        guard !(section == .pomodoro && pomodoroWidgetInteractionDepth > 0) else {
+            needsReloadAfterPomodoroInteraction = true
+            return
+        }
+        reloadContent()
+    }
+
+    private func beginPomodoroWidgetInteraction() {
+        pomodoroWidgetInteractionDepth += 1
+    }
+
+    private func endPomodoroWidgetInteraction() {
+        guard pomodoroWidgetInteractionDepth > 0 else { return }
+        pomodoroWidgetInteractionDepth -= 1
+
+        guard pomodoroWidgetInteractionDepth == 0 else { return }
+        guard needsReloadAfterPomodoroInteraction else { return }
+
+        needsReloadAfterPomodoroInteraction = false
         reloadContent()
     }
 
@@ -425,7 +450,15 @@ final class FocusSectionViewController: NSViewController {
         let nextWidgetView: NSView
         switch section {
         case .pomodoro:
-            nextWidgetView = FocusPomodoroWidgetView(appState: appState)
+            nextWidgetView = FocusPomodoroWidgetView(
+                appState: appState,
+                onDialInteractionDidBegin: { [weak self] in
+                    self?.beginPomodoroWidgetInteraction()
+                },
+                onDialInteractionDidEnd: { [weak self] in
+                    self?.endPomodoroWidgetInteraction()
+                }
+            )
         case .schedules:
             nextWidgetView = FocusSchedulesWidgetView(appState: appState, shellState: shellState)
         case .allowedWebsites:
@@ -464,6 +497,21 @@ extension FocusSectionViewController {
     var pauseTimeTextForTesting: String { pauseTimeLabel.stringValue }
     var currentWidgetViewTypeForTesting: String? {
         widgetView.map { String(describing: type(of: $0)) }
+    }
+    var widgetViewIdentifierForTesting: ObjectIdentifier? {
+        widgetView.map(ObjectIdentifier.init)
+    }
+    var hasDeferredPomodoroReloadForTesting: Bool {
+        needsReloadAfterPomodoroInteraction
+    }
+    func beginPomodoroWidgetInteractionForTesting() {
+        beginPomodoroWidgetInteraction()
+    }
+    func endPomodoroWidgetInteractionForTesting() {
+        endPomodoroWidgetInteraction()
+    }
+    func simulateObservedAppStateChangeForTesting() {
+        handleObservedAppStateChange()
     }
 }
 

@@ -210,6 +210,30 @@ struct FocusViewTests {
         #expect(texts.contains("Live Overview") == false)
     }
 
+    @Test("Focus section defers pomodoro widget rebuild while a dial drag is active")
+    @MainActor
+    func focusViewDefersPomodoroWidgetReloadDuringDialInteraction() {
+        let appState = isolatedAppState(name: "pomodoroDialInteraction")
+        let controller = makeController(appState: appState, section: .pomodoro)
+
+        _ = host(controller)
+        let initialWidgetIdentifier = controller.widgetViewIdentifierForTesting
+
+        #expect(initialWidgetIdentifier != nil)
+
+        controller.beginPomodoroWidgetInteractionForTesting()
+        controller.simulateObservedAppStateChangeForTesting()
+
+        #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
+        #expect(controller.hasDeferredPomodoroReloadForTesting)
+
+        controller.endPomodoroWidgetInteractionForTesting()
+
+        #expect(controller.hasDeferredPomodoroReloadForTesting == false)
+        #expect(controller.widgetViewIdentifierForTesting != nil)
+        #expect(controller.widgetViewIdentifierForTesting != initialWidgetIdentifier)
+    }
+
     @Test("Focus section allowed-websites mode renders AppKit widget without overview")
     @MainActor
     func focusViewAllowedWebsitesSectionRender() {
