@@ -52,6 +52,32 @@ class ActionButton: NSButton {
     }
 }
 
+final class LeadingInsetButtonCell: NSButtonCell {
+    var leadingInset: CGFloat = 8
+    var titleAdditionalInset: CGFloat = 8
+
+    override func imageRect(forBounds rect: NSRect) -> NSRect {
+        var imageRect = super.imageRect(forBounds: rect)
+        imageRect.origin.x += leadingInset
+        return imageRect
+    }
+
+    override func titleRect(forBounds rect: NSRect) -> NSRect {
+        var titleRect = super.titleRect(forBounds: rect)
+        let totalInset = leadingInset + titleAdditionalInset
+        titleRect.origin.x += totalInset
+        titleRect.size.width = max(titleRect.size.width - totalInset, 0)
+        return titleRect
+    }
+}
+
+final class LeadingInsetActionButton: ActionButton {
+    override class var cellClass: AnyClass? {
+        get { LeadingInsetButtonCell.self }
+        set { }
+    }
+}
+
 class AppKitCardView: AppKitFlippedView {
     let contentStack = NSStackView()
 
@@ -313,7 +339,7 @@ func makeAppKitSelectableRowButton(
     height: CGFloat = 34,
     action: @escaping () -> Void
 ) -> ActionButton {
-    let button = ActionButton(title: title)
+    let button = LeadingInsetActionButton(title: title)
     button.isBordered = false
     button.layer?.cornerRadius = 8
     button.imageHugsTitle = false
