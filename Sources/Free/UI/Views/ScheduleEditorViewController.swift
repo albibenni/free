@@ -150,14 +150,13 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         headerTitleLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(headerTitleLabel)
 
-        closeButton.isBordered = false
-        closeButton.image = appKitSymbolImage(
-            named: "xmark.circle.fill",
+        configureAppKitIconButton(
+            closeButton,
+            symbolName: "xmark.circle.fill",
             pointSize: 18,
             weight: .regular,
             color: .secondaryLabelColor
         )
-        closeButton.imagePosition = .imageOnly
         closeButton.onAction = onRequestClose
         closeButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(closeButton)

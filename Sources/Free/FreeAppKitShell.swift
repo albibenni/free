@@ -418,7 +418,7 @@ final class FreeMainViewController: NSViewController {
         sectionButtons[.settings]?.isHidden = !isVisible
         sidebarWidthConstraint?.constant = isVisible ? 180 : 56
         let symbolName = isVisible ? "sidebar.left" : "sidebar.right"
-        sidebarToggleButton.image = symbolImage(
+        sidebarToggleButton.image = appKitSymbolImage(
             named: symbolName,
             pointSize: 13,
             weight: .semibold,
@@ -470,17 +470,15 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func configureIconButton(_ button: NSButton, symbolName: String) {
-        button.isBordered = false
-        button.wantsLayer = true
-        button.layer?.cornerRadius = 8
-        button.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.05).cgColor
-        button.image = symbolImage(
-            named: symbolName,
+        configureAppKitIconButton(
+            button,
+            symbolName: symbolName,
             pointSize: 13,
             weight: .semibold,
-            color: .secondaryLabelColor
+            color: .secondaryLabelColor,
+            backgroundColor: NSColor.labelColor.withAlphaComponent(0.05),
+            cornerRadius: 8
         )
-        button.imagePosition = .imageOnly
         button.setButtonType(.momentaryChange)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.widthAnchor.constraint(equalToConstant: 28).isActive = true
@@ -522,7 +520,7 @@ final class FreeMainViewController: NSViewController {
         let fontWeight: NSFont.Weight = isSelected ? .semibold : .medium
 
         button.layer?.backgroundColor = backgroundColor.cgColor
-        button.image = symbolImage(
+        button.image = appKitSymbolImage(
             named: section.icon,
             pointSize: 13,
             weight: fontWeight,
@@ -593,23 +591,6 @@ final class FreeMainViewController: NSViewController {
         MainContentSection.allCases.first { section in
             identifier?.rawValue == section.rawValue
         }
-    }
-
-    private func symbolImage(
-        named symbolName: String,
-        pointSize: CGFloat,
-        weight: NSFont.Weight,
-        color: NSColor? = nil
-    ) -> NSImage? {
-        guard let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) else {
-            return nil
-        }
-
-        let configured = baseImage.withSymbolConfiguration(
-            .init(pointSize: pointSize, weight: weight)
-        ) ?? baseImage
-        guard let color else { return configured }
-        return configured.withSymbolConfiguration(.init(paletteColors: [color])) ?? configured
     }
 
     @objc

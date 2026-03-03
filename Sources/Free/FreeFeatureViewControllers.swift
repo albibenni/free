@@ -14,12 +14,7 @@ private func removeAllArrangedSubviews(from stackView: NSStackView) {
 }
 
 private func makeDivider() -> NSView {
-    let divider = NSView()
-    divider.wantsLayer = true
-    divider.layer?.backgroundColor = NSColor.separatorColor.cgColor
-    divider.translatesAutoresizingMaskIntoConstraints = false
-    divider.heightAnchor.constraint(equalToConstant: 1).isActive = true
-    return divider
+    makeAppKitDividerView(color: .separatorColor)
 }
 
 final class VerticalStackScrollContainer: NSScrollView {
@@ -1158,12 +1153,13 @@ final class RulesSheetViewController: NSViewController {
     }
 
     private func configureIconButton(_ button: NSButton, symbolName: String) {
-        button.isBordered = false
-        button.wantsLayer = true
-        button.layer?.cornerRadius = 12
-        button.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.05).cgColor
-        button.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
-        button.contentTintColor = .secondaryLabelColor
+        configureAppKitIconButton(
+            button,
+            symbolName: symbolName,
+            color: .secondaryLabelColor,
+            backgroundColor: NSColor.labelColor.withAlphaComponent(0.05),
+            cornerRadius: 12
+        )
     }
 
     private var selectedSet: RuleSet? {
@@ -1216,7 +1212,12 @@ final class RulesSheetViewController: NSViewController {
                 let deleteButton = NSButton()
                 deleteButton.isBordered = false
                 deleteButton.identifier = NSUserInterfaceItemIdentifier(ruleSet.id.uuidString)
-                deleteButton.image = NSImage(systemSymbolName: "minus.circle.fill", accessibilityDescription: nil)
+                deleteButton.image = appKitSymbolImage(
+                    named: "minus.circle.fill",
+                    pointSize: 15,
+                    weight: .regular,
+                    color: .systemRed
+                )
                 deleteButton.contentTintColor = .systemRed
                 deleteButton.target = self
                 deleteButton.action = #selector(deleteRuleSet(_:))
@@ -1231,11 +1232,11 @@ final class RulesSheetViewController: NSViewController {
     private func reloadRuleContent() {
         removeAllArrangedSubviews(from: contentScrollView.stackView)
         mainTitleLabel.stringValue = selectedSet?.name ?? ""
-        toggleSidebarButton.image = NSImage(
-            systemSymbolName: RulesSectionSupport.sidebarToggleIcon(
-                isSidebarVisible: isSidebarVisible
-            ),
-            accessibilityDescription: nil
+        toggleSidebarButton.image = appKitSymbolImage(
+            named: RulesSectionSupport.sidebarToggleIcon(isSidebarVisible: isSidebarVisible),
+            pointSize: 11,
+            weight: .semibold,
+            color: .secondaryLabelColor
         )
 
         guard let selectedSet else {
@@ -1265,7 +1266,12 @@ final class RulesSheetViewController: NSViewController {
                 let deleteButton = NSButton()
                 deleteButton.isBordered = false
                 deleteButton.identifier = NSUserInterfaceItemIdentifier(rule)
-                deleteButton.image = NSImage(systemSymbolName: "trash", accessibilityDescription: nil)
+                deleteButton.image = appKitSymbolImage(
+                    named: "trash",
+                    pointSize: 13,
+                    weight: .regular,
+                    color: .systemRed
+                )
                 deleteButton.contentTintColor = .systemRed
                 deleteButton.target = self
                 deleteButton.action = #selector(deleteRule(_:))

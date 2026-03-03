@@ -89,4 +89,27 @@ struct UIComponentTests {
         #expect(minusButton.image != nil)
         #expect(minusButton.isEnabled == false)
     }
+
+    @Test("Shared AppKit pill and selectable-row helpers configure common controls")
+    func sharedAppKitControlHelpers() {
+        let pillButton = makeAppKitPillButton(
+            title: "25/5",
+            isSelected: true,
+            selectedColor: .systemOrange,
+            width: 50,
+            action: {}
+        )
+        let rowButton = makeAppKitSelectableRowButton(
+            title: "Default",
+            isSelected: true,
+            accentColor: .systemBlue,
+            action: {}
+        )
+
+        #expect(pillButton.attributedTitle.string == "25/5")
+        #expect(pillButton.image == nil)
+        #expect(rowButton.attributedTitle.string == "Default")
+        #expect(rowButton.image != nil)
+        #expect(rowButton.subviews.contains { $0 is NSImageView })
+    }
 }

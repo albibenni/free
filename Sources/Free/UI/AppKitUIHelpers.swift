@@ -113,6 +113,40 @@ func appKitSymbolImage(
     return baseImage.withSymbolConfiguration(configuration) ?? baseImage
 }
 
+func makeAppKitHeaderRow(
+    title: String,
+    symbolName: String,
+    color: NSColor,
+    trailingView: NSView? = nil
+) -> NSView {
+    let iconView = NSImageView()
+    iconView.image = appKitSymbolImage(
+        named: symbolName,
+        pointSize: 16,
+        weight: .semibold,
+        color: color
+    )
+    iconView.translatesAutoresizingMaskIntoConstraints = false
+    iconView.widthAnchor.constraint(equalToConstant: 18).isActive = true
+    iconView.heightAnchor.constraint(equalToConstant: 18).isActive = true
+
+    let titleLabel = NSTextField(labelWithString: title)
+    titleLabel.font = AppKitUIConstants.Typography.cardTitle
+    titleLabel.textColor = .labelColor
+
+    let row = NSStackView()
+    row.orientation = .horizontal
+    row.alignment = .centerY
+    row.spacing = AppKitUIConstants.Spacing.sectionStack
+    row.addArrangedSubview(iconView)
+    row.addArrangedSubview(titleLabel)
+    row.addArrangedSubview(NSView())
+    if let trailingView {
+        row.addArrangedSubview(trailingView)
+    }
+    return row
+}
+
 func resolvedAppKitControlSymbolName(_ symbol: String) -> String {
     switch symbol {
     case "+":
@@ -130,6 +164,30 @@ private func blendedColor(
     fraction: CGFloat
 ) -> NSColor {
     color.blended(withFraction: fraction, of: other) ?? color
+}
+
+func configureAppKitIconButton(
+    _ button: NSButton,
+    symbolName: String,
+    pointSize: CGFloat = 11,
+    weight: NSFont.Weight = .semibold,
+    color: NSColor = .secondaryLabelColor,
+    backgroundColor: NSColor? = nil,
+    cornerRadius: CGFloat = 0
+) {
+    button.isBordered = false
+    button.wantsLayer = true
+    button.layer?.cornerRadius = cornerRadius
+    button.layer?.backgroundColor = backgroundColor?.cgColor
+    button.image = appKitSymbolImage(
+        named: symbolName,
+        pointSize: pointSize,
+        weight: weight,
+        color: color
+    )
+    button.imagePosition = .imageOnly
+    button.imageScaling = .scaleProportionallyUpOrDown
+    button.contentTintColor = color
 }
 
 func makeAppKitPrimaryButton(title: String, color: NSColor) -> ActionButton {
@@ -176,6 +234,45 @@ func makeAppKitSecondaryButton(title: String, color: NSColor) -> ActionButton {
     return button
 }
 
+func makeAppKitPillButton(
+    title: String,
+    isSelected: Bool,
+    selectedColor: NSColor,
+    unselectedTextColor: NSColor = .secondaryLabelColor,
+    width: CGFloat? = nil,
+    height: CGFloat = 24,
+    font: NSFont = .systemFont(ofSize: 11, weight: .bold),
+    action: @escaping () -> Void
+) -> ActionButton {
+    let button = ActionButton(title: title)
+    button.isBordered = false
+    button.layer?.cornerRadius = 6
+    button.setGradientBackground(
+        colors: isSelected
+            ? [selectedColor.withAlphaComponent(0.20), selectedColor.withAlphaComponent(0.12)]
+            : [
+                NSColor.labelColor.withAlphaComponent(0.08),
+                NSColor.labelColor.withAlphaComponent(0.04),
+            ],
+        borderColor: isSelected
+            ? selectedColor.withAlphaComponent(0.24)
+            : NSColor.separatorColor.withAlphaComponent(0.18)
+    )
+    button.attributedTitle = NSAttributedString(
+        string: title,
+        attributes: [
+            .font: font,
+            .foregroundColor: isSelected ? selectedColor : unselectedTextColor,
+        ]
+    )
+    button.onAction = action
+    if let width {
+        button.widthAnchor.constraint(equalToConstant: width).isActive = true
+    }
+    button.heightAnchor.constraint(equalToConstant: height).isActive = true
+    return button
+}
+
 func makeAppKitSymbolControlButton(
     symbol: String,
     isEnabled: Bool,
@@ -207,9 +304,93 @@ func makeAppKitSymbolControlButton(
     return button
 }
 
+func makeAppKitSelectableRowButton(
+    title: String,
+    isSelected: Bool,
+    accentColor: NSColor,
+    leadingSelectedSymbol: String = "link.circle.fill",
+    leadingUnselectedSymbol: String = "link",
+    trailingSelectedSymbol: String? = "checkmark",
+    height: CGFloat = 34,
+    action: @escaping () -> Void
+) -> ActionButton {
+    let button = ActionButton(title: title)
+    button.isBordered = false
+    button.layer?.cornerRadius = 8
+    button.setGradientBackground(
+        colors: isSelected
+            ? [accentColor.withAlphaComponent(0.14), accentColor.withAlphaComponent(0.08)]
+            : [
+                NSColor.labelColor.withAlphaComponent(0.05),
+                NSColor.labelColor.withAlphaComponent(0.02),
+            ],
+        borderColor: isSelected
+            ? accentColor.withAlphaComponent(0.22)
+            : NSColor.separatorColor.withAlphaComponent(0.18)
+    )
+    button.image = appKitSymbolImage(
+        named: isSelected ? leadingSelectedSymbol : leadingUnselectedSymbol,
+        pointSize: 13,
+        weight: isSelected ? .semibold : .regular,
+        color: isSelected ? accentColor : .secondaryLabelColor
+    )
+    button.imagePosition = .imageLeading
+    button.alignment = .left
+    button.contentTintColor = isSelected ? accentColor : .secondaryLabelColor
+    button.attributedTitle = NSAttributedString(
+        string: title,
+        attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: isSelected ? .semibold : .regular),
+            .foregroundColor: isSelected ? NSColor.labelColor : NSColor.secondaryLabelColor,
+        ]
+    )
+    button.onAction = action
+    button.heightAnchor.constraint(equalToConstant: height).isActive = true
+
+    if let trailingSelectedSymbol {
+        let trailingView = NSImageView()
+        trailingView.image = appKitSymbolImage(
+            named: trailingSelectedSymbol,
+            pointSize: 11,
+            weight: .bold,
+            color: accentColor
+        )
+        trailingView.isHidden = !isSelected
+        trailingView.translatesAutoresizingMaskIntoConstraints = false
+        button.addSubview(trailingView)
+
+        NSLayoutConstraint.activate([
+            trailingView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -12),
+            trailingView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+        ])
+    }
+
+    return button
+}
+
+func makeAppKitDividerView(
+    color: NSColor = NSColor.separatorColor.withAlphaComponent(0.4)
+) -> NSView {
+    let divider = NSView()
+    divider.wantsLayer = true
+    divider.layer?.backgroundColor = color.cgColor
+    divider.translatesAutoresizingMaskIntoConstraints = false
+    divider.heightAnchor.constraint(equalToConstant: 1).isActive = true
+    return divider
+}
+
 func makeAppKitSectionLabel(_ text: String) -> NSTextField {
     let label = NSTextField(labelWithString: text)
     label.font = AppKitUIConstants.Typography.helperLabel
     label.textColor = .secondaryLabelColor
+    return label
+}
+
+func makeAppKitBodyLabel(_ text: String, alignment: NSTextAlignment = .left) -> NSTextField {
+    let label = NSTextField(labelWithString: text)
+    label.font = AppKitUIConstants.Typography.body
+    label.textColor = .secondaryLabelColor
+    label.alignment = alignment
+    label.lineBreakMode = .byTruncatingTail
     return label
 }

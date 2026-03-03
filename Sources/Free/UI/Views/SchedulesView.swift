@@ -534,27 +534,25 @@ extension SchedulesSheetViewController {
             viewModeControl.setWidth(27, forSegment: 0)
             viewModeControl.setWidth(27, forSegment: 1)
             viewModeControl.setImage(
-                symbolImage(named: "list.bullet", pointSize: 11, weight: .regular),
+                appKitSymbolImage(named: "list.bullet", pointSize: 11, weight: .regular),
                 forSegment: 0
             )
             viewModeControl.setImage(
-                symbolImage(named: "calendar", pointSize: 11, weight: .regular),
+                appKitSymbolImage(named: "calendar", pointSize: 11, weight: .regular),
                 forSegment: 1
             )
         }
 
         private func configureIconButton(_ button: NSButton, symbolName: String) {
-            button.isBordered = false
-            button.wantsLayer = true
-            button.layer?.cornerRadius = 14
-            button.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.06).cgColor
-            button.image = symbolImage(
-                named: symbolName,
+            configureAppKitIconButton(
+                button,
+                symbolName: symbolName,
                 pointSize: 11,
                 weight: .semibold,
-                color: .secondaryLabelColor
+                color: .secondaryLabelColor,
+                backgroundColor: NSColor.labelColor.withAlphaComponent(0.06),
+                cornerRadius: 14
             )
-            button.imagePosition = .imageOnly
         }
 
         private func configureTodayButton() {
@@ -663,32 +661,6 @@ extension SchedulesSheetViewController {
                 width: doneSize.width,
                 height: doneSize.height
             )
-        }
-
-        private func symbolImage(
-            named symbolName: String,
-            pointSize: CGFloat,
-            weight: NSFont.Weight,
-            color: NSColor? = nil
-        ) -> NSImage? {
-            guard
-                let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
-            else {
-                return nil
-            }
-
-            var configuredImage =
-                baseImage.withSymbolConfiguration(
-                    .init(pointSize: pointSize, weight: weight)
-                )
-
-            if let color {
-                configuredImage = configuredImage?.withSymbolConfiguration(
-                    .init(paletteColors: [color])
-                )
-            }
-
-            return configuredImage ?? baseImage
         }
 
         @objc
@@ -803,7 +775,7 @@ extension SchedulesSheetViewController {
             super.init(frame: frameRect)
 
             deleteButton.isBordered = false
-            deleteButton.image = symbolImage(
+            deleteButton.image = appKitSymbolImage(
                 named: "trash",
                 pointSize: 13,
                 weight: .regular,
@@ -916,7 +888,7 @@ extension SchedulesSheetViewController {
             var titleX = contentLeft
             let titleY: CGFloat = 10
 
-            if let typeImage = symbolImage(
+            if let typeImage = appKitSymbolImage(
                 named: schedule.type == .focus ? "target" : "cup.and.saucer.fill",
                 pointSize: 11,
                 weight: .semibold,
@@ -991,7 +963,7 @@ extension SchedulesSheetViewController {
             NSColor.secondaryLabelColor.withAlphaComponent(0.12).setFill()
             badgePath.fill()
 
-            if let icon = symbolImage(
+            if let icon = appKitSymbolImage(
                 named: symbolName,
                 pointSize: 9,
                 weight: .semibold,
@@ -1039,23 +1011,4 @@ extension SchedulesSheetViewController {
             (title as NSString).draw(in: textRect, withAttributes: tagAttributes)
         }
 
-        private func symbolImage(
-            named symbolName: String,
-            pointSize: CGFloat,
-            weight: NSFont.Weight,
-            color: NSColor
-        ) -> NSImage? {
-            guard
-                let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
-            else {
-                return nil
-            }
-
-            let configuredImage =
-                baseImage
-                .withSymbolConfiguration(.init(pointSize: pointSize, weight: weight))?
-                .withSymbolConfiguration(.init(paletteColors: [color]))
-
-            return configuredImage ?? baseImage
-        }
     }
