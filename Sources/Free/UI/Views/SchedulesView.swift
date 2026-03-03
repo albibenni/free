@@ -39,7 +39,6 @@ struct SchedulesView: View {
     var body: some View {
         SchedulesAppKitView(configuration: makeAppKitConfiguration())
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .sheet(item: $editorContext, content: makeAddScheduleSheet(context:))
     }
 
     private var dayOrder: [Int] {
@@ -74,6 +73,8 @@ struct SchedulesView: View {
             schedules: appState.schedules,
             accentColor: NSColor(FocusColor.color(for: appState.accentColorIndex)),
             accentColorIndex: appState.accentColorIndex,
+            appState: appState,
+            editorContext: editorContext,
             calendarViewConfiguration: WeeklyCalendarAppKitView(
                 dayOrder: dayOrder,
                 weekRange: weekRange,
@@ -121,6 +122,7 @@ struct SchedulesView: View {
                 setScheduleEnabled(scheduleId: scheduleId, isEnabled: isEnabled)
             },
             onAddSchedule: openAddSchedule,
+            onDismissEditor: { editorContext = nil },
             onDismiss: dismissAction,
             onPreviousWeek: goToPreviousWeek,
             onCurrentWeek: goToCurrentWeek,
@@ -316,12 +318,15 @@ struct SchedulesView: View {
         let schedules: [Schedule]
         let accentColor: NSColor
         let accentColorIndex: Int
+        let appState: AppState
+        let editorContext: ScheduleEditorContext?
         let calendarViewConfiguration: WeeklyCalendarAppKitView
         let onChangeViewMode: (Int) -> Void
         let onSelectSchedule: (Schedule) -> Void
         let onDeleteSchedule: (UUID) -> Void
         let onToggleScheduleEnabled: (UUID, Bool) -> Void
         let onAddSchedule: () -> Void
+        let onDismissEditor: () -> Void
         let onDismiss: (() -> Void)?
         let onPreviousWeek: () -> Void
         let onCurrentWeek: () -> Void
@@ -356,6 +361,9 @@ struct SchedulesView: View {
         private let bottomDivider = NSView()
         private let addButton = NSButton(title: "Add Schedule", target: nil, action: nil)
         private var configuration: SchedulesAppKitConfiguration?
+        private var editorSheetController: FreeSheetWindowController?
+        private var presentedEditorContextId: UUID?
+        private var editorDismissShouldClearContext = true
 
         override var isFlipped: Bool { true }
 
@@ -418,6 +426,11 @@ struct SchedulesView: View {
             fatalError("init(coder:) has not been implemented")
         }
 
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            syncEditorPresentation()
+        }
+
         func configure(with configuration: SchedulesAppKitConfiguration) {
             self.configuration = configuration
 
@@ -446,7 +459,63 @@ struct SchedulesView: View {
             listScrollView.isHidden = showsCalendar
             calendarView.isHidden = !showsCalendar
 
+            syncEditorPresentation()
             needsLayout = true
+        }
+
+        private func syncEditorPresentation() {
+            guard let configuration else { return }
+
+            guard let context = configuration.editorContext else {
+                dismissEditorIfNeeded()
+                return
+            }
+
+            guard let window else { return }
+
+            if presentedEditorContextId == context.id, editorSheetController != nil {
+                return
+            }
+
+            dismissEditorIfNeeded()
+            presentEditor(context: context, in: window, appState: configuration.appState)
+        }
+
+        private func presentEditor(
+            context: ScheduleEditorContext,
+            in window: NSWindow,
+            appState: AppState
+        ) {
+            let editorViewController = ScheduleEditorViewController(
+                appState: appState,
+                context: context
+            ) { [weak self] in
+                self?.editorSheetController?.dismiss()
+            }
+            let controller = FreeSheetWindowController(
+                contentViewController: editorViewController,
+                contentSize: CGSize(width: 500, height: 650)
+            ) { [weak self] in
+                guard let self else { return }
+                self.editorSheetController = nil
+                self.presentedEditorContextId = nil
+                if self.editorDismissShouldClearContext, self.configuration?.editorContext != nil {
+                    self.configuration?.onDismissEditor()
+                }
+                self.editorDismissShouldClearContext = true
+            }
+            editorSheetController = controller
+            presentedEditorContextId = context.id
+            editorDismissShouldClearContext = true
+            controller.present(for: window)
+        }
+
+        private func dismissEditorIfNeeded(clearContext: Bool = false) {
+            guard let controller = editorSheetController else { return }
+            editorDismissShouldClearContext = clearContext
+            editorSheetController = nil
+            presentedEditorContextId = nil
+            controller.dismiss()
         }
 
         override func layout() {

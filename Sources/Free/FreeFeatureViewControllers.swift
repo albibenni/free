@@ -104,7 +104,7 @@ final class FocusSectionViewController: NSViewController {
     private let overviewRowsStack = NSStackView()
     private let widgetContainer = NSView()
 
-    private var widgetHostingController: NSHostingController<AnyView>?
+    private var widgetView: NSView?
     private var cancellables: Set<AnyCancellable> = []
 
     init(appState: AppState, shellState: FreeShellState, section: FocusContentSection) {
@@ -421,60 +421,31 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private func reloadWidget() {
-        widgetHostingController?.view.removeFromSuperview()
-        widgetHostingController?.removeFromParent()
-        widgetHostingController = nil
+        widgetView?.removeFromSuperview()
+        widgetView = nil
         widgetContainer.isHidden = section == .all
 
-        let widgetView: AnyView
+        let nextWidgetView: NSView
         switch section {
         case .pomodoro:
-            widgetView = AnyView(
-                PomodoroWidget(
-                    showPomodoroChallenge: .constant(false),
-                    pomodoroChallengeInput: .constant(""),
-                    initialIsExpanded: true
-                )
-                .environmentObject(appState)
-            )
+            nextWidgetView = FocusPomodoroWidgetView(appState: appState)
         case .schedules:
-            widgetView = AnyView(
-                SchedulesWidget(
-                    showSchedules: Binding(
-                        get: { self.shellState.showSchedules },
-                        set: { self.shellState.showSchedules = $0 }
-                    ),
-                    initialIsExpanded: true
-                )
-                .environmentObject(appState)
-            )
+            nextWidgetView = FocusSchedulesWidgetView(appState: appState, shellState: shellState)
         case .allowedWebsites:
-            widgetView = AnyView(
-                AllowedWebsitesWidget(
-                    showRules: Binding(
-                        get: { self.shellState.showRules },
-                        set: { self.shellState.showRules = $0 }
-                    ),
-                    initialIsExpanded: true
-                )
-                .environmentObject(appState)
-            )
+            nextWidgetView = FocusAllowedWebsitesWidgetView(appState: appState, shellState: shellState)
         case .all:
             return
         }
 
-        let hostingController = NSHostingController(rootView: widgetView)
-        addChild(hostingController)
-        let hostedView = hostingController.view
-        hostedView.translatesAutoresizingMaskIntoConstraints = false
-        widgetContainer.addSubview(hostedView)
+        nextWidgetView.translatesAutoresizingMaskIntoConstraints = false
+        widgetContainer.addSubview(nextWidgetView)
         NSLayoutConstraint.activate([
-            hostedView.leadingAnchor.constraint(equalTo: widgetContainer.leadingAnchor),
-            hostedView.trailingAnchor.constraint(equalTo: widgetContainer.trailingAnchor),
-            hostedView.topAnchor.constraint(equalTo: widgetContainer.topAnchor),
-            hostedView.bottomAnchor.constraint(equalTo: widgetContainer.bottomAnchor),
+            nextWidgetView.leadingAnchor.constraint(equalTo: widgetContainer.leadingAnchor),
+            nextWidgetView.trailingAnchor.constraint(equalTo: widgetContainer.trailingAnchor),
+            nextWidgetView.topAnchor.constraint(equalTo: widgetContainer.topAnchor),
+            nextWidgetView.bottomAnchor.constraint(equalTo: widgetContainer.bottomAnchor),
         ])
-        widgetHostingController = hostingController
+        widgetView = nextWidgetView
     }
 
     @objc

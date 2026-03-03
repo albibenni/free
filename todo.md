@@ -64,6 +64,8 @@
 - [x] app state change not highlighting correctly and lag
   - [ ] state change should follow color schema
 - [ ] can't close cmd+q the app
+- [ ] buttons don't follow color schema - matte instead of shaded
+- [ ] app icons without padding - side bar
 
 ## Performance check
 
