@@ -1,20 +1,33 @@
-import SwiftUI
+import AppKit
+import Combine
 
-#if !SWIFT_PACKAGE
-@main
-#endif
-struct FreeApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var appState: AppState
+final class FreeApp {
+    let appState: AppState
+    let appDelegate: AppDelegate
 
-    init() {
-        let defaults = UserDefaults.standard
-        let state = AppState(defaults: defaults)
-        _appState = StateObject(wrappedValue: state)
-    }
+    private let makeMainViewController: (AppState) -> FreeMainViewController
+    private let makeStatusItemController: (@escaping () -> Void) -> FreeStatusItemController
 
-    init(appState: AppState) {
-        _appState = StateObject(wrappedValue: appState)
+    private(set) var mainWindowController: FreeMainWindowController?
+    private(set) var statusItemController: FreeStatusItemController?
+
+    private var cancellables: Set<AnyCancellable> = []
+    private var hasBoundState = false
+
+    init(
+        appState: AppState = AppState(defaults: .standard),
+        appDelegate: AppDelegate = AppDelegate(),
+        makeMainViewController: @escaping (AppState) -> FreeMainViewController = {
+            FreeMainViewController(appState: $0)
+        },
+        makeStatusItemController: @escaping (@escaping () -> Void) -> FreeStatusItemController = {
+            FreeStatusItemController(onQuit: $0)
+        }
+    ) {
+        self.appState = appState
+        self.appDelegate = appDelegate
+        self.makeMainViewController = makeMainViewController
+        self.makeStatusItemController = makeStatusItemController
     }
 
     var menuStatusText: String {
@@ -25,16 +38,96 @@ struct FreeApp: App {
         appState.isBlocking
     }
 
-    var menuIconColor: Color {
-        appState.isBlocking ? .green : .primary
+    var menuIconColor: NSColor {
+        appState.isBlocking ? .systemGreen : .labelColor
     }
 
-    var body: some Scene {
-        FreeAppSceneFactory.make(
-            appState: appState,
-            menuStatusText: menuStatusText,
+    static func quitAction() -> () -> Void {
+        FreeAppRuntime.quitApplication
+    }
+
+    static func nsAppearance(for mode: AppearanceMode) -> NSAppearance? {
+        switch mode {
+        case .system:
+            return nil
+        case .light:
+            return NSAppearance(named: .aqua)
+        case .dark:
+            return NSAppearance(named: .darkAqua)
+        }
+    }
+
+    func launch(application: NSApplication = .shared) {
+        application.setActivationPolicy(.regular)
+        appDelegate.onApplicationDidFinishLaunching = { [weak self, weak application] in
+            guard let self, let application else { return }
+            self.startInterface(application: application)
+        }
+        application.delegate = appDelegate
+    }
+
+    func startInterface(application: NSApplication = .shared) {
+        if mainWindowController == nil {
+            let rootViewController = makeMainViewController(appState)
+            let windowController = FreeMainWindowController(rootViewController: rootViewController)
+            mainWindowController = windowController
+            windowController.showWindow(nil)
+            windowController.window?.makeKeyAndOrderFront(nil)
+            rootViewController.presentLaunchAtLoginPromptIfNeeded()
+        }
+
+        if statusItemController == nil {
+            statusItemController = makeStatusItemController(Self.quitAction())
+        }
+
+        bindStateIfNeeded()
+        applyMacOSAppearance(appState.appearanceMode)
+        updateStatusItem()
+        application.activate(ignoringOtherApps: true)
+    }
+
+    func applyMacOSAppearance(_ mode: AppearanceMode) {
+        NSApp.appearance = Self.nsAppearance(for: mode)
+    }
+
+    private func bindStateIfNeeded() {
+        guard !hasBoundState else { return }
+        hasBoundState = true
+
+        appState.$isBlocking
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateStatusItem()
+            }
+            .store(in: &cancellables)
+
+        appState.$appearanceMode
+            .receive(on: RunLoop.main)
+            .sink { [weak self] mode in
+                self?.applyMacOSAppearance(mode)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func updateStatusItem() {
+        statusItemController?.update(
+            statusText: menuStatusText,
             isQuitDisabled: isQuitDisabled,
-            menuIconColor: menuIconColor
+            iconColor: menuIconColor
         )
     }
 }
+
+#if !SWIFT_PACKAGE
+@main
+enum FreeAppMain {
+    static func main() {
+        let application = NSApplication.shared
+        let app = FreeApp()
+        app.launch(application: application)
+        withExtendedLifetime(app) {
+            application.run()
+        }
+    }
+}
+#endif

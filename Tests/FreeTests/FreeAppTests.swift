@@ -1,5 +1,5 @@
+import AppKit
 import Foundation
-import SwiftUI
 import Testing
 
 @testable import FreeLogic
@@ -20,9 +20,7 @@ struct FreeAppTests {
 
         #expect(app.menuStatusText == "Focus Mode: Inactive")
         #expect(app.isQuitDisabled == false)
-
-        _ = app.menuIconColor
-        _ = app.body
+        #expect(app.menuIconColor == .labelColor)
     }
 
     @Test("FreeApp reflects active menu state")
@@ -33,14 +31,22 @@ struct FreeAppTests {
 
         #expect(app.menuStatusText == "Focus Mode: Active")
         #expect(app.isQuitDisabled == true)
-
-        _ = app.menuIconColor
-        _ = app.body
+        #expect(app.menuIconColor == .systemGreen)
     }
 
-    @Test("FreeApp default initializer builds scenes")
-    func defaultInitializerBuildsScene() {
+    @Test("FreeApp appearance mapping mirrors app settings")
+    func appearanceMapping() {
+        #expect(FreeApp.nsAppearance(for: .system) == nil)
+        #expect(FreeApp.nsAppearance(for: .light)?.name == .aqua)
+        #expect(FreeApp.nsAppearance(for: .dark)?.name == .darkAqua)
+    }
+
+    @Test("FreeApp default initializer can be created")
+    func defaultInitializerBuildsAppController() {
         let app = FreeApp()
-        _ = app.body
+        #expect(
+            app.menuStatusText == "Focus Mode: Active"
+                || app.menuStatusText == "Focus Mode: Inactive"
+        )
     }
 }
