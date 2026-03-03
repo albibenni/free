@@ -254,9 +254,8 @@ func makeAppKitPillButton(
                 NSColor.labelColor.withAlphaComponent(0.08),
                 NSColor.labelColor.withAlphaComponent(0.04),
             ],
-        borderColor: isSelected
-            ? selectedColor.withAlphaComponent(0.24)
-            : NSColor.separatorColor.withAlphaComponent(0.18)
+        borderColor: nil,
+        borderWidth: 0
     )
     button.attributedTitle = NSAttributedString(
         string: title,
@@ -324,9 +323,8 @@ func makeAppKitSelectableRowButton(
                 NSColor.labelColor.withAlphaComponent(0.05),
                 NSColor.labelColor.withAlphaComponent(0.02),
             ],
-        borderColor: isSelected
-            ? accentColor.withAlphaComponent(0.22)
-            : NSColor.separatorColor.withAlphaComponent(0.18)
+        borderColor: nil,
+        borderWidth: 0
     )
     button.image = appKitSymbolImage(
         named: isSelected ? leadingSelectedSymbol : leadingUnselectedSymbol,
