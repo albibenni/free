@@ -17,26 +17,26 @@ private func makeWidgetHeader(
     iconView.heightAnchor.constraint(equalToConstant: 18).isActive = true
 
     let titleLabel = NSTextField(labelWithString: title)
-    titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+    titleLabel.font = AppKitUIConstants.Typography.cardTitle
     titleLabel.textColor = .labelColor
 
     let row = NSStackView(views: [iconView, titleLabel, NSView()])
     row.orientation = .horizontal
     row.alignment = .centerY
-    row.spacing = 8
+    row.spacing = AppKitUIConstants.Spacing.sectionStack
     return row
 }
 
 private func makeSectionLabel(_ text: String) -> NSTextField {
     let label = NSTextField(labelWithString: text)
-    label.font = .systemFont(ofSize: 11, weight: .bold)
+    label.font = AppKitUIConstants.Typography.helperLabel
     label.textColor = .secondaryLabelColor
     return label
 }
 
 private func makeBodyLabel(_ text: String, alignment: NSTextAlignment = .left) -> NSTextField {
     let label = NSTextField(labelWithString: text)
-    label.font = .systemFont(ofSize: 13)
+    label.font = AppKitUIConstants.Typography.body
     label.textColor = .secondaryLabelColor
     label.alignment = alignment
     label.lineBreakMode = .byTruncatingTail
@@ -128,16 +128,19 @@ final class FocusSchedulesWidgetView: AppKitCardView {
         row.translatesAutoresizingMaskIntoConstraints = false
 
         let timeLabel = NSTextField(labelWithString: schedule.timeRangeString)
-        timeLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
+        timeLabel.font = .monospacedDigitSystemFont(
+            ofSize: AppKitUIConstants.Typography.regular.pointSize,
+            weight: .semibold
+        )
         timeLabel.textColor = .labelColor
 
         let dayLabel = makeBodyLabel(schedule.daysString)
-        dayLabel.font = .systemFont(ofSize: 11)
+        dayLabel.font = AppKitUIConstants.Typography.helperLabel
 
         let timeStack = NSStackView(views: [timeLabel, dayLabel])
         timeStack.orientation = .vertical
         timeStack.alignment = .leading
-        timeStack.spacing = 2
+        timeStack.spacing = AppKitUIConstants.Spacing.compact / 2
         timeStack.translatesAutoresizingMaskIntoConstraints = false
         timeStack.widthAnchor.constraint(equalToConstant: 96).isActive = true
 
@@ -148,32 +151,32 @@ final class FocusSchedulesWidgetView: AppKitCardView {
                 ? accentColor
                 : FocusColor.nsColor(for: schedule.colorIndex)
         ).cgColor
-        indicator.layer?.cornerRadius = 2
+        indicator.layer?.cornerRadius = AppKitUIConstants.CornerRadius.badge / 2
         indicator.translatesAutoresizingMaskIntoConstraints = false
         indicator.widthAnchor.constraint(equalToConstant: 4).isActive = true
         indicator.heightAnchor.constraint(equalToConstant: 28).isActive = true
 
         let nameLabel = NSTextField(labelWithString: schedule.name)
-        nameLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        nameLabel.font = AppKitUIConstants.Typography.buttonLabel
         nameLabel.textColor = .labelColor
         nameLabel.lineBreakMode = .byTruncatingTail
 
         let typeLabel = makeBodyLabel(schedule.type.rawValue)
-        typeLabel.font = .systemFont(ofSize: 11)
+        typeLabel.font = AppKitUIConstants.Typography.helperLabel
 
         let nameStack = NSStackView(views: [nameLabel, typeLabel])
         nameStack.orientation = .vertical
         nameStack.alignment = .leading
-        nameStack.spacing = 2
+        nameStack.spacing = AppKitUIConstants.Spacing.compact / 2
 
         let trailingView: NSView
         if !schedule.isEnabled {
             let disabledLabel = NSTextField(labelWithString: "Disabled")
-            disabledLabel.font = .systemFont(ofSize: 10, weight: .bold)
+            disabledLabel.font = AppKitUIConstants.Typography.regular
             disabledLabel.textColor = .secondaryLabelColor
             disabledLabel.wantsLayer = true
             disabledLabel.layer?.backgroundColor = NSColor.secondaryLabelColor.withAlphaComponent(0.12).cgColor
-            disabledLabel.layer?.cornerRadius = 4
+            disabledLabel.layer?.cornerRadius = AppKitUIConstants.CornerRadius.badge
             disabledLabel.alignment = .center
             disabledLabel.translatesAutoresizingMaskIntoConstraints = false
             disabledLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 54).isActive = true

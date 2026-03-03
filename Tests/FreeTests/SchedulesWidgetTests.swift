@@ -1,8 +1,6 @@
 import AppKit
 import Foundation
-import SwiftUI
 import Testing
-import ViewInspector
 
 @testable import FreeLogic
 
@@ -16,14 +14,39 @@ struct SchedulesWidgetTests {
     }
 
     @MainActor
-    private func host<V: View>(_ view: V, size: CGSize = CGSize(width: 560, height: 560))
-        -> NSHostingView<V>
-    {
-        let hosted = NSHostingView(rootView: view)
-        hosted.frame = NSRect(origin: .zero, size: size)
-        hosted.layoutSubtreeIfNeeded()
-        hosted.displayIfNeeded()
-        return hosted
+    private func host(_ view: NSView, size: CGSize = CGSize(width: 560, height: 560)) -> NSView {
+        view.frame = NSRect(origin: .zero, size: size)
+        view.layoutSubtreeIfNeeded()
+        view.displayIfNeeded()
+        return view
+    }
+
+    private func visibleText(in view: NSView) -> [String] {
+        guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
+
+        var values: [String] = []
+        if let label = view as? NSTextField, !label.stringValue.isEmpty {
+            values.append(label.stringValue)
+        }
+        if let button = view as? NSButton, !button.title.isEmpty {
+            values.append(button.title)
+        }
+
+        for subview in view.subviews {
+            values.append(contentsOf: visibleText(in: subview))
+        }
+        return values
+    }
+
+    private func buttons(in view: NSView) -> [NSButton] {
+        var all: [NSButton] = []
+        if let button = view as? NSButton {
+            all.append(button)
+        }
+        for subview in view.subviews {
+            all.append(contentsOf: buttons(in: subview))
+        }
+        return all
     }
 
     private func schedule(
@@ -50,90 +73,48 @@ struct SchedulesWidgetTests {
         )
     }
 
-    @Test("SchedulesWidget collapsed header shows today badge only when enabled schedules exist")
+    @Test("FocusSchedulesWidget renders empty state and opens the calendar sheet")
     @MainActor
-    func schedulesWidgetCollapsedBadge() throws {
-        let appState = isolatedAppState(name: "collapsedBadge")
-        appState.schedules = [schedule(name: "Active", enabled: true, startOffsetMinutes: -60, endOffsetMinutes: 60)]
-
-        var showSchedules = false
-        let binding = Binding(get: { showSchedules }, set: { showSchedules = $0 })
-
-        let sutWithBadge = SchedulesWidget(showSchedules: binding)
-            .environmentObject(appState)
-        let hosted = host(sutWithBadge)
-        #expect(hosted.fittingSize.height >= 0)
-        #expect((try? sutWithBadge.inspect().find(text: "1 today")) != nil)
-        try sutWithBadge.inspect().findAll(ViewType.Button.self).first?.tap()
-
-        appState.schedules = [schedule(name: "Disabled", enabled: false, startOffsetMinutes: -60, endOffsetMinutes: 60)]
-        let sutNoBadge = SchedulesWidget(showSchedules: binding)
-            .environmentObject(appState)
-        #expect((try? sutNoBadge.inspect().find(text: "1 today")) == nil)
-    }
-
-    @Test("SchedulesWidget expanded empty state and open-calendar action")
-    @MainActor
-    func schedulesWidgetExpandedEmptyStateAndOpenAction() throws {
-        let appState = isolatedAppState(name: "expandedEmpty")
+    func schedulesWidgetEmptyStateAndOpenAction() {
+        let appState = isolatedAppState(name: "emptyState")
         appState.schedules = []
 
-        var showSchedules = false
-        let binding = Binding(get: { showSchedules }, set: { showSchedules = $0 })
-        let sut = SchedulesWidget(showSchedules: binding, initialIsExpanded: true)
-            .environmentObject(appState)
-        #expect((try? sut.inspect().find(text: "No schedules planned for today.")) != nil)
-        #expect((try? sut.inspect().find(text: "Open Full Calendar")) != nil)
+        let shellState = FreeShellState()
+        let hosted = host(FocusSchedulesWidgetView(appState: appState, shellState: shellState))
+        let texts = visibleText(in: hosted)
 
-        try sut.inspect().findAll(ViewType.Button.self).last?.tap()
-        #expect(showSchedules == true)
+        #expect(texts.contains("Focus Schedules"))
+        #expect(texts.contains("No schedules planned for today."))
+        #expect(texts.contains("Open Full Calendar"))
+
+        let openButton = buttons(in: hosted).first { $0.title == "Open Full Calendar" }
+        #expect(openButton != nil)
+        openButton?.performClick(nil)
+        #expect(shellState.showSchedules)
     }
 
-    @Test("SchedulesWidget expanded list covers disabled and active schedule row branches")
+    @Test("FocusSchedulesWidget renders enabled and disabled schedule rows")
     @MainActor
-    func schedulesWidgetExpandedRows() throws {
-        let appState = isolatedAppState(name: "expandedRows")
+    func schedulesWidgetRowsRender() {
+        let appState = isolatedAppState(name: "rowsRender")
         let active = schedule(name: "Deep Work", enabled: true, startOffsetMinutes: -30, endOffsetMinutes: 30)
-        let disabled = schedule(name: "Muted", enabled: false, startOffsetMinutes: 120, endOffsetMinutes: 180, type: .unfocus)
-        appState.schedules = [active, disabled]
-
-        var showSchedules = false
-        let binding = Binding(get: { showSchedules }, set: { showSchedules = $0 })
-        let sut = SchedulesWidget(showSchedules: binding, initialIsExpanded: true)
-            .environmentObject(appState)
-
-        #expect((try? sut.inspect().find(text: "Deep Work")) != nil)
-        #expect((try? sut.inspect().find(text: "Muted")) != nil)
-        #expect((try? sut.inspect().find(text: "Focus")) != nil)
-        #expect((try? sut.inspect().find(text: "Break")) != nil)
-        #expect((try? sut.inspect().find(text: "Disabled")) != nil)
-    }
-
-    @Test("SchedulesWidget indicator color follows accent for focus and keeps theme for break")
-    func schedulesWidgetIndicatorColorMapping() {
-        let focusSchedule = schedule(
-            name: "Focus",
-            enabled: true,
-            startOffsetMinutes: -10,
-            endOffsetMinutes: 10,
-            type: .focus
-        )
-        #expect(
-            SchedulesWidget.indicatorColor(for: focusSchedule, accentColorIndex: 5)
-                == FocusColor.color(for: 5)
-        )
-
-        var breakSchedule = schedule(
-            name: "Break",
-            enabled: true,
-            startOffsetMinutes: -10,
-            endOffsetMinutes: 10,
+        let disabled = schedule(
+            name: "Muted",
+            enabled: false,
+            startOffsetMinutes: 120,
+            endOffsetMinutes: 180,
             type: .unfocus
         )
-        breakSchedule.colorIndex = 7
-        #expect(
-            SchedulesWidget.indicatorColor(for: breakSchedule, accentColorIndex: 5)
-                == breakSchedule.themeColor
-        )
+        appState.schedules = [active, disabled]
+
+        let hosted = host(FocusSchedulesWidgetView(appState: appState, shellState: FreeShellState()))
+        let texts = visibleText(in: hosted)
+
+        #expect(texts.contains("Deep Work"))
+        #expect(texts.contains("Muted"))
+        #expect(texts.contains("Focus"))
+        #expect(texts.contains("Break"))
+        #expect(texts.contains("Disabled"))
+        #expect(texts.contains("No schedules planned for today.") == false)
     }
 }
