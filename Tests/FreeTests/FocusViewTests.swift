@@ -28,17 +28,17 @@ struct FocusViewTests {
 
     @Test("FocusView helper logic covers warning/icon/status/pause/action paths")
     func focusViewHelperLogic() {
-        #expect(FocusView.shouldShowUnblockableWarning(isBlocking: true, isUnblockable: true))
-        #expect(!FocusView.shouldShowUnblockableWarning(isBlocking: false, isUnblockable: true))
-        #expect(!FocusView.shouldShowUnblockableWarning(isBlocking: true, isUnblockable: false))
+        #expect(FocusSectionSupport.shouldShowUnblockableWarning(isBlocking: true, isUnblockable: true))
+        #expect(!FocusSectionSupport.shouldShowUnblockableWarning(isBlocking: false, isUnblockable: true))
+        #expect(!FocusSectionSupport.shouldShowUnblockableWarning(isBlocking: true, isUnblockable: false))
 
         let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-        let options = FocusView.accessibilityPromptOptions() as NSDictionary
+        let options = FocusSectionSupport.accessibilityPromptOptions() as NSDictionary
         #expect((options[key] as? Bool) == true)
 
         var grantCallCount = 0
         var capturedOptions: NSDictionary?
-        let grantAction = FocusView.makeGrantAccessibilityAction { options in
+        let grantAction = FocusSectionSupport.makeGrantAccessibilityAction { options in
             grantCallCount += 1
             capturedOptions = options as NSDictionary
             return true
@@ -47,24 +47,24 @@ struct FocusViewTests {
         #expect(grantCallCount == 1)
         #expect((capturedOptions?[key] as? Bool) == true)
 
-        #expect(FocusView.focusIconColor(isBlocking: true, isPaused: false) == .green)
-        #expect(FocusView.focusIconColor(isBlocking: true, isPaused: true) == .gray)
-        #expect(FocusView.focusIconColor(isBlocking: false, isPaused: false) == .gray)
+        #expect(FocusSectionSupport.focusIconColor(isBlocking: true, isPaused: false) == .systemGreen)
+        #expect(FocusSectionSupport.focusIconColor(isBlocking: true, isPaused: true) == .systemGray)
+        #expect(FocusSectionSupport.focusIconColor(isBlocking: false, isPaused: false) == .systemGray)
 
-        #expect(FocusView.statusLabel(isBlocking: false, isPaused: false) == "Inactive")
-        #expect(FocusView.statusLabel(isBlocking: true, isPaused: false) == "Active")
-        #expect(FocusView.statusLabel(isBlocking: true, isPaused: true) == "Paused")
+        #expect(FocusSectionSupport.statusLabel(isBlocking: false, isPaused: false) == "Inactive")
+        #expect(FocusSectionSupport.statusLabel(isBlocking: true, isPaused: false) == "Active")
+        #expect(FocusSectionSupport.statusLabel(isBlocking: true, isPaused: true) == "Paused")
 
-        #expect(FocusView.shouldShowRuleSetName(isBlocking: true, isPaused: false))
-        #expect(!FocusView.shouldShowRuleSetName(isBlocking: true, isPaused: true))
-        #expect(!FocusView.shouldShowRuleSetName(isBlocking: false, isPaused: false))
+        #expect(FocusSectionSupport.shouldShowRuleSetName(isBlocking: true, isPaused: false))
+        #expect(!FocusSectionSupport.shouldShowRuleSetName(isBlocking: true, isPaused: true))
+        #expect(!FocusSectionSupport.shouldShowRuleSetName(isBlocking: false, isPaused: false))
 
-        #expect(FocusView.shouldShowPauseDashboard(isBlocking: true, isPaused: true))
-        #expect(!FocusView.shouldShowPauseDashboard(isBlocking: true, isPaused: false))
-        #expect(!FocusView.shouldShowPauseDashboard(isBlocking: false, isPaused: true))
+        #expect(FocusSectionSupport.shouldShowPauseDashboard(isBlocking: true, isPaused: true))
+        #expect(!FocusSectionSupport.shouldShowPauseDashboard(isBlocking: true, isPaused: false))
+        #expect(!FocusSectionSupport.shouldShowPauseDashboard(isBlocking: false, isPaused: true))
 
         #expect(
-            FocusView.shouldShowAllowListPreview(
+            FocusSectionSupport.shouldShowAllowListPreview(
                 isBlocking: true,
                 pomodoroStatus: .none,
                 hasActiveFocusSchedule: false,
@@ -72,7 +72,7 @@ struct FocusViewTests {
             )
         )
         #expect(
-            FocusView.shouldShowAllowListPreview(
+            FocusSectionSupport.shouldShowAllowListPreview(
                 isBlocking: false,
                 pomodoroStatus: .focus,
                 hasActiveFocusSchedule: false,
@@ -80,7 +80,7 @@ struct FocusViewTests {
             )
         )
         #expect(
-            FocusView.shouldShowAllowListPreview(
+            FocusSectionSupport.shouldShowAllowListPreview(
                 isBlocking: false,
                 pomodoroStatus: .none,
                 hasActiveFocusSchedule: true,
@@ -88,7 +88,7 @@ struct FocusViewTests {
             )
         )
         #expect(
-            !FocusView.shouldShowAllowListPreview(
+            !FocusSectionSupport.shouldShowAllowListPreview(
                 isBlocking: false,
                 pomodoroStatus: .none,
                 hasActiveFocusSchedule: false,
@@ -96,7 +96,7 @@ struct FocusViewTests {
             )
         )
         #expect(
-            !FocusView.shouldShowAllowListPreview(
+            !FocusSectionSupport.shouldShowAllowListPreview(
                 isBlocking: true,
                 pomodoroStatus: .focus,
                 hasActiveFocusSchedule: true,
@@ -104,13 +104,13 @@ struct FocusViewTests {
             )
         )
 
-        #expect(FocusView.pomodoroPhaseLabel(status: .none) == "Inactive")
-        #expect(FocusView.pomodoroPhaseLabel(status: .focus) == "Focus")
-        #expect(FocusView.pomodoroPhaseLabel(status: .breakTime) == "Break")
+        #expect(FocusSectionSupport.pomodoroPhaseLabel(status: .none) == "Inactive")
+        #expect(FocusSectionSupport.pomodoroPhaseLabel(status: .focus) == "Focus")
+        #expect(FocusSectionSupport.pomodoroPhaseLabel(status: .breakTime) == "Break")
 
         let appState = isolatedAppState(name: "cancelPauseAction")
         appState.isPaused = true
-        let cancelPause = FocusView.makeCancelPauseAction(appState: appState)
+        let cancelPause = FocusSectionSupport.makeCancelPauseAction(appState: appState)
         cancelPause()
         #expect(appState.isPaused == false)
     }

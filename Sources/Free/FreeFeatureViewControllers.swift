@@ -1,6 +1,5 @@
 import AppKit
 import Combine
-import SwiftUI
 
 private final class FlippedContentView: NSView {
     override var isFlipped: Bool { true }
@@ -303,22 +302,20 @@ final class FocusSectionViewController: NSViewController {
             systemSymbolName: headerIconName,
             accessibilityDescription: nil
         )
-        headerIconView.contentTintColor = NSColor(
-            FocusView.focusIconColor(
-                isBlocking: appState.isBlocking,
-                isPaused: appState.isPaused
-            )
+        headerIconView.contentTintColor = FocusSectionSupport.focusIconColor(
+            isBlocking: appState.isBlocking,
+            isPaused: appState.isPaused
         )
         headerStatusLabel.stringValue = headerStatusText()
 
         unblockableWarningLabel.font = .systemFont(ofSize: 12)
         unblockableWarningLabel.textColor = .systemOrange
-        unblockableWarningLabel.isHidden = !FocusView.shouldShowUnblockableWarning(
+        unblockableWarningLabel.isHidden = !FocusSectionSupport.shouldShowUnblockableWarning(
             isBlocking: appState.isBlocking,
             isUnblockable: appState.isUnblockable
         )
 
-        pauseDashboardView.isHidden = !FocusView.shouldShowPauseDashboard(
+        pauseDashboardView.isHidden = !FocusSectionSupport.shouldShowPauseDashboard(
             isBlocking: appState.isBlocking,
             isPaused: appState.isPaused
         )
@@ -331,11 +328,11 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private func headerStatusText() -> String {
-        let status = FocusView.statusLabel(
+        let status = FocusSectionSupport.statusLabel(
             isBlocking: appState.isBlocking,
             isPaused: appState.isPaused
         )
-        guard FocusView.shouldShowRuleSetName(
+        guard FocusSectionSupport.shouldShowRuleSetName(
             isBlocking: appState.isBlocking,
             isPaused: appState.isPaused
         ) else {
@@ -352,7 +349,7 @@ final class FocusSectionViewController: NSViewController {
             .map(\.name)
         let currentRuleSet = appState.ruleSets.first(where: { $0.id == appState.currentPrimaryRuleSetId })
 
-        let shouldShowAllowList = FocusView.shouldShowAllowListPreview(
+        let shouldShowAllowList = FocusSectionSupport.shouldShowAllowListPreview(
             isBlocking: appState.isBlocking,
             pomodoroStatus: appState.pomodoroStatus,
             hasActiveFocusSchedule: !activeScheduleNames.isEmpty,
@@ -386,7 +383,7 @@ final class FocusSectionViewController: NSViewController {
                 makeOverviewRow(
                     iconName: "timer",
                     title: "Pomodoro",
-                    value: "\(FocusView.pomodoroPhaseLabel(status: appState.pomodoroStatus)) • \(appState.timeString(time: appState.pomodoroRemaining))"
+                    value: "\(FocusSectionSupport.pomodoroPhaseLabel(status: appState.pomodoroStatus)) • \(appState.timeString(time: appState.pomodoroRemaining))"
                 )
             )
         }
@@ -401,7 +398,7 @@ final class FocusSectionViewController: NSViewController {
 
     private func makeOverviewRow(iconName: String, title: String, value: String) -> NSView {
         let icon = NSImageView(image: NSImage(systemSymbolName: iconName, accessibilityDescription: nil) ?? NSImage())
-        icon.contentTintColor = NSColor(FocusColor.color(for: appState.accentColorIndex))
+        icon.contentTintColor = FocusColor.nsColor(for: appState.accentColorIndex)
 
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 13)
@@ -450,7 +447,7 @@ final class FocusSectionViewController: NSViewController {
 
     @objc
     private func grantAccessibility() {
-        FocusView.makeGrantAccessibilityAction()()
+        FocusSectionSupport.makeGrantAccessibilityAction()()
     }
 
     @objc

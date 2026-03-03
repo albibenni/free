@@ -57,13 +57,13 @@ struct UIComponentTests {
         let calendar = Calendar.current
         let now = Date()
 
-        let config1 = AddScheduleView.configure(
+        let config1 = ScheduleEditorSupport.configuration(
             initialDay: 3, initialStartTime: nil, initialEndTime: nil, existingSchedule: nil)
         #expect(config1.days == [3])
         #expect(config1.name == "")
 
         let start = calendar.date(from: DateComponents(hour: 14, minute: 0))!
-        let config2 = AddScheduleView.configure(
+        let config2 = ScheduleEditorSupport.configuration(
             initialDay: nil, initialStartTime: start, initialEndTime: nil, existingSchedule: nil)
         #expect(config2.startTime == start)
         let endHour = calendar.component(.hour, from: config2.endTime)
@@ -72,7 +72,7 @@ struct UIComponentTests {
         let existing = Schedule(
             name: "Existing", days: [1], startTime: now, endTime: now, colorIndex: 5, type: .unfocus
         )
-        let config3 = AddScheduleView.configure(
+        let config3 = ScheduleEditorSupport.configuration(
             initialDay: nil, initialStartTime: nil, initialEndTime: nil, existingSchedule: existing)
         #expect(config3.name == "Existing")
         #expect(config3.colorIndex == 5)
@@ -100,7 +100,7 @@ struct UIComponentTests {
         let start = calendar.date(from: DateComponents(hour: 17, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 9, minute: 0))!
 
-        let config = AddScheduleView.configure(
+        let config = ScheduleEditorSupport.configuration(
             initialDay: nil, initialStartTime: start, initialEndTime: end, existingSchedule: nil)
 
         #expect(config.endTime == end)

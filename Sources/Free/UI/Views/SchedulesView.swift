@@ -2,15 +2,6 @@ import SwiftUI
 import AppKit
 import Combine
 
-struct ScheduleEditorContext: Identifiable {
-    let id = UUID()
-    var day: Int?
-    var startTime: Date?
-    var endTime: Date?
-    var schedule: Schedule?
-    var weekOffset: Int = 0
-}
-
 struct SchedulesView: View {
     @EnvironmentObject private var environmentAppState: AppState
     private let actionAppState: AppState?
@@ -322,14 +313,23 @@ final class SchedulesSheetViewController: NSViewController {
     private let calendarTimeLabelWidth: CGFloat = 60
     private let calendarTimeColumnGutter: CGFloat = 12
 
-    private var viewMode = 1
+    private var viewMode: Int
     private var editorContext: ScheduleEditorContext?
-    private var weekOffset = 0
+    private var weekOffset: Int
     private var cancellables: Set<AnyCancellable> = []
 
-    init(appState: AppState, onDismiss: @escaping () -> Void) {
+    init(
+        appState: AppState,
+        onDismiss: @escaping () -> Void,
+        initialViewMode: Int = 1,
+        initialEditorContext: ScheduleEditorContext? = nil,
+        initialWeekOffset: Int = 0
+    ) {
         self.appState = appState
         self.onDismiss = onDismiss
+        self.viewMode = initialViewMode
+        self.editorContext = initialEditorContext
+        self.weekOffset = initialWeekOffset
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -608,6 +608,27 @@ extension SchedulesSheetViewController {
 
     func openAddScheduleForTesting() {
         openAddSchedule()
+    }
+
+    func deleteScheduleForTesting(scheduleId: UUID) {
+        deleteSchedule(scheduleId: scheduleId)
+    }
+
+    func removeSchedulesForTesting(at indexSet: IndexSet) {
+        let idsToDelete: [UUID] = indexSet.compactMap { offset in
+            guard appState.schedules.indices.contains(offset) else { return nil }
+            let schedule = appState.schedules[offset]
+            guard schedule.importedCalendarEventKey == nil else { return nil }
+            return schedule.id
+        }
+        for id in idsToDelete {
+            appState.deleteSchedule(id: id, modifyAllDays: true, initialDay: nil)
+        }
+    }
+
+    func selectScheduleForTesting(_ schedule: Schedule) {
+        editorContext = ScheduleEditorContext(schedule: schedule)
+        refreshConfiguration()
     }
 }
 

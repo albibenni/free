@@ -183,7 +183,7 @@ struct ContentView: View {
     }
 
     static func schedulesSheet(showSchedules: Binding<Bool>) -> some View {
-        SchedulesView(presentationBinding: showSchedules)
+        SchedulesSheetHostView(isPresented: showSchedules)
         .frame(width: 750, height: 700)
     }
 

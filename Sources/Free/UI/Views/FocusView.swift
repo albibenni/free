@@ -1,12 +1,5 @@
 import SwiftUI
 
-enum FocusContentSection {
-    case all
-    case schedules
-    case allowedWebsites
-    case pomodoro
-}
-
 struct FocusView: View {
     @EnvironmentObject var appState: AppState
     @Binding var showRules: Bool
@@ -277,36 +270,36 @@ struct FocusView: View {
     }
 
     static func shouldShowUnblockableWarning(isBlocking: Bool, isUnblockable: Bool) -> Bool {
-        isBlocking && isUnblockable
+        FocusSectionSupport.shouldShowUnblockableWarning(
+            isBlocking: isBlocking,
+            isUnblockable: isUnblockable
+        )
     }
 
     static func accessibilityPromptOptions() -> CFDictionary {
-        [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        FocusSectionSupport.accessibilityPromptOptions()
     }
 
     static func makeGrantAccessibilityAction(
         checkWithOptions: @escaping (CFDictionary) -> Bool = AXIsProcessTrustedWithOptions
     ) -> () -> Void {
-        {
-            let options = accessibilityPromptOptions()
-            _ = checkWithOptions(options)
-        }
+        FocusSectionSupport.makeGrantAccessibilityAction(checkWithOptions: checkWithOptions)
     }
 
     static func focusIconColor(isBlocking: Bool, isPaused: Bool) -> Color {
-        isBlocking && !isPaused ? .green : .gray
+        Color(FocusSectionSupport.focusIconColor(isBlocking: isBlocking, isPaused: isPaused))
     }
 
     static func statusLabel(isBlocking: Bool, isPaused: Bool) -> String {
-        isBlocking ? (isPaused ? "Paused" : "Active") : "Inactive"
+        FocusSectionSupport.statusLabel(isBlocking: isBlocking, isPaused: isPaused)
     }
 
     static func shouldShowRuleSetName(isBlocking: Bool, isPaused: Bool) -> Bool {
-        isBlocking && !isPaused
+        FocusSectionSupport.shouldShowRuleSetName(isBlocking: isBlocking, isPaused: isPaused)
     }
 
     static func shouldShowPauseDashboard(isBlocking: Bool, isPaused: Bool) -> Bool {
-        isBlocking && isPaused
+        FocusSectionSupport.shouldShowPauseDashboard(isBlocking: isBlocking, isPaused: isPaused)
     }
 
     static func shouldShowAllowListPreview(
@@ -315,21 +308,19 @@ struct FocusView: View {
         hasActiveFocusSchedule: Bool,
         hasCurrentRuleSet: Bool
     ) -> Bool {
-        hasCurrentRuleSet && (isBlocking || pomodoroStatus != .none || hasActiveFocusSchedule)
+        FocusSectionSupport.shouldShowAllowListPreview(
+            isBlocking: isBlocking,
+            pomodoroStatus: pomodoroStatus,
+            hasActiveFocusSchedule: hasActiveFocusSchedule,
+            hasCurrentRuleSet: hasCurrentRuleSet
+        )
     }
 
     static func pomodoroPhaseLabel(status: AppState.PomodoroStatus) -> String {
-        switch status {
-        case .none:
-            return "Inactive"
-        case .focus:
-            return "Focus"
-        case .breakTime:
-            return "Break"
-        }
+        FocusSectionSupport.pomodoroPhaseLabel(status: status)
     }
 
     static func makeCancelPauseAction(appState: AppState) -> () -> Void {
-        { appState.cancelPause() }
+        FocusSectionSupport.makeCancelPauseAction(appState: appState)
     }
 }
