@@ -386,6 +386,13 @@ final class FreeMainViewController: NSViewController {
             }
             .store(in: &cancellables)
 
+        appState.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateSidebarSelection()
+            }
+            .store(in: &cancellables)
+
         shellState.$showRules
             .removeDuplicates()
             .sink { [weak self] isShown in
@@ -509,9 +516,10 @@ final class FreeMainViewController: NSViewController {
         section: MainContentSection,
         isSelected: Bool
     ) {
+        let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
         let backgroundColor =
             isSelected
-            ? NSColor.controlAccentColor.withAlphaComponent(0.18)
+            ? accentColor.withAlphaComponent(0.18)
             : .clear
         let titleColor =
             isSelected
@@ -519,7 +527,7 @@ final class FreeMainViewController: NSViewController {
             : NSColor.secondaryLabelColor
         let iconColor =
             isSelected
-            ? NSColor.controlAccentColor
+            ? accentColor
             : NSColor.secondaryLabelColor
         let fontWeight: NSFont.Weight = isSelected ? .semibold : .medium
 
@@ -616,6 +624,9 @@ extension FreeMainViewController {
     var currentContentViewControllerForTesting: NSViewController? { currentContentViewController }
     var currentFocusSectionForTesting: FocusContentSection? {
         (currentContentViewController as? FocusSectionViewController)?.section
+    }
+    var selectedSidebarBackgroundColorForTesting: NSColor? {
+        sectionButtons[shellState.selectedSection]?.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
     }
 
     func selectSectionForTesting(_ section: MainContentSection) {

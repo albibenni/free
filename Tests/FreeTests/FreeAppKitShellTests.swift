@@ -21,8 +21,9 @@ struct FreeAppKitShellTests {
 
     @Test("FreeMainViewController updates sidebar selection for the active section")
     func mainViewControllerUpdatesSidebarSelection() {
+        let appState = isolatedAppState(name: "sidebarSelection")
         let controller = FreeMainViewController(
-            appState: isolatedAppState(name: "sidebarSelection"),
+            appState: appState,
             initialSection: .focus,
             initialShowSidebar: true
         )
@@ -38,6 +39,11 @@ struct FreeAppKitShellTests {
         #expect(controller.selectedSectionForTesting == .pomodoro)
         #expect(controller.isSidebarButtonSelectedForTesting(.focus) == false)
         #expect(controller.isSidebarButtonSelectedForTesting(.pomodoro))
+
+        appState.accentColorIndex = 2
+        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        let expectedColor = FocusColor.nsColor(for: 2).withAlphaComponent(0.18)
+        #expect(controller.selectedSidebarBackgroundColorForTesting == expectedColor)
     }
 
     @Test("SchedulesSheetViewController manages editor state without SwiftUI hosting")
