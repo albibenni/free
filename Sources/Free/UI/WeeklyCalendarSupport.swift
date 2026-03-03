@@ -459,6 +459,16 @@ enum WeeklyCalendarSupport {
         return formatter.string(from: date)
     }
 
+    static func monthYearString(
+        for date: Date,
+        calendar: Calendar = .current
+    ) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: date)
+    }
+
     static func weekBounds(
         for weekRange: [Date],
         calendar: Calendar = .current
@@ -469,6 +479,78 @@ enum WeeklyCalendarSupport {
 
         let weekEnd = calendar.date(byAdding: .day, value: 1, to: weekLast)!
         return (weekStart, weekEnd)
+    }
+
+    static func visibleCalendarEvents(
+        _ events: [ExternalEvent],
+        weekStart: Date,
+        weekEnd: Date
+    ) -> [ExternalEvent] {
+        events.filter { $0.startDate >= weekStart && $0.startDate < weekEnd }
+    }
+
+    static func shouldDisplaySchedule(
+        _ schedule: Schedule,
+        weekStart: Date,
+        weekEnd: Date,
+        calendar: Calendar = .current
+    ) -> Bool {
+        if let specificDate = schedule.date {
+            let scheduleDay = calendar.startOfDay(for: specificDate)
+            let weekStartDay = calendar.startOfDay(for: weekStart)
+            let weekEndDay = calendar.startOfDay(for: weekEnd)
+            return scheduleDay >= weekStartDay && scheduleDay < weekEndDay
+        }
+        return true
+    }
+
+    static func schedulePlacements(
+        for schedule: Schedule,
+        weekRange: [Date],
+        calendar: Calendar = .current
+    ) -> [SchedulePlacement] {
+        if let specificDate = schedule.date {
+            guard let inWeekDate = weekRange.first(where: {
+                calendar.isDate($0, inSameDayAs: specificDate)
+            }) else {
+                return []
+            }
+
+            return [
+                SchedulePlacement(
+                    id: "\(schedule.id.uuidString)-\(calendar.startOfDay(for: inWeekDate).timeIntervalSince1970)",
+                    day: calendar.component(.weekday, from: inWeekDate),
+                    startDate: schedule.startTime,
+                    endDate: schedule.endTime
+                )
+            ]
+        }
+
+        return schedule.days.sorted().map { day in
+            SchedulePlacement(
+                id: "\(schedule.id.uuidString)-\(day)",
+                day: day,
+                startDate: schedule.startTime,
+                endDate: schedule.endTime
+            )
+        }
+    }
+
+    static func positionedSchedules(
+        schedules: [Schedule],
+        weekRange: [Date],
+        calendar: Calendar = .current
+    ) -> [PositionedSchedule] {
+        let bounds = weekBounds(for: weekRange, calendar: calendar)
+        let visible = schedules.filter {
+            shouldDisplaySchedule($0, weekStart: bounds.0, weekEnd: bounds.1, calendar: calendar)
+        }
+        let placements = visible.flatMap { schedule in
+            schedulePlacements(for: schedule, weekRange: weekRange, calendar: calendar).map {
+                (schedule: schedule, placement: $0)
+            }
+        }
+        return positionedSchedules(from: placements, calendar: calendar)
     }
 
     static func calculateRect(

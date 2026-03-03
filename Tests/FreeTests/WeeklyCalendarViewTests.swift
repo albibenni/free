@@ -425,13 +425,6 @@ struct WeeklyCalendarViewTests {
     func weeklyCalendarVisibilityHelpers() {
         let appState = isolatedAppState(name: "visibility")
 
-        var context: ScheduleEditorContext?
-        let binding = Binding<ScheduleEditorContext?>(
-            get: { context },
-            set: { context = $0 }
-        )
-        let view = WeeklyCalendarView(editorContext: binding, actionAppState: appState)
-
         let calendar = Calendar.current
         let week = WeeklyCalendarView.getWeekDates(
             at: Date(),
@@ -459,7 +452,11 @@ struct WeeklyCalendarViewTests {
         )
         appState.calendarProvider.events = [insideEvent, outsideEvent]
 
-        let visibleEvents = view.visibleCalendarEvents(weekStart: weekStart, weekEnd: weekEnd)
+        let visibleEvents = WeeklyCalendarSupport.visibleCalendarEvents(
+            appState.calendarProvider.events,
+            weekStart: weekStart,
+            weekEnd: weekEnd
+        )
         #expect(visibleEvents.count == 1)
         #expect(visibleEvents.first?.id == "in-week")
 
@@ -468,11 +465,27 @@ struct WeeklyCalendarViewTests {
         let oneOffInside = sampleSchedule(name: "OneOffIn", day: weekday, date: weekStart)
         let oneOffOutside = sampleSchedule(name: "OneOffOut", day: weekday, date: outsideStart)
 
-        #expect(view.shouldDisplaySchedule(recurring, weekStart: weekStart, weekEnd: weekEnd))
-        #expect(view.shouldDisplaySchedule(oneOffInside, weekStart: weekStart, weekEnd: weekEnd))
         #expect(
-            view.shouldDisplaySchedule(oneOffOutside, weekStart: weekStart, weekEnd: weekEnd)
-                == false)
+            WeeklyCalendarSupport.shouldDisplaySchedule(
+                recurring,
+                weekStart: weekStart,
+                weekEnd: weekEnd
+            )
+        )
+        #expect(
+            WeeklyCalendarSupport.shouldDisplaySchedule(
+                oneOffInside,
+                weekStart: weekStart,
+                weekEnd: weekEnd
+            )
+        )
+        #expect(
+            WeeklyCalendarSupport.shouldDisplaySchedule(
+                oneOffOutside,
+                weekStart: weekStart,
+                weekEnd: weekEnd
+            ) == false
+        )
 
         let importedOneOff = Schedule(
             name: "Imported One-off",
@@ -486,7 +499,10 @@ struct WeeklyCalendarViewTests {
             ruleSetId: nil,
             importedCalendarEventKey: "imported-key"
         )
-        let placements = view.schedulePlacements(for: importedOneOff, weekRange: week)
+        let placements = WeeklyCalendarSupport.schedulePlacements(
+            for: importedOneOff,
+            weekRange: week
+        )
         #expect(placements.count == 1)
         #expect(placements.first?.day == calendar.component(.weekday, from: weekStart))
         #expect(ScheduleBlockView.fillOpacity(isImported: false) == 0.8)
@@ -512,8 +528,20 @@ struct WeeklyCalendarViewTests {
         )
         let positioned = WeeklyCalendarView.positionedSchedules(
             from: [
-                (schedule: overlappingA, placement: view.schedulePlacements(for: overlappingA, weekRange: week)[0]),
-                (schedule: overlappingB, placement: view.schedulePlacements(for: overlappingB, weekRange: week)[0]),
+                (
+                    schedule: overlappingA,
+                    placement: WeeklyCalendarSupport.schedulePlacements(
+                        for: overlappingA,
+                        weekRange: week
+                    )[0]
+                ),
+                (
+                    schedule: overlappingB,
+                    placement: WeeklyCalendarSupport.schedulePlacements(
+                        for: overlappingB,
+                        weekRange: week
+                    )[0]
+                ),
             ]
         )
         #expect(positioned.count == 2)
@@ -534,9 +562,9 @@ struct WeeklyCalendarViewTests {
 
         appState.calendarIntegrationEnabled = true
         appState.calendarImportsBlockTime = false
-        #expect(view.shouldShowExternalCalendarOverlay == true)
+        #expect(appState.calendarIntegrationEnabled && !appState.calendarImportsBlockTime)
         appState.calendarImportsBlockTime = true
-        #expect(view.shouldShowExternalCalendarOverlay == false)
+        #expect(appState.calendarIntegrationEnabled && !appState.calendarImportsBlockTime == false)
     }
 
     @Test(

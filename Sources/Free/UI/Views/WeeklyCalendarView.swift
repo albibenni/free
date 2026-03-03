@@ -76,8 +76,15 @@ struct WeeklyCalendarView: View {
                     weekRange: weekRange,
                     weekStart: weekStart,
                     weekEnd: weekEnd,
-                    positionedSchedules: positionedSchedules(weekRange: weekRange),
-                    externalEvents: visibleCalendarEvents(weekStart: weekStart, weekEnd: weekEnd),
+                    positionedSchedules: WeeklyCalendarSupport.positionedSchedules(
+                        schedules: appState.schedules,
+                        weekRange: weekRange
+                    ),
+                    externalEvents: WeeklyCalendarSupport.visibleCalendarEvents(
+                        appState.calendarProvider.events,
+                        weekStart: weekStart,
+                        weekEnd: weekEnd
+                    ),
                     showsExternalEvents: shouldShowExternalCalendarOverlay,
                     hourHeight: hourHeight,
                     dayHeaderHeight: dayHeaderHeight,
@@ -112,7 +119,7 @@ struct WeeklyCalendarView: View {
 
             ZStack {
                 HStack {
-                    Text(monthYearString(for: weekStart))
+                    Text(WeeklyCalendarSupport.monthYearString(for: weekStart))
                         .font(.title3.bold())
 
                     Spacer()
@@ -248,23 +255,6 @@ struct WeeklyCalendarView: View {
         )
     }
 
-    func visibleCalendarEvents(weekStart: Date, weekEnd: Date) -> [ExternalEvent] {
-        appState.calendarProvider.events.filter {
-            $0.startDate >= weekStart && $0.startDate < weekEnd
-        }
-    }
-
-    func shouldDisplaySchedule(_ schedule: Schedule, weekStart: Date, weekEnd: Date) -> Bool {
-        let calendar = Calendar.current
-        if let specificDate = schedule.date {
-            let scheduleDay = calendar.startOfDay(for: specificDate)
-            let weekStartDay = calendar.startOfDay(for: weekStart)
-            let weekEndDay = calendar.startOfDay(for: weekEnd)
-            return scheduleDay >= weekStartDay && scheduleDay < weekEndDay
-        }
-        return true
-    }
-
     func openScheduleEditor(day: Int, schedule: Schedule) {
         editorContext = ScheduleEditorContext(
             day: day,
@@ -337,49 +327,6 @@ struct WeeklyCalendarView: View {
         }
     }
 
-    func schedulePlacements(for schedule: Schedule, weekRange: [Date]) -> [SchedulePlacement] {
-        let calendar = Calendar.current
-
-        if let specificDate = schedule.date {
-            guard let inWeekDate = weekRange.first(where: {
-                calendar.isDate($0, inSameDayAs: specificDate)
-            }) else {
-                return []
-            }
-
-            return [
-                SchedulePlacement(
-                    id: "\(schedule.id.uuidString)-\(calendar.startOfDay(for: inWeekDate).timeIntervalSince1970)",
-                    day: calendar.component(.weekday, from: inWeekDate),
-                    startDate: schedule.startTime,
-                    endDate: schedule.endTime
-                )
-            ]
-        }
-
-        return schedule.days.sorted().map { day in
-            SchedulePlacement(
-                id: "\(schedule.id.uuidString)-\(day)",
-                day: day,
-                startDate: schedule.startTime,
-                endDate: schedule.endTime
-            )
-        }
-    }
-
-    func positionedSchedules(weekRange: [Date]) -> [PositionedSchedule] {
-        let visible = appState.schedules.filter {
-            let bounds = Self.weekBounds(for: weekRange)
-            return shouldDisplaySchedule($0, weekStart: bounds.0, weekEnd: bounds.1)
-        }
-        let placements = visible.flatMap { schedule in
-            schedulePlacements(for: schedule, weekRange: weekRange).map {
-                (schedule: schedule, placement: $0)
-            }
-        }
-        return Self.positionedSchedules(from: placements)
-    }
-
     func dayName(for day: Int) -> String {
         Self.dayName(for: day)
     }
@@ -390,12 +337,6 @@ struct WeeklyCalendarView: View {
 
     func timeString(hour: Int) -> String {
         Self.timeString(hour: hour)
-    }
-
-    private func monthYearString(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter.string(from: date)
     }
 
     var weekOffsetForTesting: Int { weekOffset }

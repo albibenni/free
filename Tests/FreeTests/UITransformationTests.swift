@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 import Testing
 
 @testable import FreeLogic
@@ -30,23 +29,27 @@ struct UITransformationTests {
         let maxMins: Double = 60
 
         let top = CGPoint(x: 100, y: 50)
-        let topResult = PomodoroTimerView.calculateDuration(
+        let topResult = PomodoroTimerSupport.calculateDuration(
             location: top, center: center, maxMinutes: maxMins)
         #expect(topResult == 5 || topResult == 60)
 
         let right = CGPoint(x: 150, y: 100)
         #expect(
-            PomodoroTimerView.calculateDuration(
+            PomodoroTimerSupport.calculateDuration(
                 location: right, center: center, maxMinutes: maxMins) == 15)
 
         let bottom = CGPoint(x: 100, y: 150)
         #expect(
-            PomodoroTimerView.calculateDuration(
+            PomodoroTimerSupport.calculateDuration(
                 location: bottom, center: center, maxMinutes: maxMins) == 30)
 
         let left = CGPoint(x: 50, y: 100)
         #expect(
-            PomodoroTimerView.calculateDuration(location: left, center: center, maxMinutes: maxMins)
+            PomodoroTimerSupport.calculateDuration(
+                location: left,
+                center: center,
+                maxMinutes: maxMins
+            )
                 == 45)
     }
 
@@ -59,11 +62,11 @@ struct UITransformationTests {
 
     @Test("WeeklyCalendar day ordering")
     func dayOrdering() {
-        let sunFirst = WeeklyCalendarView.getDayOrder(weekStartsOnMonday: false)
+        let sunFirst = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
         #expect(sunFirst.first == 1)
         #expect(sunFirst.last == 7)
 
-        let monFirst = WeeklyCalendarView.getDayOrder(weekStartsOnMonday: true)
+        let monFirst = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: true)
         #expect(monFirst.first == 2)
         #expect(monFirst.last == 1)
     }
@@ -76,7 +79,7 @@ struct UITransformationTests {
         let hourH: CGFloat = 100
         let colWidth: CGFloat = 200
 
-        let rect = WeeklyCalendarView.calculateRect(
+        let rect = WeeklyCalendarSupport.calculateRect(
             startDate: start, endDate: end, colIndex: 0, columnWidth: colWidth, hourHeight: hourH)
 
         #expect(rect?.origin.y == 900)
@@ -122,15 +125,15 @@ struct UITransformationTests {
         let calendar = Calendar.current
         let now = Date()
 
-        let sunDates = WeeklyCalendarView.getWeekDates(at: now, weekStartsOnMonday: false)
+        let sunDates = WeeklyCalendarSupport.getWeekDates(at: now, weekStartsOnMonday: false)
         #expect(sunDates.count == 7)
         #expect(calendar.component(.weekday, from: sunDates.first!) == 1)
 
-        let monDates = WeeklyCalendarView.getWeekDates(at: now, weekStartsOnMonday: true)
+        let monDates = WeeklyCalendarSupport.getWeekDates(at: now, weekStartsOnMonday: true)
         #expect(monDates.count == 7)
         #expect(calendar.component(.weekday, from: monDates.first!) == 2)
 
-        let nextWeek = WeeklyCalendarView.getWeekDates(
+        let nextWeek = WeeklyCalendarSupport.getWeekDates(
             at: now, weekStartsOnMonday: false, offset: 1)
         #expect(nextWeek.count == 7)
         let diff = calendar.dateComponents([.day], from: sunDates.first!, to: nextWeek.first!).day
@@ -150,7 +153,7 @@ struct UITransformationTests {
         let start = calendar.date(from: DateComponents(hour: 22, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 2, minute: 0))!
 
-        let rect = WeeklyCalendarView.calculateRect(
+        let rect = WeeklyCalendarSupport.calculateRect(
             startDate: start, endDate: end, colIndex: 0, columnWidth: 200, hourHeight: hourH)
 
         #expect(rect?.origin.y == 2200)
@@ -159,12 +162,12 @@ struct UITransformationTests {
 
     @Test("WeeklyCalendar formatting helpers")
     func calendarFormatting() {
-        #expect(!WeeklyCalendarView.dayName(for: 1).isEmpty)
+        #expect(!WeeklyCalendarSupport.dayName(for: 1).isEmpty)
 
-        let nineAM = WeeklyCalendarView.timeString(hour: 9)
+        let nineAM = WeeklyCalendarSupport.timeString(hour: 9)
         #expect(nineAM.contains("9"))
 
-        let nineFifteen = WeeklyCalendarView.formatTime(9.25)
+        let nineFifteen = WeeklyCalendarSupport.formatTime(9.25)
         #expect(nineFifteen.contains("9"))
         #expect(nineFifteen.contains("15"))
     }
@@ -173,7 +176,7 @@ struct UITransformationTests {
     func dragSnapping() {
         let calendar = Calendar.current
 
-        let result = WeeklyCalendarView.calculateDragSelection(startHour: 9.1, endHour: 10.4)
+        let result = WeeklyCalendarSupport.calculateDragSelection(startHour: 9.1, endHour: 10.4)
 
         #expect(calendar.component(.hour, from: result.start) == 9)
         #expect(calendar.component(.minute, from: result.start) == 0)
@@ -187,7 +190,7 @@ struct UITransformationTests {
         let calendar = Calendar.current
         let nye = calendar.date(from: DateComponents(year: 2023, month: 12, day: 31))!
 
-        let dates = WeeklyCalendarView.getWeekDates(at: nye, weekStartsOnMonday: false)
+        let dates = WeeklyCalendarSupport.getWeekDates(at: nye, weekStartsOnMonday: false)
         #expect(dates.count == 7)
         #expect(calendar.component(.year, from: dates.first!) == 2023)
         #expect(calendar.component(.year, from: dates.last!) == 2024)
@@ -200,11 +203,11 @@ struct UITransformationTests {
         let start = calendar.date(from: DateComponents(hour: 12, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 12, minute: 1))!
 
-        let rect = WeeklyCalendarView.calculateRect(
+        let rect = WeeklyCalendarSupport.calculateRect(
             startDate: start, endDate: end, colIndex: 0, columnWidth: 100, hourHeight: 100)
         #expect(rect?.size.height == 15)
 
-        let narrowRect = WeeklyCalendarView.calculateRect(
+        let narrowRect = WeeklyCalendarSupport.calculateRect(
             startDate: start, endDate: end, colIndex: 0, columnWidth: 2, hourHeight: 100)
         #expect(narrowRect?.size.width == 1)
     }
@@ -212,7 +215,7 @@ struct UITransformationTests {
     @Test("WeeklyCalendar zero-duration drag selection")
     func zeroDurationDrag() {
         let calendar = Calendar.current
-        let result = WeeklyCalendarView.calculateDragSelection(startHour: 14.0, endHour: 14.0)
+        let result = WeeklyCalendarSupport.calculateDragSelection(startHour: 14.0, endHour: 14.0)
 
         let duration = result.end.timeIntervalSince(result.start)
         #expect(duration == 900)
@@ -228,7 +231,7 @@ struct UITransformationTests {
         let start = calendar.date(from: DateComponents(hour: 10, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 9, minute: 0))!
 
-        let rect = WeeklyCalendarView.calculateRect(
+        let rect = WeeklyCalendarSupport.calculateRect(
             startDate: start, endDate: end, colIndex: 0, columnWidth: 200, hourHeight: hourH)
 
         #expect(rect?.size.height == 1400)
