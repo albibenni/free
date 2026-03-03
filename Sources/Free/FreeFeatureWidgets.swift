@@ -75,6 +75,58 @@ private func selectedRuleSetIdForPomodoro(_ appState: AppState) -> UUID? {
     appState.activeRuleSetId ?? appState.ruleSets.first?.id
 }
 
+private func makeSelectableRuleSetRowButton(
+    title: String,
+    isSelected: Bool,
+    accentColor: NSColor,
+    action: @escaping () -> Void
+) -> ActionButton {
+    let button = ActionButton(title: title)
+    button.isBordered = false
+    button.wantsLayer = true
+    button.layer?.cornerRadius = 8
+    button.layer?.backgroundColor =
+        isSelected
+        ? accentColor.withAlphaComponent(0.10).cgColor
+        : NSColor.labelColor.withAlphaComponent(0.03).cgColor
+    button.image = appKitSymbolImage(
+        named: isSelected ? "link.circle.fill" : "link",
+        pointSize: 13,
+        weight: isSelected ? .semibold : .regular,
+        color: isSelected ? accentColor : .secondaryLabelColor
+    )
+    button.imagePosition = .imageLeading
+    button.alignment = .left
+    button.contentTintColor = isSelected ? accentColor : .secondaryLabelColor
+    button.attributedTitle = NSAttributedString(
+        string: title,
+        attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: isSelected ? .semibold : .regular),
+            .foregroundColor: isSelected ? NSColor.labelColor : NSColor.secondaryLabelColor,
+        ]
+    )
+    button.onAction = action
+    button.heightAnchor.constraint(equalToConstant: 34).isActive = true
+
+    let checkView = NSImageView()
+    checkView.image = appKitSymbolImage(
+        named: "checkmark",
+        pointSize: 11,
+        weight: .bold,
+        color: accentColor
+    )
+    checkView.isHidden = !isSelected
+    checkView.translatesAutoresizingMaskIntoConstraints = false
+    button.addSubview(checkView)
+
+    NSLayoutConstraint.activate([
+        checkView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -12),
+        checkView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+    ])
+
+    return button
+}
+
 final class FocusSchedulesWidgetView: AppKitCardView {
     init(appState: AppState, shellState: FreeShellState) {
         super.init(frame: .zero)
@@ -275,38 +327,12 @@ final class FocusAllowedWebsitesWidgetView: AppKitCardView {
         accentColor: NSColor,
         action: @escaping () -> Void
     ) -> ActionButton {
-        let button = ActionButton(title: set.name)
-        button.isBordered = false
-        button.wantsLayer = true
-        button.layer?.cornerRadius = 8
-        button.layer?.backgroundColor =
-            isSelected
-            ? accentColor.withAlphaComponent(0.12).cgColor
-            : NSColor.labelColor.withAlphaComponent(0.03).cgColor
-        button.layer?.borderColor =
-            isSelected
-            ? accentColor.withAlphaComponent(0.25).cgColor
-            : NSColor.separatorColor.withAlphaComponent(0.2).cgColor
-        button.layer?.borderWidth = 1
-        button.image = appKitSymbolImage(
-            named: isSelected ? "link.circle.fill" : "link",
-            pointSize: 13,
-            weight: isSelected ? .semibold : .regular,
-            color: isSelected ? accentColor : .secondaryLabelColor
+        makeSelectableRuleSetRowButton(
+            title: set.name,
+            isSelected: isSelected,
+            accentColor: accentColor,
+            action: action
         )
-        button.imagePosition = .imageLeading
-        button.alignment = .left
-        button.attributedTitle = NSAttributedString(
-            string: set.name,
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 13, weight: isSelected ? .semibold : .regular),
-                .foregroundColor: isSelected ? NSColor.labelColor : NSColor.secondaryLabelColor,
-            ]
-        )
-        button.contentTintColor = isSelected ? accentColor : .secondaryLabelColor
-        button.onAction = action
-        button.heightAnchor.constraint(equalToConstant: 34).isActive = true
-        return button
     }
 }
 
@@ -779,50 +805,12 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         isSelected: Bool,
         action: @escaping () -> Void
     ) -> ActionButton {
-        let button = ActionButton(title: set.name)
-        button.isBordered = false
-        button.wantsLayer = true
-        button.layer?.cornerRadius = 8
-        button.layer?.backgroundColor =
-            isSelected
-            ? accentColor.withAlphaComponent(0.10).cgColor
-            : NSColor.labelColor.withAlphaComponent(0.03).cgColor
-        button.image = appKitSymbolImage(
-            named: isSelected ? "link.circle.fill" : "link",
-            pointSize: 13,
-            weight: isSelected ? .semibold : .regular,
-            color: isSelected ? accentColor : .secondaryLabelColor
+        makeSelectableRuleSetRowButton(
+            title: set.name,
+            isSelected: isSelected,
+            accentColor: accentColor,
+            action: action
         )
-        button.imagePosition = .imageLeading
-        button.alignment = .left
-        button.contentTintColor = isSelected ? accentColor : .secondaryLabelColor
-        button.attributedTitle = NSAttributedString(
-            string: set.name,
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 13, weight: isSelected ? .semibold : .regular),
-                .foregroundColor: isSelected ? NSColor.labelColor : NSColor.secondaryLabelColor,
-            ]
-        )
-        button.onAction = action
-        button.heightAnchor.constraint(equalToConstant: 34).isActive = true
-
-        let checkView = NSImageView()
-        checkView.image = appKitSymbolImage(
-            named: "checkmark",
-            pointSize: 11,
-            weight: .bold,
-            color: accentColor
-        )
-        checkView.isHidden = !isSelected
-        checkView.translatesAutoresizingMaskIntoConstraints = false
-        button.addSubview(checkView)
-
-        NSLayoutConstraint.activate([
-            checkView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -12),
-            checkView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-        ])
-
-        return button
     }
 
     private func presentCustomBreakPrompt() {
