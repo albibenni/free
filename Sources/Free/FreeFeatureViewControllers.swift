@@ -79,6 +79,39 @@ final class VerticalStackScrollContainer: NSScrollView {
 }
 
 final class FocusSectionViewController: NSViewController {
+    private struct PomodoroWidgetSignature: Equatable {
+        struct RuleSetSnapshot: Equatable {
+            let id: UUID
+            let name: String
+        }
+
+        let accentColorIndex: Int
+        let isBlocking: Bool
+        let isStrictActive: Bool
+        let pomodoroStatus: AppState.PomodoroStatus
+        let pomodoroFocusDuration: Double
+        let pomodoroBreakDuration: Double
+        let pomodoroRemaining: TimeInterval
+        let isPomodoroLocked: Bool
+        let activeRuleSetId: UUID?
+        let currentPrimaryRuleSetId: UUID?
+        let ruleSets: [RuleSetSnapshot]
+
+        init(appState: AppState) {
+            accentColorIndex = appState.accentColorIndex
+            isBlocking = appState.isBlocking
+            isStrictActive = appState.isStrictActive
+            pomodoroStatus = appState.pomodoroStatus
+            pomodoroFocusDuration = appState.pomodoroFocusDuration
+            pomodoroBreakDuration = appState.pomodoroBreakDuration
+            pomodoroRemaining = appState.pomodoroRemaining
+            isPomodoroLocked = appState.isPomodoroLocked
+            activeRuleSetId = appState.activeRuleSetId
+            currentPrimaryRuleSetId = appState.currentPrimaryRuleSetId
+            ruleSets = appState.ruleSets.map { RuleSetSnapshot(id: $0.id, name: $0.name) }
+        }
+    }
+
     private let appState: AppState
     private let shellState: FreeShellState
     var section: FocusContentSection {
@@ -107,6 +140,7 @@ final class FocusSectionViewController: NSViewController {
     private var cancellables: Set<AnyCancellable> = []
     private var pomodoroWidgetInteractionDepth = 0
     private var needsReloadAfterPomodoroInteraction = false
+    private var pomodoroWidgetSignature: PomodoroWidgetSignature?
 
     init(appState: AppState, shellState: FreeShellState, section: FocusContentSection) {
         self.appState = appState
@@ -443,6 +477,21 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private func reloadWidget() {
+        if section == .pomodoro,
+           let widgetView,
+           let pomodoroWidgetView = widgetView as? FocusPomodoroWidgetView
+        {
+            let nextSignature = PomodoroWidgetSignature(appState: appState)
+            if pomodoroWidgetSignature == nextSignature {
+                widgetContainer.isHidden = false
+                pomodoroWidgetView.needsLayout = true
+                return
+            }
+            pomodoroWidgetSignature = nextSignature
+        } else if section != .pomodoro {
+            pomodoroWidgetSignature = nil
+        }
+
         widgetView?.removeFromSuperview()
         widgetView = nil
         widgetContainer.isHidden = section == .all
@@ -450,6 +499,7 @@ final class FocusSectionViewController: NSViewController {
         let nextWidgetView: NSView
         switch section {
         case .pomodoro:
+            pomodoroWidgetSignature = PomodoroWidgetSignature(appState: appState)
             nextWidgetView = FocusPomodoroWidgetView(
                 appState: appState,
                 onDialInteractionDidBegin: { [weak self] in
@@ -464,6 +514,7 @@ final class FocusSectionViewController: NSViewController {
         case .allowedWebsites:
             nextWidgetView = FocusAllowedWebsitesWidgetView(appState: appState, shellState: shellState)
         case .all:
+            pomodoroWidgetSignature = nil
             return
         }
 

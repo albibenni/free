@@ -222,6 +222,7 @@ struct FocusViewTests {
         #expect(initialWidgetIdentifier != nil)
 
         controller.beginPomodoroWidgetInteractionForTesting()
+        appState.pomodoroFocusDuration = 50
         controller.simulateObservedAppStateChangeForTesting()
 
         #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
@@ -232,6 +233,24 @@ struct FocusViewTests {
         #expect(controller.hasDeferredPomodoroReloadForTesting == false)
         #expect(controller.widgetViewIdentifierForTesting != nil)
         #expect(controller.widgetViewIdentifierForTesting != initialWidgetIdentifier)
+    }
+
+    @Test("Focus section keeps pomodoro widget instance when unrelated app state changes")
+    @MainActor
+    func focusViewKeepsPomodoroWidgetForUnrelatedStateChanges() {
+        let appState = isolatedAppState(name: "pomodoroUnrelatedStateChange")
+        appState.isTrusted = true
+        let controller = makeController(appState: appState, section: .pomodoro)
+
+        _ = host(controller)
+        let initialWidgetIdentifier = controller.widgetViewIdentifierForTesting
+
+        #expect(initialWidgetIdentifier != nil)
+
+        appState.currentOpenUrls = ["https://example.com"]
+        controller.simulateObservedAppStateChangeForTesting()
+
+        #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
     }
 
     @Test("Focus section allowed-websites mode renders AppKit widget without overview")
