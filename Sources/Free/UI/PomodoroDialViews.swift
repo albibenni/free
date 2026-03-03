@@ -17,7 +17,7 @@ final class PomodoroDurationDialView: NSView {
     private var isDragging = false
 
     override var intrinsicContentSize: NSSize {
-        NSSize(width: 176, height: 176)
+        NSSize(width: 240, height: 240)
     }
 
     init(
@@ -40,15 +40,15 @@ final class PomodoroDurationDialView: NSView {
 
         iconView.image = appKitSymbolImage(
             named: iconName,
-            pointSize: 28,
+            pointSize: 40,
             weight: .semibold,
             color: color.withAlphaComponent(0.92)
         )
         iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconView.widthAnchor.constraint(equalToConstant: 30).isActive = true
-        iconView.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        iconView.widthAnchor.constraint(equalToConstant: 42).isActive = true
+        iconView.heightAnchor.constraint(equalToConstant: 42).isActive = true
 
-        valueLabel.font = .monospacedDigitSystemFont(ofSize: 26, weight: .bold)
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
         valueLabel.textColor = .labelColor
         valueLabel.alignment = .center
         valueLabel.stringValue = "\(Int(durationMinutes))m"
@@ -184,7 +184,7 @@ final class PomodoroProgressDialView: NSView {
     private let color: NSColor
 
     override var intrinsicContentSize: NSSize {
-        NSSize(width: 196, height: 196)
+        NSSize(width: 240, height: 240)
     }
 
     init(
@@ -202,13 +202,13 @@ final class PomodoroProgressDialView: NSView {
 
         iconView.image = appKitSymbolImage(
             named: iconName,
-            pointSize: 28,
+            pointSize: 40,
             weight: .semibold,
             color: color.withAlphaComponent(0.92)
         )
         iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconView.widthAnchor.constraint(equalToConstant: 30).isActive = true
-        iconView.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        iconView.widthAnchor.constraint(equalToConstant: 42).isActive = true
+        iconView.heightAnchor.constraint(equalToConstant: 42).isActive = true
 
         valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
         valueLabel.textColor = .labelColor
