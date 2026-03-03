@@ -611,17 +611,17 @@ final class SettingsSectionViewController: NSViewController {
         scrollContainer.stackView.addArrangedSubview(titleLabel)
 
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Strict Mode"))
-        scrollContainer.stackView.addArrangedSubview(makeStrictSection())
+        addFullWidthSection(makeStrictSection())
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Calendar"))
-        scrollContainer.stackView.addArrangedSubview(makeCalendarSection())
+        addFullWidthSection(makeCalendarSection())
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Startup"))
-        scrollContainer.stackView.addArrangedSubview(makeStartupSection())
+        addFullWidthSection(makeStartupSection())
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Browser"))
-        scrollContainer.stackView.addArrangedSubview(makeBrowserSection())
+        addFullWidthSection(makeBrowserSection())
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Appearance"))
-        scrollContainer.stackView.addArrangedSubview(makeAppearanceSection())
+        addFullWidthSection(makeAppearanceSection())
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("About"))
-        scrollContainer.stackView.addArrangedSubview(makeAboutSection())
+        addFullWidthSection(makeAboutSection())
     }
 
     override func viewDidLoad() {
@@ -641,6 +641,12 @@ final class SettingsSectionViewController: NSViewController {
         let label = NSTextField(labelWithString: text)
         label.font = .systemFont(ofSize: 18, weight: .semibold)
         return label
+    }
+
+    private func addFullWidthSection(_ section: NSView) {
+        scrollContainer.stackView.addArrangedSubview(section)
+        section.translatesAutoresizingMaskIntoConstraints = false
+        section.widthAnchor.constraint(equalTo: scrollContainer.stackView.widthAnchor).isActive = true
     }
 
     private func makeStrictSection() -> NSView {
@@ -832,7 +838,19 @@ final class SettingsSectionViewController: NSViewController {
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 12
-        return row
+        row.translatesAutoresizingMaskIntoConstraints = false
+        labelStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(row)
+        NSLayoutConstraint.activate([
+            row.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            row.topAnchor.constraint(equalTo: container.topAnchor),
+            row.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+        return container
     }
 
     private func reloadSettings() {

@@ -88,6 +88,20 @@ struct SettingsViewTests {
         return values
     }
 
+    private func visibleSwitchFrames(in view: NSView, root: NSView) -> [CGRect] {
+        guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
+
+        var values: [CGRect] = []
+        if let toggle = view as? NSSwitch {
+            values.append(toggle.convert(toggle.bounds, to: root))
+        }
+
+        for subview in view.subviews {
+            values.append(contentsOf: visibleSwitchFrames(in: subview, root: root))
+        }
+        return values
+    }
+
     @Test("Settings controller action helpers cover strict-mode challenge and accent selection")
     @MainActor
     func settingsControllerActionHelpers() {
@@ -172,6 +186,7 @@ struct SettingsViewTests {
         let controller = SettingsSectionViewController(appState: appState)
         let hosted = host(controller)
         let texts = visibleText(in: hosted)
+        let toggleFrames = visibleSwitchFrames(in: hosted, root: hosted)
 
         #expect(hosted.fittingSize.width >= 0)
         #expect(texts.contains("Launch at Login"))
@@ -180,6 +195,12 @@ struct SettingsViewTests {
         #expect(texts.contains("Block New Tabs"))
         #expect(texts.contains("Block Localhost/Dev Ports"))
         #expect(texts.contains("Block Local Network IPs"))
+        #expect(toggleFrames.count == 8)
+        if let referenceMaxX = toggleFrames.first?.maxX {
+            for frame in toggleFrames {
+                #expect(abs(frame.maxX - referenceMaxX) <= 2)
+            }
+        }
     }
 
     @Test("Settings controller renders strict-mode disable branch")

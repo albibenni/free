@@ -65,7 +65,10 @@
   - [ ] state change should follow color schema
 - [ ] can't close cmd+q the app
 - [ ] buttons don't follow color schema - matte instead of shaded
-- [ ] app icons without padding - side bar
+- [x] app icons without padding - side bar
+- [ ] color schema for the app
+  - [ ] toggle buttons
+  - [ ] focus highlight
 
 ## Performance check
 
