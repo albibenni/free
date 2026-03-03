@@ -58,9 +58,11 @@
 - [x] should be closable if not in strict mode
 - [x] should work with selected list on the schedule
 - [x] change to break doesn't work for imported schedules
-#### Regression appkit
 
-- [ ] app state change not highlighting correctly and lag
+### Regression appkit
+
+- [x] app state change not highlighting correctly and lag
+  - [ ] state change should follow color schema
 
 ## Performance check
 

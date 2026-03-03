@@ -10,45 +10,6 @@ final class FreeShellState: ObservableObject {
     @Published var showSchedules = false
 }
 
-struct FreeHostedMainContentView: View {
-    @ObservedObject var shellState: FreeShellState
-    @EnvironmentObject private var appState: AppState
-
-    var body: some View {
-        switch shellState.selectedSection {
-        case .settings:
-            SettingsView()
-        case .focus, .schedules, .allowedWebsites, .pomodoro:
-            FocusView(
-                showRules: Binding(
-                    get: { shellState.showRules },
-                    set: { shellState.showRules = $0 }
-                ),
-                showSchedules: Binding(
-                    get: { shellState.showSchedules },
-                    set: { shellState.showSchedules = $0 }
-                ),
-                section: focusSection(for: shellState.selectedSection)
-            )
-        }
-    }
-
-    private func focusSection(for section: MainContentSection) -> FocusContentSection {
-        switch section {
-        case .focus:
-            return .all
-        case .pomodoro:
-            return .pomodoro
-        case .schedules:
-            return .schedules
-        case .allowedWebsites:
-            return .allowedWebsites
-        case .settings:
-            return .all
-        }
-    }
-}
-
 final class FreeStatusItemController: NSObject {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let statusMenu = NSMenu()
@@ -245,7 +206,8 @@ final class FreeMainWindowController: NSWindowController {
 final class FreeMainViewController: NSViewController {
     private let appState: AppState
     private let shellState: FreeShellState
-    private let contentHostingController: NSHostingController<AnyView>
+    private let focusSectionController: FocusSectionViewController
+    private let settingsSectionController: SettingsSectionViewController
 
     private let sidebarContainer = NSView()
     private let sidebarStack = NSStackView()
@@ -262,6 +224,7 @@ final class FreeMainViewController: NSViewController {
     private var sidebarWidthConstraint: NSLayoutConstraint?
     private var rulesSheetController: FreeSheetWindowController?
     private var schedulesSheetController: FreeSheetWindowController?
+    private var currentContentViewController: NSViewController?
     private var cancellables: Set<AnyCancellable> = []
 
     init(
@@ -274,12 +237,12 @@ final class FreeMainViewController: NSViewController {
         shellState.selectedSection = initialSection
         shellState.showSidebar = initialShowSidebar
         self.shellState = shellState
-        self.contentHostingController = NSHostingController(
-            rootView: AnyView(
-                FreeHostedMainContentView(shellState: shellState)
-                    .environmentObject(appState)
-            )
+        self.focusSectionController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .all
         )
+        self.settingsSectionController = SettingsSectionViewController(appState: appState)
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -297,6 +260,7 @@ final class FreeMainViewController: NSViewController {
         configureContent()
         updateSidebarVisibility()
         updateSidebarSelection()
+        updateContentController()
     }
 
     override func viewDidLoad() {
@@ -407,21 +371,11 @@ final class FreeMainViewController: NSViewController {
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(contentContainer)
 
-        addChild(contentHostingController)
-        let hostedView = contentHostingController.view
-        hostedView.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(hostedView)
-
         NSLayoutConstraint.activate([
             contentContainer.leadingAnchor.constraint(equalTo: contentDivider.trailingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             contentContainer.topAnchor.constraint(equalTo: view.topAnchor),
             contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            hostedView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
-            hostedView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
-            hostedView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
-            hostedView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
         ])
     }
 
@@ -429,6 +383,7 @@ final class FreeMainViewController: NSViewController {
         shellState.$selectedSection
             .sink { [weak self] _ in
                 self?.updateSidebarSelection()
+                self?.updateContentController()
             }
             .store(in: &cancellables)
 
@@ -451,11 +406,7 @@ final class FreeMainViewController: NSViewController {
 
     private func updateSidebarSelection() {
         for (section, button) in sectionButtons {
-            let isSelected = shellState.selectedSection == section
-            button.layer?.backgroundColor =
-                isSelected
-                ? NSColor.labelColor.withAlphaComponent(0.12).cgColor
-                : NSColor.clear.cgColor
+            applySidebarButtonStyle(button, section: section, isSelected: shellState.selectedSection == section)
         }
     }
 
@@ -474,6 +425,49 @@ final class FreeMainViewController: NSViewController {
             weight: .semibold,
             color: .secondaryLabelColor
         )
+    }
+
+    private func updateContentController() {
+        let targetViewController: NSViewController
+        switch shellState.selectedSection {
+        case .settings:
+            targetViewController = settingsSectionController
+        case .focus:
+            focusSectionController.section = .all
+            targetViewController = focusSectionController
+        case .schedules:
+            focusSectionController.section = .schedules
+            targetViewController = focusSectionController
+        case .pomodoro:
+            focusSectionController.section = .pomodoro
+            targetViewController = focusSectionController
+        case .allowedWebsites:
+            focusSectionController.section = .allowedWebsites
+            targetViewController = focusSectionController
+        }
+
+        guard currentContentViewController !== targetViewController else { return }
+
+        currentContentViewController?.view.removeFromSuperview()
+        currentContentViewController?.removeFromParent()
+
+        addChild(targetViewController)
+        let childView = targetViewController.view
+        childView.translatesAutoresizingMaskIntoConstraints = false
+        contentContainer.addSubview(childView)
+        NSLayoutConstraint.activate([
+            childView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
+            childView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+            childView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            childView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
+        ])
+        currentContentViewController = targetViewController
+    }
+
+    private func applySelectedSection(_ section: MainContentSection) {
+        shellState.selectedSection = section
+        updateSidebarSelection()
+        updateContentController()
     }
 
     private func configureIconButton(_ button: NSButton, symbolName: String) {
@@ -500,22 +494,56 @@ final class FreeMainViewController: NSViewController {
         button.isBordered = false
         button.wantsLayer = true
         button.layer?.cornerRadius = 10
-        button.contentTintColor = .labelColor
-        button.image = symbolImage(named: section.icon, pointSize: 13, weight: .regular, color: .secondaryLabelColor)
         button.imagePosition = .imageLeading
         button.alignment = .left
-        button.font = .systemFont(ofSize: 13, weight: .medium)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.widthAnchor.constraint(equalToConstant: 156).isActive = true
         button.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        applySidebarButtonStyle(button, section: section, isSelected: shellState.selectedSection == section)
         return button
+    }
+
+    private func applySidebarButtonStyle(
+        _ button: NSButton,
+        section: MainContentSection,
+        isSelected: Bool
+    ) {
+        let backgroundColor =
+            isSelected
+            ? NSColor.controlAccentColor.withAlphaComponent(0.18)
+            : .clear
+        let titleColor =
+            isSelected
+            ? NSColor.labelColor
+            : NSColor.secondaryLabelColor
+        let iconColor =
+            isSelected
+            ? NSColor.controlAccentColor
+            : NSColor.secondaryLabelColor
+        let fontWeight: NSFont.Weight = isSelected ? .semibold : .medium
+
+        button.layer?.backgroundColor = backgroundColor.cgColor
+        button.image = symbolImage(
+            named: section.icon,
+            pointSize: 13,
+            weight: fontWeight,
+            color: iconColor
+        )
+        button.attributedTitle = NSAttributedString(
+            string: section.rawValue,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 13, weight: fontWeight),
+                .foregroundColor: titleColor,
+            ]
+        )
+        button.needsDisplay = true
     }
 
     private func presentRulesSheetIfNeeded() {
         guard rulesSheetController == nil, let parentWindow = view.window else { return }
 
-        let hostedRules = NSHostingController(rootView: RulesView().environmentObject(appState))
-        let container = FreeSheetContainerViewController(title: "Allowed Websites", contentController: hostedRules) { [weak self] in
+        let rulesController = RulesSheetViewController(appState: appState)
+        let container = FreeSheetContainerViewController(title: "Allowed Websites", contentController: rulesController) { [weak self] in
             self?.shellState.showRules = false
         }
         let controller = FreeSheetWindowController(
@@ -599,6 +627,21 @@ final class FreeMainViewController: NSViewController {
     @objc
     private func handleSidebarButton(_ sender: NSButton) {
         guard let section = section(for: sender.identifier) else { return }
-        shellState.selectedSection = section
+        applySelectedSection(section)
+    }
+}
+
+extension FreeMainViewController {
+    var selectedSectionForTesting: MainContentSection { shellState.selectedSection }
+
+    func selectSectionForTesting(_ section: MainContentSection) {
+        applySelectedSection(section)
+    }
+
+    func isSidebarButtonSelectedForTesting(_ section: MainContentSection) -> Bool {
+        guard let color = sectionButtons[section]?.layer?.backgroundColor.flatMap(NSColor.init(cgColor:)) else {
+            return false
+        }
+        return color.alphaComponent > 0.01
     }
 }
