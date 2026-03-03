@@ -130,6 +130,7 @@ struct SettingsViewTests {
 
         controller.selectAccentColorForTesting(index: 4)
         #expect(appState.accentColorIndex == 4)
+        #expect(controller.appearanceSelectionColorForTesting == FocusColor.nsColor(for: 4))
 
         controller.disableStrictModeForTesting(phrase: AppState.challengePhrase)
         #expect(appState.isUnblockable == false)
@@ -202,6 +203,7 @@ struct SettingsViewTests {
         let texts = visibleText(in: hosted)
         let toggleFrames = visibleSwitchFrames(in: hosted, root: hosted)
         let toggleAccentColors = visibleToggleAccentColors(in: hosted)
+        let expectedAccentColor = FocusColor.nsColor(for: appState.accentColorIndex)
 
         #expect(hosted.fittingSize.width >= 0)
         #expect(texts.contains("Launch at Login"))
@@ -217,10 +219,10 @@ struct SettingsViewTests {
                 #expect(abs(frame.maxX - referenceMaxX) <= 2)
             }
         }
-        let expectedAccentColor = FocusColor.nsColor(for: appState.accentColorIndex)
         for color in toggleAccentColors {
             #expect(color == expectedAccentColor)
         }
+        #expect(controller.appearanceSelectionColorForTesting == expectedAccentColor)
     }
 
     @Test("Settings controller renders strict-mode disable branch")
