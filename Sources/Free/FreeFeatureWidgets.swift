@@ -1,5 +1,4 @@
 import AppKit
-import SwiftUI
 
 private func makeWidgetHeader(
     title: String,
@@ -147,7 +146,7 @@ final class FocusSchedulesWidgetView: AppKitCardView {
         indicator.layer?.backgroundColor = (
             schedule.type == .focus
                 ? accentColor
-                : NSColor(schedule.themeColor)
+                : FocusColor.nsColor(for: schedule.colorIndex)
         ).cgColor
         indicator.layer?.cornerRadius = 2
         indicator.translatesAutoresizingMaskIntoConstraints = false
