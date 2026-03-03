@@ -57,6 +57,82 @@ final class FreeApp {
         }
     }
 
+    static func applicationName(
+        bundle: Bundle = .main,
+        processInfo: ProcessInfo = .processInfo
+    ) -> String {
+        applicationName(
+            bundleInfo: bundle.infoDictionary ?? [:],
+            processName: processInfo.processName
+        )
+    }
+
+    static func applicationName(bundleInfo: [String: Any], processName: String) -> String {
+        if let displayName = bundleInfo["CFBundleDisplayName"] as? String,
+           !displayName.isEmpty {
+            return displayName
+        }
+        if let bundleName = bundleInfo["CFBundleName"] as? String,
+           !bundleName.isEmpty {
+            return bundleName
+        }
+        return processName
+    }
+
+    static func makeMainMenu(appName: String) -> NSMenu {
+        let mainMenu = NSMenu()
+
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu(title: appName)
+
+        let aboutItem = NSMenuItem(
+            title: "About \(appName)",
+            action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+            keyEquivalent: ""
+        )
+        aboutItem.target = NSApplication.shared
+        appMenu.addItem(aboutItem)
+        appMenu.addItem(.separator())
+
+        let hideItem = NSMenuItem(
+            title: "Hide \(appName)",
+            action: #selector(NSApplication.hide(_:)),
+            keyEquivalent: "h"
+        )
+        hideItem.target = NSApplication.shared
+        appMenu.addItem(hideItem)
+
+        let hideOthersItem = NSMenuItem(
+            title: "Hide Others",
+            action: #selector(NSApplication.hideOtherApplications(_:)),
+            keyEquivalent: "h"
+        )
+        hideOthersItem.keyEquivalentModifierMask = [.command, .option]
+        hideOthersItem.target = NSApplication.shared
+        appMenu.addItem(hideOthersItem)
+
+        let showAllItem = NSMenuItem(
+            title: "Show All",
+            action: #selector(NSApplication.unhideAllApplications(_:)),
+            keyEquivalent: ""
+        )
+        showAllItem.target = NSApplication.shared
+        appMenu.addItem(showAllItem)
+        appMenu.addItem(.separator())
+
+        let quitItem = NSMenuItem(
+            title: "Quit \(appName)",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: "q"
+        )
+        quitItem.target = NSApplication.shared
+        appMenu.addItem(quitItem)
+
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+        return mainMenu
+    }
+
     func launch(application: NSApplication = .shared) {
         application.setActivationPolicy(.regular)
         appDelegate.onApplicationDidFinishLaunching = { [weak self, weak application] in
@@ -67,6 +143,10 @@ final class FreeApp {
     }
 
     func startInterface(application: NSApplication = .shared) {
+        application.mainMenu = Self.makeMainMenu(
+            appName: Self.applicationName()
+        )
+
         if mainWindowController == nil {
             let rootViewController = makeMainViewController(appState)
             let windowController = FreeMainWindowController(rootViewController: rootViewController)

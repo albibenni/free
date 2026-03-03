@@ -41,6 +41,43 @@ struct FreeAppTests {
         #expect(FreeApp.nsAppearance(for: .dark)?.name == .darkAqua)
     }
 
+    @Test("FreeApp derives application name from bundle metadata with process fallback")
+    func applicationNameResolution() {
+        #expect(
+            FreeApp.applicationName(
+                bundleInfo: ["CFBundleDisplayName": "Free Display"],
+                processName: "Proc"
+            ) == "Free Display"
+        )
+        #expect(
+            FreeApp.applicationName(
+                bundleInfo: ["CFBundleName": "Free Bundle"],
+                processName: "Proc"
+            ) == "Free Bundle"
+        )
+        #expect(
+            FreeApp.applicationName(
+                bundleInfo: [:],
+                processName: "Proc"
+            ) == "Proc"
+        )
+    }
+
+    @Test("FreeApp main menu includes Quit item bound to command-Q")
+    func mainMenuContainsQuitShortcut() {
+        let menu = FreeApp.makeMainMenu(appName: "Free")
+
+        #expect(menu.items.count == 1)
+        let appMenu = menu.items.first?.submenu
+        #expect(appMenu != nil)
+
+        let quitItem = appMenu?.items.first(where: { $0.title == "Quit Free" })
+        #expect(quitItem != nil)
+        #expect(quitItem?.action == #selector(NSApplication.terminate(_:)))
+        #expect(quitItem?.keyEquivalent == "q")
+        #expect(quitItem?.keyEquivalentModifierMask == [.command])
+    }
+
     @Test("FreeApp default initializer can be created")
     func defaultInitializerBuildsAppController() {
         let app = FreeApp()
