@@ -1,23 +1,20 @@
-import SwiftUI
 import AppKit
 
 struct FocusColor {
-    static let all: [Color] = [
-        .blue, .purple, .orange, .green, .red, .pink, .indigo, .teal, .gray
+    static let all: [NSColor] = [
+        .systemBlue,
+        .systemPurple,
+        .systemOrange,
+        .systemGreen,
+        .systemRed,
+        .systemPink,
+        .systemIndigo,
+        .systemTeal,
+        .systemGray,
     ]
-    
-    static func color(for index: Int) -> Color {
-        let safeIndex = max(0, min(index, all.count - 1))
-        return all[safeIndex]
-    }
 
     static func nsColor(for index: Int) -> NSColor {
-        NSColor(color(for: index))
-    }
-}
-
-extension Schedule {
-    var themeColor: Color {
-        FocusColor.color(for: colorIndex)
+        let safeIndex = max(0, min(index, all.count - 1))
+        return all[safeIndex]
     }
 }

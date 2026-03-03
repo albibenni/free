@@ -53,13 +53,6 @@ struct UITransformationTests {
                 == 45)
     }
 
-    @Test("AppearanceMode mapping to ColorScheme")
-    func appearanceModeMapping() {
-        #expect(AppearanceMode.light.colorScheme == .light)
-        #expect(AppearanceMode.dark.colorScheme == .dark)
-        #expect(AppearanceMode.system.colorScheme == nil)
-    }
-
     @Test("WeeklyCalendar day ordering")
     func dayOrdering() {
         let sunFirst = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)

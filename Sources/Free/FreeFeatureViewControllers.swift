@@ -670,7 +670,7 @@ final class SettingsSectionViewController: NSViewController {
             button.isBordered = false
             button.wantsLayer = true
             button.layer?.cornerRadius = 12
-            button.layer?.backgroundColor = NSColor(color).cgColor
+            button.layer?.backgroundColor = color.cgColor
             button.translatesAutoresizingMaskIntoConstraints = false
             button.widthAnchor.constraint(equalToConstant: 24).isActive = true
             button.heightAnchor.constraint(equalToConstant: 24).isActive = true

@@ -240,10 +240,27 @@ final class SchedulesSheetViewController: NSViewController {
 
 extension SchedulesSheetViewController {
     var viewModeForTesting: Int { viewMode }
+    var weekOffsetForTesting: Int { weekOffset }
     var editorContextForTesting: ScheduleEditorContext? { editorContext }
+    var monthTitleForTesting: String { makeAppKitConfiguration().monthTitle }
+    var calendarConfigurationForTesting: WeeklyCalendarSurfaceConfiguration {
+        makeAppKitConfiguration().calendarViewConfiguration
+    }
 
     func openAddScheduleForTesting() {
         openAddSchedule()
+    }
+
+    func goToPreviousWeekForTesting() {
+        goToPreviousWeek()
+    }
+
+    func goToCurrentWeekForTesting() {
+        goToCurrentWeek()
+    }
+
+    func goToNextWeekForTesting() {
+        goToNextWeek()
     }
 
     func deleteScheduleForTesting(scheduleId: UUID) {

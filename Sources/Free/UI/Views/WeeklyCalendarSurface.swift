@@ -102,6 +102,14 @@ final class WeeklyCalendarSurfaceNSView: NSView {
     }
 }
 
+extension WeeklyCalendarSurfaceNSView {
+    var documentHeightForTesting: CGFloat { documentView.frame.height }
+    var headerHeightForTesting: CGFloat { headerView.frame.height }
+    var hasVerticalScrollerForTesting: Bool { scrollView.hasVerticalScroller }
+    var didInitialScrollForTesting: Bool { didInitialScroll }
+    var scheduleBlockCountForTesting: Int { documentView.scheduleBlockCountForTesting }
+}
+
 private final class WeeklyCalendarSurfaceHeaderNSView: NSView {
     private var dayOrder: [Int] = []
     private var weekRange: [Date] = []
@@ -582,6 +590,8 @@ private final class WeeklyCalendarSurfaceDocumentNSView: NSView {
         guard configuration.dayOrder.indices.contains(index) else { return nil }
         return configuration.dayOrder[index]
     }
+
+    var scheduleBlockCountForTesting: Int { scheduleBlockViews.count }
 }
 
 private final class WeeklyCalendarSurfaceScheduleBlockNSView: NSView {
