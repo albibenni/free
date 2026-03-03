@@ -1,7 +1,7 @@
-import Testing
-import SwiftUI
 import AppKit
 import Foundation
+import Testing
+
 @testable import FreeLogic
 
 @Suite(.serialized)
@@ -14,182 +14,172 @@ struct RulesViewTests {
     }
 
     @MainActor
-    private func host<V: View>(_ view: V, size: CGSize = CGSize(width: 900, height: 760)) -> NSHostingView<V> {
-        let hosted = NSHostingView(rootView: view)
-        hosted.frame = NSRect(origin: .zero, size: size)
-        hosted.layoutSubtreeIfNeeded()
-        hosted.displayIfNeeded()
-        return hosted
+    private func host(
+        _ controller: NSViewController,
+        size: CGSize = CGSize(width: 900, height: 760)
+    ) -> NSView {
+        controller.loadViewIfNeeded()
+        controller.view.frame = NSRect(origin: .zero, size: size)
+        controller.view.layoutSubtreeIfNeeded()
+        controller.view.displayIfNeeded()
+        return controller.view
     }
 
-    @Test("RulesView static helper logic covers all branches")
-    func rulesViewStaticHelpers() {
-        #expect(RulesView.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: false))
-        #expect(!RulesView.shouldShowDeleteSetButton(ruleSetCount: 1, isBlocking: false))
-        #expect(!RulesView.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: true))
+    private func visibleText(in view: NSView) -> [String] {
+        guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
 
-        #expect(RulesView.sidebarWidth(isSidebarVisible: true) == 200)
-        #expect(RulesView.sidebarWidth(isSidebarVisible: false) == 0)
+        var values: [String] = []
+        if let label = view as? NSTextField, !label.stringValue.isEmpty {
+            values.append(label.stringValue)
+        }
+        if let button = view as? NSButton, !button.title.isEmpty {
+            values.append(button.title)
+        }
 
-        _ = RulesView.sidebarBackgroundColor(colorScheme: .dark)
-        _ = RulesView.sidebarBackgroundColor(colorScheme: .light)
+        for subview in view.subviews {
+            values.append(contentsOf: visibleText(in: subview))
+        }
+        return values
+    }
 
-        #expect(RulesView.shouldShowSidebarDivider(isSidebarVisible: true))
-        #expect(!RulesView.shouldShowSidebarDivider(isSidebarVisible: false))
+    @Test("Rules section support covers helper branches")
+    func rulesSectionSupportHelpers() {
+        #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: false))
+        #expect(!RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 1, isBlocking: false))
+        #expect(!RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: true))
 
-        #expect(RulesView.sidebarToggleIcon(isSidebarVisible: true) == "chevron.left")
-        #expect(RulesView.sidebarToggleIcon(isSidebarVisible: false) == "chevron.right")
+        #expect(RulesSectionSupport.sidebarToggleIcon(isSidebarVisible: true) == "chevron.left")
+        #expect(RulesSectionSupport.sidebarToggleIcon(isSidebarVisible: false) == "chevron.right")
 
-        #expect(RulesView.shouldShowSuggestionsList(isSuggestionsExpanded: true))
-        #expect(!RulesView.shouldShowSuggestionsList(isSuggestionsExpanded: false))
-        #expect(RulesView.shouldShowRefreshSuggestionsButton(isSuggestionsExpanded: true))
-        #expect(!RulesView.shouldShowRefreshSuggestionsButton(isSuggestionsExpanded: false))
-        #expect(RulesView.suggestionsChevronIcon(isSuggestionsExpanded: true) == "chevron.down")
-        #expect(RulesView.suggestionsChevronIcon(isSuggestionsExpanded: false) == "chevron.right")
-
-        #expect(RulesView.suggestionsEmptyText(currentOpenUrls: []) == "No open tabs detected.")
         #expect(
-            RulesView.suggestionsEmptyText(currentOpenUrls: ["https://example.com"])
+            RulesSectionSupport.suggestionsEmptyText(currentOpenUrls: [])
+                == "No open tabs detected."
+        )
+        #expect(
+            RulesSectionSupport.suggestionsEmptyText(currentOpenUrls: ["https://example.com"])
                 == "All open tabs are already allowed."
         )
+
+        let existing = RuleSet(name: "Test", urls: ["google.com", "youtube.com/watch?v=123"])
+        let suggestions = [
+            "https://www.google.com",
+            "https://github.com",
+            "https://youtube.com/watch?v=123",
+            "https://youtube.com/watch?v=456",
+        ]
+        let filtered = RulesSectionSupport.filterSuggestions(suggestions, existing: existing)
+        #expect(filtered.count == 2)
+        #expect(filtered.contains("https://github.com"))
+        #expect(filtered.contains("https://youtube.com/watch?v=456"))
     }
 
-    @Test("RulesView actions mutate state and app model paths")
+    @Test("Rules sheet controller actions mutate rule-set state and UI state")
     @MainActor
-    func rulesViewActionCoverage() {
+    func rulesSheetControllerActionCoverage() throws {
         let appState = isolatedAppState(name: "actions")
         let setA = RuleSet(name: "Set A", urls: ["a.com"])
         let setB = RuleSet(name: "Set B", urls: ["b.com"])
         appState.ruleSets = [setA, setB]
         appState.activeRuleSetId = setA.id
 
-        let view = RulesView(
-            initialNewRule: "new-rule.com",
-            initialNewSetName: "Created Set",
-            actionAppState: appState
-        )
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
 
-        _ = view.selectedSet
-        view.handleOnAppear()
-        _ = view.selectedSet
+        controller.createSetForTesting(name: "Created Set")
+        #expect(appState.ruleSets.count == 3)
+        let createdSet = try #require(appState.ruleSets.last)
+        #expect(controller.selectedSetIdForTesting == createdSet.id)
 
-        view.openAddSetAlert()
+        controller.toggleSidebarForTesting()
+        #expect(controller.isSidebarVisibleForTesting == false)
+        controller.toggleSidebarForTesting()
+        #expect(controller.isSidebarVisibleForTesting)
 
-        let setCountBefore = appState.ruleSets.count
-        view.createSet()
-        #expect(appState.ruleSets.count == setCountBefore + 1)
-        _ = appState.ruleSets.last?.id
-
-        view.cancelCreateSet()
-
-        view.toggleSidebar()
-
-        view.toggleSuggestions()
-
+        controller.toggleSuggestionsForTesting()
+        #expect(controller.isSuggestionsExpandedForTesting)
         appState.currentOpenUrls = ["https://open.example.com"]
-        view.refreshSuggestions()
+        controller.refreshSuggestionsForTesting()
         #expect(appState.currentOpenUrls == [])
 
-        view.addSuggestion(url: "manual-add.com", setId: setA.id)
+        controller.addSuggestionForTesting(url: "manual-add.com", setId: setA.id)
         #expect(appState.ruleSets.first(where: { $0.id == setA.id })?.containsRule("manual-add.com") == true)
 
-        let addSuggestion = view.addSuggestionAction(url: "action-add.com", setId: setA.id)
-        addSuggestion()
-        #expect(appState.ruleSets.first(where: { $0.id == setA.id })?.containsRule("action-add.com") == true)
-
-        let removeSuggestion = view.removeRuleAction(rule: "action-add.com", setId: setA.id)
-        removeSuggestion()
-        #expect(appState.ruleSets.first(where: { $0.id == setA.id })?.containsRule("action-add.com") == false)
-
-        view.addRule(to: setA)
+        controller.addRuleForTesting("new-rule.com", setId: setA.id)
         #expect(appState.ruleSets.first(where: { $0.id == setA.id })?.containsRule("new-rule.com") == true)
 
-        let addRuleClosureView = RulesView(initialNewRule: "via-closure.com", actionAppState: appState)
-        let addRuleClosure = addRuleClosureView.addRuleAction(to: setA)
-        addRuleClosure()
-        #expect(appState.ruleSets.first(where: { $0.id == setA.id })?.containsRule("via-closure.com") == true)
-
-        appState.isBlocking = false
-        let tapSelect = view.selectSetTapAction(setB)
-        tapSelect()
+        controller.selectRuleSetForTesting(setB)
+        #expect(controller.selectedSetIdForTesting == setB.id)
 
         appState.isBlocking = true
-        let tapBlocked = view.selectSetTapAction(setA)
-        tapBlocked()
-
-        let alreadySelected = RulesView(initialSelectedSetId: setA.id, actionAppState: appState)
-        alreadySelected.handleOnAppear()
+        controller.selectRuleSetForTesting(setA)
+        #expect(controller.selectedSetIdForTesting == setB.id)
 
         appState.isBlocking = false
-        let deleteSelected = RulesView(initialSelectedSetId: setB.id, actionAppState: appState)
-        let deleteAction = deleteSelected.deleteSetAction(setB)
-        deleteAction()
+        controller.deleteRuleSetForTesting(setB)
         #expect(appState.ruleSets.contains(where: { $0.id == setB.id }) == false)
     }
 
-    @Test("RulesView filteredSuggestions bridges app open URLs against selected set")
-    func rulesViewFilteredSuggestions() {
+    @Test("Rules sheet controller filteredSuggestions bridges app open URLs against selected set")
+    @MainActor
+    func rulesSheetControllerFilteredSuggestions() {
         let appState = isolatedAppState(name: "filteredSuggestions")
         let set = RuleSet(name: "Set", urls: ["google.com"])
         appState.ruleSets = [set]
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
         appState.currentOpenUrls = ["https://google.com", "https://github.com"]
 
-        let view = RulesView(initialSelectedSetId: set.id, actionAppState: appState)
-        let filtered = view.filteredSuggestions(for: set)
+        let filtered = controller.filteredSuggestionsForTesting(for: set)
         #expect(filtered.count == 1)
         #expect(filtered.first == "https://github.com")
     }
 
-    @Test("RulesView renders selected-set paths with suggestions collapsed and expanded-empty")
+    @Test("Rules sheet controller renders selected-set paths with collapsed and expanded empty suggestions")
     @MainActor
-    func rulesViewRenderSelectedSetVariants() {
+    func rulesSheetControllerRenderSelectedSetVariants() {
         let appState = isolatedAppState(name: "renderSelectedVariants")
         let setA = RuleSet(name: "Set A", urls: ["a.com"])
         let setB = RuleSet(name: "Set B", urls: ["b.com"])
         appState.ruleSets = [setA, setB]
+        appState.activeRuleSetId = setA.id
 
-        let collapsed = RulesView(
-            initialSelectedSetId: setA.id,
-            initialSidebarVisible: true,
-            initialSuggestionsExpanded: false
-        )
-        .environmentObject(appState)
-        .environment(\.colorScheme, .dark)
-        let hostedCollapsed = host(collapsed)
-        #expect(hostedCollapsed.fittingSize.width >= 0)
+        let controller = RulesSheetViewController(appState: appState)
+        let hosted = host(controller)
+        var texts = visibleText(in: hosted)
+        #expect(texts.contains("Set A"))
+        #expect(texts.contains("Allowed in this list"))
+        #expect(texts.contains("Open Tabs Suggestions"))
 
         appState.currentOpenUrls = []
-        let expandedEmpty = RulesView(
-            initialSelectedSetId: setA.id,
-            initialSidebarVisible: false,
-            initialSuggestionsExpanded: true
-        )
-        .environmentObject(appState)
-        .environment(\.colorScheme, .light)
-        let hostedExpandedEmpty = host(expandedEmpty)
-        #expect(hostedExpandedEmpty.fittingSize.height >= 0)
+        controller.setSuggestionsExpandedForTesting(true)
+        texts = visibleText(in: hosted)
+        #expect(texts.contains("No open tabs detected."))
     }
 
-    @Test("RulesView renders suggestions non-empty and no-selected-list fallback")
+    @Test("Rules sheet controller renders non-empty suggestions and no-selected-list fallback")
     @MainActor
-    func rulesViewRenderSuggestionsAndFallback() {
+    func rulesSheetControllerRenderSuggestionsAndFallback() {
         let appState = isolatedAppState(name: "renderSuggestionsAndFallback")
         let set = RuleSet(name: "Set", urls: ["already.com"])
         appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+
+        let controller = RulesSheetViewController(appState: appState)
+        let hosted = host(controller)
+
         appState.currentOpenUrls = ["https://newsite.com"]
+        controller.setSuggestionsExpandedForTesting(true)
+        var texts = visibleText(in: hosted)
+        #expect(texts.contains("https://newsite.com"))
+        #expect(texts.contains("Add"))
 
-        let withSuggestions = RulesView(
-            initialSelectedSetId: set.id,
-            initialSuggestionsExpanded: true
-        )
-        .environmentObject(appState)
-        let hostedSuggestions = host(withSuggestions)
-        #expect(hostedSuggestions.fittingSize.width >= 0)
-
-        appState.ruleSets = []
-        let noSelection = RulesView(initialSelectedSetId: nil)
-            .environmentObject(appState)
-        let hostedNoSelection = host(noSelection)
-        #expect(hostedNoSelection.fittingSize.height >= 0)
+        let emptyAppState = isolatedAppState(name: "renderNoSelection")
+        let emptyController = RulesSheetViewController(appState: emptyAppState)
+        let emptyHosted = host(emptyController)
+        emptyAppState.ruleSets = []
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        texts = visibleText(in: emptyHosted)
+        #expect(texts.contains("Select a list to edit"))
     }
 }

@@ -863,6 +863,28 @@ final class SettingsSectionViewController: NSViewController {
     }
 }
 
+extension SettingsSectionViewController {
+    var shouldShowStrictDisableButtonForTesting: Bool { !strictDisableButton.isHidden }
+    var calendarControlsLockedForTesting: Bool { !calendarIntegrationSwitch.isEnabled }
+    var launchAtLoginEnabledForTesting: Bool { launchAtLoginSwitch.state == .on }
+
+    func selectAccentColorForTesting(index: Int) {
+        let button = NSButton()
+        button.tag = index
+        selectAccentColor(button)
+    }
+
+    func disableStrictModeForTesting(phrase: String) {
+        _ = appState.disableUnblockableWithChallenge(phrase: phrase)
+        reloadSettings()
+    }
+
+    func setLaunchAtLoginForTesting(_ enabled: Bool) {
+        launchAtLoginSwitch.state = enabled ? .on : .off
+        toggleLaunchAtLogin()
+    }
+}
+
 final class RulesSheetViewController: NSViewController {
     private let appState: AppState
     private var selectedSetId: UUID?
@@ -984,7 +1006,10 @@ final class RulesSheetViewController: NSViewController {
         mainHeader.spacing = 8
         mainHeader.translatesAutoresizingMaskIntoConstraints = false
 
-        configureIconButton(toggleSidebarButton, symbolName: RulesView.sidebarToggleIcon(isSidebarVisible: isSidebarVisible))
+        configureIconButton(
+            toggleSidebarButton,
+            symbolName: RulesSectionSupport.sidebarToggleIcon(isSidebarVisible: isSidebarVisible)
+        )
         toggleSidebarButton.target = self
         toggleSidebarButton.action = #selector(toggleSidebar)
         mainTitleLabel.font = .systemFont(ofSize: 14, weight: .semibold)
@@ -1085,7 +1110,7 @@ final class RulesSheetViewController: NSViewController {
             row.addArrangedSubview(button)
             row.addArrangedSubview(NSView())
 
-            if RulesView.shouldShowDeleteSetButton(
+            if RulesSectionSupport.shouldShowDeleteSetButton(
                 ruleSetCount: appState.ruleSets.count,
                 isBlocking: appState.isBlocking
             ) {
@@ -1108,7 +1133,9 @@ final class RulesSheetViewController: NSViewController {
         removeAllArrangedSubviews(from: contentScrollView.stackView)
         mainTitleLabel.stringValue = selectedSet?.name ?? ""
         toggleSidebarButton.image = NSImage(
-            systemSymbolName: RulesView.sidebarToggleIcon(isSidebarVisible: isSidebarVisible),
+            systemSymbolName: RulesSectionSupport.sidebarToggleIcon(
+                isSidebarVisible: isSidebarVisible
+            ),
             accessibilityDescription: nil
         )
 
@@ -1163,10 +1190,15 @@ final class RulesSheetViewController: NSViewController {
         contentScrollView.stackView.addArrangedSubview(suggestionsButton)
 
         if isSuggestionsExpanded {
-            let filtered = RulesView.filterSuggestions(appState.currentOpenUrls, existing: selectedSet)
+            let filtered = RulesSectionSupport.filterSuggestions(
+                appState.currentOpenUrls,
+                existing: selectedSet
+            )
             if filtered.isEmpty {
                 let label = NSTextField(
-                    labelWithString: RulesView.suggestionsEmptyText(currentOpenUrls: appState.currentOpenUrls)
+                    labelWithString: RulesSectionSupport.suggestionsEmptyText(
+                        currentOpenUrls: appState.currentOpenUrls
+                    )
                 )
                 label.font = .systemFont(ofSize: 12)
                 label.textColor = .secondaryLabelColor
@@ -1271,5 +1303,65 @@ final class RulesSheetViewController: NSViewController {
     private func addSuggestion(_ sender: NSButton) {
         guard let url = sender.identifier?.rawValue, let setId = selectedSet?.id else { return }
         appState.addSpecificRule(url, to: setId)
+    }
+}
+
+extension RulesSheetViewController {
+    var selectedSetIdForTesting: UUID? { selectedSetId }
+    var isSidebarVisibleForTesting: Bool { isSidebarVisible }
+    var isSuggestionsExpandedForTesting: Bool { isSuggestionsExpanded }
+
+    func createSetForTesting(name: String) {
+        let newSet = RuleSet(name: name, urls: [])
+        appState.ruleSets.append(newSet)
+        selectedSetId = newSet.id
+        reloadContent()
+    }
+
+    func selectRuleSetForTesting(_ ruleSet: RuleSet) {
+        guard !appState.isBlocking else { return }
+        selectedSetId = ruleSet.id
+        reloadContent()
+    }
+
+    func deleteRuleSetForTesting(_ ruleSet: RuleSet) {
+        appState.deleteSet(id: ruleSet.id)
+        if selectedSetId == ruleSet.id {
+            selectedSetId = appState.ruleSets.first?.id
+        }
+        reloadContent()
+    }
+
+    func toggleSidebarForTesting() {
+        toggleSidebar()
+    }
+
+    func toggleSuggestionsForTesting() {
+        toggleSuggestions()
+    }
+
+    func setSuggestionsExpandedForTesting(_ expanded: Bool) {
+        isSuggestionsExpanded = expanded
+        reloadRuleContent()
+    }
+
+    func refreshSuggestionsForTesting() {
+        appState.refreshCurrentOpenUrls()
+        reloadRuleContent()
+    }
+
+    func addSuggestionForTesting(url: String, setId: UUID) {
+        appState.addSpecificRule(url, to: setId)
+        reloadRuleContent()
+    }
+
+    func addRuleForTesting(_ rule: String, setId: UUID) {
+        selectedSetId = setId
+        addRuleField.stringValue = rule
+        addRule()
+    }
+
+    func filteredSuggestionsForTesting(for selectedSet: RuleSet) -> [String] {
+        RulesSectionSupport.filterSuggestions(appState.currentOpenUrls, existing: selectedSet)
     }
 }

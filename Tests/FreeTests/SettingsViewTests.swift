@@ -1,8 +1,7 @@
-import Testing
-import SwiftUI
 import AppKit
 import Foundation
-import ViewInspector
+import Testing
+
 @testable import FreeLogic
 
 private enum SettingsLaunchAtLoginTestError: Error {
@@ -61,138 +60,142 @@ struct SettingsViewTests {
     }
 
     @MainActor
-    private func host<V: View>(_ view: V, size: CGSize = CGSize(width: 520, height: 520)) -> NSHostingView<V> {
-        let hosted = NSHostingView(rootView: view)
-        hosted.frame = NSRect(origin: .zero, size: size)
-        hosted.layoutSubtreeIfNeeded()
-        hosted.displayIfNeeded()
-        return hosted
+    private func host(
+        _ controller: NSViewController,
+        size: CGSize = CGSize(width: 520, height: 620)
+    ) -> NSView {
+        controller.loadViewIfNeeded()
+        controller.view.frame = NSRect(origin: .zero, size: size)
+        controller.view.layoutSubtreeIfNeeded()
+        controller.view.displayIfNeeded()
+        return controller.view
     }
 
-    @Test("SettingsView action helpers cover strict-mode challenge and accent selection")
-    func settingsViewActionHelpers() {
+    private func visibleText(in view: NSView) -> [String] {
+        guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
+
+        var values: [String] = []
+        if let label = view as? NSTextField, !label.stringValue.isEmpty {
+            values.append(label.stringValue)
+        }
+        if let button = view as? NSButton, !button.title.isEmpty {
+            values.append(button.title)
+        }
+
+        for subview in view.subviews {
+            values.append(contentsOf: visibleText(in: subview))
+        }
+        return values
+    }
+
+    @Test("Settings controller action helpers cover strict-mode challenge and accent selection")
+    @MainActor
+    func settingsControllerActionHelpers() {
         let appState = isolatedAppState(name: "actions")
         appState.isBlocking = true
         appState.isUnblockable = true
 
-        let view = SettingsView(
-            initialChallengeInput: AppState.challengePhrase,
-            actionAppState: appState
-        )
-        #expect(view.shouldShowStrictDisableButton == true)
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
 
-        view.openChallenge()
-        _ = view.showChallengeForTesting
-        _ = view.challengeInputForTesting
+        #expect(controller.shouldShowStrictDisableButtonForTesting)
 
-        let selectAccent = view.selectAccentColorAction(index: 4)
-        selectAccent()
+        controller.selectAccentColorForTesting(index: 4)
         #expect(appState.accentColorIndex == 4)
 
-        view.unlockWithChallenge()
+        controller.disableStrictModeForTesting(phrase: AppState.challengePhrase)
         #expect(appState.isUnblockable == false)
 
         appState.isUnblockable = true
-        let wrongChallengeView = SettingsView(initialChallengeInput: "wrong", actionAppState: appState)
-        wrongChallengeView.unlockWithChallenge()
-        #expect(appState.isUnblockable == true)
-
-        let cancelView = SettingsView(initialChallengeInput: "typed", actionAppState: appState)
-        cancelView.cancelUnlock()
+        controller.disableStrictModeForTesting(phrase: "wrong")
         #expect(appState.isUnblockable == true)
     }
 
-    @Test("SettingsView launch-at-login actions load and toggle state with failure fallback")
-    func settingsViewLaunchAtLoginActions() {
+    @Test("Settings controller launch-at-login actions load and toggle state with failure fallback")
+    @MainActor
+    func settingsControllerLaunchAtLoginActions() {
         let launchManager = SettingsMockLaunchAtLoginManager(isEnabled: false)
         let appState = isolatedAppState(name: "launchAtLoginActions", launchManager: launchManager)
 
-        let view = SettingsView(actionAppState: appState)
-        #expect(appState.launchAtLoginStatus() == false)
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+        #expect(controller.launchAtLoginEnabledForTesting == false)
 
-        view.setLaunchAtLogin(true)
+        controller.setLaunchAtLoginForTesting(true)
         #expect(appState.launchAtLoginStatus() == true)
         #expect(launchManager.enableCallCount == 1)
+        #expect(controller.launchAtLoginEnabledForTesting)
 
         launchManager.disableError = SettingsLaunchAtLoginTestError.disableFailed
         launchManager.isEnabledValue = true
-        view.setLaunchAtLogin(false)
+        controller.setLaunchAtLoginForTesting(false)
         #expect(appState.launchAtLoginStatus() == true)
         #expect(launchManager.disableCallCount == 1)
+        #expect(controller.launchAtLoginEnabledForTesting)
     }
 
-    @Test("SettingsView strict-disable visibility helper covers false branch")
-    func settingsViewStrictDisableFalseBranch() {
+    @Test("Settings controller strict-disable visibility helper covers false branch")
+    @MainActor
+    func settingsControllerStrictDisableFalseBranch() {
         let appState = isolatedAppState(name: "strictFalse")
         appState.isBlocking = false
         appState.isUnblockable = true
-        let view = SettingsView(actionAppState: appState)
-        #expect(view.shouldShowStrictDisableButton == false)
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+        #expect(controller.shouldShowStrictDisableButtonForTesting == false)
     }
 
-    @Test("SettingsView calendar controls lock only during strict active mode")
-    func settingsViewCalendarControlsLockState() {
+    @Test("Settings controller calendar controls lock only during strict active mode")
+    @MainActor
+    func settingsControllerCalendarControlsLockState() {
         let appState = isolatedAppState(name: "calendarControlsLockState")
         appState.isBlocking = false
         appState.isUnblockable = true
-        let notStrictView = SettingsView(actionAppState: appState)
-        #expect(notStrictView.calendarControlsLocked == false)
+        let notStrict = SettingsSectionViewController(appState: appState)
+        _ = host(notStrict)
+        #expect(notStrict.calendarControlsLockedForTesting == false)
 
         appState.isBlocking = true
-        let strictView = SettingsView(actionAppState: appState)
-        #expect(strictView.calendarControlsLocked == true)
+        let strict = SettingsSectionViewController(appState: appState)
+        _ = host(strict)
+        #expect(strict.calendarControlsLockedForTesting)
     }
 
-    @Test("SettingsView renders default toggle branch")
+    @Test("Settings controller renders default toggle branch")
     @MainActor
-    func settingsViewRenderDefaultBranch() {
+    func settingsControllerRenderDefaultBranch() {
         let appState = isolatedAppState(name: "renderDefault")
         appState.isBlocking = false
         appState.isUnblockable = false
         appState.accentColorIndex = 1
 
-        let view = SettingsView().environmentObject(appState)
-        let hosted = host(view)
+        let controller = SettingsSectionViewController(appState: appState)
+        let hosted = host(controller)
+        let texts = visibleText(in: hosted)
+
         #expect(hosted.fittingSize.width >= 0)
-        #expect((try? view.inspect().find(text: "Launch at Login")) != nil)
-        #expect((try? view.inspect().find(text: "Calendar Imports Block Time")) != nil)
-        #expect((try? view.inspect().find(text: "Resync Imported Schedules")) != nil)
-        #expect((try? view.inspect().find(text: "Block New Tabs")) != nil)
-        #expect((try? view.inspect().find(text: "Block Localhost/Dev Ports")) != nil)
-        #expect((try? view.inspect().find(text: "Block Local Network IPs")) != nil)
+        #expect(texts.contains("Launch at Login"))
+        #expect(texts.contains("Calendar Imports Block Time"))
+        #expect(texts.contains("Resync Imported Schedules"))
+        #expect(texts.contains("Block New Tabs"))
+        #expect(texts.contains("Block Localhost/Dev Ports"))
+        #expect(texts.contains("Block Local Network IPs"))
     }
 
-    @Test("SettingsView renders strict-mode disable branch")
+    @Test("Settings controller renders strict-mode disable branch")
     @MainActor
-    func settingsViewRenderStrictBranch() {
+    func settingsControllerRenderStrictBranch() {
         let appState = isolatedAppState(name: "renderStrict")
         appState.isBlocking = true
         appState.isUnblockable = true
         appState.accentColorIndex = 0
 
-        let view = SettingsView().environmentObject(appState)
-        let hosted = host(view)
+        let controller = SettingsSectionViewController(appState: appState)
+        let hosted = host(controller)
+        let texts = visibleText(in: hosted)
+
         #expect(hosted.fittingSize.height >= 0)
-    }
-
-    @Test("SettingsView launch-at-login toggle binding setter is exercised through UI interaction")
-    @MainActor
-    func settingsViewLaunchAtLoginToggleBindingInteraction() throws {
-        let launchManager = SettingsMockLaunchAtLoginManager(isEnabled: false)
-        let appState = isolatedAppState(
-            name: "launchAtLoginToggleBindingInteraction",
-            launchManager: launchManager
-        )
-        let rawView = SettingsView()
-        _ = rawView.launchAtLoginEnabledForTesting
-        let view = rawView.environmentObject(appState)
-        _ = host(view)
-
-        let toggles = try view.inspect().findAll(ViewType.Toggle.self)
-        #expect(toggles.count >= 5)
-
-        try toggles[4].tap()
-        #expect(launchManager.enableCallCount == 1)
-        #expect(appState.launchAtLoginStatus() == true)
+        #expect(controller.shouldShowStrictDisableButtonForTesting)
+        #expect(texts.contains("Disable..."))
     }
 }

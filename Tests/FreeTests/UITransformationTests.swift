@@ -84,7 +84,7 @@ struct UITransformationTests {
         #expect(rect?.size.width == 196)
     }
 
-    @Test("RulesView suggestion filtering logic")
+    @Test("Rules section suggestion filtering logic")
     func suggestionFiltering() {
         let existing = RuleSet(name: "Test", urls: ["google.com", "youtube.com/watch?v=123"])
         let suggestions = [
@@ -94,25 +94,25 @@ struct UITransformationTests {
             "https://youtube.com/watch?v=456",
         ]
 
-        let filtered = RulesView.filterSuggestions(suggestions, existing: existing)
+        let filtered = RulesSectionSupport.filterSuggestions(suggestions, existing: existing)
 
         #expect(filtered.count == 2)
         #expect(filtered.contains("https://github.com"))
         #expect(filtered.contains("https://youtube.com/watch?v=456"))
     }
 
-    @Test("Negative: RulesView suggestion filtering with edge cases")
+    @Test("Negative: rules section suggestion filtering with edge cases")
     func suggestionFilteringEdgeCases() {
         let existing = RuleSet(name: "Test", urls: ["google.com"])
 
-        #expect(RulesView.filterSuggestions([], existing: existing).isEmpty)
+        #expect(RulesSectionSupport.filterSuggestions([], existing: existing).isEmpty)
 
         let emptySet = RuleSet(name: "Empty", urls: [])
         let suggestions = ["a.com", "b.com"]
-        #expect(RulesView.filterSuggestions(suggestions, existing: emptySet).count == 2)
+        #expect(RulesSectionSupport.filterSuggestions(suggestions, existing: emptySet).count == 2)
 
         let badSuggestions = ["", "   ", "github.com"]
-        let filtered = RulesView.filterSuggestions(badSuggestions, existing: existing)
+        let filtered = RulesSectionSupport.filterSuggestions(badSuggestions, existing: existing)
         #expect(filtered.count == 1)
         #expect(filtered.contains("github.com"))
     }
