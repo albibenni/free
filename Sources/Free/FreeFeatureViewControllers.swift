@@ -567,18 +567,18 @@ final class SettingsSectionViewController: NSViewController {
     private var cancellables: Set<AnyCancellable> = []
 
     private let strictSection = NSStackView()
-    private let strictToggle = NSSwitch()
+    private let strictToggle = AppKitToggleSwitch()
     private let strictDescriptionLabel = NSTextField(labelWithString: "When active, you cannot disable Focus Mode.")
     private let strictDisableButton = NSButton(title: "Disable...", target: nil, action: nil)
     private let strictStatusLabel = NSTextField(labelWithString: "Active and Locking Focus Mode.")
-    private let weekStartsMondaySwitch = NSSwitch()
-    private let calendarIntegrationSwitch = NSSwitch()
-    private let calendarImportsSwitch = NSSwitch()
+    private let weekStartsMondaySwitch = AppKitToggleSwitch()
+    private let calendarIntegrationSwitch = AppKitToggleSwitch()
+    private let calendarImportsSwitch = AppKitToggleSwitch()
     private let resyncButton = NSButton(title: "Resync Imported Schedules", target: nil, action: nil)
-    private let launchAtLoginSwitch = NSSwitch()
-    private let blockNewTabsSwitch = NSSwitch()
-    private let blockDeveloperHostsSwitch = NSSwitch()
-    private let blockLocalNetworkHostsSwitch = NSSwitch()
+    private let launchAtLoginSwitch = AppKitToggleSwitch()
+    private let blockNewTabsSwitch = AppKitToggleSwitch()
+    private let blockDeveloperHostsSwitch = AppKitToggleSwitch()
+    private let blockLocalNetworkHostsSwitch = AppKitToggleSwitch()
     private let appearanceControl = NSSegmentedControl(labels: ["System", "Light", "Dark"], trackingMode: .selectOne, target: nil, action: nil)
     private var accentButtons: [NSButton] = []
 
@@ -820,7 +820,7 @@ final class SettingsSectionViewController: NSViewController {
     private func makeToggleRow(
         title: String,
         descriptionLabel: NSTextField?,
-        toggle: NSSwitch
+        toggle: NSView
     ) -> NSView {
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
@@ -854,6 +854,9 @@ final class SettingsSectionViewController: NSViewController {
     }
 
     private func reloadSettings() {
+        let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        allToggleControls.forEach { $0.accentColor = accentColor }
+
         let strictLocked = appState.isBlocking && appState.isUnblockable
         strictToggle.isHidden = strictLocked
         strictDescriptionLabel.isHidden = strictLocked
@@ -890,6 +893,19 @@ final class SettingsSectionViewController: NSViewController {
         }
 
         scrollContainer.needsLayout = true
+    }
+
+    private var allToggleControls: [AppKitToggleSwitch] {
+        [
+            strictToggle,
+            weekStartsMondaySwitch,
+            calendarIntegrationSwitch,
+            calendarImportsSwitch,
+            launchAtLoginSwitch,
+            blockNewTabsSwitch,
+            blockDeveloperHostsSwitch,
+            blockLocalNetworkHostsSwitch,
+        ]
     }
 
     @objc

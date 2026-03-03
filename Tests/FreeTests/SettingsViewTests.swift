@@ -92,12 +92,26 @@ struct SettingsViewTests {
         guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
 
         var values: [CGRect] = []
-        if let toggle = view as? NSSwitch {
+        if let toggle = view as? AppKitToggleSwitch {
             values.append(toggle.convert(toggle.bounds, to: root))
         }
 
         for subview in view.subviews {
             values.append(contentsOf: visibleSwitchFrames(in: subview, root: root))
+        }
+        return values
+    }
+
+    private func visibleToggleAccentColors(in view: NSView) -> [NSColor] {
+        guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
+
+        var values: [NSColor] = []
+        if let toggle = view as? AppKitToggleSwitch {
+            values.append(toggle.accentColor)
+        }
+
+        for subview in view.subviews {
+            values.append(contentsOf: visibleToggleAccentColors(in: subview))
         }
         return values
     }
@@ -181,12 +195,13 @@ struct SettingsViewTests {
         let appState = isolatedAppState(name: "renderDefault")
         appState.isBlocking = false
         appState.isUnblockable = false
-        appState.accentColorIndex = 1
+        appState.accentColorIndex = 2
 
         let controller = SettingsSectionViewController(appState: appState)
         let hosted = host(controller)
         let texts = visibleText(in: hosted)
         let toggleFrames = visibleSwitchFrames(in: hosted, root: hosted)
+        let toggleAccentColors = visibleToggleAccentColors(in: hosted)
 
         #expect(hosted.fittingSize.width >= 0)
         #expect(texts.contains("Launch at Login"))
@@ -196,10 +211,15 @@ struct SettingsViewTests {
         #expect(texts.contains("Block Localhost/Dev Ports"))
         #expect(texts.contains("Block Local Network IPs"))
         #expect(toggleFrames.count == 8)
+        #expect(toggleAccentColors.count == 8)
         if let referenceMaxX = toggleFrames.first?.maxX {
             for frame in toggleFrames {
                 #expect(abs(frame.maxX - referenceMaxX) <= 2)
             }
+        }
+        let expectedAccentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        for color in toggleAccentColors {
+            #expect(color == expectedAccentColor)
         }
     }
 
