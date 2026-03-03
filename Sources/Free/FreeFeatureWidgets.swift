@@ -773,7 +773,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         button.layer?.borderWidth = 0
         button.image = appKitSymbolImage(
             named: symbolName,
-            pointSize: 18,
+            pointSize: 24,
             weight: .regular,
             color: isEnabled
                 ? .secondaryLabelColor
@@ -787,8 +787,8 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         button.onAction = action
         button.isEnabled = isEnabled
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.widthAnchor.constraint(equalToConstant: 18).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 18).isActive = true
+        button.widthAnchor.constraint(equalToConstant: 24).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 24).isActive = true
         return button
     }
 
