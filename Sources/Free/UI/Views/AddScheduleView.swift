@@ -321,7 +321,12 @@ struct AddScheduleView: View {
     }
 
     static func primaryButtonColor(sessionType: ScheduleType, accentColorIndex: Int) -> Color {
-        sessionType == .focus ? FocusColor.color(for: accentColorIndex) : .orange
+        Color(
+            ScheduleEditorSupport.primaryButtonColor(
+                sessionType: sessionType,
+                accentColorIndex: accentColorIndex
+            )
+        )
     }
 
     static func isSaveDisabled(days: Set<Int>, modifyAllDays: Bool, isRecurring: Bool) -> Bool {
@@ -352,7 +357,7 @@ struct DayToggle: View {
     }
 
     static func daySymbol(at index: Int) -> String {
-        ["S", "M", "T", "W", "T", "F", "S"][index - 1]
+        ScheduleEditorSupport.daySymbol(at: index)
     }
 
     static func backgroundColor(isSelected: Bool, accentColorIndex: Int) -> Color {

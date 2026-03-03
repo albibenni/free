@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 enum ScheduleEditorSupport {
@@ -131,6 +132,17 @@ enum ScheduleEditorSupport {
     ) -> String {
         if existingSchedule != nil { return "Save Changes" }
         return sessionType == .focus ? "Add Focus Session" : "Add Break Session"
+    }
+
+    static func primaryButtonColor(
+        sessionType: ScheduleType,
+        accentColorIndex: Int
+    ) -> NSColor {
+        sessionType == .focus ? FocusColor.nsColor(for: accentColorIndex) : .systemOrange
+    }
+
+    static func daySymbol(at index: Int) -> String {
+        ["S", "M", "T", "W", "T", "F", "S"][index - 1]
     }
 
     static func isSaveDisabled(

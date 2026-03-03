@@ -138,7 +138,10 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
     private var accentColor: NSColor { FocusColor.nsColor(for: appState.accentColorIndex) }
     private var primaryButtonColor: NSColor {
-        sessionType == .focus ? accentColor : .systemOrange
+        ScheduleEditorSupport.primaryButtonColor(
+            sessionType: sessionType,
+            accentColorIndex: appState.accentColorIndex
+        )
     }
 
     private func configureHeader() {
@@ -398,7 +401,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
         for day in ScheduleEditorSupport.weekDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday) {
             let isSelected = days.contains(day)
-            let button = ActionButton(title: DayToggle.daySymbol(at: day))
+            let button = ActionButton(title: ScheduleEditorSupport.daySymbol(at: day))
             button.isBordered = false
             button.wantsLayer = true
             button.layer?.cornerRadius = 22
@@ -408,7 +411,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
                     : NSColor.secondaryLabelColor.withAlphaComponent(0.2)
             ).cgColor
             button.attributedTitle = NSAttributedString(
-                string: DayToggle.daySymbol(at: day),
+                string: ScheduleEditorSupport.daySymbol(at: day),
                 attributes: [
                     .font: NSFont.systemFont(ofSize: 16, weight: .bold),
                     .foregroundColor: isSelected ? NSColor.white : NSColor.labelColor,
@@ -587,5 +590,23 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 private extension Collection {
     subscript(safe index: Index) -> Element? {
         indices.contains(index) ? self[index] : nil
+    }
+}
+
+extension ScheduleEditorViewController {
+    var headerTitleForTesting: String { headerTitleLabel.stringValue }
+    var importedScheduleForTesting: Bool { importedSchedule }
+    var canEditImportedDetailsForTesting: Bool { canEditImportedDetails }
+
+    func dismissForTesting() {
+        onRequestClose()
+    }
+
+    func saveScheduleForTesting() {
+        saveSchedule()
+    }
+
+    func deleteScheduleForTesting() {
+        deleteSchedule()
     }
 }

@@ -34,11 +34,11 @@ struct SchedulesView: View {
     }
 
     private var dayOrder: [Int] {
-        WeeklyCalendarView.getDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday)
+        WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday)
     }
 
     private var currentWeekDates: [Date] {
-        WeeklyCalendarView.getWeekDates(
+        WeeklyCalendarSupport.getWeekDates(
             at: Date(),
             weekStartsOnMonday: appState.weekStartsOnMonday,
             offset: weekOffset
@@ -46,7 +46,7 @@ struct SchedulesView: View {
     }
 
     private var currentWeekBounds: (Date, Date) {
-        WeeklyCalendarView.weekBounds(for: currentWeekDates)
+        WeeklyCalendarSupport.weekBounds(for: currentWeekDates)
     }
 
     private var shouldShowExternalCalendarOverlay: Bool {
@@ -67,7 +67,7 @@ struct SchedulesView: View {
             accentColorIndex: appState.accentColorIndex,
             appState: appState,
             editorContext: editorContext,
-            calendarViewConfiguration: WeeklyCalendarAppKitView(
+            calendarViewConfiguration: WeeklyCalendarSurfaceConfiguration(
                 dayOrder: dayOrder,
                 weekRange: weekRange,
                 weekStart: weekStart,
@@ -147,7 +147,7 @@ struct SchedulesView: View {
     }
 
     private func schedulePlacements(for schedule: Schedule, weekRange: [Date])
-        -> [WeeklyCalendarView.SchedulePlacement]
+        -> [WeeklyCalendarSupport.SchedulePlacement]
     {
         let calendar = Calendar.current
 
@@ -161,7 +161,7 @@ struct SchedulesView: View {
             }
 
             return [
-                WeeklyCalendarView.SchedulePlacement(
+                WeeklyCalendarSupport.SchedulePlacement(
                     id:
                         "\(schedule.id.uuidString)-\(calendar.startOfDay(for: inWeekDate).timeIntervalSince1970)",
                     day: calendar.component(.weekday, from: inWeekDate),
@@ -172,7 +172,7 @@ struct SchedulesView: View {
         }
 
         return schedule.days.sorted().map { day in
-            WeeklyCalendarView.SchedulePlacement(
+            WeeklyCalendarSupport.SchedulePlacement(
                 id: "\(schedule.id.uuidString)-\(day)",
                 day: day,
                 startDate: schedule.startTime,
@@ -181,8 +181,8 @@ struct SchedulesView: View {
         }
     }
 
-    private func positionedSchedules(weekRange: [Date]) -> [WeeklyCalendarView.PositionedSchedule] {
-        let bounds = WeeklyCalendarView.weekBounds(for: weekRange)
+    private func positionedSchedules(weekRange: [Date]) -> [WeeklyCalendarSupport.PositionedSchedule] {
+        let bounds = WeeklyCalendarSupport.weekBounds(for: weekRange)
         let visible = appState.schedules.filter {
             shouldDisplaySchedule($0, weekStart: bounds.0, weekEnd: bounds.1)
         }
@@ -191,7 +191,7 @@ struct SchedulesView: View {
                 (schedule: schedule, placement: $0)
             }
         }
-        return WeeklyCalendarView.positionedSchedules(from: placements)
+        return WeeklyCalendarSupport.positionedSchedules(from: placements)
     }
 
     private func setScheduleEnabled(scheduleId: UUID, isEnabled: Bool) {
@@ -228,7 +228,7 @@ struct SchedulesView: View {
     }
 
     private func openSelectionEditor(day: Int, startHour: CGFloat, endHour: CGFloat) {
-        let result = WeeklyCalendarView.calculateDragSelection(
+        let result = WeeklyCalendarSupport.calculateDragSelection(
             startHour: startHour,
             endHour: endHour
         )
@@ -355,11 +355,11 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private var dayOrder: [Int] {
-        WeeklyCalendarView.getDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday)
+        WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday)
     }
 
     private var currentWeekDates: [Date] {
-        WeeklyCalendarView.getWeekDates(
+        WeeklyCalendarSupport.getWeekDates(
             at: Date(),
             weekStartsOnMonday: appState.weekStartsOnMonday,
             offset: weekOffset
@@ -367,7 +367,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private var currentWeekBounds: (Date, Date) {
-        WeeklyCalendarView.weekBounds(for: currentWeekDates)
+        WeeklyCalendarSupport.weekBounds(for: currentWeekDates)
     }
 
     private var shouldShowExternalCalendarOverlay: Bool {
@@ -391,7 +391,7 @@ final class SchedulesSheetViewController: NSViewController {
             accentColorIndex: appState.accentColorIndex,
             appState: appState,
             editorContext: editorContext,
-            calendarViewConfiguration: WeeklyCalendarAppKitView(
+            calendarViewConfiguration: WeeklyCalendarSurfaceConfiguration(
                 dayOrder: dayOrder,
                 weekRange: weekRange,
                 weekStart: weekStart,
@@ -481,7 +481,7 @@ final class SchedulesSheetViewController: NSViewController {
         return true
     }
 
-    private func schedulePlacements(for schedule: Schedule, weekRange: [Date]) -> [WeeklyCalendarView.SchedulePlacement] {
+    private func schedulePlacements(for schedule: Schedule, weekRange: [Date]) -> [WeeklyCalendarSupport.SchedulePlacement] {
         let calendar = Calendar.current
 
         if let specificDate = schedule.date {
@@ -494,7 +494,7 @@ final class SchedulesSheetViewController: NSViewController {
             }
 
             return [
-                WeeklyCalendarView.SchedulePlacement(
+                WeeklyCalendarSupport.SchedulePlacement(
                     id: "\(schedule.id.uuidString)-\(calendar.startOfDay(for: inWeekDate).timeIntervalSince1970)",
                     day: calendar.component(.weekday, from: inWeekDate),
                     startDate: schedule.startTime,
@@ -504,7 +504,7 @@ final class SchedulesSheetViewController: NSViewController {
         }
 
         return schedule.days.sorted().map { day in
-            WeeklyCalendarView.SchedulePlacement(
+            WeeklyCalendarSupport.SchedulePlacement(
                 id: "\(schedule.id.uuidString)-\(day)",
                 day: day,
                 startDate: schedule.startTime,
@@ -513,8 +513,8 @@ final class SchedulesSheetViewController: NSViewController {
         }
     }
 
-    private func positionedSchedules(weekRange: [Date]) -> [WeeklyCalendarView.PositionedSchedule] {
-        let bounds = WeeklyCalendarView.weekBounds(for: weekRange)
+    private func positionedSchedules(weekRange: [Date]) -> [WeeklyCalendarSupport.PositionedSchedule] {
+        let bounds = WeeklyCalendarSupport.weekBounds(for: weekRange)
         let visible = appState.schedules.filter {
             shouldDisplaySchedule($0, weekStart: bounds.0, weekEnd: bounds.1)
         }
@@ -523,7 +523,7 @@ final class SchedulesSheetViewController: NSViewController {
                 (schedule: schedule, placement: $0)
             }
         }
-        return WeeklyCalendarView.positionedSchedules(from: placements)
+        return WeeklyCalendarSupport.positionedSchedules(from: placements)
     }
 
     private func setScheduleEnabled(scheduleId: UUID, isEnabled: Bool) {
@@ -564,7 +564,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openSelectionEditor(day: Int, startHour: CGFloat, endHour: CGFloat) {
-        let result = WeeklyCalendarView.calculateDragSelection(
+        let result = WeeklyCalendarSupport.calculateDragSelection(
             startHour: startHour,
             endHour: endHour
         )
@@ -640,7 +640,7 @@ extension SchedulesSheetViewController {
         let accentColorIndex: Int
         let appState: AppState
         let editorContext: ScheduleEditorContext?
-        let calendarViewConfiguration: WeeklyCalendarAppKitView
+        let calendarViewConfiguration: WeeklyCalendarSurfaceConfiguration
         let onChangeViewMode: (Int) -> Void
         let onSelectSchedule: (Schedule) -> Void
         let onDeleteSchedule: (UUID) -> Void
@@ -677,7 +677,7 @@ extension SchedulesSheetViewController {
         private let doneButton = NSButton(title: "Done", target: nil, action: nil)
         private let listScrollView = NSScrollView()
         private let listDocumentView = SchedulesListDocumentNSView()
-        private let calendarView = WeeklyCalendarContainerNSView()
+        private let calendarView = WeeklyCalendarSurfaceNSView()
         private let bottomDivider = NSView()
         private let addButton = NSButton(title: "Add Schedule", target: nil, action: nil)
         private var configuration: SchedulesAppKitConfiguration?
