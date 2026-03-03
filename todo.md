@@ -63,6 +63,7 @@
 
 - [x] app state change not highlighting correctly and lag
   - [ ] state change should follow color schema
+- [ ] can't close cmd+q the app
 
 ## Performance check
 
