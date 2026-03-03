@@ -768,38 +768,27 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     ) -> ActionButton {
         let button = ActionButton()
         button.isBordered = false
-        button.layer?.cornerRadius = 11
-        button.layer?.masksToBounds = true
-        button.setGradientBackground(
-            colors: isEnabled
-                ? [
-                    NSColor.labelColor.withAlphaComponent(0.12),
-                    NSColor.labelColor.withAlphaComponent(0.07),
-                ]
-                : [
-                    NSColor.labelColor.withAlphaComponent(0.06),
-                    NSColor.labelColor.withAlphaComponent(0.03),
-                ],
-            borderColor: isEnabled
-                ? NSColor.separatorColor.withAlphaComponent(0.22)
-                : NSColor.separatorColor.withAlphaComponent(0.12)
-        )
+        button.focusRingType = .none
+        button.layer?.backgroundColor = nil
+        button.layer?.borderWidth = 0
         button.image = appKitSymbolImage(
-            named: symbolName.hasPrefix("minus") ? "minus" : "plus",
-            pointSize: 11,
-            weight: .bold,
+            named: symbolName,
+            pointSize: 18,
+            weight: .regular,
             color: isEnabled
                 ? .secondaryLabelColor
                 : .secondaryLabelColor.withAlphaComponent(0.45)
         )
         button.imagePosition = .imageOnly
+        button.imageScaling = .scaleProportionallyUpOrDown
         button.contentTintColor = isEnabled
             ? .secondaryLabelColor
             : .secondaryLabelColor.withAlphaComponent(0.45)
         button.onAction = action
         button.isEnabled = isEnabled
-        button.widthAnchor.constraint(equalToConstant: 22).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 22).isActive = true
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.widthAnchor.constraint(equalToConstant: 18).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 18).isActive = true
         return button
     }
 

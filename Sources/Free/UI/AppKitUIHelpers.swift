@@ -4,7 +4,7 @@ class AppKitFlippedView: NSView {
     override var isFlipped: Bool { true }
 }
 
-final class ActionButton: NSButton {
+class ActionButton: NSButton {
     var onAction: (() -> Void)?
     private let backgroundGradientLayer = CAGradientLayer()
 
