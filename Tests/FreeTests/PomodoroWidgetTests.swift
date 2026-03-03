@@ -49,6 +49,17 @@ struct PomodoroWidgetTests {
         return all
     }
 
+    private func subviews<T: NSView>(ofType type: T.Type, in view: NSView) -> [T] {
+        var all: [T] = []
+        if let match = view as? T {
+            all.append(match)
+        }
+        for subview in view.subviews {
+            all.append(contentsOf: subviews(ofType: type, in: subview))
+        }
+        return all
+    }
+
     private func sampleRuleSet(name: String, url: String) -> RuleSet {
         RuleSet(name: name, urls: [url])
     }
@@ -93,6 +104,40 @@ struct PomodoroWidgetTests {
         quickBreakButton?.performClick(nil)
         #expect(appState.isPaused)
         #expect(appState.pauseRemaining > 0)
+    }
+
+    @Test("FocusPomodoroWidgetView exposes draggable AppKit dials that update durations")
+    @MainActor
+    func pomodoroWidgetDraggableDials() {
+        let appState = isolatedAppState(name: "draggableDials")
+        appState.pomodoroStatus = .none
+        appState.pomodoroFocusDuration = 25
+        appState.pomodoroBreakDuration = 5
+
+        let hosted = host(FocusPomodoroWidgetView(appState: appState), size: CGSize(width: 900, height: 900))
+        let dials = subviews(ofType: PomodoroDurationDialView.self, in: hosted)
+
+        #expect(dials.count == 2)
+
+        guard
+            let focusDial = dials.first(where: { $0.titleForTesting == "FOCUS" }),
+            let breakDial = dials.first(where: { $0.titleForTesting == "BREAK" })
+        else {
+            Issue.record("Expected both focus and break dials to be present")
+            return
+        }
+
+        focusDial.applyLocationForTesting(
+            CGPoint(x: focusDial.bounds.maxX - 18, y: focusDial.bounds.midY)
+        )
+        breakDial.applyLocationForTesting(
+            CGPoint(x: breakDial.bounds.maxX - 18, y: breakDial.bounds.midY)
+        )
+
+        #expect(appState.pomodoroFocusDuration == 30)
+        #expect(appState.pomodoroBreakDuration == 15)
+        #expect(focusDial.durationMinutesForTesting == 30)
+        #expect(breakDial.durationMinutesForTesting == 15)
     }
 
     @Test("FocusPomodoroWidgetView disables quick-break controls when blocking is inactive or strict")
@@ -176,6 +221,7 @@ struct PomodoroWidgetTests {
 
         let activeHosted = host(FocusPomodoroWidgetView(appState: appState))
         let activeTexts = visibleText(in: activeHosted)
+        #expect(subviews(ofType: PomodoroProgressDialView.self, in: activeHosted).count == 1)
         #expect(activeTexts.contains("FOCUSING"))
         #expect(activeTexts.contains("Skip"))
         #expect(activeTexts.contains("Stop"))

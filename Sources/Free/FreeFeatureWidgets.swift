@@ -420,29 +420,25 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             row.spacing = 16
             row.distribution = .fillEqually
             row.addArrangedSubview(
-                makeDurationControl(
+                makeDurationDialCard(
                     title: "FOCUS",
-                    value: Int(appState.pomodoroFocusDuration),
+                    iconName: "target",
+                    duration: appState.pomodoroFocusDuration,
                     maxMinutes: 120
-                ) { [weak appState] delta in
+                ) { [weak appState] minutes in
                     guard let appState else { return }
-                    appState.pomodoroFocusDuration = min(
-                        120,
-                        max(5, appState.pomodoroFocusDuration + delta)
-                    )
+                    appState.pomodoroFocusDuration = minutes
                 }
             )
             row.addArrangedSubview(
-                makeDurationControl(
+                makeDurationDialCard(
                     title: "BREAK",
-                    value: Int(appState.pomodoroBreakDuration),
+                    iconName: "cup.and.saucer.fill",
+                    duration: appState.pomodoroBreakDuration,
                     maxMinutes: 60
-                ) { [weak appState] delta in
+                ) { [weak appState] minutes in
                     guard let appState else { return }
-                    appState.pomodoroBreakDuration = min(
-                        60,
-                        max(5, appState.pomodoroBreakDuration + delta)
-                    )
+                    appState.pomodoroBreakDuration = minutes
                 }
             )
             return row
@@ -457,13 +453,26 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         phaseLabel.font = .systemFont(ofSize: 12, weight: .black)
         phaseLabel.textColor = .secondaryLabelColor
 
-        let timeLabel = NSTextField(labelWithString: appState.timeString(time: appState.pomodoroRemaining))
-        timeLabel.font = .monospacedDigitSystemFont(ofSize: 32, weight: .bold)
-        timeLabel.textColor = .labelColor
+        let totalDurationSeconds =
+            appState.pomodoroStatus == .focus
+            ? appState.pomodoroFocusDuration * 60
+            : appState.pomodoroBreakDuration * 60
+        let progress =
+            totalDurationSeconds > 0
+            ? 1 - (appState.pomodoroRemaining / totalDurationSeconds)
+            : 0
+        let progressView = PomodoroProgressDialView(
+            progress: progress,
+            iconName: appState.pomodoroStatus == .focus ? "target" : "cup.and.saucer.fill",
+            color: appState.pomodoroStatus == .focus ? accentColor : .systemOrange,
+            centerText: appState.timeString(time: appState.pomodoroRemaining)
+        )
+        progressView.widthAnchor.constraint(equalToConstant: 196).isActive = true
+        progressView.heightAnchor.constraint(equalToConstant: 196).isActive = true
 
         phaseCard.contentStack.alignment = .centerX
         phaseCard.contentStack.addArrangedSubview(phaseLabel)
-        phaseCard.contentStack.addArrangedSubview(timeLabel)
+        phaseCard.contentStack.addArrangedSubview(progressView)
 
         if let activeId = appState.currentPrimaryRuleSetId,
            let setName = appState.ruleSets.first(where: { $0.id == activeId })?.name,
@@ -555,11 +564,12 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         return row
     }
 
-    private func makeDurationControl(
+    private func makeDurationDialCard(
         title: String,
-        value: Int,
+        iconName: String,
+        duration: Double,
         maxMinutes: Int,
-        onAdjust: @escaping (Double) -> Void
+        onCommit: @escaping (Double) -> Void
     ) -> NSView {
         let card = AppKitCardView()
         card.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.03).cgColor
@@ -568,29 +578,25 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         titleLabel.font = .systemFont(ofSize: 12, weight: .black)
         titleLabel.textColor = .secondaryLabelColor
 
-        let valueLabel = NSTextField(labelWithString: "\(value) min")
-        valueLabel.font = .systemFont(ofSize: 24, weight: .bold)
-        valueLabel.textColor = .labelColor
+        let dial = PomodoroDurationDialView(
+            title: title,
+            durationMinutes: duration,
+            maxMinutes: Double(maxMinutes),
+            iconName: iconName,
+            color: title == "FOCUS" ? accentColor : .systemOrange,
+            onCommit: onCommit
+        )
+        dial.widthAnchor.constraint(equalToConstant: 176).isActive = true
+        dial.heightAnchor.constraint(equalToConstant: 176).isActive = true
 
-        let minusButton = makePresetButton(title: "-", isSelected: false, color: .secondaryLabelColor) {
-            onAdjust(-5)
-        }
-        minusButton.isEnabled = value > 5
-
-        let plusButton = makePresetButton(title: "+", isSelected: false, color: .secondaryLabelColor) {
-            onAdjust(5)
-        }
-        plusButton.isEnabled = value < maxMinutes
-
-        let controls = NSStackView(views: [minusButton, plusButton])
-        controls.orientation = .horizontal
-        controls.alignment = .centerY
-        controls.spacing = 8
+        let hintLabel = makeBodyLabel("Drag the dot to adjust", alignment: .center)
+        hintLabel.alignment = .center
+        hintLabel.font = AppKitUIConstants.Typography.helperLabel
 
         card.contentStack.alignment = .centerX
         card.contentStack.addArrangedSubview(titleLabel)
-        card.contentStack.addArrangedSubview(valueLabel)
-        card.contentStack.addArrangedSubview(controls)
+        card.contentStack.addArrangedSubview(dial)
+        card.contentStack.addArrangedSubview(hintLabel)
         return card
     }
 
