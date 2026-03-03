@@ -65,6 +65,10 @@ struct ContentViewTests {
         return hosted
     }
 
+    private func allSubviews(in view: NSView) -> [NSView] {
+        [view] + view.subviews.flatMap { allSubviews(in: $0) }
+    }
+
     @Test("ContentView helper logic covers action, tint, and preferred color scheme")
     func contentViewHelperLogic() {
         let contentView = ContentView()
@@ -217,6 +221,38 @@ struct ContentViewTests {
             .environmentObject(appState)
         let hosted = host(view, size: CGSize(width: 820, height: 760))
         #expect(hosted.fittingSize.height >= 0)
+    }
+
+    @Test("ContentView schedules sheet exposes a visible view mode toggle")
+    @MainActor
+    func contentViewSchedulesSheetShowsViewModeToggle() {
+        let appState = isolatedAppState(name: "schedulesSheetToolbar")
+        appState.schedules = [
+            Schedule(
+                name: "Morning Focus",
+                days: [2],
+                startTime: Date(),
+                endTime: Date().addingTimeInterval(3600),
+                isEnabled: true,
+                type: .focus
+            )
+        ]
+
+        var showSchedules = true
+        let binding = Binding(get: { showSchedules }, set: { showSchedules = $0 })
+        let hosted = host(
+            ContentView.schedulesSheet(showSchedules: binding).environmentObject(appState),
+            size: CGSize(width: 820, height: 760)
+        )
+
+        let subviews = allSubviews(in: hosted)
+        let segmentedControls = subviews.compactMap { $0 as? NSSegmentedControl }
+        #expect(segmentedControls.contains(where: { !$0.isHidden && $0.segmentCount == 2 }))
+
+        let doneButtons = subviews.compactMap { $0 as? NSButton }.filter {
+            !$0.isHidden && $0.title == "Done"
+        }
+        #expect(doneButtons.isEmpty)
     }
 
     @Test("ContentView renders with rules sheet initially presented")

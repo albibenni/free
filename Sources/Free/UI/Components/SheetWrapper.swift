@@ -26,7 +26,9 @@ struct SheetWrapper<Content: View>: View {
             Divider()
 
             content
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     func dismissSheet() {

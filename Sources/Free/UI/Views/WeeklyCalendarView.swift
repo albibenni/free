@@ -8,6 +8,7 @@ import SwiftUI
 struct WeeklyCalendarView: View {
     @EnvironmentObject private var environmentAppState: AppState
     private let actionAppState: AppState?
+    private let headerAccessory: AnyView?
     var appState: AppState { actionAppState ?? environmentAppState }
     @Binding var editorContext: ScheduleEditorContext?
 
@@ -63,10 +64,12 @@ struct WeeklyCalendarView: View {
         editorContext: Binding<ScheduleEditorContext?>,
         actionAppState: AppState? = nil,
         initialWeekOffset: Int = 0,
-        initialDragData: DragSelection? = nil
+        initialDragData: DragSelection? = nil,
+        headerAccessory: AnyView? = nil
     ) {
         self._editorContext = editorContext
         self.actionAppState = actionAppState
+        self.headerAccessory = headerAccessory
         _weekOffset = State(initialValue: initialWeekOffset)
         _dragData = State(initialValue: initialDragData)
     }
@@ -76,7 +79,7 @@ struct WeeklyCalendarView: View {
     let timeLabelWidth: CGFloat = 60
     let timeColumnGutter: CGFloat = 12
     let resizeHandleHitHeight: CGFloat = 18
-    let toolbarHeight: CGFloat = 44
+    let toolbarHeight: CGFloat = 36
 
     var dayOrder: [Int] {
         WeeklyCalendarView.getDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday)
@@ -150,36 +153,42 @@ struct WeeklyCalendarView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(.top, toolbarHeight)
 
-            HStack {
-                Text(monthYearString(for: weekStart))
-                    .font(.title3.bold())
+            ZStack {
+                HStack {
+                    Text(monthYearString(for: weekStart))
+                        .font(.title3.bold())
 
-                Spacer()
+                    Spacer()
 
-                HStack(spacing: 8) {
-                    Button(action: goToPreviousWeek) {
-                        Image(systemName: "chevron.left")
-                            .padding(6)
-                            .background(Color.primary.opacity(0.05))
-                            .clipShape(Circle())
+                    HStack(spacing: 8) {
+                        Button(action: goToPreviousWeek) {
+                            Image(systemName: "chevron.left")
+                                .padding(6)
+                                .background(Color.primary.opacity(0.05))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Button("Today", action: goToCurrentWeek)
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+
+                        Button(action: goToNextWeek) {
+                            Image(systemName: "chevron.right")
+                                .padding(6)
+                                .background(Color.primary.opacity(0.05))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                }
 
-                    Button("Today", action: goToCurrentWeek)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-
-                    Button(action: goToNextWeek) {
-                        Image(systemName: "chevron.right")
-                            .padding(6)
-                            .background(Color.primary.opacity(0.05))
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
+                if let headerAccessory {
+                    headerAccessory
                 }
             }
             .padding(.horizontal)
-            .padding(.vertical, 8)
+            .padding(.vertical, 4)
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .background(Color(NSColor.windowBackgroundColor))
         }
@@ -977,7 +986,7 @@ struct WeeklyCalendarView: View {
 }
 
 #if canImport(AppKit)
-    private struct WeeklyCalendarAppKitView: NSViewRepresentable {
+    struct WeeklyCalendarAppKitView: NSViewRepresentable {
         let dayOrder: [Int]
         let weekRange: [Date]
         let weekStart: Date
@@ -1006,7 +1015,7 @@ struct WeeklyCalendarView: View {
         }
     }
 
-    private final class WeeklyCalendarContainerNSView: NSView {
+    final class WeeklyCalendarContainerNSView: NSView {
         private let headerView = WeeklyCalendarHeaderNSView()
         private let scrollView = NSScrollView()
         private let documentView = WeeklyCalendarDocumentNSView()
@@ -1019,6 +1028,7 @@ struct WeeklyCalendarView: View {
             super.init(frame: frameRect)
             wantsLayer = true
             layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+            layer?.masksToBounds = true
 
             scrollView.drawsBackground = false
             scrollView.borderType = .noBorder
@@ -1375,9 +1385,12 @@ struct WeeklyCalendarView: View {
 
         private func drawHourGrid(configuration: WeeklyCalendarAppKitView) {
             let calendarX = calendarAreaX(configuration: configuration)
+            let labelParagraph = NSMutableParagraphStyle()
+            labelParagraph.alignment = .right
             let labelAttributes: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: 11),
                 .foregroundColor: NSColor.secondaryLabelColor,
+                .paragraphStyle: labelParagraph,
             ]
 
             for hour in 0..<24 {
@@ -1390,9 +1403,9 @@ struct WeeklyCalendarView: View {
 
                 let text = WeeklyCalendarView.timeString(hour: hour) as NSString
                 let textRect = CGRect(
-                    x: 0,
+                    x: 8,
                     y: y - 6,
-                    width: configuration.timeLabelWidth,
+                    width: max(configuration.timeLabelWidth - 12, 0),
                     height: 14
                 )
                 text.draw(in: textRect, withAttributes: labelAttributes)

@@ -22,6 +22,10 @@ struct SchedulesViewTests {
         return hosted
     }
 
+    private func allSubviews(in view: NSView) -> [NSView] {
+        [view] + view.subviews.flatMap { allSubviews(in: $0) }
+    }
+
     private func sampleSchedule(name: String) -> Schedule {
         Schedule(
             name: name,
@@ -146,6 +150,44 @@ struct SchedulesViewTests {
 
         let root = SchedulesView(initialViewMode: 1)
         _ = root.viewModeForTesting
+    }
+
+    @Test("SchedulesView exposes visible AppKit toolbar controls in calendar mode")
+    @MainActor
+    func schedulesViewCalendarModeShowsToolbarControls() {
+        let appState = isolatedAppState(name: "calendarToolbar")
+        appState.schedules = [sampleSchedule(name: "A")]
+
+        let hosted = host(
+            SchedulesView(initialViewMode: 1).environmentObject(appState),
+            size: CGSize(width: 900, height: 760)
+        )
+        let subviews = allSubviews(in: hosted)
+
+        let segmentedControls = subviews.compactMap { $0 as? NSSegmentedControl }
+        #expect(segmentedControls.contains(where: { !$0.isHidden && $0.segmentCount == 2 }))
+
+        let buttons = subviews.compactMap { $0 as? NSButton }
+        #expect(buttons.contains(where: { !$0.isHidden && $0.title == "Today" }))
+        #expect(!buttons.contains(where: { !$0.isHidden && $0.title == "Done" }))
+    }
+
+    @Test("SchedulesView shows AppKit Done button only when given a presentation binding")
+    @MainActor
+    func schedulesViewDoneButtonVisibilityFollowsBinding() {
+        let appState = isolatedAppState(name: "doneBinding")
+        appState.schedules = [sampleSchedule(name: "A")]
+
+        var isPresented = true
+        let binding = Binding(get: { isPresented }, set: { isPresented = $0 })
+
+        let hosted = host(
+            SchedulesView(initialViewMode: 1, presentationBinding: binding)
+                .environmentObject(appState),
+            size: CGSize(width: 900, height: 760)
+        )
+        let buttons = allSubviews(in: hosted).compactMap { $0 as? NSButton }
+        #expect(buttons.contains(where: { !$0.isHidden && $0.title == "Done" }))
     }
 
     @Test("SchedulesView sheet path can render when editor context is preset")
