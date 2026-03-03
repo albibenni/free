@@ -626,10 +626,19 @@ final class FreeMainViewController: NSViewController {
 }
 
 extension FreeMainViewController {
+    var isSidebarVisibleForTesting: Bool { shellState.showSidebar }
     var selectedSectionForTesting: MainContentSection { shellState.selectedSection }
+    var currentContentViewControllerForTesting: NSViewController? { currentContentViewController }
+    var currentFocusSectionForTesting: FocusContentSection? {
+        (currentContentViewController as? FocusSectionViewController)?.section
+    }
 
     func selectSectionForTesting(_ section: MainContentSection) {
         applySelectedSection(section)
+    }
+
+    func toggleSidebarForTesting() {
+        toggleSidebar()
     }
 
     func isSidebarButtonSelectedForTesting(_ section: MainContentSection) -> Bool {

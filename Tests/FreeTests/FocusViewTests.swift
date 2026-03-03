@@ -1,8 +1,6 @@
 import AppKit
 import Foundation
-import SwiftUI
 import Testing
-import ViewInspector
 
 @testable import FreeLogic
 
@@ -16,17 +14,47 @@ struct FocusViewTests {
     }
 
     @MainActor
-    private func host<V: View>(_ view: V, size: CGSize = CGSize(width: 980, height: 980))
-        -> NSHostingView<V>
-    {
-        let hosted = NSHostingView(rootView: view)
-        hosted.frame = NSRect(origin: .zero, size: size)
-        hosted.layoutSubtreeIfNeeded()
-        hosted.displayIfNeeded()
-        return hosted
+    private func host(
+        _ controller: NSViewController,
+        size: CGSize = CGSize(width: 980, height: 980)
+    ) -> NSView {
+        controller.loadViewIfNeeded()
+        controller.view.frame = NSRect(origin: .zero, size: size)
+        controller.view.layoutSubtreeIfNeeded()
+        controller.view.displayIfNeeded()
+        return controller.view
     }
 
-    @Test("FocusView helper logic covers warning/icon/status/pause/action paths")
+    @MainActor
+    private func makeController(
+        appState: AppState,
+        section: FocusContentSection
+    ) -> FocusSectionViewController {
+        FocusSectionViewController(
+            appState: appState,
+            shellState: FreeShellState(),
+            section: section
+        )
+    }
+
+    private func visibleText(in view: NSView) -> [String] {
+        guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
+
+        var values: [String] = []
+        if let label = view as? NSTextField, !label.stringValue.isEmpty {
+            values.append(label.stringValue)
+        }
+        if let button = view as? NSButton, !button.title.isEmpty {
+            values.append(button.title)
+        }
+
+        for subview in view.subviews {
+            values.append(contentsOf: visibleText(in: subview))
+        }
+        return values
+    }
+
+    @Test("Focus section support covers warning/icon/status/pause/action paths")
     func focusViewHelperLogic() {
         #expect(FocusSectionSupport.shouldShowUnblockableWarning(isBlocking: true, isUnblockable: true))
         #expect(!FocusSectionSupport.shouldShowUnblockableWarning(isBlocking: false, isUnblockable: true))
@@ -123,21 +151,15 @@ struct FocusViewTests {
         appState.ruleSets = [RuleSet(name: "Work", urls: ["example.com", "developer.apple.com"])]
         appState.activeRuleSetId = appState.ruleSets.first?.id
 
-        var showRules = false
-        var showSchedules = false
-        let view = FocusView(
-            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
-            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 }),
-            section: .all
-        )
-        .environmentObject(appState)
-        _ = host(view)
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+        let texts = visibleText(in: hosted)
 
-        #expect((try? view.inspect().find(text: "Live Overview")) != nil)
-        #expect((try? view.inspect().find(text: "Allow List")) != nil)
-        #expect((try? view.inspect().find(text: "Pomodoro Mode")) == nil)
-        #expect((try? view.inspect().find(text: "Focus Schedules")) == nil)
-        #expect((try? view.inspect().find(text: "Allowed Websites")) == nil)
+        #expect(texts.contains("Live Overview"))
+        #expect(texts.contains("Allow List"))
+        #expect(texts.contains("Pomodoro Mode") == false)
+        #expect(texts.contains("Focus Schedules") == false)
+        #expect(texts.contains("Allowed Websites") == false)
     }
 
     @Test("Focus section live overview renders active schedules and pomodoro previews")
@@ -164,42 +186,31 @@ struct FocusViewTests {
             )
         ]
 
-        var showRules = false
-        var showSchedules = false
-        let view = FocusView(
-            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
-            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 }),
-            section: .all
-        )
-        .environmentObject(appState)
-        _ = host(view)
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+        let texts = visibleText(in: hosted)
 
-        #expect((try? view.inspect().find(text: "Active Schedules")) != nil)
-        #expect((try? view.inspect().find(text: "Pomodoro")) != nil)
-        #expect((try? view.inspect().find(text: "No active schedule, allow list, or pomodoro session.")) == nil)
+        #expect(texts.contains("Active Schedules"))
+        #expect(texts.contains("Pomodoro"))
+        #expect(texts.contains("No active schedule, allow list, or pomodoro session.") == false)
     }
 
-    @Test("FocusView pomodoro section renders Pomodoro widget")
+    @Test("Focus section pomodoro mode renders AppKit widget without overview")
     @MainActor
     func focusViewPomodoroSectionRender() {
         let appState = isolatedAppState(name: "pomodoroSection")
         appState.isTrusted = true
 
-        var showRules = false
-        var showSchedules = false
-        let view = FocusView(
-            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
-            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 }),
-            section: .pomodoro
-        )
-        .environmentObject(appState)
-        _ = host(view)
+        let controller = makeController(appState: appState, section: .pomodoro)
+        let hosted = host(controller)
+        let texts = visibleText(in: hosted)
 
-        #expect((try? view.inspect().find(text: "Pomodoro Mode")) != nil)
-        #expect((try? view.inspect().find(text: "Live Overview")) == nil)
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusPomodoroWidgetView")
+        #expect(texts.contains("Pomodoro Mode"))
+        #expect(texts.contains("Live Overview") == false)
     }
 
-    @Test("FocusView allowed-websites section renders allowed websites widget")
+    @Test("Focus section allowed-websites mode renders AppKit widget without overview")
     @MainActor
     func focusViewAllowedWebsitesSectionRender() {
         let appState = isolatedAppState(name: "allowedWebsitesSection")
@@ -207,21 +218,16 @@ struct FocusViewTests {
         appState.ruleSets = [RuleSet(name: "Default", urls: ["example.com"])]
         appState.activeRuleSetId = appState.ruleSets.first?.id
 
-        var showRules = false
-        var showSchedules = false
-        let view = FocusView(
-            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
-            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 }),
-            section: .allowedWebsites
-        )
-        .environmentObject(appState)
-        _ = host(view)
+        let controller = makeController(appState: appState, section: .allowedWebsites)
+        let hosted = host(controller)
+        let texts = visibleText(in: hosted)
 
-        #expect((try? view.inspect().find(text: "Allowed Websites")) != nil)
-        #expect((try? view.inspect().find(text: "Live Overview")) == nil)
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusAllowedWebsitesWidgetView")
+        #expect(texts.contains("Allowed Websites"))
+        #expect(texts.contains("Live Overview") == false)
     }
 
-    @Test("FocusView live overview handles missing rule-set context")
+    @Test("Focus section live overview handles missing rule-set context")
     @MainActor
     func focusViewLiveOverviewMissingRuleSetContext() {
         let appState = isolatedAppState(name: "missingRuleSetContext")
@@ -230,21 +236,15 @@ struct FocusViewTests {
         appState.isBlocking = false
         appState.pomodoroStatus = .none
 
-        var showRules = false
-        var showSchedules = false
-        let view = FocusView(
-            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
-            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 }),
-            section: .all
-        )
-        .environmentObject(appState)
-        _ = host(view)
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+        let texts = visibleText(in: hosted)
 
-        #expect((try? view.inspect().find(text: "Allow List")) == nil)
-        #expect((try? view.inspect().find(text: "No active schedule, allow list, or pomodoro session.")) != nil)
+        #expect(texts.contains("Allow List") == false)
+        #expect(texts.contains("No active schedule, allow list, or pomodoro session."))
     }
 
-    @Test("FocusView renders trusted inactive state")
+    @Test("Focus section renders trusted inactive state")
     @MainActor
     func focusViewRenderTrustedInactive() {
         let appState = isolatedAppState(name: "trustedInactive")
@@ -253,18 +253,15 @@ struct FocusViewTests {
         appState.isPaused = false
         appState.isUnblockable = false
 
-        var showRules = false
-        var showSchedules = false
-        let view = FocusView(
-            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
-            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 })
-        )
-        .environmentObject(appState)
-        let hosted = host(view)
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+
         #expect(hosted.fittingSize.width >= 0)
+        #expect(controller.isPermissionWarningHiddenForTesting)
+        #expect(controller.headerStatusTextForTesting == "Inactive")
     }
 
-    @Test("FocusView renders blocking active unblockable state with list name")
+    @Test("Focus section renders blocking active unblockable state with list name")
     @MainActor
     func focusViewRenderBlockingActiveUnblockable() {
         let appState = isolatedAppState(name: "activeUnblockable")
@@ -276,20 +273,15 @@ struct FocusViewTests {
         appState.ruleSets = [rules]
         appState.activeRuleSetId = rules.id
 
-        var showRules = false
-        var showSchedules = false
-        let view = FocusView(
-            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
-            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 }),
-            initialShowPomodoroChallenge: true,
-            initialPomodoroChallengeInput: "challenge"
-        )
-        .environmentObject(appState)
-        let hosted = host(view)
-        #expect(hosted.fittingSize.height >= 0)
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+
+        #expect(controller.isPermissionWarningHiddenForTesting == false)
+        #expect(controller.isUnblockableWarningHiddenForTesting == false)
+        #expect(controller.headerStatusTextForTesting == "Active • Work List")
     }
 
-    @Test("FocusView renders paused dashboard state")
+    @Test("Focus section renders paused dashboard state")
     @MainActor
     func focusViewRenderPausedDashboard() {
         let appState = isolatedAppState(name: "pausedDashboard")
@@ -298,14 +290,11 @@ struct FocusViewTests {
         appState.isPaused = true
         appState.pauseRemaining = 125
 
-        var showRules = false
-        var showSchedules = false
-        let view = FocusView(
-            showRules: Binding(get: { showRules }, set: { showRules = $0 }),
-            showSchedules: Binding(get: { showSchedules }, set: { showSchedules = $0 })
-        )
-        .environmentObject(appState)
-        let hosted = host(view)
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+
         #expect(hosted.fittingSize.width >= 0)
+        #expect(controller.isPauseDashboardHiddenForTesting == false)
+        #expect(controller.pauseTimeTextForTesting == "02:05")
     }
 }

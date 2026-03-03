@@ -1,35 +1,8 @@
-import Testing
-import SwiftUI
 import AppKit
 import Foundation
-import ViewInspector
+import Testing
+
 @testable import FreeLogic
-
-private final class ContentViewMockLaunchAtLoginManager: LaunchAtLoginManaging {
-    var isEnabledValue: Bool
-    var isEnabledCallCount = 0
-    var enableCallCount = 0
-    var disableCallCount = 0
-
-    init(isEnabled: Bool) {
-        self.isEnabledValue = isEnabled
-    }
-
-    var isEnabled: Bool {
-        isEnabledCallCount += 1
-        return isEnabledValue
-    }
-
-    func enable() throws {
-        enableCallCount += 1
-        isEnabledValue = true
-    }
-
-    func disable() throws {
-        disableCallCount += 1
-        isEnabledValue = false
-    }
-}
 
 @Suite(.serialized)
 struct ContentViewTests {
@@ -40,136 +13,87 @@ struct ContentViewTests {
         return AppState(defaults: defaults, isTesting: true)
     }
 
-    private func isolatedAppState(
-        name: String,
-        launchAtLoginManager: any LaunchAtLoginManaging,
-        canPromptForLaunchAtLogin: @escaping () -> Bool
-    ) -> AppState {
-        let suite = "ContentViewTests.\(name)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
-        return AppState(
-            defaults: defaults,
-            launchAtLoginManager: launchAtLoginManager,
-            canPromptForLaunchAtLogin: canPromptForLaunchAtLogin,
-            isTesting: true
+    @MainActor
+    private func host(
+        _ controller: NSViewController,
+        size: CGSize = CGSize(width: 960, height: 820)
+    ) -> NSView {
+        controller.loadViewIfNeeded()
+        controller.view.frame = NSRect(origin: .zero, size: size)
+        controller.view.layoutSubtreeIfNeeded()
+        controller.view.displayIfNeeded()
+        return controller.view
+    }
+
+    private func visibleText(in view: NSView) -> [String] {
+        guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
+
+        var values: [String] = []
+        if let label = view as? NSTextField, !label.stringValue.isEmpty {
+            values.append(label.stringValue)
+        }
+        if let button = view as? NSButton, !button.title.isEmpty {
+            values.append(button.title)
+        }
+
+        for subview in view.subviews {
+            values.append(contentsOf: visibleText(in: subview))
+        }
+        return values
+    }
+
+    @Test("Main shell controller covers sidebar state and section switching")
+    @MainActor
+    func mainShellControllerState() {
+        let controller = FreeMainViewController(
+            appState: isolatedAppState(name: "mainShellState"),
+            initialSection: .focus,
+            initialShowSidebar: false
         )
+
+        _ = host(controller)
+
+        #expect(controller.isSidebarVisibleForTesting == false)
+        #expect(controller.selectedSectionForTesting == .focus)
+        #expect(controller.currentFocusSectionForTesting == .all)
+
+        controller.toggleSidebarForTesting()
+        #expect(controller.isSidebarVisibleForTesting)
+
+        controller.selectSectionForTesting(.pomodoro)
+        #expect(controller.selectedSectionForTesting == .pomodoro)
+        #expect(controller.currentFocusSectionForTesting == .pomodoro)
+        #expect(controller.isSidebarButtonSelectedForTesting(.pomodoro))
+        #expect(controller.isSidebarButtonSelectedForTesting(.focus) == false)
+
+        controller.selectSectionForTesting(.settings)
+        #expect(controller.selectedSectionForTesting == .settings)
+        #expect(controller.currentContentViewControllerForTesting is SettingsSectionViewController)
     }
 
+    @Test("Main shell renders expanded sidebar menu with section entries and settings")
     @MainActor
-    private func host<V: View>(_ view: V, size: CGSize = CGSize(width: 900, height: 900)) -> NSHostingView<V> {
-        let hosted = NSHostingView(rootView: view)
-        hosted.frame = NSRect(origin: .zero, size: size)
-        hosted.layoutSubtreeIfNeeded()
-        hosted.displayIfNeeded()
-        return hosted
+    func mainShellExpandedSidebarRender() {
+        let controller = FreeMainViewController(
+            appState: isolatedAppState(name: "expandedSidebar"),
+            initialShowSidebar: true
+        )
+
+        let hosted = host(controller)
+        let texts = visibleText(in: hosted)
+
+        #expect(texts.contains("Menu"))
+        #expect(texts.contains("Focus"))
+        #expect(texts.contains("Schedules"))
+        #expect(texts.contains("Allowed Websites"))
+        #expect(texts.contains("Pomodoro"))
+        #expect(texts.contains("Settings"))
     }
 
-    private func allSubviews(in view: NSView) -> [NSView] {
-        [view] + view.subviews.flatMap { allSubviews(in: $0) }
-    }
-
-    @Test("ContentView helper logic covers action, tint, and preferred color scheme")
-    func contentViewHelperLogic() {
-        let contentView = ContentView()
-        #expect(contentView.isSidebarVisibleForTesting == false)
-        #expect(contentView.showRulesForTesting == false)
-        contentView.openSettings()
-        contentView.toggleSettingsSidebar()
-        contentView.openRules()
-        #expect(contentView.selectedSectionForTesting == .focus)
-
-        #expect(ContentView.tintColor(accentColorIndex: 3) == FocusColor.color(for: 3))
-        #expect(ContentView.preferredColorScheme(for: .light) == .light)
-        #expect(ContentView.preferredColorScheme(for: .dark) == .dark)
-        #expect(ContentView.preferredColorScheme(for: .system) == nil)
-        #expect(ContentView.nsAppearance(for: .light)?.name == .aqua)
-        #expect(ContentView.nsAppearance(for: .dark)?.name == .darkAqua)
-        #expect(ContentView.nsAppearance(for: .system) == nil)
-        #expect(contentView.focusSection(for: .focus) == .all)
-        #expect(contentView.focusSection(for: .schedules) == .schedules)
-        #expect(contentView.focusSection(for: .allowedWebsites) == .allowedWebsites)
-        #expect(contentView.focusSection(for: .pomodoro) == .pomodoro)
-        #expect(contentView.focusSection(for: .settings) == .all)
-    }
-
-    @Test("ContentView renders with environment object")
+    @Test("Main shell schedules section loads AppKit schedules widget")
     @MainActor
-    func contentViewRender() {
-        let appState = isolatedAppState(name: "render")
-        appState.accentColorIndex = 2
-        appState.appearanceMode = .dark
-
-        let view = ContentView().environmentObject(appState)
-        let hosted = host(view)
-        #expect(hosted.fittingSize.width >= 0)
-    }
-
-    @Test("ContentView renders expanded sidebar menu with section entries and settings")
-    @MainActor
-    func contentViewExpandedSidebarRender() {
-        let appState = isolatedAppState(name: "expandedSidebar")
-        let view = ContentView(initialShowSidebar: true).environmentObject(appState)
-        let hosted = host(view)
-        #expect(hosted.fittingSize.width >= 0)
-        #expect((try? view.inspect().find(text: "Menu")) != nil)
-        #expect((try? view.inspect().find(text: "Focus")) != nil)
-        #expect((try? view.inspect().find(text: "Schedules")) != nil)
-        #expect((try? view.inspect().find(text: "Allowed Websites")) != nil)
-        #expect((try? view.inspect().find(text: "Pomodoro")) != nil)
-        #expect((try? view.inspect().find(text: "Settings")) != nil)
-    }
-
-    @Test("ContentView selected section accessor reflects initial section")
-    func contentViewSelectedSectionAccessor() {
-        let pomodoro = ContentView(initialSection: .pomodoro)
-        #expect(pomodoro.selectedSectionForTesting == .pomodoro)
-    }
-
-    @Test("ContentView applies appearance changes on appear and mode updates")
-    @MainActor
-    func contentViewAppearanceUpdates() {
-        let previousAppearance = NSApp?.appearance
-        defer { NSApp?.appearance = previousAppearance }
-
-        let appState = isolatedAppState(name: "appearanceUpdates")
-        appState.appearanceMode = .light
-        let view = ContentView().environmentObject(appState)
-        _ = host(view)
-        #expect(NSApp?.appearance?.name == .aqua)
-
-        appState.appearanceMode = .dark
-        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
-        #expect(NSApp?.appearance?.name == .darkAqua)
-
-        appState.appearanceMode = .system
-        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
-        #expect(NSApp?.appearance == nil)
-    }
-
-    @Test("ContentView sidebar buttons can be tapped through ViewInspector")
-    @MainActor
-    func contentViewSidebarButtonsViaInspector() throws {
-        let appState = isolatedAppState(name: "inspectorSidebarButtons")
-
-        let collapsed = ContentView(initialShowSidebar: false).environmentObject(appState)
-        let collapsedButtons = try collapsed.inspect().findAll(ViewType.Button.self)
-        #expect(collapsedButtons.count >= 1)
-        try collapsedButtons[0].tap()
-
-        let expanded = ContentView(initialShowSidebar: true).environmentObject(appState)
-        let expandedButtons = try expanded.inspect().findAll(ViewType.Button.self)
-        #expect(expandedButtons.count >= 3)
-        try expandedButtons[1].tap()
-        try expandedButtons[2].tap()
-        let settingsButton = try expanded.inspect().find(button: "Settings")
-        try settingsButton.tap()
-    }
-
-    @Test("ContentView schedules section shows expanded widget by default")
-    @MainActor
-    func contentViewSchedulesSectionOpensWidget() {
-        let appState = isolatedAppState(name: "sectionSelectionOpensWidget")
+    func mainShellSchedulesSectionOpensWidget() {
+        let appState = isolatedAppState(name: "schedulesSection")
         appState.schedules = [
             Schedule(
                 name: "Morning Focus",
@@ -181,127 +105,37 @@ struct ContentViewTests {
             )
         ]
 
-        let view = ContentView(initialSection: .schedules).environmentObject(appState)
-        _ = host(view)
-        #expect((try? view.inspect().find(text: "Open Full Calendar")) != nil)
-    }
-
-    @Test("ContentView settings section renders in main content")
-    @MainActor
-    func contentViewSettingsMainContentRender() {
-        let appState = isolatedAppState(name: "settingsMainContent")
-        let view = ContentView(initialSection: .settings)
-            .environmentObject(appState)
-        let hosted = host(view, size: CGSize(width: 900, height: 900))
-        #expect(hosted.fittingSize.height >= 0)
-        #expect((try? view.inspect().find(text: "Strict Mode")) != nil)
-    }
-
-    @Test("ContentView rules sheet helper renders")
-    @MainActor
-    func contentViewRulesSheetRender() {
-        let appState = isolatedAppState(name: "rulesSheet")
-        var showRules = true
-        let binding = Binding(get: { showRules }, set: { showRules = $0 })
-
-        let view = ContentView.rulesSheet(showRules: binding)
-            .environmentObject(appState)
-        let hosted = host(view, size: CGSize(width: 760, height: 720))
-        #expect(hosted.fittingSize.width >= 0)
-    }
-
-    @Test("ContentView schedules sheet helper renders")
-    @MainActor
-    func contentViewSchedulesSheetRender() {
-        let appState = isolatedAppState(name: "schedulesSheet")
-        var showSchedules = true
-        let binding = Binding(get: { showSchedules }, set: { showSchedules = $0 })
-
-        let view = ContentView.schedulesSheet(showSchedules: binding)
-            .environmentObject(appState)
-        let hosted = host(view, size: CGSize(width: 820, height: 760))
-        #expect(hosted.fittingSize.height >= 0)
-    }
-
-    @Test("ContentView schedules sheet exposes a visible view mode toggle")
-    @MainActor
-    func contentViewSchedulesSheetShowsViewModeToggle() {
-        let appState = isolatedAppState(name: "schedulesSheetToolbar")
-        appState.schedules = [
-            Schedule(
-                name: "Morning Focus",
-                days: [2],
-                startTime: Date(),
-                endTime: Date().addingTimeInterval(3600),
-                isEnabled: true,
-                type: .focus
-            )
-        ]
-
-        var showSchedules = true
-        let binding = Binding(get: { showSchedules }, set: { showSchedules = $0 })
-        let hosted = host(
-            ContentView.schedulesSheet(showSchedules: binding).environmentObject(appState),
-            size: CGSize(width: 820, height: 760)
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .schedules,
+            initialShowSidebar: true
         )
 
-        let subviews = allSubviews(in: hosted)
-        let segmentedControls = subviews.compactMap { $0 as? NSSegmentedControl }
-        #expect(segmentedControls.contains(where: { !$0.isHidden && $0.segmentCount == 2 }))
+        let hosted = host(controller)
+        let texts = visibleText(in: hosted)
 
-        let doneButtons = subviews.compactMap { $0 as? NSButton }.filter {
-            !$0.isHidden && $0.title == "Done"
-        }
-        #expect(doneButtons.count == 1)
+        #expect(controller.currentFocusSectionForTesting == .schedules)
+        let focusController = controller.currentContentViewControllerForTesting as? FocusSectionViewController
+        #expect(focusController?.currentWidgetViewTypeForTesting == "FocusSchedulesWidgetView")
+        #expect(texts.contains("Focus Schedules"))
+        #expect(texts.contains("Open Full Calendar"))
     }
 
-    @Test("ContentView renders with rules sheet initially presented")
+    @Test("Main shell settings section renders AppKit settings controller")
     @MainActor
-    func contentViewInitialRulesSheetRender() {
-        let appState = isolatedAppState(name: "initialRulesSheet")
-        let view = ContentView(initialShowRules: true).environmentObject(appState)
-        let hosted = host(view, size: CGSize(width: 900, height: 900))
-        #expect(hosted.fittingSize.width >= 0)
-    }
-
-    @Test("ContentView renders with schedules sheet initially presented")
-    @MainActor
-    func contentViewInitialSchedulesSheetRender() {
-        let appState = isolatedAppState(name: "initialSchedulesSheet")
-        let view = ContentView(initialShowSchedules: true).environmentObject(appState)
-        let hosted = host(view, size: CGSize(width: 900, height: 900))
-        #expect(hosted.fittingSize.width >= 0)
-    }
-
-    @Test("ContentView launch-at-login alert enable action triggers app-state registration")
-    @MainActor
-    func contentViewLaunchAtLoginAlertEnableAction() throws {
-        let launchManager = ContentViewMockLaunchAtLoginManager(isEnabled: false)
-        let appState = isolatedAppState(
-            name: "launchAtLoginAlertEnableAction",
-            launchAtLoginManager: launchManager,
-            canPromptForLaunchAtLogin: { true }
+    func mainShellSettingsSectionRender() {
+        let controller = FreeMainViewController(
+            appState: isolatedAppState(name: "settingsSection"),
+            initialSection: .settings,
+            initialShowSidebar: true
         )
 
-        let view = ContentView(initialShowLaunchAtLoginPrompt: true).environmentObject(appState)
-        _ = host(view)
+        let hosted = host(controller)
+        let texts = visibleText(in: hosted)
 
-        let alert = try view.inspect().find(ViewType.Alert.self)
-        try alert.actions().button(1).tap()
-
-        #expect(launchManager.enableCallCount == 1)
-        #expect(appState.launchAtLoginStatus() == true)
-
-        let cancelManager = ContentViewMockLaunchAtLoginManager(isEnabled: false)
-        let cancelState = isolatedAppState(
-            name: "launchAtLoginAlertCancelAction",
-            launchAtLoginManager: cancelManager,
-            canPromptForLaunchAtLogin: { true }
-        )
-        let cancelView = ContentView(initialShowLaunchAtLoginPrompt: true).environmentObject(cancelState)
-        _ = host(cancelView)
-        let cancelAlert = try cancelView.inspect().find(ViewType.Alert.self)
-        try cancelAlert.actions().button(0).tap()
-        #expect(cancelManager.enableCallCount == 0)
+        #expect(controller.currentContentViewControllerForTesting is SettingsSectionViewController)
+        #expect(texts.contains("Settings"))
+        #expect(texts.contains("Strict Mode"))
+        #expect(texts.contains("Appearance"))
     }
 }

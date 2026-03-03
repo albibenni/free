@@ -456,6 +456,17 @@ final class FocusSectionViewController: NSViewController {
     }
 }
 
+extension FocusSectionViewController {
+    var headerStatusTextForTesting: String { headerStatusLabel.stringValue }
+    var isPermissionWarningHiddenForTesting: Bool { permissionWarningView.isHidden }
+    var isUnblockableWarningHiddenForTesting: Bool { unblockableWarningLabel.isHidden }
+    var isPauseDashboardHiddenForTesting: Bool { pauseDashboardView.isHidden }
+    var pauseTimeTextForTesting: String { pauseTimeLabel.stringValue }
+    var currentWidgetViewTypeForTesting: String? {
+        widgetView.map { String(describing: type(of: $0)) }
+    }
+}
+
 final class SettingsSectionViewController: NSViewController {
     private let appState: AppState
     private let scrollContainer = VerticalStackScrollContainer()
