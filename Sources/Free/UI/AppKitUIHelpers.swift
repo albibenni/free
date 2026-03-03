@@ -80,11 +80,11 @@ func appKitSymbolImage(
         return nil
     }
 
-    var configured = baseImage.withSymbolConfiguration(.init(pointSize: pointSize, weight: weight))
+    var configuration = NSImage.SymbolConfiguration(pointSize: pointSize, weight: weight)
     if let color {
-        configured = configured?.withSymbolConfiguration(.init(paletteColors: [color]))
+        configuration = configuration.applying(.init(paletteColors: [color]))
     }
-    return configured ?? baseImage
+    return baseImage.withSymbolConfiguration(configuration) ?? baseImage
 }
 
 func makeAppKitPrimaryButton(title: String, color: NSColor) -> ActionButton {

@@ -24,4 +24,11 @@ enum AppKitUIConstants {
         static let sectionStack: CGFloat = 8
         static let compact: CGFloat = 4
     }
+    enum IconSize {
+        static let small: CGFloat = 16
+        static let medium: CGFloat = 24
+        static let large: CGFloat = 32
+        static let extraLarge: CGFloat = 44
+        static let jumbo: CGFloat = 64
+    }
 }

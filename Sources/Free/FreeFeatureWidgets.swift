@@ -327,25 +327,24 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         self.onDialInteractionDidEnd = onDialInteractionDidEnd
         super.init(frame: .zero)
 
-        contentStack.addArrangedSubview(
-            makeWidgetHeader(
-                title: "Pomodoro Mode",
-                symbolName: "timer",
-                color: .systemRed
-            )
-        )
-        contentStack.addArrangedSubview(makePresetsSection())
-        contentStack.addArrangedSubview(makeQuickBreakSection())
-        contentStack.addArrangedSubview(makeMainStatusSection())
+        contentStack.spacing = 12
+        contentStack.addArrangedSubview(makePomodoroHeader())
+        let topContentSection = makeTopContentSection()
+        contentStack.addArrangedSubview(topContentSection)
+        topContentSection.widthAnchor.constraint(equalTo: contentStack.widthAnchor).isActive = true
 
         if !appState.ruleSets.isEmpty {
-            contentStack.addArrangedSubview(makeRuleSetSection())
+            let ruleSetSection = makeRuleSetSection()
+            contentStack.addArrangedSubview(ruleSetSection)
+            ruleSetSection.widthAnchor.constraint(equalTo: contentStack.widthAnchor).isActive = true
         }
 
         let actionView = makeActionButtons()
         contentStack.addArrangedSubview(actionView)
         if let button = actionView as? NSButton {
             button.widthAnchor.constraint(equalTo: contentStack.widthAnchor).isActive = true
+        } else {
+            actionView.widthAnchor.constraint(equalTo: contentStack.widthAnchor).isActive = true
         }
     }
 
@@ -354,72 +353,76 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private func makePresetsSection() -> NSView {
-        let stack = NSStackView()
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 6
-        stack.addArrangedSubview(makeSectionLabel("PRESETS"))
+    private func makePomodoroHeader() -> NSView {
+        let iconView = NSImageView()
+        iconView.image = appKitSymbolImage(
+            named: "timer",
+            pointSize: 16,
+            weight: .semibold,
+            color: .systemRed
+        )
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        iconView.widthAnchor.constraint(equalToConstant: 18).isActive = true
+        iconView.heightAnchor.constraint(equalToConstant: 18).isActive = true
 
-        let buttons = NSStackView()
-        buttons.orientation = .horizontal
-        buttons.alignment = .centerY
-        buttons.spacing = 6
+        let titleLabel = NSTextField(labelWithString: "Pomodoro Mode")
+        titleLabel.font = AppKitUIConstants.Typography.cardTitle
+        titleLabel.textColor = .labelColor
 
-        for (focus, breakTime, label) in [(25.0, 5.0, "25/5"), (45.0, 15.0, "45/15"), (50.0, 10.0, "50/10"), (90.0, 20.0, "90/20")] {
-            let button = makePomodoroChipButton(
-                title: label,
-                isSelected: appState.pomodoroFocusDuration == focus && appState.pomodoroBreakDuration == breakTime,
-                color: accentColor,
-                width: 38
-            ) { [weak appState] in
-                appState?.pomodoroFocusDuration = focus
-                appState?.pomodoroBreakDuration = breakTime
-            }
-            buttons.addArrangedSubview(button)
-        }
+        let chevronView = NSImageView()
+        chevronView.image = appKitSymbolImage(
+            named: "chevron.up",
+            pointSize: 11,
+            weight: .semibold,
+            color: .secondaryLabelColor
+        )
+        chevronView.translatesAutoresizingMaskIntoConstraints = false
+        chevronView.widthAnchor.constraint(equalToConstant: 12).isActive = true
+        chevronView.heightAnchor.constraint(equalToConstant: 12).isActive = true
 
-        stack.addArrangedSubview(buttons)
-        return stack
+        let row = NSStackView(views: [iconView, titleLabel, NSView(), chevronView])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = AppKitUIConstants.Spacing.sectionStack
+        return row
     }
 
-    private func makeQuickBreakSection() -> NSView {
+    private func makeTopContentSection() -> NSView {
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.alignment = .top
+        row.spacing = 20
+
+        let sidebar = makeSidebarSection()
+        sidebar.translatesAutoresizingMaskIntoConstraints = false
+        sidebar.widthAnchor.constraint(equalToConstant: 92).isActive = true
+
+        let mainContent = makeMainStatusSection()
+        let mainContainer = AppKitFlippedView()
+        mainContainer.translatesAutoresizingMaskIntoConstraints = false
+        mainContainer.addSubview(mainContent)
+        mainContent.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            mainContent.centerXAnchor.constraint(equalTo: mainContainer.centerXAnchor),
+            mainContent.topAnchor.constraint(equalTo: mainContainer.topAnchor),
+            mainContent.bottomAnchor.constraint(equalTo: mainContainer.bottomAnchor),
+            mainContent.leadingAnchor.constraint(greaterThanOrEqualTo: mainContainer.leadingAnchor),
+            mainContent.trailingAnchor.constraint(lessThanOrEqualTo: mainContainer.trailingAnchor),
+        ])
+
+        row.addArrangedSubview(sidebar)
+        row.addArrangedSubview(mainContainer)
+        return row
+    }
+
+    private func makeSidebarSection() -> NSView {
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 6
-        stack.addArrangedSubview(makeSectionLabel("QUICK BREAK"))
+        stack.spacing = 24
 
-        let buttons = NSStackView()
-        buttons.orientation = .horizontal
-        buttons.alignment = .centerY
-        buttons.spacing = 6
-
-        for minutes in [5, 15, 30] {
-            let button = makePomodoroChipButton(
-                title: "\(minutes)m",
-                isSelected: false,
-                color: .secondaryLabelColor,
-                width: 38
-            ) { [weak appState] in
-                appState?.startPause(minutes: Double(minutes))
-            }
-            button.isEnabled = appState.isBlocking && !appState.isStrictActive
-            buttons.addArrangedSubview(button)
-        }
-
-        let customButton = makePomodoroChipButton(
-            title: "Custom",
-            isSelected: false,
-            color: .secondaryLabelColor,
-            width: 58
-        ) { [weak self] in
-            self?.presentCustomBreakPrompt()
-        }
-        customButton.isEnabled = appState.isBlocking && !appState.isStrictActive
-        buttons.addArrangedSubview(customButton)
-
-        stack.addArrangedSubview(buttons)
+        stack.addArrangedSubview(makeSidebarPresetSection())
+        stack.addArrangedSubview(makeSidebarQuickBreakSection())
         return stack
     }
 
@@ -428,10 +431,9 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             let row = NSStackView()
             row.orientation = .horizontal
             row.alignment = .top
-            row.spacing = 16
-            row.distribution = .gravityAreas
+            row.spacing = 60
 
-            let focusCard = makeDurationDialCard(
+            let focusColumn = makeDurationDialColumn(
                 title: "FOCUS",
                 iconName: "leaf.fill",
                 duration: appState.pomodoroFocusDuration,
@@ -440,7 +442,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 guard let appState else { return }
                 appState.pomodoroFocusDuration = minutes
             }
-            let breakCard = makeDurationDialCard(
+            let breakColumn = makeDurationDialColumn(
                 title: "BREAK",
                 iconName: "cup.and.saucer.fill",
                 duration: appState.pomodoroBreakDuration,
@@ -450,28 +452,20 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 appState.pomodoroBreakDuration = minutes
             }
 
-            focusCard.widthAnchor.constraint(equalToConstant: 212).isActive = true
-            breakCard.widthAnchor.constraint(equalToConstant: 212).isActive = true
-
-            row.addArrangedSubview(focusCard)
-            row.addArrangedSubview(breakCard)
-            row.addArrangedSubview(NSView())
+            row.addArrangedSubview(focusColumn)
+            row.addArrangedSubview(breakColumn)
             return row
         }
 
-        let row = NSStackView()
-        row.orientation = .horizontal
-        row.alignment = .top
-        row.spacing = 16
-        row.distribution = .gravityAreas
-
-        let phaseCard = AppKitCardView()
-        phaseCard.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.03).cgColor
+        let column = NSStackView()
+        column.orientation = .vertical
+        column.alignment = .centerX
+        column.spacing = 20
 
         let phaseLabel = NSTextField(
             labelWithString: appState.pomodoroStatus == .focus ? "FOCUSING" : "BREAKING"
         )
-        phaseLabel.font = .systemFont(ofSize: 12, weight: .black)
+        phaseLabel.font = .systemFont(ofSize: 14, weight: .black)
         phaseLabel.textColor = .secondaryLabelColor
 
         let totalDurationSeconds =
@@ -488,25 +482,19 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             color: appState.pomodoroStatus == .focus ? accentColor : .systemOrange,
             centerText: appState.timeString(time: appState.pomodoroRemaining)
         )
-        progressView.widthAnchor.constraint(equalToConstant: 176).isActive = true
-        progressView.heightAnchor.constraint(equalToConstant: 176).isActive = true
+        progressView.widthAnchor.constraint(equalToConstant: 240).isActive = true
+        progressView.heightAnchor.constraint(equalToConstant: 240).isActive = true
 
-        phaseCard.contentStack.alignment = .centerX
-        phaseCard.contentStack.addArrangedSubview(phaseLabel)
-        phaseCard.contentStack.addArrangedSubview(progressView)
+        column.addArrangedSubview(phaseLabel)
+        column.addArrangedSubview(progressView)
 
         if let activeId = appState.currentPrimaryRuleSetId,
            let setName = appState.ruleSets.first(where: { $0.id == activeId })?.name,
            appState.pomodoroStatus == .focus {
-            let badge = makePresetButton(title: setName, isSelected: true, color: accentColor) {}
-            badge.isEnabled = false
-            phaseCard.contentStack.addArrangedSubview(badge)
+            column.addArrangedSubview(makeActiveRuleSetBadge(name: setName))
         }
 
-        phaseCard.widthAnchor.constraint(equalToConstant: 232).isActive = true
-        row.addArrangedSubview(phaseCard)
-        row.addArrangedSubview(NSView())
-        return row
+        return column
     }
 
     private func makeRuleSetSection() -> NSView {
@@ -516,30 +504,6 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         container.spacing = 8
         container.addArrangedSubview(makeSectionLabel("SELECT LIST"))
 
-        if appState.ruleSets.count <= 4 && appState.pomodoroStatus == .none {
-            let buttons = NSStackView()
-            buttons.orientation = .vertical
-            buttons.alignment = .leading
-            buttons.spacing = 6
-
-            let selectedId = selectedRuleSetIdForPomodoro(appState)
-            for set in appState.ruleSets {
-                let button = makeCompactRuleSetButton(
-                    set: set,
-                    isSelected: selectedId == set.id,
-                    accentColor: accentColor
-                ) { [weak self] in
-                    guard let self, !self.appState.isStrictActive else { return }
-                    self.appState.activeRuleSetId = set.id
-                }
-                button.isEnabled = !appState.isStrictActive
-                buttons.addArrangedSubview(button)
-            }
-
-            container.addArrangedSubview(buttons)
-            return container
-        }
-
         let scrollView = VerticalStackScrollContainer(
             contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         )
@@ -548,77 +512,25 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         scrollView.hasVerticalScroller = true
         scrollView.autohidesScrollers = true
         scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.heightAnchor.constraint(equalToConstant: 150).isActive = true
+        scrollView.heightAnchor.constraint(equalToConstant: 140).isActive = true
 
         let selectedId = selectedRuleSetIdForPomodoro(appState)
         for set in appState.ruleSets {
             let isSelected = selectedId == set.id
-            let button = makePresetButton(
-                title: set.name,
-                isSelected: isSelected,
-                color: accentColor
+            let button = makeRuleSetRowButton(
+                set: set,
+                isSelected: isSelected
             ) { [weak appState] in
                 guard let appState, !appState.isStrictActive else { return }
                 appState.activeRuleSetId = set.id
             }
-            button.image = appKitSymbolImage(
-                named: isSelected ? "link.circle.fill" : "link",
-                pointSize: 12,
-                weight: isSelected ? .semibold : .regular,
-                color: isSelected ? accentColor : .secondaryLabelColor
-            )
-            button.imagePosition = .imageLeading
-            button.contentTintColor = isSelected ? accentColor : .secondaryLabelColor
-            button.alignment = .left
             button.isEnabled = !appState.isStrictActive
             scrollView.stackView.addArrangedSubview(button)
-            if appState.pomodoroStatus != .none {
-                button.widthAnchor.constraint(equalTo: scrollView.stackView.widthAnchor).isActive = true
-            }
+            button.widthAnchor.constraint(equalTo: scrollView.stackView.widthAnchor).isActive = true
         }
 
         container.addArrangedSubview(scrollView)
         return container
-    }
-
-    private func makeCompactRuleSetButton(
-        set: RuleSet,
-        isSelected: Bool,
-        accentColor: NSColor,
-        action: @escaping () -> Void
-    ) -> ActionButton {
-        let button = ActionButton(title: set.name)
-        button.isBordered = false
-        button.wantsLayer = true
-        button.layer?.cornerRadius = 8
-        button.layer?.backgroundColor =
-            isSelected
-            ? accentColor.withAlphaComponent(0.12).cgColor
-            : NSColor.labelColor.withAlphaComponent(0.03).cgColor
-        button.layer?.borderColor =
-            isSelected
-            ? accentColor.withAlphaComponent(0.25).cgColor
-            : NSColor.separatorColor.withAlphaComponent(0.2).cgColor
-        button.layer?.borderWidth = 1
-        button.image = appKitSymbolImage(
-            named: isSelected ? "link.circle.fill" : "link",
-            pointSize: 13,
-            weight: isSelected ? .semibold : .regular,
-            color: isSelected ? accentColor : .secondaryLabelColor
-        )
-        button.imagePosition = .imageLeading
-        button.alignment = .left
-        button.attributedTitle = NSAttributedString(
-            string: set.name,
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 12, weight: isSelected ? .semibold : .regular),
-                .foregroundColor: isSelected ? NSColor.labelColor : NSColor.secondaryLabelColor,
-            ]
-        )
-        button.contentTintColor = isSelected ? accentColor : .secondaryLabelColor
-        button.onAction = action
-        button.heightAnchor.constraint(equalToConstant: 28).isActive = true
-        return button
     }
 
     private func makeActionButtons() -> NSView {
@@ -654,18 +566,89 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         return row
     }
 
-    private func makeDurationDialCard(
+    private func makeSidebarPresetSection() -> NSView {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.addArrangedSubview(makeSectionLabel("PRESETS"))
+
+        let buttons = NSStackView()
+        buttons.orientation = .vertical
+        buttons.alignment = .leading
+        buttons.spacing = 6
+
+        for (focus, breakTime, label) in [(25.0, 5.0, "25/5"), (45.0, 15.0, "45/15"), (50.0, 10.0, "50/10"), (90.0, 20.0, "90/20")] {
+            let button = makePomodoroChipButton(
+                title: label,
+                isSelected: appState.pomodoroFocusDuration == focus && appState.pomodoroBreakDuration == breakTime,
+                color: accentColor,
+                width: 50
+            ) { [weak appState] in
+                appState?.pomodoroFocusDuration = focus
+                appState?.pomodoroBreakDuration = breakTime
+            }
+            buttons.addArrangedSubview(button)
+        }
+
+        stack.addArrangedSubview(buttons)
+        return stack
+    }
+
+    private func makeSidebarQuickBreakSection() -> NSView {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.addArrangedSubview(makeSectionLabel("QUICK BREAK"))
+
+        let buttons = NSStackView()
+        buttons.orientation = .vertical
+        buttons.alignment = .leading
+        buttons.spacing = 6
+
+        for minutes in [5, 15, 30] {
+            let button = makePomodoroChipButton(
+                title: "\(minutes)m",
+                isSelected: false,
+                color: .secondaryLabelColor,
+                width: 50
+            ) { [weak appState] in
+                appState?.startPause(minutes: Double(minutes))
+            }
+            button.isEnabled = appState.isBlocking && !appState.isStrictActive
+            buttons.addArrangedSubview(button)
+        }
+
+        let customButton = makePomodoroChipButton(
+            title: "Cust",
+            isSelected: false,
+            color: .secondaryLabelColor,
+            width: 50
+        ) { [weak self] in
+            self?.presentCustomBreakPrompt()
+        }
+        customButton.isEnabled = appState.isBlocking && !appState.isStrictActive
+        buttons.addArrangedSubview(customButton)
+
+        stack.addArrangedSubview(buttons)
+        return stack
+    }
+
+    private func makeDurationDialColumn(
         title: String,
         iconName: String,
         duration: Double,
         maxMinutes: Int,
         onCommit: @escaping (Double) -> Void
     ) -> NSView {
-        let card = AppKitCardView()
-        card.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.03).cgColor
+        let column = NSStackView()
+        column.orientation = .vertical
+        column.alignment = .centerX
+        column.spacing = 16
 
         let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 12, weight: .black)
+        titleLabel.font = .systemFont(ofSize: 14, weight: .black)
         titleLabel.textColor = .secondaryLabelColor
 
         let dial = PomodoroDurationDialView(
@@ -678,18 +661,34 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             onInteractionDidEnd: onDialInteractionDidEnd,
             onCommit: onCommit
         )
-        dial.widthAnchor.constraint(equalToConstant: 176).isActive = true
-        dial.heightAnchor.constraint(equalToConstant: 176).isActive = true
+        dial.widthAnchor.constraint(equalToConstant: 240).isActive = true
+        dial.heightAnchor.constraint(equalToConstant: 240).isActive = true
 
-        let hintLabel = makeBodyLabel("Drag the dot to adjust", alignment: .center)
-        hintLabel.alignment = .center
-        hintLabel.font = AppKitUIConstants.Typography.helperLabel
+        let controls = NSStackView()
+        controls.orientation = .horizontal
+        controls.alignment = .centerY
+        controls.spacing = 20
 
-        card.contentStack.alignment = .centerX
-        card.contentStack.addArrangedSubview(titleLabel)
-        card.contentStack.addArrangedSubview(dial)
-        card.contentStack.addArrangedSubview(hintLabel)
-        return card
+        let minimumValue = 5.0
+        controls.addArrangedSubview(
+            makeDialAdjustmentButton(
+                symbolName: "minus.circle.fill",
+                isEnabled: duration > minimumValue,
+                action: { onCommit(max(minimumValue, duration - 5)) }
+            )
+        )
+        controls.addArrangedSubview(
+            makeDialAdjustmentButton(
+                symbolName: "plus.circle.fill",
+                isEnabled: duration < Double(maxMinutes),
+                action: { onCommit(min(Double(maxMinutes), duration + 5)) }
+            )
+        )
+
+        column.addArrangedSubview(titleLabel)
+        column.addArrangedSubview(dial)
+        column.addArrangedSubview(controls)
+        return column
     }
 
     private func makePomodoroChipButton(
@@ -717,6 +716,112 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         button.onAction = action
         button.widthAnchor.constraint(equalToConstant: width).isActive = true
         button.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        return button
+    }
+
+    private func makeDialAdjustmentButton(
+        symbolName: String,
+        isEnabled: Bool,
+        action: @escaping () -> Void
+    ) -> ActionButton {
+        let button = ActionButton()
+        button.isBordered = false
+        button.image = appKitSymbolImage(
+            named: symbolName,
+            pointSize: 19,
+            weight: .regular,
+            color: .secondaryLabelColor
+        )
+        button.imagePosition = .imageOnly
+        button.contentTintColor = .secondaryLabelColor
+        button.onAction = action
+        button.isEnabled = isEnabled
+        return button
+    }
+
+    private func makeActiveRuleSetBadge(name: String) -> NSView {
+        let container = AppKitFlippedView()
+        container.wantsLayer = true
+        container.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.05).cgColor
+        container.layer?.cornerRadius = 999
+
+        let iconView = NSImageView()
+        iconView.image = appKitSymbolImage(
+            named: "link",
+            pointSize: 11,
+            weight: .regular,
+            color: .secondaryLabelColor
+        )
+
+        let label = NSTextField(labelWithString: name)
+        label.font = .systemFont(ofSize: 12, weight: .bold)
+        label.textColor = .secondaryLabelColor
+
+        let row = NSStackView(views: [iconView, label])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 6
+        row.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(row)
+
+        NSLayoutConstraint.activate([
+            row.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            row.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            row.topAnchor.constraint(equalTo: container.topAnchor, constant: 4),
+            row.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4),
+        ])
+
+        return container
+    }
+
+    private func makeRuleSetRowButton(
+        set: RuleSet,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) -> ActionButton {
+        let button = ActionButton(title: set.name)
+        button.isBordered = false
+        button.wantsLayer = true
+        button.layer?.cornerRadius = 8
+        button.layer?.backgroundColor =
+            isSelected
+            ? accentColor.withAlphaComponent(0.10).cgColor
+            : NSColor.labelColor.withAlphaComponent(0.03).cgColor
+        button.image = appKitSymbolImage(
+            named: isSelected ? "link.circle.fill" : "link",
+            pointSize: 13,
+            weight: isSelected ? .semibold : .regular,
+            color: isSelected ? accentColor : .secondaryLabelColor
+        )
+        button.imagePosition = .imageLeading
+        button.alignment = .left
+        button.contentTintColor = isSelected ? accentColor : .secondaryLabelColor
+        button.attributedTitle = NSAttributedString(
+            string: set.name,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 13, weight: isSelected ? .semibold : .regular),
+                .foregroundColor: isSelected ? NSColor.labelColor : NSColor.secondaryLabelColor,
+            ]
+        )
+        button.onAction = action
+        button.heightAnchor.constraint(equalToConstant: 34).isActive = true
+
+        let checkView = NSImageView()
+        checkView.image = appKitSymbolImage(
+            named: "checkmark",
+            pointSize: 11,
+            weight: .bold,
+            color: accentColor
+        )
+        checkView.isHidden = !isSelected
+        checkView.translatesAutoresizingMaskIntoConstraints = false
+        button.addSubview(checkView)
+
+        NSLayoutConstraint.activate([
+            checkView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -12),
+            checkView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+        ])
+
         return button
     }
 

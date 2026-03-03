@@ -46,13 +46,16 @@ final class PomodoroDurationDialView: NSView {
 
         iconView.image = appKitSymbolImage(
             named: iconName,
-            pointSize: 40,
+            pointSize: AppKitUIConstants.IconSize.extraLarge,
             weight: .semibold,
             color: color.withAlphaComponent(0.92)
         )
+        iconView.imageScaling = .scaleProportionallyUpOrDown
         iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconView.widthAnchor.constraint(equalToConstant: 42).isActive = true
-        iconView.heightAnchor.constraint(equalToConstant: 42).isActive = true
+        iconView.widthAnchor.constraint(equalToConstant: AppKitUIConstants.IconSize.jumbo)
+            .isActive = true
+        iconView.heightAnchor.constraint(equalToConstant: AppKitUIConstants.IconSize.jumbo)
+            .isActive = true
 
         valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
         valueLabel.textColor = .labelColor
@@ -82,7 +85,8 @@ final class PomodoroDurationDialView: NSView {
         super.draw(dirtyRect)
 
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
-        let radius = max((min(bounds.width, bounds.height) - PomodoroTimerSupport.Constants.strokeWidth) / 2, 0)
+        let radius = max(
+            (min(bounds.width, bounds.height) - PomodoroTimerSupport.Constants.strokeWidth) / 2, 0)
         guard radius > 0 else { return }
 
         let trackRect = CGRect(
@@ -94,7 +98,8 @@ final class PomodoroDurationDialView: NSView {
 
         let trackPath = NSBezierPath(ovalIn: trackRect)
         trackPath.lineWidth = PomodoroTimerSupport.Constants.strokeWidth
-        NSColor.secondaryLabelColor.withAlphaComponent(PomodoroTimerSupport.Constants.trackOpacity).setStroke()
+        NSColor.secondaryLabelColor.withAlphaComponent(PomodoroTimerSupport.Constants.trackOpacity)
+            .setStroke()
         trackPath.stroke()
 
         let progressFraction = CGFloat(max(0, min(durationMinutes / maxMinutes, 1)))
@@ -113,8 +118,10 @@ final class PomodoroDurationDialView: NSView {
 
         let knobRect = CGRect(
             origin: CGPoint(
-                x: knobPosition(for: durationMinutes, radius: radius, center: center).x - PomodoroTimerSupport.Constants.knobSize / 2,
-                y: knobPosition(for: durationMinutes, radius: radius, center: center).y - PomodoroTimerSupport.Constants.knobSize / 2
+                x: knobPosition(for: durationMinutes, radius: radius, center: center).x
+                    - PomodoroTimerSupport.Constants.knobSize / 2,
+                y: knobPosition(for: durationMinutes, radius: radius, center: center).y
+                    - PomodoroTimerSupport.Constants.knobSize / 2
             ),
             size: CGSize(
                 width: PomodoroTimerSupport.Constants.knobSize,
@@ -210,13 +217,16 @@ final class PomodoroProgressDialView: NSView {
 
         iconView.image = appKitSymbolImage(
             named: iconName,
-            pointSize: 40,
+            pointSize: AppKitUIConstants.IconSize.extraLarge,
             weight: .semibold,
             color: color.withAlphaComponent(0.92)
         )
+        iconView.imageScaling = .scaleProportionallyUpOrDown
         iconView.translatesAutoresizingMaskIntoConstraints = false
-        iconView.widthAnchor.constraint(equalToConstant: 42).isActive = true
-        iconView.heightAnchor.constraint(equalToConstant: 42).isActive = true
+        iconView.widthAnchor.constraint(equalToConstant: AppKitUIConstants.IconSize.jumbo)
+            .isActive = true
+        iconView.heightAnchor.constraint(equalToConstant: AppKitUIConstants.IconSize.jumbo)
+            .isActive = true
 
         valueLabel.font = .monospacedDigitSystemFont(ofSize: 28, weight: .bold)
         valueLabel.textColor = .labelColor
@@ -246,7 +256,8 @@ final class PomodoroProgressDialView: NSView {
         super.draw(dirtyRect)
 
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
-        let radius = max((min(bounds.width, bounds.height) - PomodoroTimerSupport.Constants.strokeWidth) / 2, 0)
+        let radius = max(
+            (min(bounds.width, bounds.height) - PomodoroTimerSupport.Constants.strokeWidth) / 2, 0)
         guard radius > 0 else { return }
 
         let trackRect = CGRect(
@@ -258,7 +269,8 @@ final class PomodoroProgressDialView: NSView {
 
         let trackPath = NSBezierPath(ovalIn: trackRect)
         trackPath.lineWidth = PomodoroTimerSupport.Constants.strokeWidth
-        NSColor.secondaryLabelColor.withAlphaComponent(PomodoroTimerSupport.Constants.trackOpacity).setStroke()
+        NSColor.secondaryLabelColor.withAlphaComponent(PomodoroTimerSupport.Constants.trackOpacity)
+            .setStroke()
         trackPath.stroke()
 
         let progressPath = NSBezierPath()

@@ -149,7 +149,7 @@ struct PomodoroWidgetTests {
         let inactiveHosted = host(FocusPomodoroWidgetView(appState: inactiveState))
 
         #expect(buttons(in: inactiveHosted).first { $0.title == "5m" }?.isEnabled == false)
-        #expect(buttons(in: inactiveHosted).first { $0.title == "Custom" }?.isEnabled == false)
+        #expect(buttons(in: inactiveHosted).first { $0.title == "Cust" }?.isEnabled == false)
 
         let strictState = isolatedAppState(name: "strictQuickBreak")
         strictState.isBlocking = true
@@ -157,7 +157,7 @@ struct PomodoroWidgetTests {
         let strictHosted = host(FocusPomodoroWidgetView(appState: strictState))
 
         #expect(buttons(in: strictHosted).first { $0.title == "5m" }?.isEnabled == false)
-        #expect(buttons(in: strictHosted).first { $0.title == "Custom" }?.isEnabled == false)
+        #expect(buttons(in: strictHosted).first { $0.title == "Cust" }?.isEnabled == false)
     }
 
     @Test("FocusPomodoroWidgetView selects rule sets and locks them during strict mode")
