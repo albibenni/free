@@ -1,6 +1,5 @@
 import AppKit
 import Combine
-import SwiftUI
 
 @MainActor
 final class FreeShellState: ObservableObject {
@@ -568,16 +567,11 @@ final class FreeMainViewController: NSViewController {
     private func presentSchedulesSheetIfNeeded() {
         guard schedulesSheetController == nil, let parentWindow = view.window else { return }
 
-        let binding = Binding(
-            get: { [weak self] in self?.shellState.showSchedules ?? false },
-            set: { [weak self] in self?.shellState.showSchedules = $0 }
-        )
-        let hostedSchedules = NSHostingController(
-            rootView: SchedulesView(presentationBinding: binding)
-                .environmentObject(appState)
-        )
+        let schedulesController = SchedulesSheetViewController(appState: appState) { [weak self] in
+            self?.shellState.showSchedules = false
+        }
         let controller = FreeSheetWindowController(
-            contentViewController: hostedSchedules,
+            contentViewController: schedulesController,
             contentSize: CGSize(width: 750, height: 700)
         ) { [weak self] in
             self?.schedulesSheetController = nil

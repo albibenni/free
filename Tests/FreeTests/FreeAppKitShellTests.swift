@@ -39,4 +39,21 @@ struct FreeAppKitShellTests {
         #expect(controller.isSidebarButtonSelectedForTesting(.focus) == false)
         #expect(controller.isSidebarButtonSelectedForTesting(.pomodoro))
     }
+
+    @Test("SchedulesSheetViewController manages editor state without SwiftUI hosting")
+    func schedulesSheetViewControllerEditorFlow() {
+        let controller = SchedulesSheetViewController(
+            appState: isolatedAppState(name: "schedulesSheet"),
+            onDismiss: {}
+        )
+
+        controller.loadViewIfNeeded()
+
+        #expect(controller.viewModeForTesting == 1)
+        #expect(controller.editorContextForTesting == nil)
+
+        controller.openAddScheduleForTesting()
+
+        #expect(controller.editorContextForTesting != nil)
+    }
 }
