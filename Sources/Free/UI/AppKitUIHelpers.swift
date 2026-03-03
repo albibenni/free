@@ -316,6 +316,7 @@ func makeAppKitSelectableRowButton(
     let button = ActionButton(title: title)
     button.isBordered = false
     button.layer?.cornerRadius = 8
+    button.imageHugsTitle = false
     button.setGradientBackground(
         colors: isSelected
             ? [accentColor.withAlphaComponent(0.14), accentColor.withAlphaComponent(0.08)]

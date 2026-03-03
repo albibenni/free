@@ -110,6 +110,7 @@ struct UIComponentTests {
         #expect(pillButton.image == nil)
         #expect(rowButton.attributedTitle.string == "Default")
         #expect(rowButton.image != nil)
+        #expect(rowButton.imageHugsTitle == false)
         #expect(rowButton.subviews.contains { $0 is NSImageView })
     }
 }
