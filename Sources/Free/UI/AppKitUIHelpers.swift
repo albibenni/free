@@ -113,6 +113,17 @@ func appKitSymbolImage(
     return baseImage.withSymbolConfiguration(configuration) ?? baseImage
 }
 
+func resolvedAppKitControlSymbolName(_ symbol: String) -> String {
+    switch symbol {
+    case "+":
+        return "plus.circle.fill"
+    case "-":
+        return "minus.circle.fill"
+    default:
+        return symbol
+    }
+}
+
 private func blendedColor(
     _ color: NSColor,
     with other: NSColor,
@@ -162,6 +173,37 @@ func makeAppKitSecondaryButton(title: String, color: NSColor) -> ActionButton {
             .foregroundColor: color,
         ]
     )
+    return button
+}
+
+func makeAppKitSymbolControlButton(
+    symbol: String,
+    isEnabled: Bool,
+    pointSize: CGFloat = 24,
+    dimension: CGFloat = 24,
+    color: NSColor = .secondaryLabelColor,
+    action: @escaping () -> Void
+) -> ActionButton {
+    let button = ActionButton()
+    let resolvedColor = isEnabled ? color : color.withAlphaComponent(0.45)
+    button.isBordered = false
+    button.focusRingType = .none
+    button.layer?.backgroundColor = nil
+    button.layer?.borderWidth = 0
+    button.image = appKitSymbolImage(
+        named: resolvedAppKitControlSymbolName(symbol),
+        pointSize: pointSize,
+        weight: .regular,
+        color: resolvedColor
+    )
+    button.imagePosition = .imageOnly
+    button.imageScaling = .scaleProportionallyUpOrDown
+    button.contentTintColor = resolvedColor
+    button.onAction = action
+    button.isEnabled = isEnabled
+    button.translatesAutoresizingMaskIntoConstraints = false
+    button.widthAnchor.constraint(equalToConstant: dimension).isActive = true
+    button.heightAnchor.constraint(equalToConstant: dimension).isActive = true
     return button
 }
 

@@ -708,14 +708,14 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         let minimumValue = 5.0
         controls.addArrangedSubview(
             makeDialAdjustmentButton(
-                symbolName: "minus.circle.fill",
+                symbol: "-",
                 isEnabled: duration > minimumValue,
                 action: { onCommit(max(minimumValue, duration - 5)) }
             )
         )
         controls.addArrangedSubview(
             makeDialAdjustmentButton(
-                symbolName: "plus.circle.fill",
+                symbol: "+",
                 isEnabled: duration < Double(maxMinutes),
                 action: { onCommit(min(Double(maxMinutes), duration + 5)) }
             )
@@ -762,34 +762,18 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     }
 
     private func makeDialAdjustmentButton(
-        symbolName: String,
+        symbol: String,
         isEnabled: Bool,
         action: @escaping () -> Void
     ) -> ActionButton {
-        let button = ActionButton()
-        button.isBordered = false
-        button.focusRingType = .none
-        button.layer?.backgroundColor = nil
-        button.layer?.borderWidth = 0
-        button.image = appKitSymbolImage(
-            named: symbolName,
+        makeAppKitSymbolControlButton(
+            symbol: symbol,
+            isEnabled: isEnabled,
             pointSize: 24,
-            weight: .regular,
-            color: isEnabled
-                ? .secondaryLabelColor
-                : .secondaryLabelColor.withAlphaComponent(0.45)
+            dimension: 24,
+            color: .secondaryLabelColor,
+            action: action
         )
-        button.imagePosition = .imageOnly
-        button.imageScaling = .scaleProportionallyUpOrDown
-        button.contentTintColor = isEnabled
-            ? .secondaryLabelColor
-            : .secondaryLabelColor.withAlphaComponent(0.45)
-        button.onAction = action
-        button.isEnabled = isEnabled
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.widthAnchor.constraint(equalToConstant: 24).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 24).isActive = true
-        return button
     }
 
     private func makeActiveRuleSetBadge(name: String) -> NSView {

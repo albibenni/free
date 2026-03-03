@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 
@@ -57,5 +58,35 @@ struct UIComponentTests {
             initialDay: nil, initialStartTime: start, initialEndTime: end, existingSchedule: nil)
 
         #expect(config.endTime == end)
+    }
+
+    @Test("AppKit symbol control button maps shorthand symbols")
+    func appKitSymbolControlButtonShorthand() {
+        #expect(resolvedAppKitControlSymbolName("+") == "plus.circle.fill")
+        #expect(resolvedAppKitControlSymbolName("-") == "minus.circle.fill")
+        #expect(resolvedAppKitControlSymbolName("xmark") == "xmark")
+
+        let plusButton = makeAppKitSymbolControlButton(
+            symbol: "+",
+            isEnabled: true,
+            pointSize: 24,
+            dimension: 24,
+            color: .secondaryLabelColor,
+            action: {}
+        )
+        let minusButton = makeAppKitSymbolControlButton(
+            symbol: "-",
+            isEnabled: false,
+            pointSize: 24,
+            dimension: 24,
+            color: .secondaryLabelColor,
+            action: {}
+        )
+
+        #expect(plusButton.image != nil)
+        #expect(plusButton.imagePosition == .imageOnly)
+        #expect(plusButton.isEnabled)
+        #expect(minusButton.image != nil)
+        #expect(minusButton.isEnabled == false)
     }
 }
