@@ -1,8 +1,5 @@
 import SwiftUI
-
-#if canImport(AppKit)
-    import AppKit
-#endif
+import AppKit
 
 struct ScheduleEditorContext: Identifiable {
     let id = UUID()
@@ -40,16 +37,7 @@ struct SchedulesView: View {
     }
 
     var body: some View {
-        Group {
-            #if canImport(AppKit)
-                SchedulesAppKitView(configuration: makeAppKitConfiguration())
-            #else
-                VStack {
-                    Text("Schedules are only available on macOS.")
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            #endif
-        }
+        SchedulesAppKitView(configuration: makeAppKitConfiguration())
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .sheet(item: $editorContext, content: makeAddScheduleSheet(context:))
     }
@@ -74,73 +62,71 @@ struct SchedulesView: View {
         appState.calendarIntegrationEnabled && !appState.calendarImportsBlockTime
     }
 
-    #if canImport(AppKit)
-        private func makeAppKitConfiguration() -> SchedulesAppKitConfiguration {
-            let weekRange = currentWeekDates
-            let (weekStart, weekEnd) = currentWeekBounds
-            let dismissAction = presentationBinding.map { binding in
-                { binding.wrappedValue = false }
-            }
-            return SchedulesAppKitConfiguration(
-                viewMode: viewMode,
-                monthTitle: monthYearString(for: weekStart),
-                schedules: appState.schedules,
-                accentColor: NSColor(FocusColor.color(for: appState.accentColorIndex)),
-                accentColorIndex: appState.accentColorIndex,
-                calendarViewConfiguration: WeeklyCalendarAppKitView(
-                    dayOrder: dayOrder,
-                    weekRange: weekRange,
-                    weekStart: weekStart,
-                    weekEnd: weekEnd,
-                    positionedSchedules: positionedSchedules(weekRange: weekRange),
-                    externalEvents: visibleCalendarEvents(weekStart: weekStart, weekEnd: weekEnd),
-                    showsExternalEvents: shouldShowExternalCalendarOverlay,
-                    hourHeight: calendarHourHeight,
-                    dayHeaderHeight: calendarDayHeaderHeight,
-                    timeLabelWidth: calendarTimeLabelWidth,
-                    timeColumnGutter: calendarTimeColumnGutter,
-                    accentColor: NSColor(FocusColor.color(for: appState.accentColorIndex)),
-                    onQuickAdd: { day, hour in
-                        quickAdd(day: day, hour: hour)
-                    },
-                    onCreateSelection: { day, startHour, endHour in
-                        openSelectionEditor(day: day, startHour: startHour, endHour: endHour)
-                    },
-                    onOpenSchedule: { day, schedule in
-                        openScheduleEditor(day: day, schedule: schedule)
-                    },
-                    onUpdateSchedule: {
-                        scheduleId, originalDay, targetDay, targetDate, start, end in
-                        appState.updateScheduleOccurrence(
-                            id: scheduleId,
-                            originalDay: originalDay,
-                            targetDay: targetDay,
-                            targetDate: targetDate,
-                            start: start,
-                            end: end
-                        )
-                    }
-                ),
-                onChangeViewMode: { nextMode in
-                    viewMode = nextMode
-                },
-                onSelectSchedule: { schedule in
-                    selectScheduleAction(schedule: schedule)()
-                },
-                onDeleteSchedule: { scheduleId in
-                    deleteScheduleAction(scheduleId: scheduleId)()
-                },
-                onToggleScheduleEnabled: { scheduleId, isEnabled in
-                    setScheduleEnabled(scheduleId: scheduleId, isEnabled: isEnabled)
-                },
-                onAddSchedule: openAddSchedule,
-                onDismiss: dismissAction,
-                onPreviousWeek: goToPreviousWeek,
-                onCurrentWeek: goToCurrentWeek,
-                onNextWeek: goToNextWeek
-            )
+    private func makeAppKitConfiguration() -> SchedulesAppKitConfiguration {
+        let weekRange = currentWeekDates
+        let (weekStart, weekEnd) = currentWeekBounds
+        let dismissAction = presentationBinding.map { binding in
+            { binding.wrappedValue = false }
         }
-    #endif
+        return SchedulesAppKitConfiguration(
+            viewMode: viewMode,
+            monthTitle: monthYearString(for: weekStart),
+            schedules: appState.schedules,
+            accentColor: NSColor(FocusColor.color(for: appState.accentColorIndex)),
+            accentColorIndex: appState.accentColorIndex,
+            calendarViewConfiguration: WeeklyCalendarAppKitView(
+                dayOrder: dayOrder,
+                weekRange: weekRange,
+                weekStart: weekStart,
+                weekEnd: weekEnd,
+                positionedSchedules: positionedSchedules(weekRange: weekRange),
+                externalEvents: visibleCalendarEvents(weekStart: weekStart, weekEnd: weekEnd),
+                showsExternalEvents: shouldShowExternalCalendarOverlay,
+                hourHeight: calendarHourHeight,
+                dayHeaderHeight: calendarDayHeaderHeight,
+                timeLabelWidth: calendarTimeLabelWidth,
+                timeColumnGutter: calendarTimeColumnGutter,
+                accentColor: NSColor(FocusColor.color(for: appState.accentColorIndex)),
+                onQuickAdd: { day, hour in
+                    quickAdd(day: day, hour: hour)
+                },
+                onCreateSelection: { day, startHour, endHour in
+                    openSelectionEditor(day: day, startHour: startHour, endHour: endHour)
+                },
+                onOpenSchedule: { day, schedule in
+                    openScheduleEditor(day: day, schedule: schedule)
+                },
+                onUpdateSchedule: {
+                    scheduleId, originalDay, targetDay, targetDate, start, end in
+                    appState.updateScheduleOccurrence(
+                        id: scheduleId,
+                        originalDay: originalDay,
+                        targetDay: targetDay,
+                        targetDate: targetDate,
+                        start: start,
+                        end: end
+                    )
+                }
+            ),
+            onChangeViewMode: { nextMode in
+                viewMode = nextMode
+            },
+            onSelectSchedule: { schedule in
+                selectScheduleAction(schedule: schedule)()
+            },
+            onDeleteSchedule: { scheduleId in
+                deleteScheduleAction(scheduleId: scheduleId)()
+            },
+            onToggleScheduleEnabled: { scheduleId, isEnabled in
+                setScheduleEnabled(scheduleId: scheduleId, isEnabled: isEnabled)
+            },
+            onAddSchedule: openAddSchedule,
+            onDismiss: dismissAction,
+            onPreviousWeek: goToPreviousWeek,
+            onCurrentWeek: goToCurrentWeek,
+            onNextWeek: goToNextWeek
+        )
+    }
 
     private func monthYearString(for date: Date) -> String {
         let formatter = DateFormatter()
@@ -324,7 +310,6 @@ struct SchedulesView: View {
     var editorContextForTesting: ScheduleEditorContext? { editorContext }
 }
 
-#if canImport(AppKit)
     private struct SchedulesAppKitConfiguration {
         let viewMode: Int
         let monthTitle: String
@@ -1047,4 +1032,3 @@ struct SchedulesView: View {
             return configuredImage ?? baseImage
         }
     }
-#endif

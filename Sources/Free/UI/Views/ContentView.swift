@@ -57,9 +57,16 @@ struct ContentView: View {
         .sheet(isPresented: $showRules) {
             Self.rulesSheet(showRules: $showRules)
         }
-        .sheet(isPresented: $showSchedules) {
-            Self.schedulesSheet(showSchedules: $showSchedules)
-        }
+        .background(
+            AppKitSheetPresenter(
+                isPresented: $showSchedules,
+                contentSize: CGSize(width: 750, height: 700)
+            ) {
+                Self.schedulesSheet(showSchedules: $showSchedules)
+                    .environmentObject(appState)
+            }
+            .frame(width: 0, height: 0)
+        )
         .tint(Self.tintColor(accentColorIndex: appState.accentColorIndex))
         .preferredColorScheme(Self.preferredColorScheme(for: appState.appearanceMode))
         .onAppear {
@@ -201,9 +208,7 @@ struct ContentView: View {
     }
 
     static func schedulesSheet(showSchedules: Binding<Bool>) -> some View {
-        SheetWrapper(title: "Schedules", isPresented: showSchedules) {
-            SchedulesView()
-        }
+        SchedulesView(presentationBinding: showSchedules)
         .frame(width: 750, height: 700)
     }
 

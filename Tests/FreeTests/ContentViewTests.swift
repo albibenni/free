@@ -252,7 +252,7 @@ struct ContentViewTests {
         let doneButtons = subviews.compactMap { $0 as? NSButton }.filter {
             !$0.isHidden && $0.title == "Done"
         }
-        #expect(doneButtons.isEmpty)
+        #expect(doneButtons.count == 1)
     }
 
     @Test("ContentView renders with rules sheet initially presented")
