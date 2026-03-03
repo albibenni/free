@@ -497,7 +497,7 @@ final class FreeMainViewController: NSViewController {
         button.identifier = NSUserInterfaceItemIdentifier(section.rawValue)
         button.target = self
         button.action = #selector(handleSidebarButton(_:))
-        button.leadingInset = 0
+        button.leadingInset = 6
         button.titleAdditionalInset = 6
         button.isBordered = false
         button.wantsLayer = true
@@ -627,6 +627,9 @@ extension FreeMainViewController {
     }
     var selectedSidebarBackgroundColorForTesting: NSColor? {
         sectionButtons[shellState.selectedSection]?.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
+    }
+    func sidebarButtonLeadingInsetForTesting(_ section: MainContentSection) -> CGFloat? {
+        (sectionButtons[section] as? LeadingInsetActionButton)?.leadingInset
     }
 
     func selectSectionForTesting(_ section: MainContentSection) {

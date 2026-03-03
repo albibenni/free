@@ -33,6 +33,7 @@ struct FreeAppKitShellTests {
         #expect(controller.selectedSectionForTesting == .focus)
         #expect(controller.isSidebarButtonSelectedForTesting(.focus))
         #expect(controller.isSidebarButtonSelectedForTesting(.pomodoro) == false)
+        #expect(controller.sidebarButtonLeadingInsetForTesting(.focus) == 6)
 
         controller.selectSectionForTesting(.pomodoro)
 
