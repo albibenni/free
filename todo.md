@@ -83,6 +83,7 @@
   - [x] toggle buttons
   - [x] focus highlight
 - [x] calendar view redraw
+- [ ] Allowed list - add impossible to use
 
 - [ ] redo tests
   - [ ] coverage
