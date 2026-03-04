@@ -83,10 +83,9 @@ struct UIComponentTests {
             action: {}
         )
 
-        #expect(plusButton.image != nil)
-        #expect(plusButton.imagePosition == .imageOnly)
+        #expect((plusButton as? AppKitSymbolControlButton)?.symbolNameForTesting == "plus.circle.fill")
         #expect(plusButton.isEnabled)
-        #expect(minusButton.image != nil)
+        #expect((minusButton as? AppKitSymbolControlButton)?.symbolNameForTesting == "minus.circle.fill")
         #expect(minusButton.isEnabled == false)
     }
 

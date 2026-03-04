@@ -205,7 +205,10 @@ final class FreeMainWindowController: NSWindowController {
 final class FreeMainViewController: NSViewController {
     private let appState: AppState
     private let shellState: FreeShellState
-    private let focusSectionController: FocusSectionViewController
+    private let focusOverviewController: FocusSectionViewController
+    private let schedulesOverviewController: FocusSectionViewController
+    private let pomodoroSectionController: FocusSectionViewController
+    private let allowedWebsitesSectionController: FocusSectionViewController
     private let settingsSectionController: SettingsSectionViewController
 
     private let sidebarContainer = NSView()
@@ -236,10 +239,25 @@ final class FreeMainViewController: NSViewController {
         shellState.selectedSection = initialSection
         shellState.showSidebar = initialShowSidebar
         self.shellState = shellState
-        self.focusSectionController = FocusSectionViewController(
+        self.focusOverviewController = FocusSectionViewController(
             appState: appState,
             shellState: shellState,
             section: .all
+        )
+        self.schedulesOverviewController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .schedules
+        )
+        self.pomodoroSectionController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .pomodoro
+        )
+        self.allowedWebsitesSectionController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .allowedWebsites
         )
         self.settingsSectionController = SettingsSectionViewController(appState: appState)
         super.init(nibName: nil, bundle: nil)
@@ -439,17 +457,13 @@ final class FreeMainViewController: NSViewController {
         case .settings:
             targetViewController = settingsSectionController
         case .focus:
-            focusSectionController.section = .all
-            targetViewController = focusSectionController
+            targetViewController = focusOverviewController
         case .schedules:
-            focusSectionController.section = .schedules
-            targetViewController = focusSectionController
+            targetViewController = schedulesOverviewController
         case .pomodoro:
-            focusSectionController.section = .pomodoro
-            targetViewController = focusSectionController
+            targetViewController = pomodoroSectionController
         case .allowedWebsites:
-            focusSectionController.section = .allowedWebsites
-            targetViewController = focusSectionController
+            targetViewController = allowedWebsitesSectionController
         }
 
         guard currentContentViewController !== targetViewController else { return }
@@ -624,6 +638,9 @@ extension FreeMainViewController {
     var currentContentViewControllerForTesting: NSViewController? { currentContentViewController }
     var currentFocusSectionForTesting: FocusContentSection? {
         (currentContentViewController as? FocusSectionViewController)?.section
+    }
+    var pomodoroWidgetIdentifierForTesting: ObjectIdentifier? {
+        pomodoroSectionController.widgetViewIdentifierForTesting
     }
     var selectedSidebarBackgroundColorForTesting: NSColor? {
         sectionButtons[shellState.selectedSection]?.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))

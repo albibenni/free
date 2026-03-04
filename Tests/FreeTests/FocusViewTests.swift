@@ -327,6 +327,30 @@ struct FocusViewTests {
         #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
     }
 
+    @Test("Focus section keeps pomodoro widget stable when starting a pomodoro")
+    @MainActor
+    func focusViewKeepsPomodoroWidgetForStartTransition() {
+        let appState = isolatedAppState(name: "pomodoroStartTransition")
+        appState.isTrusted = true
+        let controller = makeController(appState: appState, section: .pomodoro)
+        let hosted = host(controller)
+
+        let initialWidgetIdentifier = controller.widgetViewIdentifierForTesting
+        let initialRefreshGeneration = controller.pomodoroWidgetRefreshGenerationForTesting
+
+        #expect(initialWidgetIdentifier != nil)
+        #expect(initialRefreshGeneration != nil)
+
+        let startButton = buttons(in: hosted).first { $0.title == "Start Focus Session" }
+        #expect(startButton != nil)
+
+        startButton?.performClick(nil)
+
+        #expect(appState.pomodoroStatus == .focus)
+        #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
+        #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
+    }
+
     @Test("Focus section allowed-websites mode renders AppKit widget without overview")
     @MainActor
     func focusViewAllowedWebsitesSectionRender() {

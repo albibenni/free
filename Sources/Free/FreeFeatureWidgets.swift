@@ -234,6 +234,9 @@ final class FocusAllowedWebsitesWidgetView: AppKitCardView {
 }
 
 final class FocusPomodoroWidgetView: AppKitCardView {
+    private static let stableMainStatusHeight: CGFloat = 320
+    private static let stableMainStatusWidth: CGFloat = 560
+
     private enum RenderMode: Equatable {
         case idle
         case focusActive
@@ -245,6 +248,10 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     private let onDialInteractionDidBegin: (() -> Void)?
     private let onDialInteractionDidEnd: (() -> Void)?
     private var renderMode: RenderMode?
+    private var mainStatusContainer: AppKitFlippedView?
+    private var currentMainStatusView: NSView?
+    private var actionContainer: AppKitFlippedView?
+    private var currentActionView: NSView?
     private var ruleSetButtons: [UUID: AppKitSelectableRowButton] = [:]
     private var presetButtons: [(focus: Double, breakTime: Double, button: AppKitPillButton)] = []
     private var quickBreakButtons: [AppKitPillButton] = []
@@ -287,6 +294,10 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     private func rebuildContent() {
         clearArrangedSubviews(from: contentStack)
         renderMode = currentRenderMode()
+        mainStatusContainer = nil
+        currentMainStatusView = nil
+        actionContainer = nil
+        currentActionView = nil
         ruleSetButtons = [:]
         presetButtons = []
         quickBreakButtons = []
@@ -314,13 +325,12 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             contentStack.setCustomSpacing(20, after: topContentSection)
         }
 
-        let actionView = makeActionButtons()
-        contentStack.addArrangedSubview(actionView)
-        if let button = actionView as? NSButton {
-            button.widthAnchor.constraint(equalTo: contentStack.widthAnchor).isActive = true
-        } else {
-            actionView.widthAnchor.constraint(equalTo: contentStack.widthAnchor).isActive = true
-        }
+        let actionContainer = AppKitFlippedView()
+        actionContainer.translatesAutoresizingMaskIntoConstraints = false
+        self.actionContainer = actionContainer
+        contentStack.addArrangedSubview(actionContainer)
+        actionContainer.widthAnchor.constraint(equalTo: contentStack.widthAnchor).isActive = true
+        replaceActionView(with: makeActionButtons())
 
         refreshGeneration += 1
     }
@@ -330,9 +340,15 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         let currentRuleSetIds = Set(ruleSetButtons.keys)
         let desiredRuleSetIds = Set(appState.ruleSets.map(\.id))
 
-        guard renderMode == desiredMode, currentRuleSetIds == desiredRuleSetIds else {
+        guard currentRuleSetIds == desiredRuleSetIds else {
             rebuildContent()
             return
+        }
+
+        if renderMode != desiredMode {
+            renderMode = desiredMode
+            replaceMainStatusView(with: makeMainStatusSection())
+            replaceActionView(with: makeActionButtons())
         }
 
         switch desiredMode {
@@ -362,6 +378,37 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         case .breakTime:
             return .breakActive
         }
+    }
+
+    private func replaceMainStatusView(with view: NSView) {
+        guard let mainStatusContainer else { return }
+
+        currentMainStatusView?.removeFromSuperview()
+        currentMainStatusView = view
+        view.translatesAutoresizingMaskIntoConstraints = false
+        mainStatusContainer.addSubview(view)
+        NSLayoutConstraint.activate([
+            view.centerXAnchor.constraint(equalTo: mainStatusContainer.centerXAnchor),
+            view.topAnchor.constraint(equalTo: mainStatusContainer.topAnchor),
+            view.leadingAnchor.constraint(greaterThanOrEqualTo: mainStatusContainer.leadingAnchor),
+            view.trailingAnchor.constraint(lessThanOrEqualTo: mainStatusContainer.trailingAnchor),
+            view.bottomAnchor.constraint(lessThanOrEqualTo: mainStatusContainer.bottomAnchor),
+        ])
+    }
+
+    private func replaceActionView(with view: NSView) {
+        guard let actionContainer else { return }
+
+        currentActionView?.removeFromSuperview()
+        currentActionView = view
+        view.translatesAutoresizingMaskIntoConstraints = false
+        actionContainer.addSubview(view)
+        NSLayoutConstraint.activate([
+            view.leadingAnchor.constraint(equalTo: actionContainer.leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: actionContainer.trailingAnchor),
+            view.topAnchor.constraint(equalTo: actionContainer.topAnchor),
+            view.bottomAnchor.constraint(equalTo: actionContainer.bottomAnchor),
+        ])
     }
 
     private func updateIdleControls() {
@@ -414,13 +461,13 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 if let activeRuleSetBadgeLabel {
                     activeRuleSetBadgeLabel.stringValue = currentSetName
                 } else {
-                    rebuildContent()
+                    replaceMainStatusView(with: makeMainStatusSection())
                 }
             } else if activeRuleSetBadgeLabel != nil {
-                rebuildContent()
+                replaceMainStatusView(with: makeMainStatusSection())
             }
         } else if activeRuleSetBadgeLabel != nil {
-            rebuildContent()
+            replaceMainStatusView(with: makeMainStatusSection())
         }
     }
 
@@ -454,21 +501,15 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         sidebar.translatesAutoresizingMaskIntoConstraints = false
         sidebar.widthAnchor.constraint(equalToConstant: 92).isActive = true
 
-        let mainContent = makeMainStatusSection()
         let mainContainer = AppKitFlippedView()
         mainContainer.translatesAutoresizingMaskIntoConstraints = false
-        mainContainer.addSubview(mainContent)
-        mainContent.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            mainContent.centerXAnchor.constraint(equalTo: mainContainer.centerXAnchor),
-            mainContent.topAnchor.constraint(equalTo: mainContainer.topAnchor),
-            mainContent.bottomAnchor.constraint(equalTo: mainContainer.bottomAnchor),
-            mainContent.leadingAnchor.constraint(greaterThanOrEqualTo: mainContainer.leadingAnchor),
-            mainContent.trailingAnchor.constraint(lessThanOrEqualTo: mainContainer.trailingAnchor),
-        ])
+        mainContainer.heightAnchor.constraint(equalToConstant: Self.stableMainStatusHeight).isActive = true
+        mainContainer.widthAnchor.constraint(greaterThanOrEqualToConstant: Self.stableMainStatusWidth).isActive = true
+        self.mainStatusContainer = mainContainer
 
         row.addArrangedSubview(sidebar)
         row.addArrangedSubview(mainContainer)
+        replaceMainStatusView(with: makeMainStatusSection())
         return row
     }
 

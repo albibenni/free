@@ -514,6 +514,65 @@ final class AppKitPillButton: ActionButton {
     }
 }
 
+final class AppKitSymbolControlButton: ActionButton {
+    private let iconView = NSImageView()
+    private let symbolName: String
+    private let symbolPointSize: CGFloat
+    private let symbolWeight: NSFont.Weight
+
+    var symbolColor: NSColor {
+        didSet { updateSymbolImage() }
+    }
+
+    init(
+        symbolName: String,
+        pointSize: CGFloat,
+        weight: NSFont.Weight,
+        color: NSColor
+    ) {
+        self.symbolName = symbolName
+        self.symbolPointSize = pointSize
+        self.symbolWeight = weight
+        self.symbolColor = color
+        super.init(title: "")
+
+        isBordered = false
+        focusRingType = .none
+        title = ""
+        image = nil
+        layer?.backgroundColor = nil
+        layer?.borderWidth = 0
+        (cell as? NSButtonCell)?.highlightsBy = []
+
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        addSubview(iconView)
+
+        NSLayoutConstraint.activate([
+            iconView.centerXAnchor.constraint(equalTo: centerXAnchor),
+            iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+
+        updateSymbolImage()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private func updateSymbolImage() {
+        iconView.image = appKitSymbolImage(
+            named: symbolName,
+            pointSize: symbolPointSize,
+            weight: symbolWeight,
+            color: symbolColor
+        )
+    }
+
+    var symbolNameForTesting: String { symbolName }
+}
+
 class AppKitCardView: AppKitFlippedView {
     let contentStack = NSStackView()
 
@@ -733,21 +792,14 @@ func makeAppKitSymbolControlButton(
     color: NSColor = .secondaryLabelColor,
     action: @escaping () -> Void
 ) -> ActionButton {
-    let button = ActionButton()
+    let resolvedSymbolName = resolvedAppKitControlSymbolName(symbol)
     let resolvedColor = isEnabled ? color : color.withAlphaComponent(0.45)
-    button.isBordered = false
-    button.focusRingType = .none
-    button.layer?.backgroundColor = nil
-    button.layer?.borderWidth = 0
-    button.image = appKitSymbolImage(
-        named: resolvedAppKitControlSymbolName(symbol),
+    let button = AppKitSymbolControlButton(
+        symbolName: resolvedSymbolName,
         pointSize: pointSize,
         weight: .regular,
         color: resolvedColor
     )
-    button.imagePosition = .imageOnly
-    button.imageScaling = .scaleProportionallyUpOrDown
-    button.contentTintColor = resolvedColor
     button.onAction = action
     button.isEnabled = isEnabled
     button.translatesAutoresizingMaskIntoConstraints = false
