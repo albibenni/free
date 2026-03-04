@@ -127,6 +127,7 @@ final class FreeSheetContainerViewController: NSViewController {
 
 final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
     private let onClose: () -> Void
+    private let desiredContentSize: CGSize
     private var isClosingProgrammatically = false
 
     init(
@@ -135,13 +136,19 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
         onClose: @escaping () -> Void
     ) {
         self.onClose = onClose
+        desiredContentSize = contentSize
+        contentViewController.preferredContentSize = contentSize
 
         let window = NSWindow(contentViewController: contentViewController)
         window.setContentSize(contentSize)
-        window.styleMask.insert(.fullSizeContentView)
+        window.contentMinSize = contentSize
+        window.minSize = contentSize
+        window.backgroundColor = .windowBackgroundColor
+        window.isOpaque = true
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
+        window.isRestorable = false
         window.standardWindowButton(.miniaturizeButton)?.isHidden = true
         window.standardWindowButton(.zoomButton)?.isHidden = true
         window.standardWindowButton(.closeButton)?.isHidden = true
@@ -157,7 +164,29 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
 
     func present(for parentWindow: NSWindow) {
         guard let window else { return }
+        restoreDesiredContentSize()
         parentWindow.beginSheet(window)
+        restoreDesiredContentSize()
+    }
+
+    func restoreDesiredContentSize() {
+        guard let window else { return }
+        window.contentViewController?.preferredContentSize = desiredContentSize
+        window.setContentSize(desiredContentSize)
+        window.contentMinSize = desiredContentSize
+        window.minSize = desiredContentSize
+        let frameRect = window.frameRect(
+            forContentRect: NSRect(origin: .zero, size: desiredContentSize)
+        )
+        if abs(window.frame.width - frameRect.width) > 0.5
+            || abs(window.frame.height - frameRect.height) > 0.5
+        {
+            window.setFrame(
+                NSRect(origin: window.frame.origin, size: frameRect.size),
+                display: true
+            )
+        }
+        window.layoutIfNeeded()
     }
 
     func dismiss() {
@@ -167,6 +196,450 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
             parentWindow.endSheet(window)
         }
         window.orderOut(nil)
+        isClosingProgrammatically = false
+        onClose()
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard !isClosingProgrammatically else { return }
+        onClose()
+    }
+}
+
+final class AllowedWebsitesFloatingEditorViewController:
+    NSViewController,
+    NSTableViewDataSource,
+    NSTableViewDelegate
+{
+    private let appState: AppState
+    private var onDone: () -> Void
+    private var selectedRuleSetId: UUID?
+    private var visibleRules: [String] = []
+    private var cancellables: Set<AnyCancellable> = []
+
+    private let listPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let urlField = NSTextField(string: "")
+    private let addButton = ActionButton(title: "Add")
+    private let doneButton = ActionButton(title: "Done")
+    private let removeButton = ActionButton(title: "Remove Selected")
+    private let emptyLabel = NSTextField(labelWithString: "No allowed websites in this list yet.")
+    private let tableView = NSTableView()
+    private let tableScrollView = NSScrollView()
+
+    init(appState: AppState, initialRuleSetId: UUID?, onDone: @escaping () -> Void) {
+        self.appState = appState
+        self.onDone = onDone
+        selectedRuleSetId = initialRuleSetId
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func loadView() {
+        let rootView = AppKitDynamicView()
+        rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
+        view = rootView
+
+        let listLabel = NSTextField(labelWithString: "List")
+        listLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        listLabel.textColor = .secondaryLabelColor
+
+        listPopup.target = self
+        listPopup.action = #selector(handleRuleSetSelection)
+        listPopup.translatesAutoresizingMaskIntoConstraints = false
+        listPopup.widthAnchor.constraint(equalToConstant: 220).isActive = true
+
+        doneButton.target = self
+        doneButton.action = #selector(handleDone)
+
+        let headerRow = NSStackView(views: [listLabel, listPopup, NSView(), doneButton])
+        headerRow.orientation = .horizontal
+        headerRow.alignment = .centerY
+        headerRow.spacing = 10
+        headerRow.translatesAutoresizingMaskIntoConstraints = false
+
+        urlField.placeholderString = "Add URL to allow..."
+        urlField.translatesAutoresizingMaskIntoConstraints = false
+        urlField.heightAnchor.constraint(equalToConstant: 30).isActive = true
+
+        addButton.target = self
+        addButton.action = #selector(handleAddRule)
+
+        let addRow = NSStackView(views: [urlField, addButton])
+        addRow.orientation = .horizontal
+        addRow.alignment = .centerY
+        addRow.spacing = 10
+        addRow.translatesAutoresizingMaskIntoConstraints = false
+
+        let ruleColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("AllowedRule"))
+        ruleColumn.title = "Allowed Websites"
+        ruleColumn.resizingMask = .autoresizingMask
+        tableView.addTableColumn(ruleColumn)
+        tableView.headerView = nil
+        tableView.rowHeight = 28
+        tableView.intercellSpacing = NSSize(width: 0, height: 2)
+        tableView.usesAlternatingRowBackgroundColors = false
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.target = self
+        tableView.action = #selector(handleTableSelectionChange)
+        tableView.doubleAction = #selector(handleRemoveSelected)
+
+        tableScrollView.documentView = tableView
+        tableScrollView.hasVerticalScroller = true
+        tableScrollView.autohidesScrollers = true
+        tableScrollView.drawsBackground = false
+        tableScrollView.borderType = .noBorder
+        tableScrollView.translatesAutoresizingMaskIntoConstraints = false
+
+        emptyLabel.textColor = .secondaryLabelColor
+        emptyLabel.alignment = .center
+        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let tableContainer = AppKitDynamicView()
+        tableContainer.backgroundColorProvider = {
+            NSColor.controlBackgroundColor.withAlphaComponent(0.35)
+        }
+        tableContainer.borderColorProvider = {
+            NSColor.separatorColor.withAlphaComponent(0.45)
+        }
+        tableContainer.borderWidthValue = 1
+        tableContainer.wantsLayer = true
+        tableContainer.layer?.cornerRadius = 8
+        tableContainer.translatesAutoresizingMaskIntoConstraints = false
+        tableContainer.addSubview(tableScrollView)
+        tableContainer.addSubview(emptyLabel)
+
+        NSLayoutConstraint.activate([
+            tableScrollView.leadingAnchor.constraint(equalTo: tableContainer.leadingAnchor, constant: 8),
+            tableScrollView.trailingAnchor.constraint(equalTo: tableContainer.trailingAnchor, constant: -8),
+            tableScrollView.topAnchor.constraint(equalTo: tableContainer.topAnchor, constant: 8),
+            tableScrollView.bottomAnchor.constraint(equalTo: tableContainer.bottomAnchor, constant: -8),
+
+            emptyLabel.centerXAnchor.constraint(equalTo: tableContainer.centerXAnchor),
+            emptyLabel.centerYAnchor.constraint(equalTo: tableContainer.centerYAnchor),
+        ])
+
+        removeButton.target = self
+        removeButton.action = #selector(handleRemoveSelected)
+
+        let footerRow = NSStackView(views: [NSView(), removeButton])
+        footerRow.orientation = .horizontal
+        footerRow.alignment = .centerY
+        footerRow.spacing = 10
+        footerRow.translatesAutoresizingMaskIntoConstraints = false
+
+        let divider = makeAppKitDividerView()
+        divider.translatesAutoresizingMaskIntoConstraints = false
+
+        [headerRow, addRow, divider, tableContainer, footerRow].forEach {
+            view.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            headerRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
+            headerRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
+            headerRow.topAnchor.constraint(equalTo: view.topAnchor, constant: 14),
+
+            addRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
+            addRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
+            addRow.topAnchor.constraint(equalTo: headerRow.bottomAnchor, constant: 12),
+
+            divider.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            divider.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            divider.topAnchor.constraint(equalTo: addRow.bottomAnchor, constant: 12),
+
+            tableContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
+            tableContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
+            tableContainer.topAnchor.constraint(equalTo: divider.bottomAnchor, constant: 10),
+            tableContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: 280),
+
+            footerRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
+            footerRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
+            footerRow.topAnchor.constraint(equalTo: tableContainer.bottomAnchor, constant: 10),
+            footerRow.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -14),
+        ])
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        appState.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.reloadContent()
+            }
+            .store(in: &cancellables)
+        reloadContent()
+    }
+
+    func focusOnRuleSet(_ id: UUID?) {
+        selectedRuleSetId = id
+        reloadContent()
+    }
+
+    func updateOnDone(_ onDone: @escaping () -> Void) {
+        self.onDone = onDone
+    }
+
+    func numberOfRows(in tableView: NSTableView) -> Int {
+        visibleRules.count
+    }
+
+    func tableView(
+        _ tableView: NSTableView,
+        viewFor tableColumn: NSTableColumn?,
+        row: Int
+    ) -> NSView? {
+        let identifier = NSUserInterfaceItemIdentifier("AllowedRuleCell")
+        let cellView =
+            (tableView.makeView(withIdentifier: identifier, owner: self) as? NSTableCellView)
+            ?? {
+                let cell = NSTableCellView()
+                cell.identifier = identifier
+                let label = NSTextField(labelWithString: "")
+                label.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+                label.textColor = .labelColor
+                label.lineBreakMode = .byTruncatingMiddle
+                label.translatesAutoresizingMaskIntoConstraints = false
+                cell.addSubview(label)
+                cell.textField = label
+                NSLayoutConstraint.activate([
+                    label.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 8),
+                    label.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -8),
+                    label.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+                ])
+                return cell
+            }()
+        if row >= 0, row < visibleRules.count {
+            cellView.textField?.stringValue = visibleRules[row]
+        }
+        return cellView
+    }
+
+    @objc
+    private func handleRuleSetSelection() {
+        guard let selectedItem = listPopup.selectedItem else { return }
+        guard let rawId = selectedItem.representedObject as? String else { return }
+        selectedRuleSetId = UUID(uuidString: rawId)
+        reloadRulesOnly()
+    }
+
+    @objc
+    private func handleAddRule() {
+        guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
+        appState.addRule(urlField.stringValue, to: setId)
+        urlField.stringValue = ""
+        reloadRulesOnly()
+    }
+
+    @objc
+    private func handleRemoveSelected() {
+        let row = tableView.selectedRow
+        guard row >= 0, row < visibleRules.count else { return }
+        guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
+        appState.removeRule(visibleRules[row], from: setId)
+        reloadRulesOnly()
+    }
+
+    @objc
+    private func handleTableSelectionChange() {
+        updateControlStates()
+    }
+
+    @objc
+    private func handleDone() {
+        onDone()
+    }
+
+    private func reloadContent() {
+        let previousSelection = selectedRuleSetId
+        let resolvedSelection = resolvedRuleSetId(previousSelection)
+        selectedRuleSetId = resolvedSelection
+        reloadRuleSetPopup()
+        reloadRulesOnly()
+    }
+
+    private func reloadRuleSetPopup() {
+        let selectedRawValue = selectedRuleSetId?.uuidString
+        listPopup.removeAllItems()
+        for ruleSet in appState.ruleSets {
+            listPopup.addItem(withTitle: ruleSet.name)
+            listPopup.lastItem?.representedObject = ruleSet.id.uuidString
+        }
+        if let selectedRawValue {
+            for (index, item) in listPopup.itemArray.enumerated() {
+                if (item.representedObject as? String) == selectedRawValue {
+                    listPopup.selectItem(at: index)
+                    break
+                }
+            }
+        } else if listPopup.numberOfItems > 0 {
+            listPopup.selectItem(at: 0)
+            if let rawId = listPopup.selectedItem?.representedObject as? String {
+                selectedRuleSetId = UUID(uuidString: rawId)
+            }
+        }
+    }
+
+    private func reloadRulesOnly() {
+        visibleRules =
+            appState.ruleSets.first(where: { $0.id == selectedRuleSetId })?.urls
+            ?? []
+        tableView.reloadData()
+        emptyLabel.isHidden = !visibleRules.isEmpty
+        updateControlStates()
+        applyButtonStyling()
+    }
+
+    private func applyButtonStyling() {
+        let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        styleActionButton(addButton, title: "Add", color: accentColor)
+        styleActionButton(removeButton, title: "Remove Selected", color: accentColor)
+        styleNeutralButton(doneButton, title: "Done")
+    }
+
+    private func styleActionButton(_ button: ActionButton, title: String, color: NSColor) {
+        button.isBordered = false
+        button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
+        button.setGradientBackground(
+            colors: [
+                color.withAlphaComponent(0.14),
+                color.withAlphaComponent(0.08),
+            ],
+            borderColor: color.withAlphaComponent(0.28)
+        )
+        button.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [
+                .font: AppKitUIConstants.Typography.regular,
+                .foregroundColor: color,
+            ]
+        )
+        button.contentTintColor = color
+    }
+
+    private func styleNeutralButton(_ button: ActionButton, title: String) {
+        button.isBordered = false
+        button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
+        button.setGradientBackground(
+            colors: [
+                NSColor.labelColor.withAlphaComponent(0.10),
+                NSColor.labelColor.withAlphaComponent(0.05),
+            ],
+            borderColor: NSColor.separatorColor.withAlphaComponent(0.35)
+        )
+        button.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [
+                .font: AppKitUIConstants.Typography.regular,
+                .foregroundColor: NSColor.labelColor,
+            ]
+        )
+        button.contentTintColor = .labelColor
+    }
+
+    private func updateControlStates() {
+        let canEdit = resolvedRuleSetId(selectedRuleSetId) != nil && !appState.isStrictActive
+        let canRemove = canEdit && tableView.selectedRow >= 0 && tableView.selectedRow < visibleRules.count
+        urlField.isEnabled = canEdit
+        addButton.isEnabled = canEdit
+        removeButton.isEnabled = canRemove
+        listPopup.isEnabled = !appState.ruleSets.isEmpty
+    }
+
+    private func resolvedRuleSetId(_ id: UUID?) -> UUID? {
+        if let id, appState.ruleSets.contains(where: { $0.id == id }) {
+            return id
+        }
+        if let activeId = appState.activeRuleSetId,
+           appState.ruleSets.contains(where: { $0.id == activeId })
+        {
+            return activeId
+        }
+        return appState.ruleSets.first?.id
+    }
+}
+
+final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate {
+    private static let windowTitle = "Allowed Websites"
+
+    private let onClose: () -> Void
+    private let editorController: AllowedWebsitesFloatingEditorViewController
+    private var isClosingProgrammatically = false
+    private let desiredContentSize = CGSize(width: 760, height: 520)
+
+    init(appState: AppState, onClose: @escaping () -> Void) {
+        self.onClose = onClose
+        editorController = AllowedWebsitesFloatingEditorViewController(
+            appState: appState,
+            initialRuleSetId: appState.activeRuleSetId
+        ) { }
+
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: desiredContentSize),
+            styleMask: [.titled, .closable, .utilityWindow, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        panel.contentViewController = editorController
+        panel.setContentSize(desiredContentSize)
+        panel.contentMinSize = CGSize(width: 620, height: 420)
+        panel.minSize = CGSize(width: 620, height: 420)
+        panel.backgroundColor = .windowBackgroundColor
+        panel.isOpaque = true
+        panel.title = Self.windowTitle
+        panel.titleVisibility = .visible
+        panel.titlebarAppearsTransparent = false
+        panel.level = .floating
+        panel.isFloatingPanel = true
+        panel.hidesOnDeactivate = false
+        panel.collectionBehavior = [.fullScreenAuxiliary, .moveToActiveSpace]
+        panel.isReleasedWhenClosed = false
+        panel.isRestorable = false
+        panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        panel.standardWindowButton(.zoomButton)?.isHidden = true
+
+        super.init(window: panel)
+        panel.delegate = self
+        editorController.focusOnRuleSet(appState.activeRuleSetId)
+        editorController.updateOnDone { [weak self] in
+            self?.dismiss()
+        }
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func present(for parentWindow: NSWindow, selectedRuleSetId: UUID?) {
+        guard let window else { return }
+        editorController.focusOnRuleSet(selectedRuleSetId)
+        restoreDesiredContentSize()
+        if !window.isVisible {
+            let origin = NSPoint(
+                x: parentWindow.frame.midX - (window.frame.width / 2),
+                y: parentWindow.frame.midY - (window.frame.height / 2)
+            )
+            window.setFrameOrigin(origin)
+        }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func restoreDesiredContentSize() {
+        guard let window else { return }
+        window.contentViewController?.preferredContentSize = desiredContentSize
+        window.setContentSize(desiredContentSize)
+    }
+
+    func dismiss() {
+        guard let window else { return }
+        isClosingProgrammatically = true
+        window.close()
         isClosingProgrammatically = false
         onClose()
     }
@@ -191,6 +664,7 @@ final class FreeMainWindowController: NSWindowController {
         window.titlebarAppearsTransparent = true
         window.toolbarStyle = .unified
         window.isReleasedWhenClosed = false
+        window.isRestorable = false
         window.contentViewController = rootViewController
         super.init(window: window)
     }
@@ -223,7 +697,7 @@ final class FreeMainViewController: NSViewController {
 
     private var sectionButtons: [MainContentSection: NSButton] = [:]
     private var sidebarWidthConstraint: NSLayoutConstraint?
-    private var rulesSheetController: FreeSheetWindowController?
+    private var rulesSheetController: AllowedWebsitesSheetController?
     private var schedulesSheetController: FreeSheetWindowController?
     private var currentContentViewController: NSViewController?
     private var cancellables: Set<AnyCancellable> = []
@@ -558,15 +1032,17 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func presentRulesSheetIfNeeded() {
-        guard rulesSheetController == nil, let parentWindow = view.window else { return }
-
-        let rulesController = RulesSheetViewController(appState: appState)
-        let container = FreeSheetContainerViewController(title: "Allowed Websites", contentController: rulesController) { [weak self] in
-            self?.shellState.showRules = false
+        guard let parentWindow = view.window else { return }
+        if let rulesSheetController {
+            rulesSheetController.present(
+                for: parentWindow,
+                selectedRuleSetId: appState.activeRuleSetId
+            )
+            return
         }
-        let controller = FreeSheetWindowController(
-            contentViewController: container,
-            contentSize: CGSize(width: 700, height: 650)
+
+        let controller = AllowedWebsitesSheetController(
+            appState: appState
         ) { [weak self] in
             self?.rulesSheetController = nil
             if self?.shellState.showRules == true {
@@ -574,7 +1050,10 @@ final class FreeMainViewController: NSViewController {
             }
         }
         rulesSheetController = controller
-        controller.present(for: parentWindow)
+        controller.present(
+            for: parentWindow,
+            selectedRuleSetId: appState.activeRuleSetId
+        )
     }
 
     private func dismissRulesSheetIfNeeded() {
@@ -584,7 +1063,17 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func presentSchedulesSheetIfNeeded() {
-        guard schedulesSheetController == nil, let parentWindow = view.window else { return }
+        guard let parentWindow = view.window else { return }
+        if let attachedSheet = parentWindow.attachedSheet,
+           attachedSheet !== schedulesSheetController?.window
+        {
+            parentWindow.endSheet(attachedSheet)
+            attachedSheet.orderOut(nil)
+        }
+        if let schedulesSheetController {
+            schedulesSheetController.restoreDesiredContentSize()
+            return
+        }
 
         let schedulesController = SchedulesSheetViewController(appState: appState) { [weak self] in
             self?.shellState.showSchedules = false

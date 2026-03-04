@@ -83,7 +83,9 @@
   - [x] toggle buttons
   - [x] focus highlight
 - [x] calendar view redraw
-- [ ] Allowed list - add impossible to use
+- [ ] Allowed list
+  - [x] add impossible to use
+  - [ ] current website open not working
 
 - [ ] redo tests
   - [ ] coverage

@@ -1132,6 +1132,7 @@ extension SettingsSectionViewController {
 final class RulesSheetViewController: NSViewController {
     private struct RenderSignature: Equatable {
         let appearanceMode: AppearanceMode
+        let accentColorIndex: Int
         let ruleSets: [RuleSet]
         let currentPrimaryRuleSetId: UUID?
         let isBlocking: Bool
@@ -1139,6 +1140,7 @@ final class RulesSheetViewController: NSViewController {
 
         init(appState: AppState, isSuggestionsExpanded: Bool) {
             appearanceMode = appState.appearanceMode
+            accentColorIndex = appState.accentColorIndex
             ruleSets = appState.ruleSets
             currentPrimaryRuleSetId = appState.currentPrimaryRuleSetId
             isBlocking = appState.isBlocking
@@ -1154,21 +1156,26 @@ final class RulesSheetViewController: NSViewController {
     private let sidebarContainer = AppKitDynamicView()
     private let sidebarHeader = NSStackView()
     private let sidebarScrollView = VerticalStackScrollContainer(contentInsets: NSEdgeInsets(top: 8, left: 8, bottom: 8, right: 8))
+    private let addRuleSetButton = NSButton()
     private let mainContainer = AppKitDynamicView()
     private let mainHeader = NSStackView()
     private let mainTitleLabel = NSTextField(labelWithString: "")
     private let toggleSidebarButton = NSButton()
     private let contentScrollView = VerticalStackScrollContainer()
     private let addRuleField = NSTextField(string: "")
-    private let addRuleButton = NSButton()
+    private let addRuleButton = ActionButton(title: "Add")
+    private let doneButton = ActionButton(title: "Done")
+    private let onDismiss: (() -> Void)?
     private var renderSignature: RenderSignature?
     private var reloadGeneration = 0
     private var cancellables: Set<AnyCancellable> = []
 
-    init(appState: AppState) {
+    init(appState: AppState, onDismiss: (() -> Void)? = nil) {
         self.appState = appState
+        self.onDismiss = onDismiss
         self.selectedSetId = appState.currentPrimaryRuleSetId
         super.init(nibName: nil, bundle: nil)
+        preferredContentSize = CGSize(width: 900, height: 700)
     }
 
     @available(*, unavailable)
@@ -1238,12 +1245,11 @@ final class RulesSheetViewController: NSViewController {
         title.font = .systemFont(ofSize: 11, weight: .bold)
         title.textColor = .secondaryLabelColor
 
-        let addButton = NSButton()
-        addButton.isBordered = false
-        addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: nil)
-        addButton.contentTintColor = .controlAccentColor
-        addButton.target = self
-        addButton.action = #selector(addRuleSet)
+        addRuleSetButton.target = self
+        addRuleSetButton.action = #selector(addRuleSet)
+        addRuleSetButton.translatesAutoresizingMaskIntoConstraints = false
+        addRuleSetButton.widthAnchor.constraint(equalToConstant: 22).isActive = true
+        addRuleSetButton.heightAnchor.constraint(equalToConstant: 22).isActive = true
 
         sidebarHeader.orientation = .horizontal
         sidebarHeader.alignment = .centerY
@@ -1251,7 +1257,7 @@ final class RulesSheetViewController: NSViewController {
         sidebarHeader.translatesAutoresizingMaskIntoConstraints = false
         sidebarHeader.addArrangedSubview(title)
         sidebarHeader.addArrangedSubview(NSView())
-        sidebarHeader.addArrangedSubview(addButton)
+        sidebarHeader.addArrangedSubview(addRuleSetButton)
         sidebarContainer.addSubview(sidebarHeader)
 
         sidebarScrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -1282,29 +1288,37 @@ final class RulesSheetViewController: NSViewController {
         toggleSidebarButton.target = self
         toggleSidebarButton.action = #selector(toggleSidebar)
         mainTitleLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+        addRuleField.placeholderString = "Add URL to allow..."
+        addRuleField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        addRuleField.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        addRuleField.translatesAutoresizingMaskIntoConstraints = false
+        addRuleField.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        addRuleField.widthAnchor.constraint(greaterThanOrEqualToConstant: 220).isActive = true
+        addRuleField.widthAnchor.constraint(lessThanOrEqualToConstant: 380).isActive = true
+
         mainHeader.addArrangedSubview(toggleSidebarButton)
         mainHeader.addArrangedSubview(mainTitleLabel)
         mainHeader.addArrangedSubview(NSView())
+        mainHeader.addArrangedSubview(addRuleField)
+        addRuleButton.translatesAutoresizingMaskIntoConstraints = false
+        addRuleButton.widthAnchor.constraint(equalToConstant: 56).isActive = true
+        addRuleButton.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        addRuleButton.target = self
+        addRuleButton.action = #selector(addRule)
+        mainHeader.addArrangedSubview(addRuleButton)
+        doneButton.translatesAutoresizingMaskIntoConstraints = false
+        doneButton.widthAnchor.constraint(equalToConstant: 64).isActive = true
+        doneButton.heightAnchor.constraint(equalToConstant: 28).isActive = true
+        doneButton.target = self
+        doneButton.action = #selector(handleDone)
+        doneButton.isHidden = onDismiss == nil
+        mainHeader.addArrangedSubview(doneButton)
 
         let divider = makeDivider()
         divider.translatesAutoresizingMaskIntoConstraints = false
         contentScrollView.translatesAutoresizingMaskIntoConstraints = false
 
-        let footer = NSStackView()
-        footer.orientation = .horizontal
-        footer.alignment = .centerY
-        footer.spacing = 12
-        footer.translatesAutoresizingMaskIntoConstraints = false
-
-        addRuleField.placeholderString = "Add URL to allow..."
-        addRuleButton.isBordered = true
-        addRuleButton.title = "+"
-        addRuleButton.target = self
-        addRuleButton.action = #selector(addRule)
-        footer.addArrangedSubview(addRuleField)
-        footer.addArrangedSubview(addRuleButton)
-
-        [mainHeader, divider, contentScrollView, footer].forEach { mainContainer.addSubview($0) }
+        [mainHeader, divider, contentScrollView].forEach { mainContainer.addSubview($0) }
 
         NSLayoutConstraint.activate([
             mainHeader.leadingAnchor.constraint(equalTo: mainContainer.leadingAnchor, constant: 12),
@@ -1319,11 +1333,7 @@ final class RulesSheetViewController: NSViewController {
             contentScrollView.leadingAnchor.constraint(equalTo: mainContainer.leadingAnchor),
             contentScrollView.trailingAnchor.constraint(equalTo: mainContainer.trailingAnchor),
             contentScrollView.topAnchor.constraint(equalTo: divider.bottomAnchor),
-
-            footer.leadingAnchor.constraint(equalTo: mainContainer.leadingAnchor, constant: 16),
-            footer.trailingAnchor.constraint(equalTo: mainContainer.trailingAnchor, constant: -16),
-            footer.topAnchor.constraint(equalTo: contentScrollView.bottomAnchor, constant: 8),
-            footer.bottomAnchor.constraint(equalTo: mainContainer.bottomAnchor, constant: -16),
+            contentScrollView.bottomAnchor.constraint(equalTo: mainContainer.bottomAnchor),
         ])
     }
 
@@ -1347,6 +1357,7 @@ final class RulesSheetViewController: NSViewController {
             isSuggestionsExpanded: isSuggestionsExpanded
         )
         reloadGeneration += 1
+        applyActionButtonStyling()
 
         if selectedSetId == nil || selectedSet == nil {
             selectedSetId = appState.currentPrimaryRuleSetId ?? appState.ruleSets.first?.id
@@ -1354,6 +1365,58 @@ final class RulesSheetViewController: NSViewController {
 
         reloadSidebar()
         reloadRuleContent()
+    }
+
+    private func applyActionButtonStyling() {
+        let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        configureAppKitIconButton(
+            addRuleSetButton,
+            symbolName: "plus",
+            pointSize: 10,
+            weight: .bold,
+            color: accentColor,
+            backgroundColor: NSColor.labelColor.withAlphaComponent(0.06),
+            cornerRadius: 11
+        )
+        addRuleButton.image = nil
+        addRuleButton.title = "Add"
+        addRuleButton.isBordered = false
+        addRuleButton.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
+        addRuleButton.setGradientBackground(
+            colors: [
+                accentColor.withAlphaComponent(0.14),
+                accentColor.withAlphaComponent(0.08),
+            ],
+            borderColor: accentColor.withAlphaComponent(0.28)
+        )
+        addRuleButton.attributedTitle = NSAttributedString(
+            string: "Add",
+            attributes: [
+                .font: AppKitUIConstants.Typography.regular,
+                .foregroundColor: accentColor,
+            ]
+        )
+        addRuleButton.contentTintColor = accentColor
+
+        doneButton.image = nil
+        doneButton.title = "Done"
+        doneButton.isBordered = false
+        doneButton.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
+        doneButton.setGradientBackground(
+            colors: [
+                NSColor.labelColor.withAlphaComponent(0.10),
+                NSColor.labelColor.withAlphaComponent(0.05),
+            ],
+            borderColor: NSColor.separatorColor.withAlphaComponent(0.35)
+        )
+        doneButton.attributedTitle = NSAttributedString(
+            string: "Done",
+            attributes: [
+                .font: AppKitUIConstants.Typography.regular,
+                .foregroundColor: NSColor.labelColor,
+            ]
+        )
+        doneButton.contentTintColor = .labelColor
     }
 
     private func reloadSidebar() {
@@ -1480,6 +1543,7 @@ final class RulesSheetViewController: NSViewController {
                 appState.currentOpenUrls,
                 existing: selectedSet
             )
+            let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
             if filtered.isEmpty {
                 let label = NSTextField(
                     labelWithString: RulesSectionSupport.suggestionsEmptyText(
@@ -1501,8 +1565,13 @@ final class RulesSheetViewController: NSViewController {
                     icon.contentTintColor = .systemGreen
                     let label = NSTextField(labelWithString: suggestion)
                     label.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
-                    let addButton = NSButton(title: "Add", target: self, action: #selector(addSuggestion(_:)))
+                    let addButton = makeAppKitSecondaryButton(title: "Add", color: accentColor)
                     addButton.identifier = NSUserInterfaceItemIdentifier(suggestion)
+                    addButton.target = self
+                    addButton.action = #selector(addSuggestion(_:))
+                    addButton.translatesAutoresizingMaskIntoConstraints = false
+                    addButton.widthAnchor.constraint(equalToConstant: 48).isActive = true
+                    addButton.heightAnchor.constraint(equalToConstant: 24).isActive = true
                     row.addArrangedSubview(icon)
                     row.addArrangedSubview(label)
                     row.addArrangedSubview(NSView())
@@ -1589,6 +1658,11 @@ final class RulesSheetViewController: NSViewController {
     private func addSuggestion(_ sender: NSButton) {
         guard let url = sender.identifier?.rawValue, let setId = selectedSet?.id else { return }
         appState.addSpecificRule(url, to: setId)
+    }
+
+    @objc
+    private func handleDone() {
+        onDismiss?()
     }
 }
 
