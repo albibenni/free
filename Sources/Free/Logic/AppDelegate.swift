@@ -3,10 +3,12 @@ import AppKit
 public class AppDelegate: NSObject, NSApplicationDelegate {
     public var defaults: UserDefaults = .standard
     public var onShowAlert: (() -> Void)?
+    public var onApplicationDidFinishLaunching: (() -> Void)?
     var system: any AppDelegateSystem = DefaultAppDelegateSystem()
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         checkLocation()
+        onApplicationDidFinishLaunching?()
     }
 
     private func checkLocation() {

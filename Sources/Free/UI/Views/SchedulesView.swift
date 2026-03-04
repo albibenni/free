@@ -1,65 +1,62 @@
-import SwiftUI
+import AppKit
+import Combine
 
-#if canImport(AppKit)
-    import AppKit
-#endif
-
-struct ScheduleEditorContext: Identifiable {
-    let id = UUID()
-    var day: Int?
-    var startTime: Date?
-    var endTime: Date?
-    var schedule: Schedule?
-    var weekOffset: Int = 0
-}
-
-struct SchedulesView: View {
-    @EnvironmentObject private var environmentAppState: AppState
-    private let actionAppState: AppState?
-    private let presentationBinding: Binding<Bool>?
-    var appState: AppState { actionAppState ?? environmentAppState }
-    @State private var viewMode = 1  // 0 = List, 1 = Calendar
-    @State private var editorContext: ScheduleEditorContext?
-    @State private var weekOffset: Int = 0
-
+final class SchedulesSheetViewController: NSViewController {
+    private let appState: AppState
+    private let onDismiss: () -> Void
+    private let schedulesContainerView = SchedulesContainerNSView()
     private let calendarHourHeight: CGFloat = 80
     private let calendarDayHeaderHeight: CGFloat = 40
     private let calendarTimeLabelWidth: CGFloat = 60
     private let calendarTimeColumnGutter: CGFloat = 12
 
+    private var viewMode: Int
+    private var editorContext: ScheduleEditorContext?
+    private var weekOffset: Int
+    private var cancellables: Set<AnyCancellable> = []
+
     init(
+        appState: AppState,
+        onDismiss: @escaping () -> Void,
         initialViewMode: Int = 1,
         initialEditorContext: ScheduleEditorContext? = nil,
-        actionAppState: AppState? = nil,
-        presentationBinding: Binding<Bool>? = nil
+        initialWeekOffset: Int = 0
     ) {
-        self.actionAppState = actionAppState
-        self.presentationBinding = presentationBinding
-        _viewMode = State(initialValue: initialViewMode)
-        _editorContext = State(initialValue: initialEditorContext)
+        self.appState = appState
+        self.onDismiss = onDismiss
+        self.viewMode = initialViewMode
+        self.editorContext = initialEditorContext
+        self.weekOffset = initialWeekOffset
+        super.init(nibName: nil, bundle: nil)
     }
 
-    var body: some View {
-        Group {
-            #if canImport(AppKit)
-                SchedulesAppKitView(configuration: makeAppKitConfiguration())
-            #else
-                VStack {
-                    Text("Schedules are only available on macOS.")
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            #endif
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .sheet(item: $editorContext, content: makeAddScheduleSheet(context:))
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func loadView() {
+        schedulesContainerView.configure(with: makeAppKitConfiguration())
+        view = schedulesContainerView
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        appState.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.refreshConfiguration()
+            }
+            .store(in: &cancellables)
     }
 
     private var dayOrder: [Int] {
-        WeeklyCalendarView.getDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday)
+        WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday)
     }
 
     private var currentWeekDates: [Date] {
-        WeeklyCalendarView.getWeekDates(
+        WeeklyCalendarSupport.getWeekDates(
             at: Date(),
             weekStartsOnMonday: appState.weekStartsOnMonday,
             offset: weekOffset
@@ -67,151 +64,102 @@ struct SchedulesView: View {
     }
 
     private var currentWeekBounds: (Date, Date) {
-        WeeklyCalendarView.weekBounds(for: currentWeekDates)
+        WeeklyCalendarSupport.weekBounds(for: currentWeekDates)
     }
 
     private var shouldShowExternalCalendarOverlay: Bool {
         appState.calendarIntegrationEnabled && !appState.calendarImportsBlockTime
     }
 
-    #if canImport(AppKit)
-        private func makeAppKitConfiguration() -> SchedulesAppKitConfiguration {
-            let weekRange = currentWeekDates
-            let (weekStart, weekEnd) = currentWeekBounds
-            let dismissAction = presentationBinding.map { binding in
-                { binding.wrappedValue = false }
-            }
-            return SchedulesAppKitConfiguration(
-                viewMode: viewMode,
-                monthTitle: monthYearString(for: weekStart),
-                schedules: appState.schedules,
-                accentColor: NSColor(FocusColor.color(for: appState.accentColorIndex)),
-                accentColorIndex: appState.accentColorIndex,
-                calendarViewConfiguration: WeeklyCalendarAppKitView(
-                    dayOrder: dayOrder,
-                    weekRange: weekRange,
-                    weekStart: weekStart,
-                    weekEnd: weekEnd,
-                    positionedSchedules: positionedSchedules(weekRange: weekRange),
-                    externalEvents: visibleCalendarEvents(weekStart: weekStart, weekEnd: weekEnd),
-                    showsExternalEvents: shouldShowExternalCalendarOverlay,
-                    hourHeight: calendarHourHeight,
-                    dayHeaderHeight: calendarDayHeaderHeight,
-                    timeLabelWidth: calendarTimeLabelWidth,
-                    timeColumnGutter: calendarTimeColumnGutter,
-                    accentColor: NSColor(FocusColor.color(for: appState.accentColorIndex)),
-                    onQuickAdd: { day, hour in
-                        quickAdd(day: day, hour: hour)
-                    },
-                    onCreateSelection: { day, startHour, endHour in
-                        openSelectionEditor(day: day, startHour: startHour, endHour: endHour)
-                    },
-                    onOpenSchedule: { day, schedule in
-                        openScheduleEditor(day: day, schedule: schedule)
-                    },
-                    onUpdateSchedule: {
-                        scheduleId, originalDay, targetDay, targetDate, start, end in
-                        appState.updateScheduleOccurrence(
-                            id: scheduleId,
-                            originalDay: originalDay,
-                            targetDay: targetDay,
-                            targetDate: targetDate,
-                            start: start,
-                            end: end
-                        )
-                    }
+    private func refreshConfiguration() {
+        schedulesContainerView.configure(with: makeAppKitConfiguration())
+    }
+
+    private func makeAppKitConfiguration() -> SchedulesAppKitConfiguration {
+        let weekRange = currentWeekDates
+        let (weekStart, weekEnd) = currentWeekBounds
+        let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+
+        return SchedulesAppKitConfiguration(
+            viewMode: viewMode,
+            monthTitle: WeeklyCalendarSupport.monthYearString(for: weekStart),
+            schedules: appState.schedules,
+            accentColor: accentColor,
+            accentColorIndex: appState.accentColorIndex,
+            appState: appState,
+            editorContext: editorContext,
+            calendarViewConfiguration: WeeklyCalendarSurfaceConfiguration(
+                dayOrder: dayOrder,
+                weekRange: weekRange,
+                weekStart: weekStart,
+                weekEnd: weekEnd,
+                positionedSchedules: WeeklyCalendarSupport.positionedSchedules(
+                    schedules: appState.schedules,
+                    weekRange: weekRange
                 ),
-                onChangeViewMode: { nextMode in
-                    viewMode = nextMode
+                externalEvents: WeeklyCalendarSupport.visibleCalendarEvents(
+                    appState.calendarProvider.events,
+                    weekStart: weekStart,
+                    weekEnd: weekEnd
+                ),
+                showsExternalEvents: shouldShowExternalCalendarOverlay,
+                hourHeight: calendarHourHeight,
+                dayHeaderHeight: calendarDayHeaderHeight,
+                timeLabelWidth: calendarTimeLabelWidth,
+                timeColumnGutter: calendarTimeColumnGutter,
+                accentColor: accentColor,
+                onQuickAdd: { [weak self] day, hour in
+                    self?.quickAdd(day: day, hour: hour)
                 },
-                onSelectSchedule: { schedule in
-                    selectScheduleAction(schedule: schedule)()
+                onCreateSelection: { [weak self] day, startHour, endHour in
+                    self?.openSelectionEditor(day: day, startHour: startHour, endHour: endHour)
                 },
-                onDeleteSchedule: { scheduleId in
-                    deleteScheduleAction(scheduleId: scheduleId)()
+                onOpenSchedule: { [weak self] day, schedule in
+                    self?.openScheduleEditor(day: day, schedule: schedule)
                 },
-                onToggleScheduleEnabled: { scheduleId, isEnabled in
-                    setScheduleEnabled(scheduleId: scheduleId, isEnabled: isEnabled)
-                },
-                onAddSchedule: openAddSchedule,
-                onDismiss: dismissAction,
-                onPreviousWeek: goToPreviousWeek,
-                onCurrentWeek: goToCurrentWeek,
-                onNextWeek: goToNextWeek
-            )
-        }
-    #endif
-
-    private func monthYearString(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        return formatter.string(from: date)
-    }
-
-    private func visibleCalendarEvents(weekStart: Date, weekEnd: Date) -> [ExternalEvent] {
-        appState.calendarProvider.events.filter {
-            $0.startDate >= weekStart && $0.startDate < weekEnd
-        }
-    }
-
-    private func shouldDisplaySchedule(_ schedule: Schedule, weekStart: Date, weekEnd: Date) -> Bool
-    {
-        let calendar = Calendar.current
-        if let specificDate = schedule.date {
-            let scheduleDay = calendar.startOfDay(for: specificDate)
-            let weekStartDay = calendar.startOfDay(for: weekStart)
-            let weekEndDay = calendar.startOfDay(for: weekEnd)
-            return scheduleDay >= weekStartDay && scheduleDay < weekEndDay
-        }
-        return true
-    }
-
-    private func schedulePlacements(for schedule: Schedule, weekRange: [Date])
-        -> [WeeklyCalendarView.SchedulePlacement]
-    {
-        let calendar = Calendar.current
-
-        if let specificDate = schedule.date {
-            guard
-                let inWeekDate = weekRange.first(where: {
-                    calendar.isDate($0, inSameDayAs: specificDate)
-                })
-            else {
-                return []
+                onUpdateSchedule: { [weak appState] scheduleId, originalDay, targetDay, targetDate, start, end in
+                    appState?.updateScheduleOccurrence(
+                        id: scheduleId,
+                        originalDay: originalDay,
+                        targetDay: targetDay,
+                        targetDate: targetDate,
+                        start: start,
+                        end: end
+                    )
+                }
+            ),
+            onChangeViewMode: { [weak self] nextMode in
+                self?.viewMode = nextMode
+                self?.refreshConfiguration()
+            },
+            onSelectSchedule: { [weak self] schedule in
+                self?.editorContext = ScheduleEditorContext(schedule: schedule)
+                self?.refreshConfiguration()
+            },
+            onDeleteSchedule: { [weak self] scheduleId in
+                self?.deleteSchedule(scheduleId: scheduleId)
+            },
+            onToggleScheduleEnabled: { [weak self] scheduleId, isEnabled in
+                self?.setScheduleEnabled(scheduleId: scheduleId, isEnabled: isEnabled)
+            },
+            onAddSchedule: { [weak self] in
+                self?.openAddSchedule()
+            },
+            onDismissEditor: { [weak self] in
+                self?.editorContext = nil
+                self?.refreshConfiguration()
+            },
+            onDismiss: onDismiss,
+            onPreviousWeek: { [weak self] in
+                self?.goToPreviousWeek()
+            },
+            onCurrentWeek: { [weak self] in
+                self?.goToCurrentWeek()
+            },
+            onNextWeek: { [weak self] in
+                self?.goToNextWeek()
             }
-
-            return [
-                WeeklyCalendarView.SchedulePlacement(
-                    id:
-                        "\(schedule.id.uuidString)-\(calendar.startOfDay(for: inWeekDate).timeIntervalSince1970)",
-                    day: calendar.component(.weekday, from: inWeekDate),
-                    startDate: schedule.startTime,
-                    endDate: schedule.endTime
-                )
-            ]
-        }
-
-        return schedule.days.sorted().map { day in
-            WeeklyCalendarView.SchedulePlacement(
-                id: "\(schedule.id.uuidString)-\(day)",
-                day: day,
-                startDate: schedule.startTime,
-                endDate: schedule.endTime
-            )
-        }
-    }
-
-    private func positionedSchedules(weekRange: [Date]) -> [WeeklyCalendarView.PositionedSchedule] {
-        let bounds = WeeklyCalendarView.weekBounds(for: weekRange)
-        let visible = appState.schedules.filter {
-            shouldDisplaySchedule($0, weekStart: bounds.0, weekEnd: bounds.1)
-        }
-        let placements = visible.flatMap { schedule in
-            schedulePlacements(for: schedule, weekRange: weekRange).map {
-                (schedule: schedule, placement: $0)
-            }
-        }
-        return WeeklyCalendarView.positionedSchedules(from: placements)
+        )
     }
 
     private func setScheduleEnabled(scheduleId: UUID, isEnabled: Bool) {
@@ -223,14 +171,17 @@ struct SchedulesView: View {
 
     private func goToPreviousWeek() {
         weekOffset -= 1
+        refreshConfiguration()
     }
 
     private func goToCurrentWeek() {
         weekOffset = 0
+        refreshConfiguration()
     }
 
     private func goToNextWeek() {
         weekOffset += 1
+        refreshConfiguration()
     }
 
     private func quickAdd(day: Int, hour: Int) {
@@ -245,10 +196,11 @@ struct SchedulesView: View {
             schedule: nil,
             weekOffset: weekOffset
         )
+        refreshConfiguration()
     }
 
     private func openSelectionEditor(day: Int, startHour: CGFloat, endHour: CGFloat) {
-        let result = WeeklyCalendarView.calculateDragSelection(
+        let result = WeeklyCalendarSupport.calculateDragSelection(
             startHour: startHour,
             endHour: endHour
         )
@@ -260,6 +212,7 @@ struct SchedulesView: View {
             schedule: nil,
             weekOffset: weekOffset
         )
+        refreshConfiguration()
     }
 
     private func openScheduleEditor(day: Int, schedule: Schedule) {
@@ -268,25 +221,53 @@ struct SchedulesView: View {
             schedule: schedule,
             weekOffset: weekOffset
         )
+        refreshConfiguration()
     }
 
-    func deleteScheduleAction(scheduleId: UUID) -> () -> Void {
-        {
-            guard let schedule = appState.schedules.first(where: { $0.id == scheduleId }) else {
-                return
-            }
-            guard schedule.importedCalendarEventKey == nil else { return }
-            appState.deleteSchedule(id: scheduleId, modifyAllDays: true, initialDay: nil)
+    private func deleteSchedule(scheduleId: UUID) {
+        guard let schedule = appState.schedules.first(where: { $0.id == scheduleId }) else {
+            return
         }
+        guard schedule.importedCalendarEventKey == nil else { return }
+        appState.deleteSchedule(id: scheduleId, modifyAllDays: true, initialDay: nil)
     }
 
-    func selectScheduleAction(schedule: Schedule) -> () -> Void {
-        {
-            editorContext = ScheduleEditorContext(schedule: schedule)
-        }
+    private func openAddSchedule() {
+        editorContext = ScheduleEditorContext()
+        refreshConfiguration()
+    }
+}
+
+extension SchedulesSheetViewController {
+    var viewModeForTesting: Int { viewMode }
+    var weekOffsetForTesting: Int { weekOffset }
+    var editorContextForTesting: ScheduleEditorContext? { editorContext }
+    var monthTitleForTesting: String { makeAppKitConfiguration().monthTitle }
+    var calendarConfigurationForTesting: WeeklyCalendarSurfaceConfiguration {
+        makeAppKitConfiguration().calendarViewConfiguration
     }
 
-    func removeSchedules(at indexSet: IndexSet) {
+    func openAddScheduleForTesting() {
+        openAddSchedule()
+    }
+
+    func goToPreviousWeekForTesting() {
+        goToPreviousWeek()
+    }
+
+    func goToCurrentWeekForTesting() {
+        goToCurrentWeek()
+    }
+
+    func goToNextWeekForTesting() {
+        goToNextWeek()
+    }
+
+    func deleteScheduleForTesting(scheduleId: UUID) {
+        deleteSchedule(scheduleId: scheduleId)
+    }
+
+    func removeSchedulesForTesting(at indexSet: IndexSet) {
         let idsToDelete: [UUID] = indexSet.compactMap { offset in
             guard appState.schedules.indices.contains(offset) else { return nil }
             let schedule = appState.schedules[offset]
@@ -298,63 +279,31 @@ struct SchedulesView: View {
         }
     }
 
-    func openAddSchedule() {
-        editorContext = ScheduleEditorContext()
+    func selectScheduleForTesting(_ schedule: Schedule) {
+        editorContext = ScheduleEditorContext(schedule: schedule)
+        refreshConfiguration()
     }
-
-    func makeEditorPresentationBinding() -> Binding<Bool> {
-        Binding(
-            get: { editorContext != nil },
-            set: { if !$0 { editorContext = nil } }
-        )
-    }
-
-    func makeAddScheduleSheet(context: ScheduleEditorContext) -> some View {
-        AddScheduleView(
-            isPresented: makeEditorPresentationBinding(),
-            initialDay: context.day,
-            initialStartTime: context.startTime,
-            initialEndTime: context.endTime,
-            existingSchedule: context.schedule,
-            editorContext: context
-        )
-    }
-
-    var viewModeForTesting: Int { viewMode }
-    var editorContextForTesting: ScheduleEditorContext? { editorContext }
 }
 
-#if canImport(AppKit)
     private struct SchedulesAppKitConfiguration {
         let viewMode: Int
         let monthTitle: String
         let schedules: [Schedule]
         let accentColor: NSColor
         let accentColorIndex: Int
-        let calendarViewConfiguration: WeeklyCalendarAppKitView
+        let appState: AppState
+        let editorContext: ScheduleEditorContext?
+        let calendarViewConfiguration: WeeklyCalendarSurfaceConfiguration
         let onChangeViewMode: (Int) -> Void
         let onSelectSchedule: (Schedule) -> Void
         let onDeleteSchedule: (UUID) -> Void
         let onToggleScheduleEnabled: (UUID, Bool) -> Void
         let onAddSchedule: () -> Void
+        let onDismissEditor: () -> Void
         let onDismiss: (() -> Void)?
         let onPreviousWeek: () -> Void
         let onCurrentWeek: () -> Void
         let onNextWeek: () -> Void
-    }
-
-    private struct SchedulesAppKitView: NSViewRepresentable {
-        let configuration: SchedulesAppKitConfiguration
-
-        func makeNSView(context: Context) -> SchedulesContainerNSView {
-            let view = SchedulesContainerNSView()
-            view.configure(with: configuration)
-            return view
-        }
-
-        func updateNSView(_ nsView: SchedulesContainerNSView, context: Context) {
-            nsView.configure(with: configuration)
-        }
     }
 
     private final class SchedulesContainerNSView: NSView {
@@ -367,10 +316,13 @@ struct SchedulesView: View {
         private let doneButton = NSButton(title: "Done", target: nil, action: nil)
         private let listScrollView = NSScrollView()
         private let listDocumentView = SchedulesListDocumentNSView()
-        private let calendarView = WeeklyCalendarContainerNSView()
+        private let calendarView = WeeklyCalendarSurfaceNSView()
         private let bottomDivider = NSView()
         private let addButton = NSButton(title: "Add Schedule", target: nil, action: nil)
         private var configuration: SchedulesAppKitConfiguration?
+        private var editorSheetController: FreeSheetWindowController?
+        private var presentedEditorContextId: UUID?
+        private var editorDismissShouldClearContext = true
 
         override var isFlipped: Bool { true }
 
@@ -433,6 +385,11 @@ struct SchedulesView: View {
             fatalError("init(coder:) has not been implemented")
         }
 
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            syncEditorPresentation()
+        }
+
         func configure(with configuration: SchedulesAppKitConfiguration) {
             self.configuration = configuration
 
@@ -461,7 +418,63 @@ struct SchedulesView: View {
             listScrollView.isHidden = showsCalendar
             calendarView.isHidden = !showsCalendar
 
+            syncEditorPresentation()
             needsLayout = true
+        }
+
+        private func syncEditorPresentation() {
+            guard let configuration else { return }
+
+            guard let context = configuration.editorContext else {
+                dismissEditorIfNeeded()
+                return
+            }
+
+            guard let window else { return }
+
+            if presentedEditorContextId == context.id, editorSheetController != nil {
+                return
+            }
+
+            dismissEditorIfNeeded()
+            presentEditor(context: context, in: window, appState: configuration.appState)
+        }
+
+        private func presentEditor(
+            context: ScheduleEditorContext,
+            in window: NSWindow,
+            appState: AppState
+        ) {
+            let editorViewController = ScheduleEditorViewController(
+                appState: appState,
+                context: context
+            ) { [weak self] in
+                self?.editorSheetController?.dismiss()
+            }
+            let controller = FreeSheetWindowController(
+                contentViewController: editorViewController,
+                contentSize: CGSize(width: 500, height: 650)
+            ) { [weak self] in
+                guard let self else { return }
+                self.editorSheetController = nil
+                self.presentedEditorContextId = nil
+                if self.editorDismissShouldClearContext, self.configuration?.editorContext != nil {
+                    self.configuration?.onDismissEditor()
+                }
+                self.editorDismissShouldClearContext = true
+            }
+            editorSheetController = controller
+            presentedEditorContextId = context.id
+            editorDismissShouldClearContext = true
+            controller.present(for: window)
+        }
+
+        private func dismissEditorIfNeeded(clearContext: Bool = false) {
+            guard let controller = editorSheetController else { return }
+            editorDismissShouldClearContext = clearContext
+            editorSheetController = nil
+            presentedEditorContextId = nil
+            controller.dismiss()
         }
 
         override func layout() {
@@ -521,27 +534,25 @@ struct SchedulesView: View {
             viewModeControl.setWidth(27, forSegment: 0)
             viewModeControl.setWidth(27, forSegment: 1)
             viewModeControl.setImage(
-                symbolImage(named: "list.bullet", pointSize: 11, weight: .regular),
+                appKitSymbolImage(named: "list.bullet", pointSize: 11, weight: .regular),
                 forSegment: 0
             )
             viewModeControl.setImage(
-                symbolImage(named: "calendar", pointSize: 11, weight: .regular),
+                appKitSymbolImage(named: "calendar", pointSize: 11, weight: .regular),
                 forSegment: 1
             )
         }
 
         private func configureIconButton(_ button: NSButton, symbolName: String) {
-            button.isBordered = false
-            button.wantsLayer = true
-            button.layer?.cornerRadius = 14
-            button.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.06).cgColor
-            button.image = symbolImage(
-                named: symbolName,
+            configureAppKitIconButton(
+                button,
+                symbolName: symbolName,
                 pointSize: 11,
                 weight: .semibold,
-                color: .secondaryLabelColor
+                color: .secondaryLabelColor,
+                backgroundColor: NSColor.labelColor.withAlphaComponent(0.06),
+                cornerRadius: 14
             )
-            button.imagePosition = .imageOnly
         }
 
         private func configureTodayButton() {
@@ -650,32 +661,6 @@ struct SchedulesView: View {
                 width: doneSize.width,
                 height: doneSize.height
             )
-        }
-
-        private func symbolImage(
-            named symbolName: String,
-            pointSize: CGFloat,
-            weight: NSFont.Weight,
-            color: NSColor? = nil
-        ) -> NSImage? {
-            guard
-                let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
-            else {
-                return nil
-            }
-
-            var configuredImage =
-                baseImage.withSymbolConfiguration(
-                    .init(pointSize: pointSize, weight: weight)
-                )
-
-            if let color {
-                configuredImage = configuredImage?.withSymbolConfiguration(
-                    .init(paletteColors: [color])
-                )
-            }
-
-            return configuredImage ?? baseImage
         }
 
         @objc
@@ -790,7 +775,7 @@ struct SchedulesView: View {
             super.init(frame: frameRect)
 
             deleteButton.isBordered = false
-            deleteButton.image = symbolImage(
+            deleteButton.image = appKitSymbolImage(
                 named: "trash",
                 pointSize: 13,
                 weight: .regular,
@@ -870,11 +855,10 @@ struct SchedulesView: View {
                 separator.stroke()
             }
 
-            let indicatorColor = NSColor(
+            let indicatorColor =
                 schedule.type == .focus
-                    ? FocusColor.color(for: accentColorIndex)
-                    : schedule.themeColor
-            )
+                ? FocusColor.nsColor(for: accentColorIndex)
+                : FocusColor.nsColor(for: schedule.colorIndex)
             let indicatorRect = CGRect(x: 16, y: 16, width: 4, height: bounds.height - 32)
             let indicatorPath = NSBezierPath(roundedRect: indicatorRect, xRadius: 2, yRadius: 2)
             indicatorColor.setFill()
@@ -904,7 +888,7 @@ struct SchedulesView: View {
             var titleX = contentLeft
             let titleY: CGFloat = 10
 
-            if let typeImage = symbolImage(
+            if let typeImage = appKitSymbolImage(
                 named: schedule.type == .focus ? "target" : "cup.and.saucer.fill",
                 pointSize: 11,
                 weight: .semibold,
@@ -979,7 +963,7 @@ struct SchedulesView: View {
             NSColor.secondaryLabelColor.withAlphaComponent(0.12).setFill()
             badgePath.fill()
 
-            if let icon = symbolImage(
+            if let icon = appKitSymbolImage(
                 named: symbolName,
                 pointSize: 9,
                 weight: .semibold,
@@ -1027,24 +1011,4 @@ struct SchedulesView: View {
             (title as NSString).draw(in: textRect, withAttributes: tagAttributes)
         }
 
-        private func symbolImage(
-            named symbolName: String,
-            pointSize: CGFloat,
-            weight: NSFont.Weight,
-            color: NSColor
-        ) -> NSImage? {
-            guard
-                let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
-            else {
-                return nil
-            }
-
-            let configuredImage =
-                baseImage
-                .withSymbolConfiguration(.init(pointSize: pointSize, weight: weight))?
-                .withSymbolConfiguration(.init(paletteColors: [color]))
-
-            return configuredImage ?? baseImage
-        }
     }
-#endif

@@ -1736,13 +1736,13 @@ struct AppStateTests {
             return true
         }
 
-        let week1 = WeeklyCalendarView.getWeekDates(
+        let week1 = WeeklyCalendarSupport.getWeekDates(
             at: testDate, weekStartsOnMonday: false, offset: 0)
         let week1Start = week1.first!
         let week1End = calendar.date(byAdding: .day, value: 7, to: week1Start)!
         #expect(shouldShow(s: schedule, weekStart: week1Start, weekEnd: week1End) == true)
 
-        let week2 = WeeklyCalendarView.getWeekDates(
+        let week2 = WeeklyCalendarSupport.getWeekDates(
             at: testDate, weekStartsOnMonday: false, offset: 1)
         let week2Start = week2.first!
         let week2End = calendar.date(byAdding: .day, value: 7, to: week2Start)!

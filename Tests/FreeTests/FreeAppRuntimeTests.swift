@@ -54,8 +54,8 @@ struct FreeAppRuntimeTests {
         #expect(calls == 11)
     }
 
-    @Test("FreeAppSceneFactory quit action delegates to FreeAppRuntime")
-    func sceneFactoryQuitActionDelegates() {
+    @Test("FreeApp quit action delegates to FreeAppRuntime")
+    func appQuitActionDelegates() {
         var calls = 0
         let originalTerminator = FreeAppRuntimeStorage.terminator
         defer { FreeAppRuntimeStorage.terminator = originalTerminator }
@@ -64,7 +64,7 @@ struct FreeAppRuntimeTests {
             calls += 1
         }
 
-        let action = FreeAppSceneFactory.quitAction()
+        let action = FreeApp.quitAction()
         action()
 
         #expect(calls == 1)
