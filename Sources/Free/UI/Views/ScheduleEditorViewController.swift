@@ -190,9 +190,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
         addSection(makeSessionTypeSection())
 
-        if ScheduleEditorSupport.shouldShowAllowedList(for: sessionType) {
-            addSection(makeAllowedListSection())
-        }
+        addSection(makeAllowedListSection())
 
         if canEditImportedDetails {
             if ScheduleEditorSupport.shouldShowEditScope(
@@ -280,22 +278,30 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     private func makeAllowedListSection() -> NSView {
         let section = makeSectionContainer(title: "ALLOWED LIST")
         let popup = NSPopUpButton()
-        popup.target = self
-        popup.action = #selector(changeRuleSet(_:))
         popup.removeAllItems()
-        popup.addItem(withTitle: "None")
-        popup.lastItem?.representedObject = Optional<UUID>.none
+        if ScheduleEditorSupport.shouldShowAllowedList(for: sessionType) {
+            popup.target = self
+            popup.action = #selector(changeRuleSet(_:))
+            popup.isEnabled = true
 
-        for set in appState.ruleSets {
-            popup.addItem(withTitle: set.name)
-            popup.lastItem?.representedObject = UUID?.some(set.id)
-        }
+            popup.addItem(withTitle: "None")
+            popup.lastItem?.representedObject = Optional<UUID>.none
 
-        let desiredSelection = ruleSetId
-        if let index = popup.itemArray.firstIndex(where: { ($0.representedObject as? UUID) == desiredSelection }) {
-            popup.selectItem(at: index)
+            for set in appState.ruleSets {
+                popup.addItem(withTitle: set.name)
+                popup.lastItem?.representedObject = UUID?.some(set.id)
+            }
+
+            let desiredSelection = ruleSetId
+            if let index = popup.itemArray.firstIndex(where: { ($0.representedObject as? UUID) == desiredSelection }) {
+                popup.selectItem(at: index)
+            } else {
+                popup.selectItem(at: 0)
+            }
         } else {
+            popup.addItem(withTitle: "Not used for breaks")
             popup.selectItem(at: 0)
+            popup.isEnabled = false
         }
 
         section.contentStack.addArrangedSubview(popup)

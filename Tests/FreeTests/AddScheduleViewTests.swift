@@ -35,6 +35,23 @@ struct AddScheduleViewTests {
         return all
     }
 
+    private func visibleText(in view: NSView) -> [String] {
+        guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
+
+        var values: [String] = []
+        if let label = view as? NSTextField, !label.stringValue.isEmpty {
+            values.append(label.stringValue)
+        }
+        if let button = view as? NSButton, !button.title.isEmpty {
+            values.append(button.title)
+        }
+
+        for child in view.subviews {
+            values.append(contentsOf: visibleText(in: child))
+        }
+        return values
+    }
+
     private func makeController(
         appState: AppState,
         context: ScheduleEditorContext = ScheduleEditorContext(),
@@ -234,8 +251,11 @@ struct AddScheduleViewTests {
             )
         )
         let hosted = host(controller)
+        let texts = visibleText(in: hosted)
         #expect(hosted.fittingSize.height >= 0)
         #expect(controller.sessionTypeSelectionColorForTesting == FocusColor.nsColor(for: 6))
+        #expect(texts.contains("ALLOWED LIST"))
+        #expect(texts.contains("Not used for breaks"))
     }
 
     @Test("ScheduleEditorViewController renders imported schedule editor with limited editable sections")
