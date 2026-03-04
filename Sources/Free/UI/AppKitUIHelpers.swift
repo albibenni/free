@@ -270,18 +270,20 @@ class ActionButton: NSButton {
 final class LeadingInsetButtonCell: NSButtonCell {
     var leadingInset: CGFloat = 8
     var titleAdditionalInset: CGFloat = 8
+    var imageSlotWidth: CGFloat = 16
 
     override func imageRect(forBounds rect: NSRect) -> NSRect {
         var imageRect = super.imageRect(forBounds: rect)
-        imageRect.origin.x += leadingInset
+        let slotX = leadingInset
+        imageRect.origin.x = slotX + floor((imageSlotWidth - imageRect.width) / 2)
         return imageRect
     }
 
     override func titleRect(forBounds rect: NSRect) -> NSRect {
         var titleRect = super.titleRect(forBounds: rect)
-        let totalInset = leadingInset + titleAdditionalInset
-        titleRect.origin.x += totalInset
-        titleRect.size.width = max(titleRect.size.width - totalInset, 0)
+        let totalInset = leadingInset + imageSlotWidth + titleAdditionalInset
+        titleRect.origin.x = rect.minX + totalInset
+        titleRect.size.width = max(rect.width - totalInset, 0)
         return titleRect
     }
 }
@@ -307,7 +309,7 @@ final class IconInsetButton: NSButton {
     }
 }
 
-final class LeadingInsetActionButton: ActionButton {
+class LeadingInsetActionButton: ActionButton {
     override class var cellClass: AnyClass? {
         get { LeadingInsetButtonCell.self }
         set { }
@@ -321,6 +323,194 @@ final class LeadingInsetActionButton: ActionButton {
     var titleAdditionalInset: CGFloat {
         get { (cell as? LeadingInsetButtonCell)?.titleAdditionalInset ?? 0 }
         set { (cell as? LeadingInsetButtonCell)?.titleAdditionalInset = newValue }
+    }
+
+    var imageSlotWidth: CGFloat {
+        get { (cell as? LeadingInsetButtonCell)?.imageSlotWidth ?? 0 }
+        set { (cell as? LeadingInsetButtonCell)?.imageSlotWidth = newValue }
+    }
+}
+
+final class AppKitSelectableRowButton: ActionButton {
+    private let rowTitle: String
+    private let leadingSelectedSymbol: String
+    private let leadingUnselectedSymbol: String
+    private let trailingSelectedSymbol: String?
+    private let iconView = NSImageView()
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let trailingImageView = NSImageView()
+    private let contentRow = NSStackView()
+
+    var accentColor: NSColor {
+        didSet { applySelectionState(isSelectedState) }
+    }
+
+    private(set) var isSelectedState: Bool = false
+
+    init(
+        title: String,
+        isSelected: Bool,
+        accentColor: NSColor,
+        leadingSelectedSymbol: String = "link.circle.fill",
+        leadingUnselectedSymbol: String = "link",
+        trailingSelectedSymbol: String? = "checkmark"
+    ) {
+        self.rowTitle = title
+        self.accentColor = accentColor
+        self.leadingSelectedSymbol = leadingSelectedSymbol
+        self.leadingUnselectedSymbol = leadingUnselectedSymbol
+        self.trailingSelectedSymbol = trailingSelectedSymbol
+        super.init(title: "")
+
+        isBordered = false
+        focusRingType = .none
+        layer?.cornerRadius = 8
+        image = nil
+        self.title = ""
+        contentTintColor = nil
+        (cell as? NSButtonCell)?.highlightsBy = []
+
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        iconView.widthAnchor.constraint(equalToConstant: 16).isActive = true
+        iconView.heightAnchor.constraint(equalToConstant: 16).isActive = true
+
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.maximumNumberOfLines = 1
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        trailingImageView.translatesAutoresizingMaskIntoConstraints = false
+        trailingImageView.imageScaling = .scaleProportionallyUpOrDown
+        trailingImageView.widthAnchor.constraint(equalToConstant: 12).isActive = true
+        trailingImageView.heightAnchor.constraint(equalToConstant: 12).isActive = true
+
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        contentRow.orientation = .horizontal
+        contentRow.alignment = .centerY
+        contentRow.spacing = 8
+        contentRow.translatesAutoresizingMaskIntoConstraints = false
+        contentRow.addArrangedSubview(iconView)
+        contentRow.addArrangedSubview(titleLabel)
+        contentRow.addArrangedSubview(spacer)
+        contentRow.addArrangedSubview(trailingImageView)
+        addSubview(contentRow)
+
+        NSLayoutConstraint.activate([
+            contentRow.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            contentRow.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            contentRow.topAnchor.constraint(equalTo: topAnchor),
+            contentRow.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+
+        if let trailingSelectedSymbol {
+            trailingImageView.image = appKitSymbolImage(
+                named: trailingSelectedSymbol,
+                pointSize: 11,
+                weight: .bold,
+                color: accentColor
+            )
+        }
+
+        applySelectionState(isSelected)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func applySelectionState(_ isSelected: Bool) {
+        isSelectedState = isSelected
+        setGradientBackground(
+            colors: isSelected
+                ? [accentColor.withAlphaComponent(0.14), accentColor.withAlphaComponent(0.08)]
+                : [
+                    NSColor.labelColor.withAlphaComponent(0.05),
+                    NSColor.labelColor.withAlphaComponent(0.02),
+                ],
+            borderColor: nil,
+            borderWidth: 0
+        )
+        iconView.image = appKitSymbolImage(
+            named: isSelected ? leadingSelectedSymbol : leadingUnselectedSymbol,
+            pointSize: 13,
+            weight: isSelected ? .semibold : .regular,
+            color: isSelected ? accentColor : .secondaryLabelColor
+        )
+        titleLabel.font = NSFont.systemFont(ofSize: 13, weight: isSelected ? .semibold : .regular)
+        titleLabel.textColor = isSelected ? NSColor.labelColor : NSColor.secondaryLabelColor
+        titleLabel.stringValue = rowTitle
+        trailingImageView.image = trailingSelectedSymbol.flatMap {
+            appKitSymbolImage(
+                named: $0,
+                pointSize: 11,
+                weight: .bold,
+                color: accentColor
+            )
+        }
+        trailingImageView.isHidden = !isSelected || trailingSelectedSymbol == nil
+    }
+
+    var displayedTitleForTesting: String { titleLabel.stringValue }
+}
+
+final class AppKitPillButton: ActionButton {
+    private let baseTitle: String
+    private let textFont: NSFont
+    private let unselectedTextColor: NSColor
+
+    var selectedColor: NSColor {
+        didSet { applySelectionState(isSelectedState) }
+    }
+
+    private(set) var isSelectedState: Bool = false
+
+    init(
+        title: String,
+        isSelected: Bool,
+        selectedColor: NSColor,
+        unselectedTextColor: NSColor = .secondaryLabelColor,
+        font: NSFont = .systemFont(ofSize: 11, weight: .bold)
+    ) {
+        self.baseTitle = title
+        self.selectedColor = selectedColor
+        self.unselectedTextColor = unselectedTextColor
+        self.textFont = font
+        super.init(title: title)
+
+        isBordered = false
+        layer?.cornerRadius = 6
+        focusRingType = .none
+        applySelectionState(isSelected)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func applySelectionState(_ isSelected: Bool) {
+        isSelectedState = isSelected
+        setGradientBackground(
+            colors: isSelected
+                ? [selectedColor.withAlphaComponent(0.20), selectedColor.withAlphaComponent(0.12)]
+                : [
+                    NSColor.labelColor.withAlphaComponent(0.08),
+                    NSColor.labelColor.withAlphaComponent(0.04),
+                ],
+            borderColor: nil,
+            borderWidth: 0
+        )
+        attributedTitle = NSAttributedString(
+            string: baseTitle,
+            attributes: [
+                .font: textFont,
+                .foregroundColor: isSelected ? selectedColor : unselectedTextColor,
+            ]
+        )
     }
 }
 
@@ -519,26 +709,13 @@ func makeAppKitPillButton(
     height: CGFloat = 24,
     font: NSFont = .systemFont(ofSize: 11, weight: .bold),
     action: @escaping () -> Void
-) -> ActionButton {
-    let button = ActionButton(title: title)
-    button.isBordered = false
-    button.layer?.cornerRadius = 6
-    button.setGradientBackground(
-        colors: isSelected
-            ? [selectedColor.withAlphaComponent(0.20), selectedColor.withAlphaComponent(0.12)]
-            : [
-                NSColor.labelColor.withAlphaComponent(0.08),
-                NSColor.labelColor.withAlphaComponent(0.04),
-            ],
-        borderColor: nil,
-        borderWidth: 0
-    )
-    button.attributedTitle = NSAttributedString(
-        string: title,
-        attributes: [
-            .font: font,
-            .foregroundColor: isSelected ? selectedColor : unselectedTextColor,
-        ]
+) -> AppKitPillButton {
+    let button = AppKitPillButton(
+        title: title,
+        isSelected: isSelected,
+        selectedColor: selectedColor,
+        unselectedTextColor: unselectedTextColor,
+        font: font
     )
     button.onAction = action
     if let width {
@@ -588,60 +765,17 @@ func makeAppKitSelectableRowButton(
     trailingSelectedSymbol: String? = "checkmark",
     height: CGFloat = 34,
     action: @escaping () -> Void
-) -> ActionButton {
-    let button = LeadingInsetActionButton(title: title)
-    button.leadingInset = 8
-    button.titleAdditionalInset = 8
-    button.isBordered = false
-    button.layer?.cornerRadius = 8
-    button.imageHugsTitle = false
-    button.setGradientBackground(
-        colors: isSelected
-            ? [accentColor.withAlphaComponent(0.14), accentColor.withAlphaComponent(0.08)]
-            : [
-                NSColor.labelColor.withAlphaComponent(0.05),
-                NSColor.labelColor.withAlphaComponent(0.02),
-            ],
-        borderColor: nil,
-        borderWidth: 0
-    )
-    button.image = appKitSymbolImage(
-        named: isSelected ? leadingSelectedSymbol : leadingUnselectedSymbol,
-        pointSize: 13,
-        weight: isSelected ? .semibold : .regular,
-        color: isSelected ? accentColor : .secondaryLabelColor
-    )
-    button.imagePosition = .imageLeading
-    button.alignment = .left
-    button.contentTintColor = isSelected ? accentColor : .secondaryLabelColor
-    button.attributedTitle = NSAttributedString(
-        string: title,
-        attributes: [
-            .font: NSFont.systemFont(ofSize: 13, weight: isSelected ? .semibold : .regular),
-            .foregroundColor: isSelected ? NSColor.labelColor : NSColor.secondaryLabelColor,
-        ]
+) -> AppKitSelectableRowButton {
+    let button = AppKitSelectableRowButton(
+        title: title,
+        isSelected: isSelected,
+        accentColor: accentColor,
+        leadingSelectedSymbol: leadingSelectedSymbol,
+        leadingUnselectedSymbol: leadingUnselectedSymbol,
+        trailingSelectedSymbol: trailingSelectedSymbol
     )
     button.onAction = action
     button.heightAnchor.constraint(equalToConstant: height).isActive = true
-
-    if let trailingSelectedSymbol {
-        let trailingView = NSImageView()
-        trailingView.image = appKitSymbolImage(
-            named: trailingSelectedSymbol,
-            pointSize: 11,
-            weight: .bold,
-            color: accentColor
-        )
-        trailingView.isHidden = !isSelected
-        trailingView.translatesAutoresizingMaskIntoConstraints = false
-        button.addSubview(trailingView)
-
-        NSLayoutConstraint.activate([
-            trailingView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -12),
-            trailingView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-        ])
-    }
-
     return button
 }
 

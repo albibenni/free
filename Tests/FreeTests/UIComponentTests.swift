@@ -126,10 +126,9 @@ struct UIComponentTests {
 
         #expect(pillButton.attributedTitle.string == "25/5")
         #expect(pillButton.image == nil)
-        #expect(rowButton.attributedTitle.string == "Default")
-        #expect(rowButton.image != nil)
-        #expect(rowButton.imageHugsTitle == false)
-        #expect(rowButton.subviews.contains { $0 is NSImageView })
+        #expect(rowButton.displayedTitleForTesting == "Default")
+        #expect(rowButton.isSelectedState)
+        #expect(rowButton.subviews.contains { $0 is NSStackView })
     }
 
     @Test("Shared AppKit selection button group applies accent to selected value")

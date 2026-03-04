@@ -80,6 +80,18 @@ final class FocusSectionViewController: NSViewController {
             let name: String
         }
 
+        struct ContentSignature: Equatable {
+            let accentColorIndex: Int
+            let isBlocking: Bool
+            let isStrictActive: Bool
+            let pomodoroStatus: AppState.PomodoroStatus
+            let pomodoroFocusDuration: Double
+            let pomodoroBreakDuration: Double
+            let pomodoroRemaining: TimeInterval
+            let isPomodoroLocked: Bool
+            let ruleSets: [RuleSetSnapshot]
+        }
+
         let accentColorIndex: Int
         let isBlocking: Bool
         let isStrictActive: Bool
@@ -91,6 +103,20 @@ final class FocusSectionViewController: NSViewController {
         let activeRuleSetId: UUID?
         let currentPrimaryRuleSetId: UUID?
         let ruleSets: [RuleSetSnapshot]
+
+        var contentSignature: ContentSignature {
+            ContentSignature(
+                accentColorIndex: accentColorIndex,
+                isBlocking: isBlocking,
+                isStrictActive: isStrictActive,
+                pomodoroStatus: pomodoroStatus,
+                pomodoroFocusDuration: pomodoroFocusDuration,
+                pomodoroBreakDuration: pomodoroBreakDuration,
+                pomodoroRemaining: pomodoroRemaining,
+                isPomodoroLocked: isPomodoroLocked,
+                ruleSets: ruleSets
+            )
+        }
 
         init(appState: AppState) {
             accentColorIndex = appState.accentColorIndex
@@ -195,7 +221,40 @@ final class FocusSectionViewController: NSViewController {
             needsReloadAfterPomodoroInteraction = true
             return
         }
+        if handlePomodoroSectionStateChange() {
+            return
+        }
         reloadContent()
+    }
+
+    private func handlePomodoroSectionStateChange() -> Bool {
+        guard section == .pomodoro,
+              let pomodoroWidgetView = widgetView as? FocusPomodoroWidgetView,
+              pomodoroWidgetSignature != nil
+        else {
+            return false
+        }
+
+        let nextSignature = PomodoroWidgetSignature(appState: appState)
+        pomodoroWidgetSignature = nextSignature
+        permissionWarningView.isHidden = appState.isTrusted
+        headerIconView.contentTintColor = FocusSectionSupport.focusIconColor(
+            isBlocking: appState.isBlocking,
+            isPaused: appState.isPaused
+        )
+        headerStatusLabel.stringValue = headerStatusText()
+        unblockableWarningLabel.isHidden = !FocusSectionSupport.shouldShowUnblockableWarning(
+            isBlocking: appState.isBlocking,
+            isUnblockable: appState.isUnblockable
+        )
+        pauseDashboardView.isHidden = !FocusSectionSupport.shouldShowPauseDashboard(
+            isBlocking: appState.isBlocking,
+            isPaused: appState.isPaused
+        )
+        pauseTimeLabel.stringValue = appState.timeString(time: appState.pauseRemaining)
+        pomodoroWidgetView.updateRuleSetSelection()
+        pomodoroWidgetView.updateForStateChange()
+        return true
     }
 
     private func beginPomodoroWidgetInteraction() {
@@ -210,7 +269,7 @@ final class FocusSectionViewController: NSViewController {
         guard needsReloadAfterPomodoroInteraction else { return }
 
         needsReloadAfterPomodoroInteraction = false
-        reloadContent()
+        handleObservedAppStateChange()
     }
 
     private func configurePermissionWarning() {
@@ -477,12 +536,22 @@ final class FocusSectionViewController: NSViewController {
            let pomodoroWidgetView = widgetView as? FocusPomodoroWidgetView
         {
             let nextSignature = PomodoroWidgetSignature(appState: appState)
-            if pomodoroWidgetSignature == nextSignature {
-                widgetContainer.isHidden = false
+            widgetContainer.isHidden = false
+
+            if let currentSignature = pomodoroWidgetSignature,
+               currentSignature.contentSignature == nextSignature.contentSignature,
+               currentSignature.activeRuleSetId != nextSignature.activeRuleSetId
+                    || currentSignature.currentPrimaryRuleSetId != nextSignature.currentPrimaryRuleSetId
+            {
+                pomodoroWidgetSignature = nextSignature
+                pomodoroWidgetView.updateRuleSetSelection()
+            } else if pomodoroWidgetSignature != nextSignature {
+                pomodoroWidgetSignature = nextSignature
+                pomodoroWidgetView.refreshForStateChange()
+            } else {
                 pomodoroWidgetView.needsLayout = true
-                return
             }
-            pomodoroWidgetSignature = nextSignature
+            return
         } else if section != .pomodoro {
             pomodoroWidgetSignature = nil
         }
@@ -546,6 +615,9 @@ extension FocusSectionViewController {
     }
     var widgetViewIdentifierForTesting: ObjectIdentifier? {
         widgetView.map(ObjectIdentifier.init)
+    }
+    var pomodoroWidgetRefreshGenerationForTesting: Int? {
+        (widgetView as? FocusPomodoroWidgetView)?.refreshGeneration
     }
     var hasDeferredPomodoroReloadForTesting: Bool {
         needsReloadAfterPomodoroInteraction

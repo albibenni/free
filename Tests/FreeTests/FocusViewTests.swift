@@ -54,6 +54,17 @@ struct FocusViewTests {
         return values
     }
 
+    private func buttons(in view: NSView) -> [NSButton] {
+        var all: [NSButton] = []
+        if let button = view as? NSButton {
+            all.append(button)
+        }
+        for subview in view.subviews {
+            all.append(contentsOf: buttons(in: subview))
+        }
+        return all
+    }
+
     @Test("Focus section support covers warning/icon/status/pause/action paths")
     func focusViewHelperLogic() {
         #expect(FocusSectionSupport.shouldShowUnblockableWarning(isBlocking: true, isUnblockable: true))
@@ -218,8 +229,10 @@ struct FocusViewTests {
 
         _ = host(controller)
         let initialWidgetIdentifier = controller.widgetViewIdentifierForTesting
+        let initialRefreshGeneration = controller.pomodoroWidgetRefreshGenerationForTesting
 
         #expect(initialWidgetIdentifier != nil)
+        #expect(initialRefreshGeneration != nil)
 
         controller.beginPomodoroWidgetInteractionForTesting()
         appState.pomodoroFocusDuration = 50
@@ -227,12 +240,14 @@ struct FocusViewTests {
 
         #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
         #expect(controller.hasDeferredPomodoroReloadForTesting)
+        #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
 
         controller.endPomodoroWidgetInteractionForTesting()
 
         #expect(controller.hasDeferredPomodoroReloadForTesting == false)
         #expect(controller.widgetViewIdentifierForTesting != nil)
-        #expect(controller.widgetViewIdentifierForTesting != initialWidgetIdentifier)
+        #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
+        #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
     }
 
     @Test("Focus section keeps pomodoro widget instance when unrelated app state changes")
@@ -244,13 +259,72 @@ struct FocusViewTests {
 
         _ = host(controller)
         let initialWidgetIdentifier = controller.widgetViewIdentifierForTesting
+        let initialRefreshGeneration = controller.pomodoroWidgetRefreshGenerationForTesting
 
         #expect(initialWidgetIdentifier != nil)
+        #expect(initialRefreshGeneration != nil)
 
         appState.currentOpenUrls = ["https://example.com"]
         controller.simulateObservedAppStateChangeForTesting()
 
         #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
+        #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
+    }
+
+    @Test("Focus section keeps pomodoro widget instance when switching selected list")
+    @MainActor
+    func focusViewKeepsPomodoroWidgetForListSelectionChanges() {
+        let appState = isolatedAppState(name: "pomodoroListSelectionChange")
+        appState.isTrusted = true
+        appState.isBlocking = true
+        appState.ruleSets = [
+            RuleSet(name: "Default", urls: ["example.com"]),
+            RuleSet(name: "test", urls: ["example.org"]),
+        ]
+        appState.activeRuleSetId = appState.ruleSets.first?.id
+
+        let controller = makeController(appState: appState, section: .pomodoro)
+        _ = host(controller)
+
+        let initialWidgetIdentifier = controller.widgetViewIdentifierForTesting
+        let initialRefreshGeneration = controller.pomodoroWidgetRefreshGenerationForTesting
+        let initialHeaderStatus = controller.headerStatusTextForTesting
+
+        #expect(initialWidgetIdentifier != nil)
+        #expect(initialRefreshGeneration != nil)
+        #expect(initialHeaderStatus.contains("Default"))
+
+        appState.activeRuleSetId = appState.ruleSets.last?.id
+        controller.simulateObservedAppStateChangeForTesting()
+
+        #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
+        #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
+        #expect(controller.headerStatusTextForTesting.contains("test"))
+    }
+
+    @Test("Focus section keeps pomodoro widget stable when applying a preset")
+    @MainActor
+    func focusViewKeepsPomodoroWidgetForPresetChanges() {
+        let appState = isolatedAppState(name: "pomodoroPresetChange")
+        appState.isTrusted = true
+        let controller = makeController(appState: appState, section: .pomodoro)
+        let hosted = host(controller)
+
+        let initialWidgetIdentifier = controller.widgetViewIdentifierForTesting
+        let initialRefreshGeneration = controller.pomodoroWidgetRefreshGenerationForTesting
+
+        #expect(initialWidgetIdentifier != nil)
+        #expect(initialRefreshGeneration != nil)
+
+        let presetButton = buttons(in: hosted).first { $0.title == "45/15" }
+        #expect(presetButton != nil)
+
+        presetButton?.performClick(nil)
+
+        #expect(appState.pomodoroFocusDuration == 45)
+        #expect(appState.pomodoroBreakDuration == 15)
+        #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
+        #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
     }
 
     @Test("Focus section allowed-websites mode renders AppKit widget without overview")

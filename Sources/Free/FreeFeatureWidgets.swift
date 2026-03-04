@@ -4,6 +4,26 @@ private func selectedRuleSetIdForPomodoro(_ appState: AppState) -> UUID? {
     appState.activeRuleSetId ?? appState.ruleSets.first?.id
 }
 
+private func clearArrangedSubviews(from stackView: NSStackView) {
+    let subviews = stackView.arrangedSubviews
+    subviews.forEach { subview in
+        stackView.removeArrangedSubview(subview)
+        subview.removeFromSuperview()
+    }
+}
+
+private func findLabel(in view: NSView) -> NSTextField? {
+    if let label = view as? NSTextField {
+        return label
+    }
+    for subview in view.subviews {
+        if let label = findLabel(in: subview) {
+            return label
+        }
+    }
+    return nil
+}
+
 final class FocusSchedulesWidgetView: AppKitCardView {
     init(appState: AppState, shellState: FreeShellState) {
         super.init(frame: .zero)
@@ -214,10 +234,32 @@ final class FocusAllowedWebsitesWidgetView: AppKitCardView {
 }
 
 final class FocusPomodoroWidgetView: AppKitCardView {
+    private enum RenderMode: Equatable {
+        case idle
+        case focusActive
+        case breakActive
+    }
+
     private let appState: AppState
     private let accentColor: NSColor
     private let onDialInteractionDidBegin: (() -> Void)?
     private let onDialInteractionDidEnd: (() -> Void)?
+    private var renderMode: RenderMode?
+    private var ruleSetButtons: [UUID: AppKitSelectableRowButton] = [:]
+    private var presetButtons: [(focus: Double, breakTime: Double, button: AppKitPillButton)] = []
+    private var quickBreakButtons: [AppKitPillButton] = []
+    private var customBreakButton: AppKitPillButton?
+    private var focusDialView: PomodoroDurationDialView?
+    private var breakDialView: PomodoroDurationDialView?
+    private var focusMinusButton: ActionButton?
+    private var focusPlusButton: ActionButton?
+    private var breakMinusButton: ActionButton?
+    private var breakPlusButton: ActionButton?
+    private var phaseLabel: NSTextField?
+    private var progressDialView: PomodoroProgressDialView?
+    private var activeRuleSetBadgeLabel: NSTextField?
+    private var skipButton: ActionButton?
+    private(set) var refreshGeneration = 0
 
     init(
         appState: AppState,
@@ -230,6 +272,35 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         self.onDialInteractionDidEnd = onDialInteractionDidEnd
         super.init(frame: .zero)
 
+        rebuildContent()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func refreshForStateChange() {
+        updateForStateChange()
+    }
+
+    private func rebuildContent() {
+        clearArrangedSubviews(from: contentStack)
+        renderMode = currentRenderMode()
+        ruleSetButtons = [:]
+        presetButtons = []
+        quickBreakButtons = []
+        customBreakButton = nil
+        focusDialView = nil
+        breakDialView = nil
+        focusMinusButton = nil
+        focusPlusButton = nil
+        breakMinusButton = nil
+        breakPlusButton = nil
+        phaseLabel = nil
+        progressDialView = nil
+        activeRuleSetBadgeLabel = nil
+        skipButton = nil
         contentStack.spacing = 12
         contentStack.addArrangedSubview(makePomodoroHeader())
         let topContentSection = makeTopContentSection()
@@ -250,11 +321,107 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         } else {
             actionView.widthAnchor.constraint(equalTo: contentStack.widthAnchor).isActive = true
         }
+
+        refreshGeneration += 1
     }
 
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    func updateForStateChange() {
+        let desiredMode = currentRenderMode()
+        let currentRuleSetIds = Set(ruleSetButtons.keys)
+        let desiredRuleSetIds = Set(appState.ruleSets.map(\.id))
+
+        guard renderMode == desiredMode, currentRuleSetIds == desiredRuleSetIds else {
+            rebuildContent()
+            return
+        }
+
+        switch desiredMode {
+        case .idle:
+            updateIdleControls()
+        case .focusActive, .breakActive:
+            updateActiveControls()
+        }
+    }
+
+    func updateRuleSetSelection() {
+        let selectedId = selectedRuleSetIdForPomodoro(appState)
+        for set in appState.ruleSets {
+            guard let button = ruleSetButtons[set.id] else { continue }
+            button.accentColor = accentColor
+            button.applySelectionState(selectedId == set.id)
+            button.isEnabled = !appState.isStrictActive
+        }
+    }
+
+    private func currentRenderMode() -> RenderMode {
+        switch appState.pomodoroStatus {
+        case .none:
+            return .idle
+        case .focus:
+            return .focusActive
+        case .breakTime:
+            return .breakActive
+        }
+    }
+
+    private func updateIdleControls() {
+        focusDialView?.setDurationMinutes(appState.pomodoroFocusDuration)
+        breakDialView?.setDurationMinutes(appState.pomodoroBreakDuration)
+
+        for preset in presetButtons {
+            preset.button.selectedColor = accentColor
+            preset.button.applySelectionState(
+                appState.pomodoroFocusDuration == preset.focus
+                    && appState.pomodoroBreakDuration == preset.breakTime
+            )
+        }
+
+        let quickBreakEnabled = appState.isBlocking && !appState.isStrictActive
+        quickBreakButtons.forEach { $0.isEnabled = quickBreakEnabled }
+        customBreakButton?.isEnabled = quickBreakEnabled
+
+        focusMinusButton?.isEnabled = appState.pomodoroFocusDuration > 5
+        focusPlusButton?.isEnabled = appState.pomodoroFocusDuration < 120
+        breakMinusButton?.isEnabled = appState.pomodoroBreakDuration > 5
+        breakPlusButton?.isEnabled = appState.pomodoroBreakDuration < 60
+
+        updateRuleSetSelection()
+    }
+
+    private func updateActiveControls() {
+        let isFocus = appState.pomodoroStatus == .focus
+        phaseLabel?.stringValue = isFocus ? "FOCUSING" : "BREAKING"
+
+        let totalDurationSeconds =
+            isFocus
+            ? appState.pomodoroFocusDuration * 60
+            : appState.pomodoroBreakDuration * 60
+        let progress =
+            totalDurationSeconds > 0
+            ? 1 - (appState.pomodoroRemaining / totalDurationSeconds)
+            : 0
+        progressDialView?.update(
+            progress: progress,
+            iconName: isFocus ? "leaf.fill" : "cup.and.saucer.fill",
+            color: isFocus ? accentColor : .systemOrange,
+            centerText: appState.timeString(time: appState.pomodoroRemaining)
+        )
+        skipButton?.isEnabled = !appState.isPomodoroLocked
+
+        if isFocus {
+            let currentSetName = appState.ruleSets.first(where: { $0.id == appState.currentPrimaryRuleSetId })?.name
+            if let currentSetName {
+                if let activeRuleSetBadgeLabel {
+                    activeRuleSetBadgeLabel.stringValue = currentSetName
+                } else {
+                    rebuildContent()
+                }
+            } else if activeRuleSetBadgeLabel != nil {
+                rebuildContent()
+            }
+        } else if activeRuleSetBadgeLabel != nil {
+            rebuildContent()
+        }
     }
 
     private func makePomodoroHeader() -> NSView {
@@ -357,6 +524,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         )
         phaseLabel.font = .systemFont(ofSize: 14, weight: .black)
         phaseLabel.textColor = .secondaryLabelColor
+        self.phaseLabel = phaseLabel
 
         let totalDurationSeconds =
             appState.pomodoroStatus == .focus
@@ -372,6 +540,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             color: appState.pomodoroStatus == .focus ? accentColor : .systemOrange,
             centerText: appState.timeString(time: appState.pomodoroRemaining)
         )
+        self.progressDialView = progressView
         progressView.widthAnchor.constraint(equalToConstant: 240).isActive = true
         progressView.heightAnchor.constraint(equalToConstant: 240).isActive = true
 
@@ -381,7 +550,11 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         if let activeId = appState.currentPrimaryRuleSetId,
            let setName = appState.ruleSets.first(where: { $0.id == activeId })?.name,
            appState.pomodoroStatus == .focus {
-            column.addArrangedSubview(makeActiveRuleSetBadge(name: setName))
+            let badge = makeActiveRuleSetBadge(name: setName)
+            if let label = badge.subviews.compactMap({ findLabel(in: $0) }).first {
+                activeRuleSetBadgeLabel = label
+            }
+            column.addArrangedSubview(badge)
         }
 
         return column
@@ -414,6 +587,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 guard let appState, !appState.isStrictActive else { return }
                 appState.activeRuleSetId = set.id
             }
+            ruleSetButtons[set.id] = button
             button.isEnabled = !appState.isStrictActive
             scrollView.stackView.addArrangedSubview(button)
             button.widthAnchor.constraint(equalTo: scrollView.stackView.widthAnchor).isActive = true
@@ -440,6 +614,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         let skipButton = makeAppKitPrimaryButton(title: "Skip", color: accentColor)
         skipButton.onAction = { [weak appState] in appState?.skipPomodoroPhase() }
         skipButton.isEnabled = !appState.isPomodoroLocked
+        self.skipButton = skipButton
 
         let stopButton = makeAppKitPrimaryButton(title: "Stop", color: .systemRed)
         stopButton.onAction = { [weak self] in
@@ -478,6 +653,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 appState?.pomodoroFocusDuration = focus
                 appState?.pomodoroBreakDuration = breakTime
             }
+            presetButtons.append((focus: focus, breakTime: breakTime, button: button))
             buttons.addArrangedSubview(button)
         }
 
@@ -507,6 +683,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 appState?.startPause(minutes: Double(minutes))
             }
             button.isEnabled = appState.isBlocking && !appState.isStrictActive
+            quickBreakButtons.append(button)
             buttons.addArrangedSubview(button)
         }
 
@@ -519,6 +696,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             self?.presentCustomBreakPrompt()
         }
         customButton.isEnabled = appState.isBlocking && !appState.isStrictActive
+        customBreakButton = customButton
         buttons.addArrangedSubview(customButton)
 
         stack.addArrangedSubview(buttons)
@@ -560,20 +738,34 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         controls.spacing = 20
 
         let minimumValue = 5.0
-        controls.addArrangedSubview(
-            makeDialAdjustmentButton(
-                symbol: "-",
-                isEnabled: duration > minimumValue,
-                action: { onCommit(max(minimumValue, duration - 5)) }
-            )
+        let currentDuration: () -> Double = { [weak self] in
+            guard let self else { return duration }
+            return title == "FOCUS"
+                ? self.appState.pomodoroFocusDuration
+                : self.appState.pomodoroBreakDuration
+        }
+        let minusButton = makeDialAdjustmentButton(
+            symbol: "-",
+            isEnabled: duration > minimumValue,
+            action: { onCommit(max(minimumValue, currentDuration() - 5)) }
         )
-        controls.addArrangedSubview(
-            makeDialAdjustmentButton(
-                symbol: "+",
-                isEnabled: duration < Double(maxMinutes),
-                action: { onCommit(min(Double(maxMinutes), duration + 5)) }
-            )
+        let plusButton = makeDialAdjustmentButton(
+            symbol: "+",
+            isEnabled: duration < Double(maxMinutes),
+            action: { onCommit(min(Double(maxMinutes), currentDuration() + 5)) }
         )
+        controls.addArrangedSubview(minusButton)
+        controls.addArrangedSubview(plusButton)
+
+        if title == "FOCUS" {
+            focusDialView = dial
+            focusMinusButton = minusButton
+            focusPlusButton = plusButton
+        } else {
+            breakDialView = dial
+            breakMinusButton = minusButton
+            breakPlusButton = plusButton
+        }
 
         column.addArrangedSubview(titleLabel)
         column.addArrangedSubview(dial)
@@ -635,7 +827,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         set: RuleSet,
         isSelected: Bool,
         action: @escaping () -> Void
-    ) -> ActionButton {
+    ) -> AppKitSelectableRowButton {
         makeAppKitSelectableRowButton(
             title: set.name,
             isSelected: isSelected,
