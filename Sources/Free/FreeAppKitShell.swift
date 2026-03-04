@@ -217,7 +217,6 @@ final class AllowedWebsitesFloatingEditorViewController:
     NSTableViewDelegate
 {
     private let appState: AppState
-    private var onDone: () -> Void
     private var selectedRuleSetId: UUID?
     private var visibleRules: [String] = []
     private var cancellables: Set<AnyCancellable> = []
@@ -225,15 +224,13 @@ final class AllowedWebsitesFloatingEditorViewController:
     private let listPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let urlField = NSTextField(string: "")
     private let addButton = ActionButton(title: "Add")
-    private let doneButton = ActionButton(title: "Done")
     private let removeButton = ActionButton(title: "Remove Selected")
     private let emptyLabel = NSTextField(labelWithString: "No allowed websites in this list yet.")
     private let tableView = NSTableView()
     private let tableScrollView = NSScrollView()
 
-    init(appState: AppState, initialRuleSetId: UUID?, onDone: @escaping () -> Void) {
+    init(appState: AppState, initialRuleSetId: UUID?) {
         self.appState = appState
-        self.onDone = onDone
         selectedRuleSetId = initialRuleSetId
         super.init(nibName: nil, bundle: nil)
     }
@@ -257,10 +254,7 @@ final class AllowedWebsitesFloatingEditorViewController:
         listPopup.translatesAutoresizingMaskIntoConstraints = false
         listPopup.widthAnchor.constraint(equalToConstant: 220).isActive = true
 
-        doneButton.target = self
-        doneButton.action = #selector(handleDone)
-
-        let headerRow = NSStackView(views: [listLabel, listPopup, NSView(), doneButton])
+        let headerRow = NSStackView(views: [listLabel, listPopup, NSView()])
         headerRow.orientation = .horizontal
         headerRow.alignment = .centerY
         headerRow.spacing = 10
@@ -395,10 +389,6 @@ final class AllowedWebsitesFloatingEditorViewController:
         reloadContent()
     }
 
-    func updateOnDone(_ onDone: @escaping () -> Void) {
-        self.onDone = onDone
-    }
-
     func numberOfRows(in tableView: NSTableView) -> Int {
         visibleRules.count
     }
@@ -464,11 +454,6 @@ final class AllowedWebsitesFloatingEditorViewController:
         updateControlStates()
     }
 
-    @objc
-    private func handleDone() {
-        onDone()
-    }
-
     private func reloadContent() {
         let previousSelection = selectedRuleSetId
         let resolvedSelection = resolvedRuleSetId(previousSelection)
@@ -513,7 +498,6 @@ final class AllowedWebsitesFloatingEditorViewController:
         let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
         styleActionButton(addButton, title: "Add", color: accentColor)
         styleActionButton(removeButton, title: "Remove Selected", color: accentColor)
-        styleNeutralButton(doneButton, title: "Done")
     }
 
     private func styleActionButton(_ button: ActionButton, title: String, color: NSColor) {
@@ -535,27 +519,6 @@ final class AllowedWebsitesFloatingEditorViewController:
             ]
         )
         button.contentTintColor = color
-    }
-
-    private func styleNeutralButton(_ button: ActionButton, title: String) {
-        button.isBordered = false
-        button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
-        button.focusRingType = .none
-        button.setGradientBackground(
-            colors: [
-                NSColor.labelColor.withAlphaComponent(0.10),
-                NSColor.labelColor.withAlphaComponent(0.05),
-            ],
-            borderColor: NSColor.separatorColor.withAlphaComponent(0.35)
-        )
-        button.attributedTitle = NSAttributedString(
-            string: title,
-            attributes: [
-                .font: AppKitUIConstants.Typography.regular,
-                .foregroundColor: NSColor.labelColor,
-            ]
-        )
-        button.contentTintColor = .labelColor
     }
 
     private func updateControlStates() {
@@ -593,7 +556,7 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
         editorController = AllowedWebsitesFloatingEditorViewController(
             appState: appState,
             initialRuleSetId: appState.activeRuleSetId
-        ) { }
+        )
 
         let panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: desiredContentSize),
@@ -622,9 +585,7 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
         super.init(window: panel)
         panel.delegate = self
         editorController.focusOnRuleSet(appState.activeRuleSetId)
-        editorController.updateOnDone { [weak self] in
-            self?.dismiss()
-        }
+        Self.configureNativeCloseButton(in: panel)
     }
 
     @available(*, unavailable)
@@ -636,6 +597,9 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
         guard let window else { return }
         editorController.focusOnRuleSet(selectedRuleSetId)
         restoreDesiredContentSize()
+        if let panel = window as? NSPanel {
+            Self.configureNativeCloseButton(in: panel)
+        }
         if !window.isVisible {
             let origin = NSPoint(
                 x: parentWindow.frame.midX - (window.frame.width / 2),
@@ -651,6 +615,22 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
         guard let window else { return }
         window.contentViewController?.preferredContentSize = desiredContentSize
         window.setContentSize(desiredContentSize)
+    }
+
+    private static func configureNativeCloseButton(in panel: NSPanel) {
+        guard let closeButton = panel.standardWindowButton(.closeButton) else { return }
+        closeButton.controlSize = .large
+        let targetSize: CGFloat = 18
+        if closeButton.frame.width < targetSize || closeButton.frame.height < targetSize {
+            let originalFrame = closeButton.frame
+            closeButton.setFrameSize(NSSize(width: targetSize, height: targetSize))
+            closeButton.setFrameOrigin(
+                NSPoint(
+                    x: originalFrame.origin.x,
+                    y: originalFrame.origin.y - ((targetSize - originalFrame.height) / 2)
+                )
+            )
+        }
     }
 
     func dismiss() {
