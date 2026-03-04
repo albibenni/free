@@ -267,17 +267,20 @@ struct AddScheduleViewTests {
 
         let initialReloadGeneration = controller.formReloadGenerationForTesting
 
-        #expect(controller.isRecurringDaysSectionHiddenForTesting == true)
+        #expect(controller.isRecurringDaysSectionHiddenForTesting == false)
+        #expect(controller.areRecurringDayButtonsEnabledForTesting == false)
 
         controller.setRecurringForTesting(true)
 
         #expect(controller.formReloadGenerationForTesting == initialReloadGeneration)
         #expect(controller.isRecurringDaysSectionHiddenForTesting == false)
+        #expect(controller.areRecurringDayButtonsEnabledForTesting == true)
 
         controller.setRecurringForTesting(false)
 
         #expect(controller.formReloadGenerationForTesting == initialReloadGeneration)
-        #expect(controller.isRecurringDaysSectionHiddenForTesting == true)
+        #expect(controller.isRecurringDaysSectionHiddenForTesting == false)
+        #expect(controller.areRecurringDayButtonsEnabledForTesting == false)
     }
 
     @Test("ScheduleEditorViewController renders imported schedule editor with limited editable sections")
