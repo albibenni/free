@@ -1,7 +1,75 @@
 import AppKit
 
-class AppKitFlippedView: NSView {
+func resolvedAppKitCGColor(_ color: NSColor, appearance: NSAppearance?) -> CGColor {
+    guard let appearance else { return color.cgColor }
+    var resolvedColor = color.cgColor
+    appearance.performAsCurrentDrawingAppearance {
+        resolvedColor = color.cgColor
+    }
+    return resolvedColor
+}
+
+class AppKitDynamicView: NSView {
+    var backgroundColorProvider: (() -> NSColor?)? {
+        didSet { applyDynamicLayerColors() }
+    }
+
+    var borderColorProvider: (() -> NSColor?)? {
+        didSet { applyDynamicLayerColors() }
+    }
+
+    var borderWidthValue: CGFloat = 0 {
+        didSet { applyDynamicLayerColors() }
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyDynamicLayerColors()
+    }
+
+    func applyDynamicLayerColors() {
+        guard backgroundColorProvider != nil || borderColorProvider != nil || borderWidthValue > 0 else {
+            return
+        }
+        wantsLayer = true
+        layer?.backgroundColor = backgroundColorProvider.map {
+            resolvedAppKitCGColor($0() ?? .clear, appearance: effectiveAppearance)
+        }
+        layer?.borderColor = borderColorProvider.map {
+            resolvedAppKitCGColor($0() ?? .clear, appearance: effectiveAppearance)
+        }
+        layer?.borderWidth = borderWidthValue
+    }
+}
+
+class AppKitFlippedView: AppKitDynamicView {
     override var isFlipped: Bool { true }
+}
+
+final class AppKitCardStackView: NSStackView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.cornerRadius = 12
+        applyAppearanceColors()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyAppearanceColors()
+    }
+
+    func applyAppearanceColors() {
+        layer?.backgroundColor = resolvedAppKitCGColor(
+            NSColor.controlBackgroundColor,
+            appearance: effectiveAppearance
+        )
+    }
 }
 
 struct AppKitSelectionButtonOption<Value: Hashable> {
@@ -36,7 +104,6 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
 
         wantsLayer = true
         layer?.cornerRadius = 7
-        layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.08).cgColor
 
         stackView.orientation = .horizontal
         stackView.alignment = .centerY
@@ -61,6 +128,11 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateButtonStyles()
     }
 
     var selectedButtonTintColor: NSColor? {
@@ -92,6 +164,10 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
     }
 
     private func updateButtonStyles() {
+        layer?.backgroundColor = resolvedAppKitCGColor(
+            NSColor.labelColor.withAlphaComponent(0.08),
+            appearance: effectiveAppearance
+        )
         for option in options {
             guard let button = buttons[option.value] else { continue }
             let isSelected = option.value == selectedValue
@@ -175,6 +251,11 @@ final class AppKitToggleSwitch: NSControl {
         updateKnobPosition()
     }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateAppearance()
+    }
+
     override var acceptsFirstResponder: Bool { isEnabled }
 
     override func mouseUp(with event: NSEvent) {
@@ -222,6 +303,9 @@ final class AppKitToggleSwitch: NSControl {
 class ActionButton: NSButton {
     var onAction: (() -> Void)?
     private let backgroundGradientLayer = CAGradientLayer()
+    private var gradientColors: [NSColor]?
+    private var gradientBorderColor: NSColor?
+    private var gradientBorderWidth: CGFloat = 1
 
     init(title: String = "", image: NSImage? = nil) {
         super.init(frame: .zero)
@@ -253,16 +337,34 @@ class ActionButton: NSButton {
         backgroundGradientLayer.cornerRadius = layer?.cornerRadius ?? 0
     }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        if gradientColors != nil || gradientBorderColor != nil {
+            applyStoredGradient()
+        }
+    }
+
     func setGradientBackground(
         colors: [NSColor],
         borderColor: NSColor? = nil,
         borderWidth: CGFloat = 1
     ) {
+        gradientColors = colors
+        gradientBorderColor = borderColor
+        gradientBorderWidth = borderWidth
+        applyStoredGradient()
+    }
+
+    private func applyStoredGradient() {
         backgroundGradientLayer.isHidden = false
-        backgroundGradientLayer.colors = colors.map(\.cgColor)
+        backgroundGradientLayer.colors = gradientColors?.map {
+            resolvedAppKitCGColor($0, appearance: effectiveAppearance)
+        }
         layer?.backgroundColor = nil
-        layer?.borderColor = borderColor?.cgColor
-        layer?.borderWidth = borderWidth
+        layer?.borderColor = gradientBorderColor.map {
+            resolvedAppKitCGColor($0, appearance: effectiveAppearance)
+        }
+        layer?.borderWidth = gradientBorderWidth
         needsLayout = true
     }
 }
@@ -422,6 +524,11 @@ final class AppKitSelectableRowButton: ActionButton {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applySelectionState(isSelectedState)
+    }
+
     func applySelectionState(_ isSelected: Bool) {
         isSelectedState = isSelected
         setGradientBackground(
@@ -490,6 +597,11 @@ final class AppKitPillButton: ActionButton {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applySelectionState(isSelectedState)
     }
 
     func applySelectionState(_ isSelected: Bool) {
@@ -561,6 +673,11 @@ final class AppKitSymbolControlButton: ActionButton {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateSymbolImage()
+    }
+
     private func updateSymbolImage() {
         iconView.image = appKitSymbolImage(
             named: symbolName,
@@ -579,11 +696,10 @@ class AppKitCardView: AppKitFlippedView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
 
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.8).cgColor
+        backgroundColorProvider = { NSColor.controlBackgroundColor.withAlphaComponent(0.8) }
         layer?.cornerRadius = AppKitUIConstants.CornerRadius.card
-        layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.35).cgColor
-        layer?.borderWidth = 1
+        borderColorProvider = { NSColor.separatorColor.withAlphaComponent(0.35) }
+        borderWidthValue = 1
 
         contentStack.orientation = .vertical
         contentStack.alignment = .leading
@@ -834,9 +950,8 @@ func makeAppKitSelectableRowButton(
 func makeAppKitDividerView(
     color: NSColor = NSColor.separatorColor.withAlphaComponent(0.4)
 ) -> NSView {
-    let divider = NSView()
-    divider.wantsLayer = true
-    divider.layer?.backgroundColor = color.cgColor
+    let divider = AppKitDynamicView()
+    divider.backgroundColorProvider = { color }
     divider.translatesAutoresizingMaskIntoConstraints = false
     divider.heightAnchor.constraint(equalToConstant: 1).isActive = true
     return divider

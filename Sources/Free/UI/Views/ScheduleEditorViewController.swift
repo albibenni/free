@@ -61,7 +61,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private let headerTitleLabel = NSTextField(labelWithString: "")
     private let closeButton = ActionButton()
-    private let divider = NSView()
+    private let divider = AppKitDynamicView()
     private let scrollContainer = VerticalStackScrollContainer(
         contentInsets: NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
     )
@@ -105,14 +105,13 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     override func loadView() {
-        view = AppKitFlippedView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        let rootView = AppKitFlippedView()
+        rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
+        view = rootView
 
         configureHeader()
 
-        divider.wantsLayer = true
-        divider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        divider.backgroundColorProvider = { NSColor.separatorColor }
         divider.translatesAutoresizingMaskIntoConstraints = false
 
         scrollContainer.translatesAutoresizingMaskIntoConstraints = false
@@ -242,7 +241,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private func makeImportedBadge() -> NSView {
         let badge = AppKitCardView()
-        badge.layer?.backgroundColor = NSColor.secondaryLabelColor.withAlphaComponent(0.12).cgColor
+        badge.backgroundColorProvider = { NSColor.secondaryLabelColor.withAlphaComponent(0.12) }
         badge.layer?.borderWidth = 0
 
         let icon = NSImageView()
@@ -518,7 +517,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private func makeTimePickerCard(title: String, date: Date, action: Selector) -> NSView {
         let card = AppKitCardView()
-        card.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.03).cgColor
+        card.backgroundColorProvider = { NSColor.labelColor.withAlphaComponent(0.03) }
 
         let label = makeAppKitSectionLabel(title)
 

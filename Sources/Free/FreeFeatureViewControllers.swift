@@ -81,6 +81,7 @@ final class FocusSectionViewController: NSViewController {
         }
 
         struct ContentSignature: Equatable {
+            let appearanceMode: AppearanceMode
             let accentColorIndex: Int
             let isBlocking: Bool
             let isStrictActive: Bool
@@ -92,6 +93,7 @@ final class FocusSectionViewController: NSViewController {
             let ruleSets: [RuleSetSnapshot]
         }
 
+        let appearanceMode: AppearanceMode
         let accentColorIndex: Int
         let isBlocking: Bool
         let isStrictActive: Bool
@@ -106,6 +108,7 @@ final class FocusSectionViewController: NSViewController {
 
         var contentSignature: ContentSignature {
             ContentSignature(
+                appearanceMode: appearanceMode,
                 accentColorIndex: accentColorIndex,
                 isBlocking: isBlocking,
                 isStrictActive: isStrictActive,
@@ -119,6 +122,7 @@ final class FocusSectionViewController: NSViewController {
         }
 
         init(appState: AppState) {
+            appearanceMode = appState.appearanceMode
             accentColorIndex = appState.accentColorIndex
             isBlocking = appState.isBlocking
             isStrictActive = appState.isStrictActive
@@ -134,22 +138,26 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private struct SchedulesWidgetSignature: Equatable {
+        let appearanceMode: AppearanceMode
         let accentColorIndex: Int
         let todaySchedules: [Schedule]
 
         init(appState: AppState) {
+            appearanceMode = appState.appearanceMode
             accentColorIndex = appState.accentColorIndex
             todaySchedules = appState.todaySchedules
         }
     }
 
     private struct AllowedWebsitesWidgetSignature: Equatable {
+        let appearanceMode: AppearanceMode
         let accentColorIndex: Int
         let activeRuleSetId: UUID?
         let isStrictActive: Bool
         let ruleSets: [RuleSet]
 
         init(appState: AppState) {
+            appearanceMode = appState.appearanceMode
             accentColorIndex = appState.accentColorIndex
             activeRuleSetId = appState.activeRuleSetId
             isStrictActive = appState.isStrictActive
@@ -164,19 +172,19 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private let scrollContainer = VerticalStackScrollContainer()
-    private let permissionWarningView = NSView()
+    private let permissionWarningView = AppKitDynamicView()
     private let permissionTitleLabel = NSTextField(labelWithString: "Accessibility Permission Needed")
     private let grantPermissionButton = NSButton(title: "Grant", target: nil, action: nil)
-    private let headerCardView = NSView()
+    private let headerCardView = AppKitDynamicView()
     private let headerIconView = NSImageView()
     private let headerTitleLabel = NSTextField(labelWithString: "Focus Mode")
     private let headerStatusLabel = NSTextField(labelWithString: "")
     private let unblockableWarningLabel = NSTextField(labelWithString: "Unblockable mode is active. You cannot disable Focus Mode.")
-    private let pauseDashboardView = NSView()
+    private let pauseDashboardView = AppKitDynamicView()
     private let pauseTitleLabel = NSTextField(labelWithString: "On Break")
     private let pauseTimeLabel = NSTextField(labelWithString: "")
     private let pauseEndButton = NSButton(title: "End Break & Focus", target: nil, action: nil)
-    private let overviewCardView = NSView()
+    private let overviewCardView = AppKitDynamicView()
     private let overviewTitleLabel = NSTextField(labelWithString: "Live Overview")
     private let overviewRowsStack = NSStackView()
     private let widgetContainer = NSView()
@@ -202,9 +210,9 @@ final class FocusSectionViewController: NSViewController {
     }
 
     override func loadView() {
-        view = NSView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        let rootView = AppKitDynamicView()
+        rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
+        view = rootView
 
         scrollContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scrollContainer)
@@ -349,8 +357,7 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private func configureHeaderCard() {
-        headerCardView.wantsLayer = true
-        headerCardView.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        headerCardView.backgroundColorProvider = { NSColor.controlBackgroundColor }
         headerCardView.layer?.cornerRadius = 12
 
         headerIconView.imageScaling = .scaleProportionallyUpOrDown
@@ -382,11 +389,10 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private func configurePauseDashboard() {
-        pauseDashboardView.wantsLayer = true
-        pauseDashboardView.layer?.backgroundColor = NSColor.systemOrange.withAlphaComponent(0.1).cgColor
+        pauseDashboardView.backgroundColorProvider = { NSColor.systemOrange.withAlphaComponent(0.1) }
         pauseDashboardView.layer?.cornerRadius = 12
-        pauseDashboardView.layer?.borderColor = NSColor.systemOrange.withAlphaComponent(0.3).cgColor
-        pauseDashboardView.layer?.borderWidth = 1
+        pauseDashboardView.borderColorProvider = { NSColor.systemOrange.withAlphaComponent(0.3) }
+        pauseDashboardView.borderWidthValue = 1
 
         pauseTitleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
         pauseTitleLabel.textColor = .secondaryLabelColor
@@ -417,8 +423,7 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private func configureOverview() {
-        overviewCardView.wantsLayer = true
-        overviewCardView.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        overviewCardView.backgroundColorProvider = { NSColor.controlBackgroundColor }
         overviewCardView.layer?.cornerRadius = 12
 
         overviewTitleLabel.font = .systemFont(ofSize: 18, weight: .semibold)
@@ -684,7 +689,7 @@ final class SettingsSectionViewController: NSViewController {
     private let scrollContainer = VerticalStackScrollContainer()
     private var cancellables: Set<AnyCancellable> = []
 
-    private let strictSection = NSStackView()
+    private let strictSection = AppKitCardStackView()
     private let strictToggle = AppKitToggleSwitch()
     private let strictDescriptionLabel = NSTextField(labelWithString: "When active, you cannot disable Focus Mode.")
     private let strictDisableButton = NSButton(title: "Disable...", target: nil, action: nil)
@@ -711,9 +716,9 @@ final class SettingsSectionViewController: NSViewController {
     }
 
     override func loadView() {
-        view = NSView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        let rootView = AppKitDynamicView()
+        rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
+        view = rootView
 
         scrollContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scrollContainer)
@@ -772,8 +777,6 @@ final class SettingsSectionViewController: NSViewController {
         strictSection.alignment = .leading
         strictSection.spacing = 10
         strictSection.edgeInsets = NSEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
-        strictSection.wantsLayer = true
-        strictSection.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         strictSection.layer?.cornerRadius = 12
 
         let toggleRow = makeToggleRow(
@@ -933,13 +936,11 @@ final class SettingsSectionViewController: NSViewController {
     }
 
     private func makeCardSection() -> NSStackView {
-        let section = NSStackView()
+        let section = AppKitCardStackView()
         section.orientation = .vertical
         section.alignment = .leading
         section.spacing = 12
         section.edgeInsets = NSEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
-        section.wantsLayer = true
-        section.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         section.layer?.cornerRadius = 12
         return section
     }
@@ -1130,12 +1131,14 @@ extension SettingsSectionViewController {
 
 final class RulesSheetViewController: NSViewController {
     private struct RenderSignature: Equatable {
+        let appearanceMode: AppearanceMode
         let ruleSets: [RuleSet]
         let currentPrimaryRuleSetId: UUID?
         let isBlocking: Bool
         let currentOpenUrls: [String]
 
         init(appState: AppState, isSuggestionsExpanded: Bool) {
+            appearanceMode = appState.appearanceMode
             ruleSets = appState.ruleSets
             currentPrimaryRuleSetId = appState.currentPrimaryRuleSetId
             isBlocking = appState.isBlocking
@@ -1148,10 +1151,10 @@ final class RulesSheetViewController: NSViewController {
     private var isSidebarVisible = true
     private var isSuggestionsExpanded = false
 
-    private let sidebarContainer = NSView()
+    private let sidebarContainer = AppKitDynamicView()
     private let sidebarHeader = NSStackView()
     private let sidebarScrollView = VerticalStackScrollContainer(contentInsets: NSEdgeInsets(top: 8, left: 8, bottom: 8, right: 8))
-    private let mainContainer = NSView()
+    private let mainContainer = AppKitDynamicView()
     private let mainHeader = NSStackView()
     private let mainTitleLabel = NSTextField(labelWithString: "")
     private let toggleSidebarButton = NSButton()
@@ -1174,11 +1177,12 @@ final class RulesSheetViewController: NSViewController {
     }
 
     override func loadView() {
-        view = NSView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        let rootView = AppKitDynamicView()
+        rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
+        view = rootView
 
         sidebarContainer.translatesAutoresizingMaskIntoConstraints = false
+        sidebarContainer.backgroundColorProvider = { NSColor.windowBackgroundColor }
         mainContainer.translatesAutoresizingMaskIntoConstraints = false
         let divider = makeDivider()
         divider.translatesAutoresizingMaskIntoConstraints = false
@@ -1230,9 +1234,6 @@ final class RulesSheetViewController: NSViewController {
     }
 
     private func configureSidebar() {
-        sidebarContainer.wantsLayer = true
-        sidebarContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-
         let title = NSTextField(labelWithString: "ALLOWED LISTS")
         title.font = .systemFont(ofSize: 11, weight: .bold)
         title.textColor = .secondaryLabelColor

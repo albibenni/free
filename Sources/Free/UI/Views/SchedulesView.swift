@@ -10,6 +10,7 @@ final class SchedulesSheetViewController: NSViewController {
             let endDate: Date
         }
 
+        let appearanceMode: AppearanceMode
         let accentColorIndex: Int
         let schedules: [Schedule]
         let weekStartsOnMonday: Bool
@@ -18,6 +19,7 @@ final class SchedulesSheetViewController: NSViewController {
         let externalEvents: [ExternalEventSnapshot]
 
         init(appState: AppState) {
+            appearanceMode = appState.appearanceMode
             accentColorIndex = appState.accentColorIndex
             schedules = appState.schedules
             weekStartsOnMonday = appState.weekStartsOnMonday
@@ -358,7 +360,7 @@ extension SchedulesSheetViewController {
         private let titleLabel = NSTextField(labelWithString: "")
         private let viewModeLabel = NSTextField(labelWithString: "View Mode")
         private let viewModeControl = NSSegmentedControl()
-        private let navigationGroupView = NSView()
+        private let navigationGroupView = AppKitDynamicView()
         private let previousWeekButton = IconInsetButton()
         private let todayButton = NSButton(title: "Today", target: nil, action: nil)
         private let nextWeekButton = IconInsetButton()
@@ -366,7 +368,7 @@ extension SchedulesSheetViewController {
         private let listScrollView = NSScrollView()
         private let listDocumentView = SchedulesListDocumentNSView()
         private let calendarView = WeeklyCalendarSurfaceNSView()
-        private let bottomDivider = NSView()
+        private let bottomDivider = AppKitDynamicView()
         private let addButton = NSButton(title: "Add Schedule", target: nil, action: nil)
         private var configuration: SchedulesAppKitConfiguration?
         private var editorSheetController: FreeSheetWindowController?
@@ -379,7 +381,10 @@ extension SchedulesSheetViewController {
             super.init(frame: frameRect)
 
             wantsLayer = true
-            layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+            layer?.backgroundColor = resolvedAppKitCGColor(
+                NSColor.windowBackgroundColor,
+                appearance: effectiveAppearance
+            )
             layer?.masksToBounds = true
 
             titleLabel.font = .systemFont(ofSize: 17, weight: .bold)
@@ -415,8 +420,7 @@ extension SchedulesSheetViewController {
             listScrollView.autohidesScrollers = true
             listScrollView.documentView = listDocumentView
 
-            bottomDivider.wantsLayer = true
-            bottomDivider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+            bottomDivider.backgroundColorProvider = { NSColor.separatorColor }
 
             addSubview(listScrollView)
             addSubview(calendarView)
@@ -440,6 +444,10 @@ extension SchedulesSheetViewController {
 
         func configure(with configuration: SchedulesAppKitConfiguration) {
             self.configuration = configuration
+            layer?.backgroundColor = resolvedAppKitCGColor(
+                NSColor.windowBackgroundColor,
+                appearance: effectiveAppearance
+            )
 
             applyAddButtonStyle(accentColor: configuration.accentColor)
             applyToolbarStyle(accentColor: configuration.accentColor)

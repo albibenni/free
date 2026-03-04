@@ -56,7 +56,7 @@ final class FreeSheetContainerViewController: NSViewController {
 
     private let titleLabel = NSTextField(labelWithString: "")
     private let doneButton = NSButton(title: "Done", target: nil, action: nil)
-    private let divider = NSView()
+    private let divider = AppKitDynamicView()
     private let contentContainer = NSView()
 
     init(title: String, contentController: NSViewController, onDone: @escaping () -> Void) {
@@ -72,9 +72,9 @@ final class FreeSheetContainerViewController: NSViewController {
     }
 
     override func loadView() {
-        view = NSView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        let rootView = AppKitDynamicView()
+        rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
+        view = rootView
 
         titleLabel.stringValue = titleText
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
@@ -83,8 +83,7 @@ final class FreeSheetContainerViewController: NSViewController {
         doneButton.bezelStyle = .rounded
         doneButton.controlSize = .regular
 
-        divider.wantsLayer = true
-        divider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        divider.backgroundColorProvider = { NSColor.separatorColor }
 
         [titleLabel, doneButton, divider, contentContainer].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
@@ -211,15 +210,15 @@ final class FreeMainViewController: NSViewController {
     private let allowedWebsitesSectionController: FocusSectionViewController
     private let settingsSectionController: SettingsSectionViewController
 
-    private let sidebarContainer = NSView()
+    private let sidebarContainer = AppKitDynamicView()
     private let sidebarStack = NSStackView()
     private let headerRow = NSStackView()
     private let menuLabel = NSTextField(labelWithString: "Menu")
     private let sidebarToggleButton = NSButton()
-    private let sidebarDivider = NSView()
+    private let sidebarDivider = AppKitDynamicView()
     private let sectionButtonsStack = NSStackView()
-    private let settingsDivider = NSView()
-    private let contentDivider = NSView()
+    private let settingsDivider = AppKitDynamicView()
+    private let contentDivider = AppKitDynamicView()
     private let contentContainer = NSView()
 
     private var sectionButtons: [MainContentSection: NSButton] = [:]
@@ -269,9 +268,9 @@ final class FreeMainViewController: NSViewController {
     }
 
     override func loadView() {
-        view = NSView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        let rootView = AppKitDynamicView()
+        rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
+        view = rootView
 
         configureSidebar()
         configureContent()
@@ -303,13 +302,11 @@ final class FreeMainViewController: NSViewController {
 
     private func configureSidebar() {
         sidebarContainer.translatesAutoresizingMaskIntoConstraints = false
-        sidebarContainer.wantsLayer = true
-        sidebarContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        sidebarContainer.backgroundColorProvider = { NSColor.windowBackgroundColor }
         view.addSubview(sidebarContainer)
 
         contentDivider.translatesAutoresizingMaskIntoConstraints = false
-        contentDivider.wantsLayer = true
-        contentDivider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        contentDivider.backgroundColorProvider = { NSColor.separatorColor }
         view.addSubview(contentDivider)
 
         sidebarStack.orientation = .vertical
@@ -330,8 +327,7 @@ final class FreeMainViewController: NSViewController {
         headerRow.addArrangedSubview(menuLabel)
         headerRow.addArrangedSubview(NSView())
 
-        sidebarDivider.wantsLayer = true
-        sidebarDivider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        sidebarDivider.backgroundColorProvider = { NSColor.separatorColor }
         sidebarDivider.translatesAutoresizingMaskIntoConstraints = false
         sidebarDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
         sidebarDivider.widthAnchor.constraint(equalToConstant: 156).isActive = true
@@ -346,8 +342,7 @@ final class FreeMainViewController: NSViewController {
             sectionButtonsStack.addArrangedSubview(button)
         }
 
-        settingsDivider.wantsLayer = true
-        settingsDivider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        settingsDivider.backgroundColorProvider = { NSColor.separatorColor }
         settingsDivider.translatesAutoresizingMaskIntoConstraints = false
         settingsDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
         settingsDivider.widthAnchor.constraint(equalToConstant: 156).isActive = true
