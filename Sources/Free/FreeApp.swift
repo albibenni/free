@@ -167,7 +167,15 @@ final class FreeApp {
     }
 
     func applyMacOSAppearance(_ mode: AppearanceMode) {
-        NSApp.appearance = Self.nsAppearance(for: mode)
+        let appearance = Self.nsAppearance(for: mode)
+        NSApp.appearance = appearance
+
+        for window in NSApp.windows {
+            window.appearance = appearance
+            window.contentView?.needsLayout = true
+            window.contentView?.needsDisplay = true
+            window.contentView?.subviews.forEach { $0.needsDisplay = true }
+        }
     }
 
     private func bindStateIfNeeded() {

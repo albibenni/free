@@ -9,6 +9,18 @@ func resolvedAppKitCGColor(_ color: NSColor, appearance: NSAppearance?) -> CGCol
     return resolvedColor
 }
 
+func resolvedAppKitCGColor(
+    _ colorProvider: @escaping () -> NSColor?,
+    appearance: NSAppearance?
+) -> CGColor? {
+    guard let appearance else { return colorProvider()?.cgColor }
+    var resolvedColor: CGColor?
+    appearance.performAsCurrentDrawingAppearance {
+        resolvedColor = colorProvider()?.cgColor
+    }
+    return resolvedColor
+}
+
 class AppKitDynamicView: NSView {
     var backgroundColorProvider: (() -> NSColor?)? {
         didSet { applyDynamicLayerColors() }
@@ -32,11 +44,11 @@ class AppKitDynamicView: NSView {
             return
         }
         wantsLayer = true
-        layer?.backgroundColor = backgroundColorProvider.map {
-            resolvedAppKitCGColor($0() ?? .clear, appearance: effectiveAppearance)
+        layer?.backgroundColor = backgroundColorProvider.flatMap {
+            resolvedAppKitCGColor($0, appearance: effectiveAppearance)
         }
-        layer?.borderColor = borderColorProvider.map {
-            resolvedAppKitCGColor($0() ?? .clear, appearance: effectiveAppearance)
+        layer?.borderColor = borderColorProvider.flatMap {
+            resolvedAppKitCGColor($0, appearance: effectiveAppearance)
         }
         layer?.borderWidth = borderWidthValue
     }
