@@ -66,6 +66,7 @@
 - [ ] can't close cmd+q the app
 - [ ] buttons don't follow color schema - matte instead of shaded
 - [x] app icons without padding - side bar
+- [ ] light mode not working - background is black with black text
 - [ ] color schema for the app
   - [ ] toggle buttons
   - [ ] focus highlight

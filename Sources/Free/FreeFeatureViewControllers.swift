@@ -579,8 +579,7 @@ final class SettingsSectionViewController: NSViewController {
     private let blockNewTabsSwitch = AppKitToggleSwitch()
     private let blockDeveloperHostsSwitch = AppKitToggleSwitch()
     private let blockLocalNetworkHostsSwitch = AppKitToggleSwitch()
-    private let appearanceControlContainer = NSStackView()
-    private var appearanceModeButtons: [ActionButton] = []
+    private var appearanceModeControl: AppKitSelectionButtonGroup<AppearanceMode>?
     private var accentButtons: [NSButton] = []
 
     init(appState: AppState) {
@@ -757,39 +756,25 @@ final class SettingsSectionViewController: NSViewController {
 
     private func makeAppearanceSection() -> NSView {
         let section = makeCardSection()
-        appearanceControlContainer.orientation = .horizontal
-        appearanceControlContainer.alignment = .centerY
-        appearanceControlContainer.spacing = 1
-        appearanceControlContainer.edgeInsets = NSEdgeInsets(top: 1, left: 1, bottom: 1, right: 1)
-        appearanceControlContainer.wantsLayer = true
-        appearanceControlContainer.layer?.cornerRadius = 7
-        appearanceControlContainer.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.08).cgColor
-
-        if appearanceModeButtons.isEmpty {
-            let modes: [(title: String, mode: AppearanceMode)] = [
-                ("System", .system),
-                ("Light", .light),
-                ("Dark", .dark),
-            ]
-            appearanceModeButtons = modes.map { item in
-                let button = ActionButton(title: item.title)
-                button.isBordered = false
-                button.layer?.cornerRadius = 6
-                button.translatesAutoresizingMaskIntoConstraints = false
-                let width = ceil((item.title as NSString).size(withAttributes: [
-                    .font: AppKitUIConstants.Typography.regular,
-                ]).width) + 20
-                button.widthAnchor.constraint(equalToConstant: width).isActive = true
-                button.heightAnchor.constraint(equalToConstant: 24).isActive = true
-                button.onAction = { [weak self] in
-                    self?.appState.appearanceMode = item.mode
-                }
-                appearanceControlContainer.addArrangedSubview(button)
-                return button
+        if appearanceModeControl == nil {
+            let control = AppKitSelectionButtonGroup(
+                options: [
+                    AppKitSelectionButtonOption(title: "System", value: AppearanceMode.system),
+                    AppKitSelectionButtonOption(title: "Light", value: AppearanceMode.light),
+                    AppKitSelectionButtonOption(title: "Dark", value: AppearanceMode.dark),
+                ],
+                selectedValue: appState.appearanceMode,
+                accentColor: FocusColor.nsColor(for: appState.accentColorIndex)
+            )
+            control.onSelection = { [weak self] mode in
+                self?.appState.appearanceMode = mode
             }
+            appearanceModeControl = control
         }
 
-        section.addArrangedSubview(appearanceControlContainer)
+        if let appearanceModeControl {
+            section.addArrangedSubview(appearanceModeControl)
+        }
 
         let colorsRow = NSStackView()
         colorsRow.orientation = .horizontal
@@ -887,6 +872,8 @@ final class SettingsSectionViewController: NSViewController {
     private func reloadSettings() {
         let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
         allToggleControls.forEach { $0.accentColor = accentColor }
+        appearanceModeControl?.accentColor = accentColor
+        appearanceModeControl?.selectedValue = appState.appearanceMode
 
         let strictLocked = appState.isBlocking && appState.isUnblockable
         strictToggle.isHidden = strictLocked
@@ -906,34 +893,6 @@ final class SettingsSectionViewController: NSViewController {
         blockNewTabsSwitch.state = appState.blockNewTabs ? .on : .off
         blockDeveloperHostsSwitch.state = appState.blockDeveloperHosts ? .on : .off
         blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .on : .off
-
-        let selectedAppearanceIndex: Int
-        switch appState.appearanceMode {
-        case .system:
-            selectedAppearanceIndex = 0
-        case .light:
-            selectedAppearanceIndex = 1
-        case .dark:
-            selectedAppearanceIndex = 2
-        }
-        for (index, button) in appearanceModeButtons.enumerated() {
-            let isSelected = index == selectedAppearanceIndex
-            button.setGradientBackground(
-                colors: isSelected
-                    ? [accentColor.withAlphaComponent(0.20), accentColor.withAlphaComponent(0.12)]
-                    : [NSColor.clear, NSColor.clear],
-                borderColor: nil,
-                borderWidth: 0
-            )
-            button.attributedTitle = NSAttributedString(
-                string: button.title,
-                attributes: [
-                    .font: AppKitUIConstants.Typography.regular,
-                    .foregroundColor: isSelected ? accentColor : NSColor.labelColor,
-                ]
-            )
-            button.contentTintColor = isSelected ? accentColor : .labelColor
-        }
 
         for (index, button) in accentButtons.enumerated() {
             button.layer?.borderWidth = appState.accentColorIndex == index ? 2 : 0
@@ -1031,20 +990,7 @@ extension SettingsSectionViewController {
     var shouldShowStrictDisableButtonForTesting: Bool { !strictDisableButton.isHidden }
     var calendarControlsLockedForTesting: Bool { !calendarIntegrationSwitch.isEnabled }
     var launchAtLoginEnabledForTesting: Bool { launchAtLoginSwitch.state == .on }
-    var appearanceSelectionColorForTesting: NSColor? {
-        let selectedIndex: Int
-        switch appState.appearanceMode {
-        case .system:
-            selectedIndex = 0
-        case .light:
-            selectedIndex = 1
-        case .dark:
-            selectedIndex = 2
-        }
-        return appearanceModeButtons.indices.contains(selectedIndex)
-            ? appearanceModeButtons[selectedIndex].contentTintColor
-            : nil
-    }
+    var appearanceSelectionColorForTesting: NSColor? { appearanceModeControl?.selectedButtonTintColor }
 
     func selectAccentColorForTesting(index: Int) {
         let button = NSButton()

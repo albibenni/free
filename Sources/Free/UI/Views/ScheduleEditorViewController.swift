@@ -52,7 +52,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     private var ruleSetId: UUID?
     private var modifyAllDays = true
     private var isRecurring = false
-    private var sessionTypeButtons: [ScheduleType: ActionButton] = [:]
+    private var sessionTypeControl: AppKitSelectionButtonGroup<ScheduleType>?
 
     private let headerTitleLabel = NSTextField(labelWithString: "")
     private let closeButton = ActionButton()
@@ -260,40 +260,20 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private func makeSessionTypeSection() -> NSView {
         let section = makeSectionContainer(title: "SESSION TYPE")
-        let row = NSStackView()
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 1
-        row.edgeInsets = NSEdgeInsets(top: 1, left: 1, bottom: 1, right: 1)
-        row.wantsLayer = true
-        row.layer?.cornerRadius = 7
-        row.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.08).cgColor
-
-        let options: [(title: String, type: ScheduleType)] = [
-            ("Focus", .focus),
-            ("Break", .unfocus),
-        ]
-        sessionTypeButtons = [:]
-        for option in options {
-            let button = ActionButton(title: option.title)
-            button.isBordered = false
-            button.layer?.cornerRadius = 6
-            button.translatesAutoresizingMaskIntoConstraints = false
-            let width = ceil((option.title as NSString).size(withAttributes: [
-                .font: AppKitUIConstants.Typography.regular,
-            ]).width) + 20
-            button.widthAnchor.constraint(equalToConstant: width).isActive = true
-            button.heightAnchor.constraint(equalToConstant: 24).isActive = true
-            button.onAction = { [weak self] in
-                self?.sessionType = option.type
-                self?.reloadForm()
-            }
-            applySessionTypeButtonStyle(button, type: option.type)
-            row.addArrangedSubview(button)
-            sessionTypeButtons[option.type] = button
+        let control = AppKitSelectionButtonGroup(
+            options: [
+                AppKitSelectionButtonOption(title: "Focus", value: ScheduleType.focus),
+                AppKitSelectionButtonOption(title: "Break", value: ScheduleType.unfocus),
+            ],
+            selectedValue: sessionType,
+            accentColor: accentColor
+        )
+        control.onSelection = { [weak self] type in
+            self?.sessionType = type
+            self?.reloadForm()
         }
-
-        section.contentStack.addArrangedSubview(row)
+        sessionTypeControl = control
+        section.contentStack.addArrangedSubview(control)
         return section
     }
 
@@ -325,8 +305,18 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     private func makeEditScopeSection() -> NSView {
         let section = makeSectionContainer(title: "EDIT SCOPE")
         let onlyDayTitle = "Only \(ScheduleEditorSupport.dayName(for: initialDay ?? 1))"
-        let control = NSSegmentedControl(labels: ["All Days", onlyDayTitle], trackingMode: .selectOne, target: self, action: #selector(changeEditScope(_:)))
-        control.selectedSegment = modifyAllDays ? 0 : 1
+        let control = AppKitSelectionButtonGroup(
+            options: [
+                AppKitSelectionButtonOption(title: "All Days", value: true),
+                AppKitSelectionButtonOption(title: onlyDayTitle, value: false),
+            ],
+            selectedValue: modifyAllDays,
+            accentColor: accentColor
+        )
+        control.onSelection = { [weak self] modifyAllDays in
+            self?.modifyAllDays = modifyAllDays
+            self?.reloadForm()
+        }
         section.contentStack.addArrangedSubview(control)
         return section
     }
@@ -521,28 +511,6 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         EditorSectionView(title: title)
     }
 
-    private func applySessionTypeButtonStyle(
-        _ button: ActionButton,
-        type: ScheduleType
-    ) {
-        let isSelected = sessionType == type
-        button.setGradientBackground(
-            colors: isSelected
-                ? [accentColor.withAlphaComponent(0.20), accentColor.withAlphaComponent(0.12)]
-                : [NSColor.clear, NSColor.clear],
-            borderColor: nil,
-            borderWidth: 0
-        )
-        button.attributedTitle = NSAttributedString(
-            string: button.title,
-            attributes: [
-                .font: AppKitUIConstants.Typography.regular,
-                .foregroundColor: isSelected ? accentColor : NSColor.labelColor,
-            ]
-        )
-        button.contentTintColor = isSelected ? accentColor : .labelColor
-    }
-
     private func makeTimePickerCard(title: String, date: Date, action: Selector) -> NSView {
         let card = AppKitCardView()
         card.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.03).cgColor
@@ -612,12 +580,6 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     @objc
-    private func changeEditScope(_ sender: NSSegmentedControl) {
-        modifyAllDays = sender.selectedSegment == 0
-        reloadForm()
-    }
-
-    @objc
     private func changeStartTime(_ sender: NSDatePicker) {
         startTime = sender.dateValue
     }
@@ -644,7 +606,7 @@ extension ScheduleEditorViewController {
     var headerTitleForTesting: String { headerTitleLabel.stringValue }
     var importedScheduleForTesting: Bool { importedSchedule }
     var canEditImportedDetailsForTesting: Bool { canEditImportedDetails }
-    var sessionTypeSelectionColorForTesting: NSColor? { sessionTypeButtons[sessionType]?.contentTintColor }
+    var sessionTypeSelectionColorForTesting: NSColor? { sessionTypeControl?.selectedButtonTintColor }
 
     func dismissForTesting() {
         onRequestClose()

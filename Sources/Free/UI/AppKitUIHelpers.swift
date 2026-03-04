@@ -4,6 +4,116 @@ class AppKitFlippedView: NSView {
     override var isFlipped: Bool { true }
 }
 
+struct AppKitSelectionButtonOption<Value: Hashable> {
+    let title: String
+    let value: Value
+}
+
+final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
+    private let stackView = NSStackView()
+    private let options: [AppKitSelectionButtonOption<Value>]
+    private var buttons: [Value: ActionButton] = [:]
+
+    var accentColor: NSColor {
+        didSet { updateButtonStyles() }
+    }
+
+    var selectedValue: Value {
+        didSet { updateButtonStyles() }
+    }
+
+    var onSelection: ((Value) -> Void)?
+
+    init(
+        options: [AppKitSelectionButtonOption<Value>],
+        selectedValue: Value,
+        accentColor: NSColor = .controlAccentColor
+    ) {
+        self.options = options
+        self.selectedValue = selectedValue
+        self.accentColor = accentColor
+        super.init(frame: .zero)
+
+        wantsLayer = true
+        layer?.cornerRadius = 7
+        layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.08).cgColor
+
+        stackView.orientation = .horizontal
+        stackView.alignment = .centerY
+        stackView.spacing = 1
+        stackView.edgeInsets = NSEdgeInsets(top: 1, left: 1, bottom: 1, right: 1)
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stackView)
+
+        NSLayoutConstraint.activate([
+            stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stackView.topAnchor.constraint(equalTo: topAnchor),
+            stackView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+
+        buildButtons()
+        setContentHuggingPriority(.required, for: .horizontal)
+        setContentCompressionResistancePriority(.required, for: .horizontal)
+        updateButtonStyles()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    var selectedButtonTintColor: NSColor? {
+        buttons[selectedValue]?.contentTintColor
+    }
+
+    private func buildButtons() {
+        for option in options {
+            let button = ActionButton(title: option.title)
+            button.isBordered = false
+            button.layer?.cornerRadius = 6
+            button.translatesAutoresizingMaskIntoConstraints = false
+            let width = ceil((option.title as NSString).size(withAttributes: [
+                .font: AppKitUIConstants.Typography.regular,
+            ]).width) + 20
+            button.widthAnchor.constraint(equalToConstant: width).isActive = true
+            button.heightAnchor.constraint(equalToConstant: 24).isActive = true
+            button.onAction = { [weak self] in
+                self?.handleSelection(option.value)
+            }
+            stackView.addArrangedSubview(button)
+            buttons[option.value] = button
+        }
+    }
+
+    private func handleSelection(_ value: Value) {
+        selectedValue = value
+        onSelection?(value)
+    }
+
+    private func updateButtonStyles() {
+        for option in options {
+            guard let button = buttons[option.value] else { continue }
+            let isSelected = option.value == selectedValue
+            button.setGradientBackground(
+                colors: isSelected
+                    ? [accentColor.withAlphaComponent(0.20), accentColor.withAlphaComponent(0.12)]
+                    : [NSColor.clear, NSColor.clear],
+                borderColor: nil,
+                borderWidth: 0
+            )
+            button.attributedTitle = NSAttributedString(
+                string: option.title,
+                attributes: [
+                    .font: AppKitUIConstants.Typography.regular,
+                    .foregroundColor: isSelected ? accentColor : NSColor.labelColor,
+                ]
+            )
+            button.contentTintColor = isSelected ? accentColor : .labelColor
+        }
+    }
+}
+
 final class AppKitToggleSwitch: NSControl {
     private let knobView = NSView()
     private var knobLeadingConstraint: NSLayoutConstraint?

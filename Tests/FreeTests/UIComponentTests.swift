@@ -113,4 +113,24 @@ struct UIComponentTests {
         #expect(rowButton.imageHugsTitle == false)
         #expect(rowButton.subviews.contains { $0 is NSImageView })
     }
+
+    @Test("Shared AppKit selection button group applies accent to selected value")
+    func sharedAppKitSelectionButtonGroup() {
+        let control = AppKitSelectionButtonGroup(
+            options: [
+                AppKitSelectionButtonOption(title: "Focus", value: "focus"),
+                AppKitSelectionButtonOption(title: "Break", value: "break"),
+            ],
+            selectedValue: "focus",
+            accentColor: .systemOrange
+        )
+
+        #expect(control.selectedButtonTintColor == .systemOrange)
+
+        control.selectedValue = "break"
+        #expect(control.selectedButtonTintColor == .systemOrange)
+
+        control.accentColor = .systemPurple
+        #expect(control.selectedButtonTintColor == .systemPurple)
+    }
 }
