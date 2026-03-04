@@ -130,12 +130,14 @@ struct AddScheduleViewTests {
     @MainActor
     func addScheduleViewRender() {
         let appState = isolatedAppState(name: "renderAndSave")
+        appState.accentColorIndex = 4
         appState.ruleSets = [RuleSet(name: "Allowlist", urls: ["example.com"])]
 
         let controller = makeController(appState: appState)
         let hosted = host(controller)
         #expect(hosted.fittingSize.width >= 0)
         #expect(controller.headerTitleForTesting == "New Schedule")
+        #expect(controller.sessionTypeSelectionColorForTesting == FocusColor.nsColor(for: 4))
     }
 
     @Test("ScheduleEditorViewController header renders close button and dismisses")
@@ -212,6 +214,7 @@ struct AddScheduleViewTests {
     @MainActor
     func addScheduleViewBreakPath() {
         let appState = isolatedAppState(name: "breakPath")
+        appState.accentColorIndex = 6
         let schedule = Schedule(
             name: "Break Session",
             days: [2],
@@ -232,6 +235,7 @@ struct AddScheduleViewTests {
         )
         let hosted = host(controller)
         #expect(hosted.fittingSize.height >= 0)
+        #expect(controller.sessionTypeSelectionColorForTesting == FocusColor.nsColor(for: 6))
     }
 
     @Test("ScheduleEditorViewController renders imported schedule editor with limited editable sections")

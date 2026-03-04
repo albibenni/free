@@ -52,6 +52,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     private var ruleSetId: UUID?
     private var modifyAllDays = true
     private var isRecurring = false
+    private var sessionTypeButtons: [ScheduleType: ActionButton] = [:]
 
     private let headerTitleLabel = NSTextField(labelWithString: "")
     private let closeButton = ActionButton()
@@ -259,9 +260,40 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private func makeSessionTypeSection() -> NSView {
         let section = makeSectionContainer(title: "SESSION TYPE")
-        let control = NSSegmentedControl(labels: ["Focus", "Break"], trackingMode: .selectOne, target: self, action: #selector(changeSessionType(_:)))
-        control.selectedSegment = sessionType == .focus ? 0 : 1
-        section.contentStack.addArrangedSubview(control)
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 1
+        row.edgeInsets = NSEdgeInsets(top: 1, left: 1, bottom: 1, right: 1)
+        row.wantsLayer = true
+        row.layer?.cornerRadius = 7
+        row.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.08).cgColor
+
+        let options: [(title: String, type: ScheduleType)] = [
+            ("Focus", .focus),
+            ("Break", .unfocus),
+        ]
+        sessionTypeButtons = [:]
+        for option in options {
+            let button = ActionButton(title: option.title)
+            button.isBordered = false
+            button.layer?.cornerRadius = 6
+            button.translatesAutoresizingMaskIntoConstraints = false
+            let width = ceil((option.title as NSString).size(withAttributes: [
+                .font: AppKitUIConstants.Typography.regular,
+            ]).width) + 20
+            button.widthAnchor.constraint(equalToConstant: width).isActive = true
+            button.heightAnchor.constraint(equalToConstant: 24).isActive = true
+            button.onAction = { [weak self] in
+                self?.sessionType = option.type
+                self?.reloadForm()
+            }
+            applySessionTypeButtonStyle(button, type: option.type)
+            row.addArrangedSubview(button)
+            sessionTypeButtons[option.type] = button
+        }
+
+        section.contentStack.addArrangedSubview(row)
         return section
     }
 
@@ -489,6 +521,28 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         EditorSectionView(title: title)
     }
 
+    private func applySessionTypeButtonStyle(
+        _ button: ActionButton,
+        type: ScheduleType
+    ) {
+        let isSelected = sessionType == type
+        button.setGradientBackground(
+            colors: isSelected
+                ? [accentColor.withAlphaComponent(0.20), accentColor.withAlphaComponent(0.12)]
+                : [NSColor.clear, NSColor.clear],
+            borderColor: nil,
+            borderWidth: 0
+        )
+        button.attributedTitle = NSAttributedString(
+            string: button.title,
+            attributes: [
+                .font: AppKitUIConstants.Typography.regular,
+                .foregroundColor: isSelected ? accentColor : NSColor.labelColor,
+            ]
+        )
+        button.contentTintColor = isSelected ? accentColor : .labelColor
+    }
+
     private func makeTimePickerCard(title: String, date: Date, action: Selector) -> NSView {
         let card = AppKitCardView()
         card.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.03).cgColor
@@ -549,12 +603,6 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     @objc
-    private func changeSessionType(_ sender: NSSegmentedControl) {
-        sessionType = sender.selectedSegment == 0 ? .focus : .unfocus
-        reloadForm()
-    }
-
-    @objc
     private func changeRuleSet(_ sender: NSPopUpButton) {
         if sender.indexOfSelectedItem == 0 {
             ruleSetId = nil
@@ -596,6 +644,7 @@ extension ScheduleEditorViewController {
     var headerTitleForTesting: String { headerTitleLabel.stringValue }
     var importedScheduleForTesting: Bool { importedSchedule }
     var canEditImportedDetailsForTesting: Bool { canEditImportedDetails }
+    var sessionTypeSelectionColorForTesting: NSColor? { sessionTypeButtons[sessionType]?.contentTintColor }
 
     func dismissForTesting() {
         onRequestClose()
