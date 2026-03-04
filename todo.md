@@ -72,15 +72,15 @@
 ### Regression appkit
 
 - [x] app state change not highlighting correctly and lag
-  - [ ] state change should follow color schema
-- [ ] can't close cmd+q the app
-- [ ] buttons don't follow color schema - matte instead of shaded
+  - [x] state change should follow color schema
+- [x] can't close cmd+q the app
+- [x] buttons don't follow color schema - matte instead of shaded
 - [x] app icons without padding - side bar
 - [ ] light mode not working - background is black with black text
-- [ ] color schema for the app
-  - [ ] toggle buttons
-  - [ ] focus highlight
-- [ ] calendar view redraw
+- [x] color schema for the app
+  - [x] toggle buttons
+  - [x] focus highlight
+- [x] calendar view redraw
 
 - [ ] redo tests
   - [ ] coverage
