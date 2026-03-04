@@ -80,6 +80,11 @@ final class FreeSheetContainerViewController: NSViewController {
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         doneButton.target = self
         doneButton.action = #selector(handleDone)
+        doneButton.translatesAutoresizingMaskIntoConstraints = false
+        doneButton.widthAnchor.constraint(equalToConstant: 76).isActive = true
+        doneButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        doneButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+        doneButton.setContentHuggingPriority(.required, for: .horizontal)
         doneButton.bezelStyle = .rounded
         doneButton.controlSize = .regular
 
@@ -267,6 +272,11 @@ final class AllowedWebsitesFloatingEditorViewController:
 
         addButton.target = self
         addButton.action = #selector(handleAddRule)
+        addButton.translatesAutoresizingMaskIntoConstraints = false
+        addButton.widthAnchor.constraint(equalToConstant: 72).isActive = true
+        addButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        addButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+        addButton.setContentHuggingPriority(.required, for: .horizontal)
 
         let addRow = NSStackView(views: [urlField, addButton])
         addRow.orientation = .horizontal
@@ -325,6 +335,11 @@ final class AllowedWebsitesFloatingEditorViewController:
 
         removeButton.target = self
         removeButton.action = #selector(handleRemoveSelected)
+        removeButton.translatesAutoresizingMaskIntoConstraints = false
+        removeButton.widthAnchor.constraint(equalToConstant: 152).isActive = true
+        removeButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        removeButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+        removeButton.setContentHuggingPriority(.required, for: .horizontal)
 
         let footerRow = NSStackView(views: [NSView(), removeButton])
         footerRow.orientation = .horizontal
@@ -504,6 +519,7 @@ final class AllowedWebsitesFloatingEditorViewController:
     private func styleActionButton(_ button: ActionButton, title: String, color: NSColor) {
         button.isBordered = false
         button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
+        button.focusRingType = .none
         button.setGradientBackground(
             colors: [
                 color.withAlphaComponent(0.14),
@@ -514,7 +530,7 @@ final class AllowedWebsitesFloatingEditorViewController:
         button.attributedTitle = NSAttributedString(
             string: title,
             attributes: [
-                .font: AppKitUIConstants.Typography.regular,
+                .font: AppKitUIConstants.Typography.buttonLabel,
                 .foregroundColor: color,
             ]
         )
@@ -524,6 +540,7 @@ final class AllowedWebsitesFloatingEditorViewController:
     private func styleNeutralButton(_ button: ActionButton, title: String) {
         button.isBordered = false
         button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
+        button.focusRingType = .none
         button.setGradientBackground(
             colors: [
                 NSColor.labelColor.withAlphaComponent(0.10),
