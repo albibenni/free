@@ -351,6 +351,34 @@ struct FocusViewTests {
         #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
     }
 
+    @Test("Focus section schedules widget stays mounted for unrelated app-state changes")
+    @MainActor
+    func focusViewKeepsSchedulesWidgetForUnrelatedStateChanges() {
+        let appState = isolatedAppState(name: "schedulesUnrelatedStateChange")
+        appState.isTrusted = true
+        appState.schedules = [
+            Schedule(
+                name: "Study",
+                days: [Calendar.current.component(.weekday, from: Date())],
+                startTime: Date(),
+                endTime: Date().addingTimeInterval(3600),
+                colorIndex: 1,
+                type: .focus
+            )
+        ]
+
+        let controller = makeController(appState: appState, section: .schedules)
+        _ = host(controller)
+        let initialWidgetIdentifier = controller.widgetViewIdentifierForTesting
+
+        #expect(initialWidgetIdentifier != nil)
+
+        appState.currentOpenUrls = ["https://example.com"]
+        controller.simulateObservedAppStateChangeForTesting()
+
+        #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
+    }
+
     @Test("Focus section allowed-websites mode renders AppKit widget without overview")
     @MainActor
     func focusViewAllowedWebsitesSectionRender() {

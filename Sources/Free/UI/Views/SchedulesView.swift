@@ -2,6 +2,38 @@ import AppKit
 import Combine
 
 final class SchedulesSheetViewController: NSViewController {
+    private struct RenderSignature: Equatable {
+        struct ExternalEventSnapshot: Equatable {
+            let id: String
+            let title: String
+            let startDate: Date
+            let endDate: Date
+        }
+
+        let accentColorIndex: Int
+        let schedules: [Schedule]
+        let weekStartsOnMonday: Bool
+        let calendarIntegrationEnabled: Bool
+        let calendarImportsBlockTime: Bool
+        let externalEvents: [ExternalEventSnapshot]
+
+        init(appState: AppState) {
+            accentColorIndex = appState.accentColorIndex
+            schedules = appState.schedules
+            weekStartsOnMonday = appState.weekStartsOnMonday
+            calendarIntegrationEnabled = appState.calendarIntegrationEnabled
+            calendarImportsBlockTime = appState.calendarImportsBlockTime
+            externalEvents = appState.calendarProvider.events.map {
+                ExternalEventSnapshot(
+                    id: $0.id,
+                    title: $0.title,
+                    startDate: $0.startDate,
+                    endDate: $0.endDate
+                )
+            }
+        }
+    }
+
     private let appState: AppState
     private let onDismiss: () -> Void
     private let schedulesContainerView = SchedulesContainerNSView()
@@ -13,6 +45,8 @@ final class SchedulesSheetViewController: NSViewController {
     private var viewMode: Int
     private var editorContext: ScheduleEditorContext?
     private var weekOffset: Int
+    private var renderSignature: RenderSignature?
+    private var refreshGeneration = 0
     private var cancellables: Set<AnyCancellable> = []
 
     init(
@@ -36,7 +70,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     override func loadView() {
-        schedulesContainerView.configure(with: makeAppKitConfiguration())
+        applyConfiguration()
         view = schedulesContainerView
     }
 
@@ -46,9 +80,15 @@ final class SchedulesSheetViewController: NSViewController {
         appState.objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.refreshConfiguration()
+                self?.handleObservedAppStateChange()
             }
             .store(in: &cancellables)
+    }
+
+    private func handleObservedAppStateChange() {
+        let nextSignature = RenderSignature(appState: appState)
+        guard renderSignature != nextSignature else { return }
+        refreshConfiguration()
     }
 
     private var dayOrder: [Int] {
@@ -72,6 +112,12 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func refreshConfiguration() {
+        applyConfiguration()
+    }
+
+    private func applyConfiguration() {
+        renderSignature = RenderSignature(appState: appState)
+        refreshGeneration += 1
         schedulesContainerView.configure(with: makeAppKitConfiguration())
     }
 
@@ -283,6 +329,8 @@ extension SchedulesSheetViewController {
         editorContext = ScheduleEditorContext(schedule: schedule)
         refreshConfiguration()
     }
+
+    var refreshGenerationForTesting: Int { refreshGeneration }
 }
 
     private struct SchedulesAppKitConfiguration {

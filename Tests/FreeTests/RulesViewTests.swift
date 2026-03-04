@@ -157,6 +157,24 @@ struct RulesViewTests {
         #expect(texts.contains("No open tabs detected."))
     }
 
+    @Test("Rules sheet controller skips reload for unrelated state changes while suggestions are collapsed")
+    @MainActor
+    func rulesSheetControllerSkipsReloadForUnrelatedStateChanges() {
+        let appState = isolatedAppState(name: "unrelatedReload")
+        let set = RuleSet(name: "Set", urls: ["a.com"])
+        appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
+        let initialReloadGeneration = controller.reloadGenerationForTesting
+
+        appState.pomodoroFocusDuration = 50
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+
+        #expect(controller.reloadGenerationForTesting == initialReloadGeneration)
+    }
+
     @Test("Rules sheet controller renders non-empty suggestions and no-selected-list fallback")
     @MainActor
     func rulesSheetControllerRenderSuggestionsAndFallback() {

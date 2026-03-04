@@ -133,6 +133,30 @@ final class FocusSectionViewController: NSViewController {
         }
     }
 
+    private struct SchedulesWidgetSignature: Equatable {
+        let accentColorIndex: Int
+        let todaySchedules: [Schedule]
+
+        init(appState: AppState) {
+            accentColorIndex = appState.accentColorIndex
+            todaySchedules = appState.todaySchedules
+        }
+    }
+
+    private struct AllowedWebsitesWidgetSignature: Equatable {
+        let accentColorIndex: Int
+        let activeRuleSetId: UUID?
+        let isStrictActive: Bool
+        let ruleSets: [RuleSet]
+
+        init(appState: AppState) {
+            accentColorIndex = appState.accentColorIndex
+            activeRuleSetId = appState.activeRuleSetId
+            isStrictActive = appState.isStrictActive
+            ruleSets = appState.ruleSets
+        }
+    }
+
     private let appState: AppState
     private let shellState: FreeShellState
     var section: FocusContentSection {
@@ -162,6 +186,8 @@ final class FocusSectionViewController: NSViewController {
     private var pomodoroWidgetInteractionDepth = 0
     private var needsReloadAfterPomodoroInteraction = false
     private var pomodoroWidgetSignature: PomodoroWidgetSignature?
+    private var schedulesWidgetSignature: SchedulesWidgetSignature?
+    private var allowedWebsitesWidgetSignature: AllowedWebsitesWidgetSignature?
 
     init(appState: AppState, shellState: FreeShellState, section: FocusContentSection) {
         self.appState = appState
@@ -227,6 +253,34 @@ final class FocusSectionViewController: NSViewController {
         reloadContent()
     }
 
+    private func applySharedState() {
+        permissionWarningView.isHidden = appState.isTrusted
+
+        let headerIconName = "leaf.fill"
+        headerIconView.image = NSImage(
+            systemSymbolName: headerIconName,
+            accessibilityDescription: nil
+        )
+        headerIconView.contentTintColor = FocusSectionSupport.focusIconColor(
+            isBlocking: appState.isBlocking,
+            isPaused: appState.isPaused
+        )
+        headerStatusLabel.stringValue = headerStatusText()
+
+        unblockableWarningLabel.font = .systemFont(ofSize: 12)
+        unblockableWarningLabel.textColor = .systemOrange
+        unblockableWarningLabel.isHidden = !FocusSectionSupport.shouldShowUnblockableWarning(
+            isBlocking: appState.isBlocking,
+            isUnblockable: appState.isUnblockable
+        )
+
+        pauseDashboardView.isHidden = !FocusSectionSupport.shouldShowPauseDashboard(
+            isBlocking: appState.isBlocking,
+            isPaused: appState.isPaused
+        )
+        pauseTimeLabel.stringValue = appState.timeString(time: appState.pauseRemaining)
+    }
+
     private func handlePomodoroSectionStateChange() -> Bool {
         guard section == .pomodoro,
               let pomodoroWidgetView = widgetView as? FocusPomodoroWidgetView,
@@ -237,21 +291,7 @@ final class FocusSectionViewController: NSViewController {
 
         let nextSignature = PomodoroWidgetSignature(appState: appState)
         pomodoroWidgetSignature = nextSignature
-        permissionWarningView.isHidden = appState.isTrusted
-        headerIconView.contentTintColor = FocusSectionSupport.focusIconColor(
-            isBlocking: appState.isBlocking,
-            isPaused: appState.isPaused
-        )
-        headerStatusLabel.stringValue = headerStatusText()
-        unblockableWarningLabel.isHidden = !FocusSectionSupport.shouldShowUnblockableWarning(
-            isBlocking: appState.isBlocking,
-            isUnblockable: appState.isUnblockable
-        )
-        pauseDashboardView.isHidden = !FocusSectionSupport.shouldShowPauseDashboard(
-            isBlocking: appState.isBlocking,
-            isPaused: appState.isPaused
-        )
-        pauseTimeLabel.stringValue = appState.timeString(time: appState.pauseRemaining)
+        applySharedState()
         pomodoroWidgetView.updateRuleSetSelection()
         pomodoroWidgetView.updateForStateChange()
         return true
@@ -408,34 +448,12 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private func reloadContent() {
-        permissionWarningView.isHidden = appState.isTrusted
-
-        let headerIconName = "leaf.fill"
-        headerIconView.image = NSImage(
-            systemSymbolName: headerIconName,
-            accessibilityDescription: nil
-        )
-        headerIconView.contentTintColor = FocusSectionSupport.focusIconColor(
-            isBlocking: appState.isBlocking,
-            isPaused: appState.isPaused
-        )
-        headerStatusLabel.stringValue = headerStatusText()
-
-        unblockableWarningLabel.font = .systemFont(ofSize: 12)
-        unblockableWarningLabel.textColor = .systemOrange
-        unblockableWarningLabel.isHidden = !FocusSectionSupport.shouldShowUnblockableWarning(
-            isBlocking: appState.isBlocking,
-            isUnblockable: appState.isUnblockable
-        )
-
-        pauseDashboardView.isHidden = !FocusSectionSupport.shouldShowPauseDashboard(
-            isBlocking: appState.isBlocking,
-            isPaused: appState.isPaused
-        )
-        pauseTimeLabel.stringValue = appState.timeString(time: appState.pauseRemaining)
+        applySharedState()
 
         overviewCardView.isHidden = section != .all
-        reloadOverviewRows()
+        if section == .all {
+            reloadOverviewRows()
+        }
         reloadWidget()
         scrollContainer.needsLayout = true
     }
@@ -556,6 +574,30 @@ final class FocusSectionViewController: NSViewController {
             pomodoroWidgetSignature = nil
         }
 
+        if section == .schedules,
+           widgetView is FocusSchedulesWidgetView
+        {
+            let nextSignature = SchedulesWidgetSignature(appState: appState)
+            if schedulesWidgetSignature == nextSignature {
+                return
+            }
+            schedulesWidgetSignature = nextSignature
+        } else if section != .schedules {
+            schedulesWidgetSignature = nil
+        }
+
+        if section == .allowedWebsites,
+           widgetView is FocusAllowedWebsitesWidgetView
+        {
+            let nextSignature = AllowedWebsitesWidgetSignature(appState: appState)
+            if allowedWebsitesWidgetSignature == nextSignature {
+                return
+            }
+            allowedWebsitesWidgetSignature = nextSignature
+        } else if section != .allowedWebsites {
+            allowedWebsitesWidgetSignature = nil
+        }
+
         widgetView?.removeFromSuperview()
         widgetView = nil
         widgetContainer.isHidden = section == .all
@@ -574,11 +616,15 @@ final class FocusSectionViewController: NSViewController {
                 }
             )
         case .schedules:
+            schedulesWidgetSignature = SchedulesWidgetSignature(appState: appState)
             nextWidgetView = FocusSchedulesWidgetView(appState: appState, shellState: shellState)
         case .allowedWebsites:
+            allowedWebsitesWidgetSignature = AllowedWebsitesWidgetSignature(appState: appState)
             nextWidgetView = FocusAllowedWebsitesWidgetView(appState: appState, shellState: shellState)
         case .all:
             pomodoroWidgetSignature = nil
+            schedulesWidgetSignature = nil
+            allowedWebsitesWidgetSignature = nil
             return
         }
 
@@ -1083,6 +1129,20 @@ extension SettingsSectionViewController {
 }
 
 final class RulesSheetViewController: NSViewController {
+    private struct RenderSignature: Equatable {
+        let ruleSets: [RuleSet]
+        let currentPrimaryRuleSetId: UUID?
+        let isBlocking: Bool
+        let currentOpenUrls: [String]
+
+        init(appState: AppState, isSuggestionsExpanded: Bool) {
+            ruleSets = appState.ruleSets
+            currentPrimaryRuleSetId = appState.currentPrimaryRuleSetId
+            isBlocking = appState.isBlocking
+            currentOpenUrls = isSuggestionsExpanded ? appState.currentOpenUrls : []
+        }
+    }
+
     private let appState: AppState
     private var selectedSetId: UUID?
     private var isSidebarVisible = true
@@ -1098,6 +1158,8 @@ final class RulesSheetViewController: NSViewController {
     private let contentScrollView = VerticalStackScrollContainer()
     private let addRuleField = NSTextField(string: "")
     private let addRuleButton = NSButton()
+    private var renderSignature: RenderSignature?
+    private var reloadGeneration = 0
     private var cancellables: Set<AnyCancellable> = []
 
     init(appState: AppState) {
@@ -1150,11 +1212,20 @@ final class RulesSheetViewController: NSViewController {
         appState.objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.reloadContent()
+                self?.handleObservedAppStateChange()
             }
             .store(in: &cancellables)
 
         appState.refreshCurrentOpenUrls()
+        reloadContent()
+    }
+
+    private func handleObservedAppStateChange() {
+        let nextSignature = RenderSignature(
+            appState: appState,
+            isSuggestionsExpanded: isSuggestionsExpanded
+        )
+        guard renderSignature != nextSignature else { return }
         reloadContent()
     }
 
@@ -1270,6 +1341,12 @@ final class RulesSheetViewController: NSViewController {
     }
 
     private func reloadContent() {
+        renderSignature = RenderSignature(
+            appState: appState,
+            isSuggestionsExpanded: isSuggestionsExpanded
+        )
+        reloadGeneration += 1
+
         if selectedSetId == nil || selectedSet == nil {
             selectedSetId = appState.currentPrimaryRuleSetId ?? appState.ruleSets.first?.id
         }
@@ -1518,6 +1595,7 @@ extension RulesSheetViewController {
     var selectedSetIdForTesting: UUID? { selectedSetId }
     var isSidebarVisibleForTesting: Bool { isSidebarVisible }
     var isSuggestionsExpandedForTesting: Bool { isSuggestionsExpanded }
+    var reloadGenerationForTesting: Int { reloadGeneration }
 
     func createSetForTesting(name: String) {
         let newSet = RuleSet(name: name, urls: [])
