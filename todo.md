@@ -2,6 +2,8 @@
 
 - [x] personalize accent color
 - [x] caldendar schedule can personalize color
+- [] light mode:
+  - [ ] background color not white
 
 ### TOPBAR
 
@@ -43,12 +45,12 @@
 - [ ] allow modification on calendar imports
   - [x] it shouldn't allow delete
   - [x] it should be allow edit only of allowed list and break/focus
-  - [ ] multiple scheduled at the same time
-    - [ ] UI
-    - [ ] logic
-      - [ ] who manage the list
-      - [ ] who manage break or focus
-      - [ ] if the other is longer keep it in memory after end
+  - [x] multiple scheduled at the same time
+    - [x] UI
+    - [x] logic
+      - [x] who manage the list
+      - [x] who manage break or focus
+      - [x] if the other is longer keep it in memory after end
 
 - [ ] rule for calendar imports - if title contain `*study*` or `*work*`
   - [ ] allow personalization on this rule with settings
@@ -76,7 +78,7 @@
 - [x] can't close cmd+q the app
 - [x] buttons don't follow color schema - matte instead of shaded
 - [x] app icons without padding - side bar
-- [ ] light mode not working - background is black with black text
+- [x] light mode not working - background is black with black text
 - [x] color schema for the app
   - [x] toggle buttons
   - [x] focus highlight
