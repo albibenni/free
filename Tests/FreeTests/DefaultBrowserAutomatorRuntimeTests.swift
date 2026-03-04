@@ -47,7 +47,8 @@ struct DefaultBrowserAutomatorRuntimeTests {
         state.permissionResult = true
         state.scriptResult = "script-result"
         state.arcResult = "arc-url"
-        state.runningApps = [NSRunningApplication.current]
+        let currentApp = NSRunningApplication.current
+        state.runningApps = [currentApp]
 
         let runtime = DefaultBrowserAutomatorRuntime.live(bridge: state.makeBridge())
 
@@ -62,9 +63,9 @@ struct DefaultBrowserAutomatorRuntimeTests {
         #expect(state.scriptSources == ["return \"ok\""])
         #expect(state.runningAppsCalls == 1)
         #expect(mapped.count == 1)
-        #expect(mapped[0].bundleIdentifier == NSRunningApplication.current.bundleIdentifier)
-        #expect(mapped[0].localizedName == NSRunningApplication.current.localizedName)
-        #expect(mapped[0].processIdentifier == NSRunningApplication.current.processIdentifier)
+        #expect(mapped[0].bundleIdentifier == currentApp.bundleIdentifier)
+        #expect(mapped[0].localizedName == currentApp.localizedName)
+        #expect(mapped[0].processIdentifier == currentApp.processIdentifier)
         #expect(arc == "arc-url")
         #expect(state.arcPIDs == [987])
     }

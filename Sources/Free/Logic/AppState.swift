@@ -1,17 +1,10 @@
 import Combine
-import SwiftUI
+import Foundation
 
 enum AppearanceMode: String, Codable, CaseIterable {
     case system = "System"
     case light = "Light"
     case dark = "Dark"
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system: return nil
-        case .light: return .light
-        case .dark: return .dark
-        }
-    }
 }
 
 class AppState: ObservableObject {
@@ -133,10 +126,23 @@ class AppState: ObservableObject {
         if isBlocking && !wasStartedBySchedule {
             return normalizedRuleSetId(activeRuleSetId)
         }
-        return activeScheduleRuleSetId() ?? ruleSets.first?.id
+        let activeScheduleRuleSetIds = activeScheduleRuleSetIds()
+        if activeScheduleRuleSetIds.count == 1 {
+            return activeScheduleRuleSetIds[0]
+        }
+        if activeScheduleRuleSetIds.count > 1 {
+            return nil
+        }
+        return ruleSets.first?.id
     }
 
     var currentPrimaryRuleSetName: String {
+        if pomodoroStatus != .focus && (!isBlocking || wasStartedBySchedule) {
+            let activeScheduleRuleSetIds = activeScheduleRuleSetIds()
+            if activeScheduleRuleSetIds.count > 1 {
+                return "Multiple Lists"
+            }
+        }
         guard let id = currentPrimaryRuleSetId else { return "No List" }
         return ruleSets.first { $0.id == id }?.name ?? "Unknown List"
     }
@@ -344,6 +350,52 @@ class AppState: ObservableObject {
         }
     }
 
+    func updateScheduleOccurrence(
+        id: UUID,
+        originalDay: Int,
+        targetDay: Int,
+        targetDate: Date?,
+        start: Date,
+        end: Date
+    ) {
+        guard let index = schedules.firstIndex(where: { $0.id == id }) else { return }
+        let schedule = schedules[index]
+        guard schedule.importedCalendarEventKey == nil else { return }
+
+        if schedule.date != nil {
+            schedules[index].date = targetDate
+            schedules[index].days = [targetDay]
+            schedules[index].startTime = start
+            schedules[index].endTime = end
+            return
+        }
+
+        if schedule.days.count == 1, schedule.days.contains(originalDay) {
+            schedules[index].days = [targetDay]
+            schedules[index].startTime = start
+            schedules[index].endTime = end
+            return
+        }
+
+        schedules[index].days.remove(originalDay)
+        if schedules[index].days.isEmpty {
+            schedules.remove(at: index)
+        }
+
+        schedules.append(
+            Schedule(
+                name: schedule.name,
+                days: [targetDay],
+                startTime: start,
+                endTime: end,
+                isEnabled: schedule.isEnabled,
+                colorIndex: schedule.colorIndex,
+                type: schedule.type,
+                ruleSetId: schedule.ruleSetId
+            )
+        )
+    }
+
     func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
         if let i = schedules.firstIndex(where: { $0.id == id }) {
             if !modifyAllDays, let day = initialDay {
@@ -449,14 +501,15 @@ class AppState: ObservableObject {
             return true
         }
 
-        if cleaned != schedules {
-            isSynchronizingImportedSchedules = true
-            schedules = cleaned
-            isSynchronizingImportedSchedules = false
-        }
+        let rebuilt = mergedSchedulesWithImportedCalendarEvents(
+            baseSchedules: cleaned,
+            preservedImportedByKey: preservedImportedByKey
+        )
+        guard rebuilt != schedules else { return }
 
-        synchronizeImportedCalendarSchedulesIfNeeded(preservedImportedByKey: preservedImportedByKey)
-        checkSchedules()
+        isSynchronizingImportedSchedules = true
+        schedules = rebuilt
+        isSynchronizingImportedSchedules = false
     }
 
     func prepareLaunchAtLoginPromptIfNeeded() -> Bool {
@@ -543,10 +596,55 @@ class AppState: ObservableObject {
         return ruleSets.first(where: { $0.id == normalizedId })
     }
 
-    private func activeScheduleRuleSetId() -> UUID? {
-        schedules
-            .first(where: { $0.isActive() && $0.type == .focus && $0.ruleSetId != nil })?
-            .ruleSetId
+    private func activeScheduleRuleSetIds() -> [UUID] {
+        var orderedIds: [UUID] = []
+        for schedule in schedules {
+            guard schedule.isActive(), schedule.type == .focus else { continue }
+            guard let ruleSetId = schedule.ruleSetId,
+                !orderedIds.contains(ruleSetId)
+            else { continue }
+            orderedIds.append(ruleSetId)
+        }
+        return orderedIds
+    }
+
+    private func mergedSchedulesWithImportedCalendarEvents(
+        baseSchedules: [Schedule],
+        preservedImportedByKey: [String: Schedule]
+    ) -> [Schedule] {
+        let shouldImportCalendarEvents = calendarIntegrationEnabled && calendarImportsBlockTime
+        guard shouldImportCalendarEvents else { return baseSchedules }
+
+        let existingImported = schedules.filter { $0.importedCalendarEventKey != nil }
+        let existingByKey: [String: Schedule] = Dictionary(
+            uniqueKeysWithValues: existingImported.compactMap { schedule in
+                guard let key = schedule.importedCalendarEventKey else { return nil }
+                return (key, schedule)
+            }
+        )
+        let defaultImportedRuleSetId = normalizedRuleSetId(activeRuleSetId)
+
+        let importedSchedules = calendarProvider.events
+            .sorted { $0.startDate < $1.startDate }
+            .compactMap { event -> Schedule? in
+                guard !suppressedImportedCalendarEventKeys.contains(event.id) else { return nil }
+                let existing = existingByKey[event.id] ?? preservedImportedByKey[event.id]
+                return Schedule(
+                    id: existing?.id ?? UUID(),
+                    name: event.title,
+                    days: [],
+                    date: event.startDate,
+                    startTime: event.startDate,
+                    endTime: event.endDate,
+                    isEnabled: existing?.isEnabled ?? true,
+                    colorIndex: existing?.colorIndex ?? 0,
+                    type: existing?.type ?? .focus,
+                    ruleSetId: existing?.ruleSetId ?? defaultImportedRuleSetId,
+                    importedCalendarEventKey: event.id
+                )
+            }
+
+        return baseSchedules + importedSchedules
     }
 
     private func replacePauseTimer(with newTimer: (any RepeatingTimer)?) {
@@ -562,6 +660,11 @@ class AppState: ObservableObject {
     }
 
     private func automaticBlockingState() -> Bool {
+        // Schedule precedence is intentional:
+        // 1. Any active Break disables blocking.
+        // 2. If one or more Focus schedules remain active, their allowlists are merged.
+        // 3. Pomodoro Focus/Break behaves like Focus/Break in that same precedence model.
+        // 4. Meetings only act as a break-style override when calendar imports are not used as blocking time.
         let active = schedules.filter { $0.isActive() }
         let focusSchedules = active.filter { $0.type == .focus }
         let activeFocusIds = Set(focusSchedules.map { $0.id })
@@ -583,48 +686,10 @@ class AppState: ObservableObject {
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
         guard !isSynchronizingImportedSchedules else { return }
-
-        // Imported event mirroring is only active when calendar integration is enabled
-        // and the user explicitly uses imports as blocking focus time.
-        let shouldImportCalendarEvents = calendarIntegrationEnabled && calendarImportsBlockTime
-
-        let manualSchedules = schedules.filter { $0.importedCalendarEventKey == nil }
-        let existingImported = schedules.filter { $0.importedCalendarEventKey != nil }
-
-        let importedSchedules: [Schedule]
-        if shouldImportCalendarEvents {
-            let existingByKey: [String: Schedule] = Dictionary(
-                uniqueKeysWithValues: existingImported.compactMap { schedule in
-                    guard let key = schedule.importedCalendarEventKey else { return nil }
-                    return (key, schedule)
-                }
-            )
-            let defaultImportedRuleSetId = normalizedRuleSetId(activeRuleSetId)
-
-            let sortedEvents = calendarProvider.events.sorted { $0.startDate < $1.startDate }
-            importedSchedules = sortedEvents.compactMap { event in
-                guard !suppressedImportedCalendarEventKeys.contains(event.id) else { return nil }
-                let key = event.id
-                let existing = existingByKey[key] ?? preservedImportedByKey[key]
-                return Schedule(
-                    id: existing?.id ?? UUID(),
-                    name: event.title,
-                    days: [],
-                    date: event.startDate,
-                    startTime: event.startDate,
-                    endTime: event.endDate,
-                    isEnabled: existing?.isEnabled ?? true,
-                    colorIndex: existing?.colorIndex ?? 0,
-                    type: .focus,
-                    ruleSetId: existing?.ruleSetId ?? defaultImportedRuleSetId,
-                    importedCalendarEventKey: key
-                )
-            }
-        } else {
-            importedSchedules = []
-        }
-
-        let merged = manualSchedules + importedSchedules
+        let merged = mergedSchedulesWithImportedCalendarEvents(
+            baseSchedules: schedules.filter { $0.importedCalendarEventKey == nil },
+            preservedImportedByKey: preservedImportedByKey
+        )
         guard merged != schedules else { return }
 
         isSynchronizingImportedSchedules = true

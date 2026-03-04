@@ -37,6 +37,11 @@
   - [x] it shouldn't allow delete
   - [x] it should be allow edit only of allowed list and break/focus
   - [ ] multiple scheduled at the same time
+    - [ ] UI
+    - [ ] logic
+      - [ ] who manage the list
+      - [ ] who manage break or focus
+      - [ ] if the other is longer keep it in memory after end
 
 - [ ] rule for calendar imports - if title contain `*study*` or `*work*`
   - [ ] allow personalization on this rule with settings
@@ -51,7 +56,19 @@
 - [x] when first schedule it adds multiple days of the weak instead of the selected. When I schedule once more it behave correctly (select only the day selected)
 - [x] allowd list keep rotating in the ui, why? during focus mode
 - [x] should be closable if not in strict mode
-- [ ] should work with selected list on the schedule
+- [x] should work with selected list on the schedule
+- [x] change to break doesn't work for imported schedules
+
+### Regression appkit
+
+- [x] app state change not highlighting correctly and lag
+  - [ ] state change should follow color schema
+- [ ] can't close cmd+q the app
+- [ ] buttons don't follow color schema - matte instead of shaded
+- [x] app icons without padding - side bar
+- [ ] color schema for the app
+  - [ ] toggle buttons
+  - [ ] focus highlight
 
 ## Performance check
 

@@ -1,69 +1,23 @@
+import AppKit
 import Foundation
-import SwiftUI
 import Testing
 
 @testable import FreeLogic
 
 struct UIComponentTests {
 
-    @Test("SheetWrapper initialization and binding")
-    func sheetWrapperLogic() {
-        var presented = true
-        let binding = Binding(get: { presented }, set: { presented = $0 })
-
-        let view = SheetWrapper(title: "Settings", isPresented: binding) {
-            Text("Hello")
-        }
-
-        #expect(view.title == "Settings")
-
-        view.isPresented = false
-        #expect(presented == false)
-    }
-
-    @Test("URLListRow property integrity")
-    func urlListRowProperties() {
-        var deleted = false
-        let view = URLListRow(url: "test.com") {
-            deleted = true
-        }
-
-        #expect(view.url == "test.com")
-
-        view.onDelete()
-        #expect(deleted == true)
-    }
-
-    @Test("PillMenuLabel property integrity")
-    func pillMenuLabelProperties() {
-        let view = PillMenuLabel(text: "Test", icon: "star", color: .blue)
-
-        #expect(view.text == "Test")
-        #expect(view.icon == "star")
-        #expect(view.color == .blue)
-    }
-
-    @Test("AppPrimaryButtonStyle property integrity")
-    func buttonStyleProperties() {
-        let style = AppPrimaryButtonStyle(color: .red, maxWidth: 200, isProminent: true)
-
-        #expect(style.color == .red)
-        #expect(style.maxWidth == 200)
-        #expect(style.isProminent == true)
-    }
-
     @Test("AddScheduleView configuration logic")
     func addScheduleViewLogic() {
         let calendar = Calendar.current
         let now = Date()
 
-        let config1 = AddScheduleView.configure(
+        let config1 = ScheduleEditorSupport.configuration(
             initialDay: 3, initialStartTime: nil, initialEndTime: nil, existingSchedule: nil)
         #expect(config1.days == [3])
         #expect(config1.name == "")
 
         let start = calendar.date(from: DateComponents(hour: 14, minute: 0))!
-        let config2 = AddScheduleView.configure(
+        let config2 = ScheduleEditorSupport.configuration(
             initialDay: nil, initialStartTime: start, initialEndTime: nil, existingSchedule: nil)
         #expect(config2.startTime == start)
         let endHour = calendar.component(.hour, from: config2.endTime)
@@ -72,7 +26,7 @@ struct UIComponentTests {
         let existing = Schedule(
             name: "Existing", days: [1], startTime: now, endTime: now, colorIndex: 5, type: .unfocus
         )
-        let config3 = AddScheduleView.configure(
+        let config3 = ScheduleEditorSupport.configuration(
             initialDay: nil, initialStartTime: nil, initialEndTime: nil, existingSchedule: existing)
         #expect(config3.name == "Existing")
         #expect(config3.colorIndex == 5)
@@ -100,9 +54,63 @@ struct UIComponentTests {
         let start = calendar.date(from: DateComponents(hour: 17, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 9, minute: 0))!
 
-        let config = AddScheduleView.configure(
+        let config = ScheduleEditorSupport.configuration(
             initialDay: nil, initialStartTime: start, initialEndTime: end, existingSchedule: nil)
 
         #expect(config.endTime == end)
+    }
+
+    @Test("AppKit symbol control button maps shorthand symbols")
+    func appKitSymbolControlButtonShorthand() {
+        #expect(resolvedAppKitControlSymbolName("+") == "plus.circle.fill")
+        #expect(resolvedAppKitControlSymbolName("-") == "minus.circle.fill")
+        #expect(resolvedAppKitControlSymbolName("xmark") == "xmark")
+
+        let plusButton = makeAppKitSymbolControlButton(
+            symbol: "+",
+            isEnabled: true,
+            pointSize: 24,
+            dimension: 24,
+            color: .secondaryLabelColor,
+            action: {}
+        )
+        let minusButton = makeAppKitSymbolControlButton(
+            symbol: "-",
+            isEnabled: false,
+            pointSize: 24,
+            dimension: 24,
+            color: .secondaryLabelColor,
+            action: {}
+        )
+
+        #expect(plusButton.image != nil)
+        #expect(plusButton.imagePosition == .imageOnly)
+        #expect(plusButton.isEnabled)
+        #expect(minusButton.image != nil)
+        #expect(minusButton.isEnabled == false)
+    }
+
+    @Test("Shared AppKit pill and selectable-row helpers configure common controls")
+    func sharedAppKitControlHelpers() {
+        let pillButton = makeAppKitPillButton(
+            title: "25/5",
+            isSelected: true,
+            selectedColor: .systemOrange,
+            width: 50,
+            action: {}
+        )
+        let rowButton = makeAppKitSelectableRowButton(
+            title: "Default",
+            isSelected: true,
+            accentColor: .systemBlue,
+            action: {}
+        )
+
+        #expect(pillButton.attributedTitle.string == "25/5")
+        #expect(pillButton.image == nil)
+        #expect(rowButton.attributedTitle.string == "Default")
+        #expect(rowButton.image != nil)
+        #expect(rowButton.imageHugsTitle == false)
+        #expect(rowButton.subviews.contains { $0 is NSImageView })
     }
 }

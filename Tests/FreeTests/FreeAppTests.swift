@@ -1,5 +1,5 @@
+import AppKit
 import Foundation
-import SwiftUI
 import Testing
 
 @testable import FreeLogic
@@ -20,9 +20,7 @@ struct FreeAppTests {
 
         #expect(app.menuStatusText == "Focus Mode: Inactive")
         #expect(app.isQuitDisabled == false)
-
-        _ = app.menuIconColor
-        _ = app.body
+        #expect(app.menuIconColor == .labelColor)
     }
 
     @Test("FreeApp reflects active menu state")
@@ -33,14 +31,59 @@ struct FreeAppTests {
 
         #expect(app.menuStatusText == "Focus Mode: Active")
         #expect(app.isQuitDisabled == true)
-
-        _ = app.menuIconColor
-        _ = app.body
+        #expect(app.menuIconColor == .systemGreen)
     }
 
-    @Test("FreeApp default initializer builds scenes")
-    func defaultInitializerBuildsScene() {
+    @Test("FreeApp appearance mapping mirrors app settings")
+    func appearanceMapping() {
+        #expect(FreeApp.nsAppearance(for: .system) == nil)
+        #expect(FreeApp.nsAppearance(for: .light)?.name == .aqua)
+        #expect(FreeApp.nsAppearance(for: .dark)?.name == .darkAqua)
+    }
+
+    @Test("FreeApp derives application name from bundle metadata with process fallback")
+    func applicationNameResolution() {
+        #expect(
+            FreeApp.applicationName(
+                bundleInfo: ["CFBundleDisplayName": "Free Display"],
+                processName: "Proc"
+            ) == "Free Display"
+        )
+        #expect(
+            FreeApp.applicationName(
+                bundleInfo: ["CFBundleName": "Free Bundle"],
+                processName: "Proc"
+            ) == "Free Bundle"
+        )
+        #expect(
+            FreeApp.applicationName(
+                bundleInfo: [:],
+                processName: "Proc"
+            ) == "Proc"
+        )
+    }
+
+    @Test("FreeApp main menu includes Quit item bound to command-Q")
+    func mainMenuContainsQuitShortcut() {
+        let menu = FreeApp.makeMainMenu(appName: "Free")
+
+        #expect(menu.items.count == 1)
+        let appMenu = menu.items.first?.submenu
+        #expect(appMenu != nil)
+
+        let quitItem = appMenu?.items.first(where: { $0.title == "Quit Free" })
+        #expect(quitItem != nil)
+        #expect(quitItem?.action == #selector(NSApplication.terminate(_:)))
+        #expect(quitItem?.keyEquivalent == "q")
+        #expect(quitItem?.keyEquivalentModifierMask == [.command])
+    }
+
+    @Test("FreeApp default initializer can be created")
+    func defaultInitializerBuildsAppController() {
         let app = FreeApp()
-        _ = app.body
+        #expect(
+            app.menuStatusText == "Focus Mode: Active"
+                || app.menuStatusText == "Focus Mode: Inactive"
+        )
     }
 }
