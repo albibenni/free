@@ -286,6 +286,27 @@ final class LeadingInsetButtonCell: NSButtonCell {
     }
 }
 
+final class IconInsetButtonCell: NSButtonCell {
+    var imageInset: CGFloat = 0
+
+    override func imageRect(forBounds rect: NSRect) -> NSRect {
+        let insetBounds = rect.insetBy(dx: imageInset, dy: imageInset)
+        return super.imageRect(forBounds: insetBounds)
+    }
+}
+
+final class IconInsetButton: NSButton {
+    override class var cellClass: AnyClass? {
+        get { IconInsetButtonCell.self }
+        set { }
+    }
+
+    var imageInset: CGFloat {
+        get { (cell as? IconInsetButtonCell)?.imageInset ?? 0 }
+        set { (cell as? IconInsetButtonCell)?.imageInset = newValue }
+    }
+}
+
 final class LeadingInsetActionButton: ActionButton {
     override class var cellClass: AnyClass? {
         get { LeadingInsetButtonCell.self }
@@ -424,7 +445,8 @@ func configureAppKitIconButton(
     weight: NSFont.Weight = .semibold,
     color: NSColor = .secondaryLabelColor,
     backgroundColor: NSColor? = nil,
-    cornerRadius: CGFloat = 0
+    cornerRadius: CGFloat = 0,
+    imageInset: CGFloat = 0
 ) {
     button.isBordered = false
     button.wantsLayer = true
@@ -439,6 +461,9 @@ func configureAppKitIconButton(
     button.imagePosition = .imageOnly
     button.imageScaling = .scaleProportionallyUpOrDown
     button.contentTintColor = color
+    if let insetButton = button as? IconInsetButton {
+        insetButton.imageInset = imageInset
+    }
 }
 
 func makeAppKitPrimaryButton(title: String, color: NSColor) -> ActionButton {

@@ -310,9 +310,10 @@ extension SchedulesSheetViewController {
         private let titleLabel = NSTextField(labelWithString: "")
         private let viewModeLabel = NSTextField(labelWithString: "View Mode")
         private let viewModeControl = NSSegmentedControl()
-        private let previousWeekButton = NSButton()
+        private let navigationGroupView = NSView()
+        private let previousWeekButton = IconInsetButton()
         private let todayButton = NSButton(title: "Today", target: nil, action: nil)
-        private let nextWeekButton = NSButton()
+        private let nextWeekButton = IconInsetButton()
         private let doneButton = NSButton(title: "Done", target: nil, action: nil)
         private let listScrollView = NSScrollView()
         private let listDocumentView = SchedulesListDocumentNSView()
@@ -340,8 +341,9 @@ extension SchedulesSheetViewController {
             viewModeLabel.textColor = .labelColor
 
             configureViewModeControl()
-            configureIconButton(previousWeekButton, symbolName: "chevron.left")
-            configureIconButton(nextWeekButton, symbolName: "chevron.right")
+            configureNavigationGroup()
+            configureNavigationButton(previousWeekButton, symbolName: "chevron.left")
+            configureNavigationButton(nextWeekButton, symbolName: "chevron.right")
             configureTodayButton()
             configureDoneButton()
             configureAddButton()
@@ -373,9 +375,7 @@ extension SchedulesSheetViewController {
             addSubview(titleLabel)
             addSubview(viewModeLabel)
             addSubview(viewModeControl)
-            addSubview(previousWeekButton)
-            addSubview(todayButton)
-            addSubview(nextWeekButton)
+            addSubview(navigationGroupView)
             addSubview(doneButton)
             addSubview(bottomDivider)
             addSubview(addButton)
@@ -401,6 +401,7 @@ extension SchedulesSheetViewController {
             viewModeControl.isHidden = false
             viewModeControl.selectedSegment = configuration.viewMode
             let showsCalendar = configuration.viewMode == 1
+            navigationGroupView.isHidden = !showsCalendar
             previousWeekButton.isHidden = !showsCalendar
             todayButton.isHidden = !showsCalendar
             nextWeekButton.isHidden = !showsCalendar
@@ -543,23 +544,28 @@ extension SchedulesSheetViewController {
             )
         }
 
-        private func configureIconButton(_ button: NSButton, symbolName: String) {
+        private func configureNavigationGroup() {
+            [previousWeekButton, todayButton, nextWeekButton].forEach { navigationGroupView.addSubview($0) }
+        }
+
+        private func configureNavigationButton(_ button: NSButton, symbolName: String) {
             configureAppKitIconButton(
                 button,
                 symbolName: symbolName,
-                pointSize: 11,
-                weight: .semibold,
-                color: .secondaryLabelColor,
-                backgroundColor: NSColor.labelColor.withAlphaComponent(0.06),
-                cornerRadius: 14
+                pointSize: 8,
+                weight: .medium,
+                color: .labelColor.withAlphaComponent(0.9),
+                backgroundColor: NSColor.white.withAlphaComponent(0.08),
+                cornerRadius: 12,
+                imageInset: 8
             )
         }
 
         private func configureTodayButton() {
             todayButton.isBordered = false
             todayButton.wantsLayer = true
-            todayButton.layer?.cornerRadius = 8
-            todayButton.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.04).cgColor
+            todayButton.layer?.cornerRadius = 11
+            todayButton.layer?.cornerCurve = .continuous
             todayButton.font = .systemFont(ofSize: 12, weight: .semibold)
         }
 
@@ -582,13 +588,19 @@ extension SchedulesSheetViewController {
         }
 
         private func applyToolbarStyle(accentColor: NSColor) {
+            navigationGroupView.layer?.backgroundColor = nil
+            previousWeekButton.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.08).cgColor
+            nextWeekButton.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.08).cgColor
+            previousWeekButton.contentTintColor = .labelColor.withAlphaComponent(0.9)
+            nextWeekButton.contentTintColor = .labelColor.withAlphaComponent(0.9)
             todayButton.attributedTitle = NSAttributedString(
                 string: "Today",
                 attributes: [
                     .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
-                    .foregroundColor: accentColor,
+                    .foregroundColor: NSColor.labelColor,
                 ]
             )
+            todayButton.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.08).cgColor
             doneButton.layer?.backgroundColor = accentColor.cgColor
             doneButton.attributedTitle = NSAttributedString(
                 string: "Done",
@@ -629,29 +641,35 @@ extension SchedulesSheetViewController {
                 height: titleSize.height
             )
 
-            let navButtonSize = CGSize(width: 28, height: 28)
-            let todaySize = CGSize(width: 54, height: 28)
+            let navButtonSize = CGSize(width: 24, height: 24)
+            let todaySize = CGSize(width: 52, height: 24)
             let navSpacing: CGFloat = 8
             let totalNavWidth = navButtonSize.width * 2 + todaySize.width + navSpacing * 2
             let navOriginX = doneButton.isHidden
                 ? rect.maxX - 16 - totalNavWidth
                 : doneOriginX - 12 - totalNavWidth
 
-            previousWeekButton.frame = CGRect(
+            navigationGroupView.frame = CGRect(
                 x: navOriginX,
                 y: rect.minY + floor((rect.height - navButtonSize.height) / 2),
+                width: totalNavWidth,
+                height: navButtonSize.height
+            )
+            previousWeekButton.frame = CGRect(
+                x: 0,
+                y: 0,
                 width: navButtonSize.width,
                 height: navButtonSize.height
             )
             todayButton.frame = CGRect(
                 x: previousWeekButton.frame.maxX + navSpacing,
-                y: rect.minY + floor((rect.height - todaySize.height) / 2),
+                y: 0,
                 width: todaySize.width,
                 height: todaySize.height
             )
             nextWeekButton.frame = CGRect(
                 x: todayButton.frame.maxX + navSpacing,
-                y: rect.minY + floor((rect.height - navButtonSize.height) / 2),
+                y: 0,
                 width: navButtonSize.width,
                 height: navButtonSize.height
             )

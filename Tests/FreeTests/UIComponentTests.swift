@@ -90,6 +90,24 @@ struct UIComponentTests {
         #expect(minusButton.isEnabled == false)
     }
 
+    @Test("Shared AppKit icon button helper applies image inset when supported")
+    func sharedAppKitIconButtonInset() {
+        let button = IconInsetButton()
+        configureAppKitIconButton(
+            button,
+            symbolName: "chevron.left",
+            pointSize: 8,
+            weight: .medium,
+            color: .labelColor,
+            backgroundColor: .clear,
+            cornerRadius: 12,
+            imageInset: 2
+        )
+
+        #expect(button.image != nil)
+        #expect(button.imageInset == 2)
+    }
+
     @Test("Shared AppKit pill and selectable-row helpers configure common controls")
     func sharedAppKitControlHelpers() {
         let pillButton = makeAppKitPillButton(

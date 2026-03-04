@@ -3,6 +3,13 @@
 - [x] personalize accent color
 - [x] caldendar schedule can personalize color
 
+### TOPBAR
+
+- [ ] add infos
+  - [ ] add calendar schedule, next one
+  - [ ] add active list
+  - [ ] add if unbreakable mode is on
+
 ## Logic
 
 - [x] there should be a setting, maybe a setting tab where you can enable an UNBLOCKABLE feature where you cannot toggle the focus button
@@ -58,6 +65,9 @@
 - [x] should be closable if not in strict mode
 - [x] should work with selected list on the schedule
 - [x] change to break doesn't work for imported schedules
+- [ ] ci-cd running weird - on wrong branch
+- [ ] merge allowed on ci-cd failed
+- [ ] ci-cd fix tests failing
 
 ### Regression appkit
 
@@ -70,6 +80,9 @@
 - [ ] color schema for the app
   - [ ] toggle buttons
   - [ ] focus highlight
+
+- [ ] redo tests
+  - [ ] coverage
 
 ## Performance check
 
