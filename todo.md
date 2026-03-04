@@ -80,6 +80,7 @@
 - [ ] color schema for the app
   - [ ] toggle buttons
   - [ ] focus highlight
+- [ ] calendar view redraw
 
 - [ ] redo tests
   - [ ] coverage
