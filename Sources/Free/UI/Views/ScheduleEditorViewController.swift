@@ -53,6 +53,10 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     private var modifyAllDays = true
     private var isRecurring = false
     private var sessionTypeControl: AppKitSelectionButtonGroup<ScheduleType>?
+    private var repeatCheckbox: NSButton?
+    private var recurringDaysSection: NSView?
+    private var saveButton: ActionButton?
+    private var reloadGeneration = 0
 
     private let headerTitleLabel = NSTextField(labelWithString: "")
     private let closeButton = ActionButton()
@@ -174,7 +178,11 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     private func reloadForm() {
+        reloadGeneration += 1
         removeArrangedSubviews(from: scrollContainer.stackView)
+        recurringDaysSection = nil
+        saveButton = nil
+        repeatCheckbox = nil
 
         if importedSchedule {
             addSection(makeImportedBadge())
@@ -215,10 +223,10 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         if canEditImportedDetails {
             addSection(makeTimeSection())
             addSection(makeRepeatSection())
-
-            if isRecurring {
-                addSection(makeRecurringDaysSection())
-            }
+            let recurringDaysSection = makeRecurringDaysSection()
+            recurringDaysSection.isHidden = !isRecurring
+            self.recurringDaysSection = recurringDaysSection
+            addSection(recurringDaysSection)
         }
 
         addSection(makeActionSection())
@@ -395,6 +403,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         checkbox.font = .systemFont(ofSize: 14, weight: .semibold)
         checkbox.state = isRecurring ? .on : .off
         checkbox.translatesAutoresizingMaskIntoConstraints = false
+        repeatCheckbox = checkbox
         section.addSubview(checkbox)
         NSLayoutConstraint.activate([
             checkbox.leadingAnchor.constraint(equalTo: section.leadingAnchor),
@@ -480,6 +489,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
             modifyAllDays: modifyAllDays,
             isRecurring: isRecurring
         )
+        self.saveButton = saveButton
         saveButton.onAction = { [weak self] in
             self?.saveSchedule()
         }
@@ -598,7 +608,18 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     @objc
     private func toggleRecurring(_ sender: NSButton) {
         isRecurring = sender.state == .on
-        reloadForm()
+        updateRecurringUI()
+    }
+
+    private func updateRecurringUI() {
+        repeatCheckbox?.state = isRecurring ? .on : .off
+        recurringDaysSection?.isHidden = !isRecurring
+        saveButton?.isEnabled = !ScheduleEditorSupport.isSaveDisabled(
+            days: days,
+            modifyAllDays: modifyAllDays,
+            isRecurring: isRecurring
+        )
+        scrollContainer.needsLayout = true
     }
 }
 
@@ -613,6 +634,8 @@ extension ScheduleEditorViewController {
     var importedScheduleForTesting: Bool { importedSchedule }
     var canEditImportedDetailsForTesting: Bool { canEditImportedDetails }
     var sessionTypeSelectionColorForTesting: NSColor? { sessionTypeControl?.selectedButtonTintColor }
+    var formReloadGenerationForTesting: Int { reloadGeneration }
+    var isRecurringDaysSectionHiddenForTesting: Bool? { recurringDaysSection?.isHidden }
 
     func dismissForTesting() {
         onRequestClose()
@@ -624,5 +647,10 @@ extension ScheduleEditorViewController {
 
     func deleteScheduleForTesting() {
         deleteSchedule()
+    }
+
+    func setRecurringForTesting(_ isRecurring: Bool) {
+        self.isRecurring = isRecurring
+        updateRecurringUI()
     }
 }

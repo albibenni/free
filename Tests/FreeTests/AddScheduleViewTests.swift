@@ -258,6 +258,28 @@ struct AddScheduleViewTests {
         #expect(texts.contains("Not used for breaks"))
     }
 
+    @Test("ScheduleEditorViewController does not reload the whole form when toggling repeat weekly")
+    @MainActor
+    func addScheduleViewRepeatToggleStaysInPlace() {
+        let appState = isolatedAppState(name: "repeatToggle")
+        let controller = makeController(appState: appState)
+        _ = host(controller)
+
+        let initialReloadGeneration = controller.formReloadGenerationForTesting
+
+        #expect(controller.isRecurringDaysSectionHiddenForTesting == true)
+
+        controller.setRecurringForTesting(true)
+
+        #expect(controller.formReloadGenerationForTesting == initialReloadGeneration)
+        #expect(controller.isRecurringDaysSectionHiddenForTesting == false)
+
+        controller.setRecurringForTesting(false)
+
+        #expect(controller.formReloadGenerationForTesting == initialReloadGeneration)
+        #expect(controller.isRecurringDaysSectionHiddenForTesting == true)
+    }
+
     @Test("ScheduleEditorViewController renders imported schedule editor with limited editable sections")
     @MainActor
     func addScheduleViewImportedPath() {
