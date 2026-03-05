@@ -1,5 +1,4 @@
 import AppKit
-import Combine
 
 final class FreeMainViewController: NSViewController {
     private let appState: AppState
@@ -14,6 +13,7 @@ final class FreeMainViewController: NSViewController {
     private let sidebarView: MainSidebarView
     private let contentDivider = AppKitDynamicView()
     private let contentHostView = MainContentHostView()
+    private let bindings = MainShellBindings()
     private lazy var sheetPresenter = MainSheetPresenter(
         appState: appState,
         onRulesDismissed: { [weak self] in
@@ -27,8 +27,6 @@ final class FreeMainViewController: NSViewController {
             }
         }
     )
-
-    private var cancellables: Set<AnyCancellable> = []
 
     init(
         appState: AppState,
@@ -146,39 +144,29 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func bindShellState() {
-        shellState.$selectedSection
-            .sink { [weak self] _ in
+        bindings.bind(
+            appState: appState,
+            shellState: shellState,
+            onSelectedSectionChanged: { [weak self] in
                 self?.updateSidebarSelection()
                 self?.updateContentController()
-            }
-            .store(in: &cancellables)
-
-        appState.objectWillChange
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
+            },
+            onAppStateChanged: { [weak self] in
                 self?.updateSidebarSelection()
-            }
-            .store(in: &cancellables)
-
-        shellState.$showRules
-            .removeDuplicates()
-            .sink { [weak self] isShown in
+            },
+            onShowRulesChanged: { [weak self] isShown in
                 guard let self else { return }
                 isShown
                     ? sheetPresenter.presentRules(from: view.window)
                     : sheetPresenter.dismissRules()
-            }
-            .store(in: &cancellables)
-
-        shellState.$showSchedules
-            .removeDuplicates()
-            .sink { [weak self] isShown in
+            },
+            onShowSchedulesChanged: { [weak self] isShown in
                 guard let self else { return }
                 isShown
                     ? sheetPresenter.presentSchedules(from: view.window)
                     : sheetPresenter.dismissSchedules()
             }
-            .store(in: &cancellables)
+        )
     }
 
     private func updateSidebarSelection() {
