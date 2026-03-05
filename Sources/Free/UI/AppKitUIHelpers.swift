@@ -93,6 +93,10 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
     private let stackView = NSStackView()
     private let options: [AppKitSelectionButtonOption<Value>]
     private var buttons: [Value: ActionButton] = [:]
+    private var buttonWidths: [Value: CGFloat] = [:]
+    private let buttonHeight: CGFloat = 24
+    private let controlInset: CGFloat = 1
+    private let buttonSpacing: CGFloat = 1
 
     var accentColor: NSColor {
         didSet { updateButtonStyles() }
@@ -142,6 +146,17 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override var intrinsicContentSize: NSSize {
+        let contentWidth = options.reduce(CGFloat.zero) { partialResult, option in
+            partialResult + (buttonWidths[option.value] ?? 0)
+        }
+        let spacingWidth = max(CGFloat(options.count - 1), 0) * buttonSpacing
+        return NSSize(
+            width: contentWidth + spacingWidth + (controlInset * 2),
+            height: buttonHeight + (controlInset * 2)
+        )
+    }
+
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         updateButtonStyles()
@@ -160,14 +175,16 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
             let width = ceil((option.title as NSString).size(withAttributes: [
                 .font: AppKitUIConstants.Typography.regular,
             ]).width) + 20
+            buttonWidths[option.value] = width
             button.widthAnchor.constraint(equalToConstant: width).isActive = true
-            button.heightAnchor.constraint(equalToConstant: 24).isActive = true
+            button.heightAnchor.constraint(equalToConstant: buttonHeight).isActive = true
             button.onAction = { [weak self] in
                 self?.handleSelection(option.value)
             }
             stackView.addArrangedSubview(button)
             buttons[option.value] = button
         }
+        invalidateIntrinsicContentSize()
     }
 
     private func handleSelection(_ value: Value) {

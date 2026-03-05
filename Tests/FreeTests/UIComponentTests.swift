@@ -163,6 +163,9 @@ struct UIComponentTests {
 
         control.accentColor = .systemPurple
         #expect(control.selectedButtonTintColor == .systemPurple)
+        #expect(control.intrinsicContentSize.width > 80)
+        #expect(control.intrinsicContentSize.width < 220)
+        #expect(control.intrinsicContentSize.height == 26)
     }
 
     @Test("Dynamic AppKit color providers resolve inside the requested appearance")

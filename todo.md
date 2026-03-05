@@ -93,7 +93,7 @@
   - [x] add impossible to use
   - [x] current website open not working
   - [x] close tab button small
-  - [ ] FreeAppKitShell too big, refactor
+  - [x] FreeAppKitShell too big, refactor
   - [x] new floating window don't follow tab 'connection'
 
 - [ ] redo tests
