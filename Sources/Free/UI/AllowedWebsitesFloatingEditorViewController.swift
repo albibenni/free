@@ -51,6 +51,8 @@ final class AllowedWebsitesFloatingEditorViewController:
         headerRow.translatesAutoresizingMaskIntoConstraints = false
 
         urlField.placeholderString = "Add URL to allow..."
+        urlField.target = self
+        urlField.action = #selector(handleAddRuleFromField(_:))
         urlField.translatesAutoresizingMaskIntoConstraints = false
         urlField.heightAnchor.constraint(equalToConstant: 30).isActive = true
 
@@ -225,9 +227,16 @@ final class AllowedWebsitesFloatingEditorViewController:
     @objc
     private func handleAddRule() {
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
-        appState.addRule(urlField.stringValue, to: setId)
+        let normalized = urlField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return }
+        appState.addRule(normalized, to: setId)
         urlField.stringValue = ""
         reloadRulesOnly()
+    }
+
+    @objc
+    private func handleAddRuleFromField(_ sender: NSTextField) {
+        handleAddRule()
     }
 
     @objc
