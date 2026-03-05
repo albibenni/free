@@ -42,14 +42,14 @@
 
 ### Allowed list
 
-- [ ] allow multiple selection to delete
+- [x] allow multiple selection to delete
 - [x] check current open websites
   - [x] add button to add for each listed website of the open
-- [ ] create new list
+- [x] create new list
 
 ### Calendar
 
-- [ ] allow modification on calendar imports
+- [x] allow modification on calendar imports
   - [x] it shouldn't allow delete
   - [x] it should be allow edit only of allowed list and break/focus
   - [x] multiple scheduled at the same time
