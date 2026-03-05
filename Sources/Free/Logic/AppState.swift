@@ -100,12 +100,6 @@ class AppState: ObservableObject {
     private var isSynchronizingImportedSchedules = false
     private var suppressedImportedCalendarEventKeys: Set<String> = []
 
-    struct CalendarEventSignature: Hashable {
-        let title: String
-        let start: TimeInterval
-        let end: TimeInterval
-    }
-
     enum PomodoroStatus: String, Codable { case none, focus, breakTime }
 
     var isPomodoroLocked: Bool {
@@ -395,26 +389,21 @@ class AppState: ObservableObject {
             }
         )
 
-        let signatures = Set(
-            calendarProvider.events.map {
-                CalendarEventSignature(
-                    title: $0.title,
-                    start: $0.startDate.timeIntervalSince1970,
-                    end: $0.endDate.timeIntervalSince1970
-                )
-            }
+        let signatures = CalendarImportService.legacyImportedEventSignatures(
+            from: calendarProvider.events
         )
 
-        let cleaned = schedules.filter { schedule in
-            if schedule.importedCalendarEventKey != nil { return false }
-            if isLegacyImportedCalendarDuplicate(schedule, signatures: signatures) {
-                return false
-            }
-            return true
-        }
-
-        let rebuilt = mergedSchedulesWithImportedCalendarEvents(
-            baseSchedules: cleaned,
+        let cleaned = CalendarImportService.removeLegacyImportedDuplicates(
+            from: schedules,
+            signatures: signatures
+        )
+        let rebuilt = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
+            schedules: cleaned,
+            events: calendarProvider.events,
+            shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+            suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
+            activeRuleSetId: activeRuleSetId,
+            ruleSets: ruleSets,
             preservedImportedByKey: preservedImportedByKey
         )
         guard rebuilt != schedules else { return }
@@ -477,45 +466,6 @@ class AppState: ObservableObject {
         replacePomodoroTimer(with: timer)
         checkSchedules()
     }
-    private func mergedSchedulesWithImportedCalendarEvents(
-        baseSchedules: [Schedule],
-        preservedImportedByKey: [String: Schedule]
-    ) -> [Schedule] {
-        let shouldImportCalendarEvents = calendarIntegrationEnabled && calendarImportsBlockTime
-        guard shouldImportCalendarEvents else { return baseSchedules }
-
-        let existingImported = schedules.filter { $0.importedCalendarEventKey != nil }
-        let existingByKey: [String: Schedule] = Dictionary(
-            uniqueKeysWithValues: existingImported.compactMap { schedule in
-                guard let key = schedule.importedCalendarEventKey else { return nil }
-                return (key, schedule)
-            }
-        )
-        let defaultImportedRuleSetId = RuleSetService.normalizeRuleSetId(activeRuleSetId, in: ruleSets)
-
-        let importedSchedules = calendarProvider.events
-            .sorted { $0.startDate < $1.startDate }
-            .compactMap { event -> Schedule? in
-                guard !suppressedImportedCalendarEventKeys.contains(event.id) else { return nil }
-                let existing = existingByKey[event.id] ?? preservedImportedByKey[event.id]
-                return Schedule(
-                    id: existing?.id ?? UUID(),
-                    name: event.title,
-                    days: [],
-                    date: event.startDate,
-                    startTime: event.startDate,
-                    endTime: event.endDate,
-                    isEnabled: existing?.isEnabled ?? true,
-                    colorIndex: existing?.colorIndex ?? 0,
-                    type: existing?.type ?? .focus,
-                    ruleSetId: existing?.ruleSetId ?? defaultImportedRuleSetId,
-                    importedCalendarEventKey: event.id
-                )
-            }
-
-        return baseSchedules + importedSchedules
-    }
-
     private func replacePauseTimer(with newTimer: (any RepeatingTimer)?) {
         replaceTimer(keyPath: \.pauseTimer, with: newTimer)
     }
@@ -547,8 +497,13 @@ class AppState: ObservableObject {
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
         guard !isSynchronizingImportedSchedules else { return }
-        let merged = mergedSchedulesWithImportedCalendarEvents(
-            baseSchedules: schedules.filter { $0.importedCalendarEventKey == nil },
+        let merged = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
+            schedules: schedules,
+            events: calendarProvider.events,
+            shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+            suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
+            activeRuleSetId: activeRuleSetId,
+            ruleSets: ruleSets,
             preservedImportedByKey: preservedImportedByKey
         )
         guard merged != schedules else { return }
@@ -558,22 +513,11 @@ class AppState: ObservableObject {
         isSynchronizingImportedSchedules = false
     }
 
-    private func isLegacyImportedCalendarDuplicate(
-        _ schedule: Schedule,
-        signatures: Set<CalendarEventSignature>
-    ) -> Bool {
-        guard schedule.type == .focus, schedule.date != nil else { return false }
-        let signature = CalendarEventSignature(
-            title: schedule.name,
-            start: schedule.startTime.timeIntervalSince1970,
-            end: schedule.endTime.timeIntervalSince1970
-        )
-        return signatures.contains(signature)
-    }
-
     private func suppressImportedCalendarEventIfNeeded(_ schedule: Schedule) {
-        guard let key = schedule.importedCalendarEventKey else { return }
-        if suppressedImportedCalendarEventKeys.insert(key).inserted {
+        if CalendarImportService.suppressImportedCalendarEventIfNeeded(
+            for: schedule,
+            suppressedKeys: &suppressedImportedCalendarEventKeys
+        ) {
             settingsStore.setSuppressedImportedCalendarEventKeys(suppressedImportedCalendarEventKeys)
         }
     }
