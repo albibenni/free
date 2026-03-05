@@ -40,6 +40,12 @@
 - [x] add git steps
   - [x] build and tests
 
+### Allowed list
+
+- [ ] allow multiple selection to delete
+- [ ] check current open websites
+  - [ ] add button to add for each listed website of the open
+
 ### Calendar
 
 - [ ] allow modification on calendar imports
@@ -83,11 +89,11 @@
   - [x] toggle buttons
   - [x] focus highlight
 - [x] calendar view redraw
-- [ ] Allowed list
+- [x] Allowed list
   - [x] add impossible to use
-  - [ ] current website open not working
-  - [ ] close tab button small
-  - [ ] FreeAppKitShell too big, refactor
+  - [x] current website open not working
+  - [x] close tab button small
+  - [x] FreeAppKitShell too big, refactor
 
 - [ ] redo tests
   - [ ] coverage

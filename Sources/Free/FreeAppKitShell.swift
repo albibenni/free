@@ -585,7 +585,12 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
         super.init(window: panel)
         panel.delegate = self
         editorController.focusOnRuleSet(appState.activeRuleSetId)
-        Self.configureNativeCloseButton(in: panel)
+        configureAppKitWindowButton(
+            in: panel,
+            type: .closeButton,
+            controlSize: .large,
+            targetSize: 22
+        )
     }
 
     @available(*, unavailable)
@@ -598,7 +603,12 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
         editorController.focusOnRuleSet(selectedRuleSetId)
         restoreDesiredContentSize()
         if let panel = window as? NSPanel {
-            Self.configureNativeCloseButton(in: panel)
+            configureAppKitWindowButton(
+                in: panel,
+                type: .closeButton,
+                controlSize: .large,
+                targetSize: 22
+            )
         }
         if !window.isVisible {
             let origin = NSPoint(
@@ -615,20 +625,6 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
         guard let window else { return }
         window.contentViewController?.preferredContentSize = desiredContentSize
         window.setContentSize(desiredContentSize)
-    }
-
-    private static func configureNativeCloseButton(in panel: NSPanel) {
-        guard let closeButton = panel.standardWindowButton(.closeButton) else { return }
-        closeButton.controlSize = .large
-        let targetSize: CGFloat = 22
-        let originalFrame = closeButton.frame
-        closeButton.setFrameSize(NSSize(width: targetSize, height: targetSize))
-        closeButton.setFrameOrigin(
-            NSPoint(
-                x: originalFrame.origin.x,
-                y: originalFrame.origin.y - ((targetSize - originalFrame.height) / 2)
-            )
-        )
     }
 
     func dismiss() {

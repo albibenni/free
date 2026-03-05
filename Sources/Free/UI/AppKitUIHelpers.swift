@@ -843,6 +843,25 @@ func configureAppKitIconButton(
     }
 }
 
+func configureAppKitWindowButton(
+    in window: NSWindow,
+    type: NSWindow.ButtonType,
+    controlSize: NSControl.ControlSize = .regular,
+    targetSize: CGFloat? = nil
+) {
+    guard let button = window.standardWindowButton(type) else { return }
+    let originalFrame = button.frame
+    button.controlSize = controlSize
+    guard let targetSize else { return }
+    button.setFrameSize(NSSize(width: targetSize, height: targetSize))
+    button.setFrameOrigin(
+        NSPoint(
+            x: originalFrame.origin.x,
+            y: originalFrame.origin.y - ((targetSize - originalFrame.height) / 2)
+        )
+    )
+}
+
 func makeAppKitPrimaryButton(title: String, color: NSColor) -> ActionButton {
     let button = ActionButton(title: title)
     button.isBordered = false
