@@ -4,14 +4,6 @@ private func selectedRuleSetIdForPomodoro(_ appState: AppState) -> UUID? {
     appState.activeRuleSetId ?? appState.ruleSets.first?.id
 }
 
-private func clearArrangedSubviews(from stackView: NSStackView) {
-    let subviews = stackView.arrangedSubviews
-    subviews.forEach { subview in
-        stackView.removeArrangedSubview(subview)
-        subview.removeFromSuperview()
-    }
-}
-
 private func findLabel(in view: NSView) -> NSTextField? {
     if let label = view as? NSTextField {
         return label
@@ -292,7 +284,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     }
 
     private func rebuildContent() {
-        clearArrangedSubviews(from: contentStack)
+        removeAllArrangedSubviews(from: contentStack)
         renderMode = currentRenderMode()
         mainStatusContainer = nil
         currentMainStatusView = nil
