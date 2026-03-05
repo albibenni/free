@@ -194,6 +194,7 @@ final class AllowedWebsitesFloatingEditorViewController:
         tableView.rowHeight = 28
         tableView.intercellSpacing = NSSize(width: 0, height: 2)
         tableView.usesAlternatingRowBackgroundColors = false
+        tableView.allowsMultipleSelection = true
         tableView.delegate = self
         tableView.dataSource = self
         tableView.target = self
@@ -408,10 +409,13 @@ final class AllowedWebsitesFloatingEditorViewController:
 
     @objc
     private func handleRemoveSelected() {
-        let row = tableView.selectedRow
-        guard row >= 0, row < visibleRules.count else { return }
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
-        appState.removeRule(visibleRules[row], from: setId)
+        let selectedIndexes = tableView.selectedRowIndexes.filter { $0 >= 0 && $0 < visibleRules.count }
+        guard !selectedIndexes.isEmpty else { return }
+        let rulesToRemove = selectedIndexes.map { visibleRules[$0] }
+        for rule in rulesToRemove {
+            appState.removeRule(rule, from: setId)
+        }
         reloadRulesOnly()
     }
 
@@ -537,7 +541,8 @@ final class AllowedWebsitesFloatingEditorViewController:
 
     private func updateControlStates() {
         let canEdit = resolvedRuleSetId(selectedRuleSetId) != nil && !appState.isStrictActive
-        let canRemove = canEdit && tableView.selectedRow >= 0 && tableView.selectedRow < visibleRules.count
+        let hasSelection = tableView.selectedRowIndexes.contains { $0 >= 0 && $0 < visibleRules.count }
+        let canRemove = canEdit && hasSelection
         urlField.isEnabled = canEdit
         addButton.isEnabled = canEdit
         importOpenTabsButton.isEnabled = canEdit
