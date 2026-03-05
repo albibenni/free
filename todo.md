@@ -2,6 +2,15 @@
 
 - [x] personalize accent color
 - [x] caldendar schedule can personalize color
+- [] light mode:
+  - [ ] background color not white
+
+### TOPBAR
+
+- [ ] add infos
+  - [ ] add calendar schedule, next one
+  - [ ] add active list
+  - [ ] add if unbreakable mode is on
 
 ## Logic
 
@@ -31,17 +40,24 @@
 - [x] add git steps
   - [x] build and tests
 
+### Allowed list
+
+- [ ] allow multiple selection to delete
+- [x] check current open websites
+  - [x] add button to add for each listed website of the open
+- [ ] create new list
+
 ### Calendar
 
 - [ ] allow modification on calendar imports
   - [x] it shouldn't allow delete
   - [x] it should be allow edit only of allowed list and break/focus
-  - [ ] multiple scheduled at the same time
-    - [ ] UI
-    - [ ] logic
-      - [ ] who manage the list
-      - [ ] who manage break or focus
-      - [ ] if the other is longer keep it in memory after end
+  - [x] multiple scheduled at the same time
+    - [x] UI
+    - [x] logic
+      - [x] who manage the list
+      - [x] who manage break or focus
+      - [x] if the other is longer keep it in memory after end
 
 - [ ] rule for calendar imports - if title contain `*study*` or `*work*`
   - [ ] allow personalization on this rule with settings
@@ -50,6 +66,7 @@
 - [ ] cannot delete imported schdule
   - [ ] future impl: allow modification to calendar if flag is toggled
 - [ ] delete multiple scheduled day pop alert out
+- [ ] define in setting which allowed list should be used for imported schedule
 
 ## Bug
 
@@ -58,17 +75,31 @@
 - [x] should be closable if not in strict mode
 - [x] should work with selected list on the schedule
 - [x] change to break doesn't work for imported schedules
+- [ ] ci-cd running weird - on wrong branch
+- [ ] merge allowed on ci-cd failed
+- [ ] ci-cd fix tests failing
 
 ### Regression appkit
 
 - [x] app state change not highlighting correctly and lag
-  - [ ] state change should follow color schema
-- [ ] can't close cmd+q the app
-- [ ] buttons don't follow color schema - matte instead of shaded
+  - [x] state change should follow color schema
+- [x] can't close cmd+q the app
+- [x] buttons don't follow color schema - matte instead of shaded
 - [x] app icons without padding - side bar
-- [ ] color schema for the app
-  - [ ] toggle buttons
-  - [ ] focus highlight
+- [x] light mode not working - background is black with black text
+- [x] color schema for the app
+  - [x] toggle buttons
+  - [x] focus highlight
+- [x] calendar view redraw
+- [x] Allowed list
+  - [x] add impossible to use
+  - [x] current website open not working
+  - [x] close tab button small
+  - [x] FreeAppKitShell too big, refactor
+  - [x] new floating window don't follow tab 'connection'
+
+- [ ] redo tests
+  - [ ] coverage
 
 ## Performance check
 

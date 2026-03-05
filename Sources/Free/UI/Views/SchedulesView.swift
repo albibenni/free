@@ -2,6 +2,40 @@ import AppKit
 import Combine
 
 final class SchedulesSheetViewController: NSViewController {
+    private struct RenderSignature: Equatable {
+        struct ExternalEventSnapshot: Equatable {
+            let id: String
+            let title: String
+            let startDate: Date
+            let endDate: Date
+        }
+
+        let appearanceMode: AppearanceMode
+        let accentColorIndex: Int
+        let schedules: [Schedule]
+        let weekStartsOnMonday: Bool
+        let calendarIntegrationEnabled: Bool
+        let calendarImportsBlockTime: Bool
+        let externalEvents: [ExternalEventSnapshot]
+
+        init(appState: AppState) {
+            appearanceMode = appState.appearanceMode
+            accentColorIndex = appState.accentColorIndex
+            schedules = appState.schedules
+            weekStartsOnMonday = appState.weekStartsOnMonday
+            calendarIntegrationEnabled = appState.calendarIntegrationEnabled
+            calendarImportsBlockTime = appState.calendarImportsBlockTime
+            externalEvents = appState.calendarProvider.events.map {
+                ExternalEventSnapshot(
+                    id: $0.id,
+                    title: $0.title,
+                    startDate: $0.startDate,
+                    endDate: $0.endDate
+                )
+            }
+        }
+    }
+
     private let appState: AppState
     private let onDismiss: () -> Void
     private let schedulesContainerView = SchedulesContainerNSView()
@@ -13,6 +47,8 @@ final class SchedulesSheetViewController: NSViewController {
     private var viewMode: Int
     private var editorContext: ScheduleEditorContext?
     private var weekOffset: Int
+    private var renderSignature: RenderSignature?
+    private var refreshGeneration = 0
     private var cancellables: Set<AnyCancellable> = []
 
     init(
@@ -36,8 +72,11 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     override func loadView() {
-        schedulesContainerView.configure(with: makeAppKitConfiguration())
+        schedulesContainerView.onWindowAttached = { [weak self] _ in
+            self?.updateWindowTitle()
+        }
         view = schedulesContainerView
+        applyConfiguration()
     }
 
     override func viewDidLoad() {
@@ -46,9 +85,20 @@ final class SchedulesSheetViewController: NSViewController {
         appState.objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.refreshConfiguration()
+                self?.handleObservedAppStateChange()
             }
             .store(in: &cancellables)
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        updateWindowTitle()
+    }
+
+    private func handleObservedAppStateChange() {
+        let nextSignature = RenderSignature(appState: appState)
+        guard renderSignature != nextSignature else { return }
+        refreshConfiguration()
     }
 
     private var dayOrder: [Int] {
@@ -72,7 +122,30 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func refreshConfiguration() {
+        applyConfiguration()
+    }
+
+    private func applyConfiguration() {
+        renderSignature = RenderSignature(appState: appState)
+        refreshGeneration += 1
         schedulesContainerView.configure(with: makeAppKitConfiguration())
+        updateWindowTitle()
+    }
+
+    private func updateWindowTitle() {
+        let title = viewMode == 1 ? "Schedules · Calendar" : "Schedules · List"
+        guard let window = schedulesContainerView.window else { return }
+        window.title = title
+
+        // AppKit can relayout titlebar controls when the title changes.
+        // Re-apply our custom close button size/position on the next runloop.
+        DispatchQueue.main.async {
+            configureAppKitWindowButton(
+                in: window,
+                type: .closeButton,
+                controlSize: .large
+            )
+        }
     }
 
     private func makeAppKitConfiguration() -> SchedulesAppKitConfiguration {
@@ -283,6 +356,8 @@ extension SchedulesSheetViewController {
         editorContext = ScheduleEditorContext(schedule: schedule)
         refreshConfiguration()
     }
+
+    var refreshGenerationForTesting: Int { refreshGeneration }
 }
 
     private struct SchedulesAppKitConfiguration {
@@ -310,19 +385,20 @@ extension SchedulesSheetViewController {
         private let titleLabel = NSTextField(labelWithString: "")
         private let viewModeLabel = NSTextField(labelWithString: "View Mode")
         private let viewModeControl = NSSegmentedControl()
-        private let previousWeekButton = NSButton()
+        private let navigationGroupView = AppKitDynamicView()
+        private let previousWeekButton = IconInsetButton()
         private let todayButton = NSButton(title: "Today", target: nil, action: nil)
-        private let nextWeekButton = NSButton()
-        private let doneButton = NSButton(title: "Done", target: nil, action: nil)
+        private let nextWeekButton = IconInsetButton()
         private let listScrollView = NSScrollView()
         private let listDocumentView = SchedulesListDocumentNSView()
         private let calendarView = WeeklyCalendarSurfaceNSView()
-        private let bottomDivider = NSView()
+        private let bottomDivider = AppKitDynamicView()
         private let addButton = NSButton(title: "Add Schedule", target: nil, action: nil)
         private var configuration: SchedulesAppKitConfiguration?
         private var editorSheetController: FreeSheetWindowController?
         private var presentedEditorContextId: UUID?
         private var editorDismissShouldClearContext = true
+        var onWindowAttached: ((NSWindow?) -> Void)?
 
         override var isFlipped: Bool { true }
 
@@ -330,7 +406,10 @@ extension SchedulesSheetViewController {
             super.init(frame: frameRect)
 
             wantsLayer = true
-            layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+            layer?.backgroundColor = resolvedAppKitCGColor(
+                NSColor.windowBackgroundColor,
+                appearance: effectiveAppearance
+            )
             layer?.masksToBounds = true
 
             titleLabel.font = .systemFont(ofSize: 17, weight: .bold)
@@ -340,10 +419,10 @@ extension SchedulesSheetViewController {
             viewModeLabel.textColor = .labelColor
 
             configureViewModeControl()
-            configureIconButton(previousWeekButton, symbolName: "chevron.left")
-            configureIconButton(nextWeekButton, symbolName: "chevron.right")
+            configureNavigationGroup()
+            configureNavigationButton(previousWeekButton, symbolName: "chevron.left")
+            configureNavigationButton(nextWeekButton, symbolName: "chevron.right")
             configureTodayButton()
-            configureDoneButton()
             configureAddButton()
 
             viewModeControl.target = self
@@ -354,8 +433,6 @@ extension SchedulesSheetViewController {
             todayButton.action = #selector(goToCurrentWeek)
             nextWeekButton.target = self
             nextWeekButton.action = #selector(goToNextWeek)
-            doneButton.target = self
-            doneButton.action = #selector(dismissSheet)
             addButton.target = self
             addButton.action = #selector(addSchedule)
 
@@ -365,18 +442,14 @@ extension SchedulesSheetViewController {
             listScrollView.autohidesScrollers = true
             listScrollView.documentView = listDocumentView
 
-            bottomDivider.wantsLayer = true
-            bottomDivider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+            bottomDivider.backgroundColorProvider = { NSColor.separatorColor }
 
             addSubview(listScrollView)
             addSubview(calendarView)
             addSubview(titleLabel)
             addSubview(viewModeLabel)
             addSubview(viewModeControl)
-            addSubview(previousWeekButton)
-            addSubview(todayButton)
-            addSubview(nextWeekButton)
-            addSubview(doneButton)
+            addSubview(navigationGroupView)
             addSubview(bottomDivider)
             addSubview(addButton)
         }
@@ -387,11 +460,16 @@ extension SchedulesSheetViewController {
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
+            onWindowAttached?(window)
             syncEditorPresentation()
         }
 
         func configure(with configuration: SchedulesAppKitConfiguration) {
             self.configuration = configuration
+            layer?.backgroundColor = resolvedAppKitCGColor(
+                NSColor.windowBackgroundColor,
+                appearance: effectiveAppearance
+            )
 
             applyAddButtonStyle(accentColor: configuration.accentColor)
             applyToolbarStyle(accentColor: configuration.accentColor)
@@ -401,10 +479,10 @@ extension SchedulesSheetViewController {
             viewModeControl.isHidden = false
             viewModeControl.selectedSegment = configuration.viewMode
             let showsCalendar = configuration.viewMode == 1
+            navigationGroupView.isHidden = !showsCalendar
             previousWeekButton.isHidden = !showsCalendar
             todayButton.isHidden = !showsCalendar
             nextWeekButton.isHidden = !showsCalendar
-            doneButton.isHidden = configuration.onDismiss == nil
 
             listDocumentView.configure(
                 schedules: configuration.schedules,
@@ -543,31 +621,29 @@ extension SchedulesSheetViewController {
             )
         }
 
-        private func configureIconButton(_ button: NSButton, symbolName: String) {
+        private func configureNavigationGroup() {
+            [previousWeekButton, todayButton, nextWeekButton].forEach { navigationGroupView.addSubview($0) }
+        }
+
+        private func configureNavigationButton(_ button: NSButton, symbolName: String) {
             configureAppKitIconButton(
                 button,
                 symbolName: symbolName,
-                pointSize: 11,
-                weight: .semibold,
-                color: .secondaryLabelColor,
-                backgroundColor: NSColor.labelColor.withAlphaComponent(0.06),
-                cornerRadius: 14
+                pointSize: 8,
+                weight: .medium,
+                color: .labelColor.withAlphaComponent(0.9),
+                backgroundColor: NSColor.white.withAlphaComponent(0.08),
+                cornerRadius: 12,
+                imageInset: 8
             )
         }
 
         private func configureTodayButton() {
             todayButton.isBordered = false
             todayButton.wantsLayer = true
-            todayButton.layer?.cornerRadius = 8
-            todayButton.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.04).cgColor
+            todayButton.layer?.cornerRadius = 11
+            todayButton.layer?.cornerCurve = .continuous
             todayButton.font = .systemFont(ofSize: 12, weight: .semibold)
-        }
-
-        private func configureDoneButton() {
-            doneButton.isBordered = false
-            doneButton.wantsLayer = true
-            doneButton.layer?.cornerRadius = 8
-            doneButton.font = .systemFont(ofSize: 13, weight: .semibold)
         }
 
         private func applyAddButtonStyle(accentColor: NSColor) {
@@ -582,21 +658,19 @@ extension SchedulesSheetViewController {
         }
 
         private func applyToolbarStyle(accentColor: NSColor) {
+            navigationGroupView.layer?.backgroundColor = nil
+            previousWeekButton.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.08).cgColor
+            nextWeekButton.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.08).cgColor
+            previousWeekButton.contentTintColor = .labelColor.withAlphaComponent(0.9)
+            nextWeekButton.contentTintColor = .labelColor.withAlphaComponent(0.9)
             todayButton.attributedTitle = NSAttributedString(
                 string: "Today",
                 attributes: [
                     .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
-                    .foregroundColor: accentColor,
+                    .foregroundColor: NSColor.labelColor,
                 ]
             )
-            doneButton.layer?.backgroundColor = accentColor.cgColor
-            doneButton.attributedTitle = NSAttributedString(
-                string: "Done",
-                attributes: [
-                    .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
-                    .foregroundColor: NSColor.white,
-                ]
-            )
+            todayButton.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.08).cgColor
         }
 
         private func layoutToolbar(in rect: CGRect) {
@@ -605,8 +679,6 @@ extension SchedulesSheetViewController {
             let modeLabelSize = viewModeLabel.intrinsicContentSize
             let centerWidth = modeLabelSize.width + centerSpacing + segmentedSize.width
             let centerOriginX = rect.midX - centerWidth / 2
-            let doneSize = CGSize(width: 58, height: 32)
-            let doneOriginX = rect.maxX - 16 - doneSize.width
 
             viewModeLabel.frame = CGRect(
                 x: centerOriginX,
@@ -629,37 +701,35 @@ extension SchedulesSheetViewController {
                 height: titleSize.height
             )
 
-            let navButtonSize = CGSize(width: 28, height: 28)
-            let todaySize = CGSize(width: 54, height: 28)
+            let navButtonSize = CGSize(width: 24, height: 24)
+            let todaySize = CGSize(width: 52, height: 24)
             let navSpacing: CGFloat = 8
             let totalNavWidth = navButtonSize.width * 2 + todaySize.width + navSpacing * 2
-            let navOriginX = doneButton.isHidden
-                ? rect.maxX - 16 - totalNavWidth
-                : doneOriginX - 12 - totalNavWidth
+            let navOriginX = rect.maxX - 16 - totalNavWidth
 
-            previousWeekButton.frame = CGRect(
+            navigationGroupView.frame = CGRect(
                 x: navOriginX,
                 y: rect.minY + floor((rect.height - navButtonSize.height) / 2),
+                width: totalNavWidth,
+                height: navButtonSize.height
+            )
+            previousWeekButton.frame = CGRect(
+                x: 0,
+                y: 0,
                 width: navButtonSize.width,
                 height: navButtonSize.height
             )
             todayButton.frame = CGRect(
                 x: previousWeekButton.frame.maxX + navSpacing,
-                y: rect.minY + floor((rect.height - todaySize.height) / 2),
+                y: 0,
                 width: todaySize.width,
                 height: todaySize.height
             )
             nextWeekButton.frame = CGRect(
                 x: todayButton.frame.maxX + navSpacing,
-                y: rect.minY + floor((rect.height - navButtonSize.height) / 2),
+                y: 0,
                 width: navButtonSize.width,
                 height: navButtonSize.height
-            )
-            doneButton.frame = CGRect(
-                x: doneOriginX,
-                y: rect.minY + floor((rect.height - doneSize.height) / 2),
-                width: doneSize.width,
-                height: doneSize.height
             )
         }
 
@@ -688,10 +758,6 @@ extension SchedulesSheetViewController {
             configuration?.onNextWeek()
         }
 
-        @objc
-        private func dismissSheet() {
-            configuration?.onDismiss?()
-        }
     }
 
     private final class SchedulesListDocumentNSView: NSView {

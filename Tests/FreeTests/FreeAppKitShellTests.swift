@@ -47,6 +47,35 @@ struct FreeAppKitShellTests {
         #expect(controller.selectedSidebarBackgroundColorForTesting == expectedColor)
     }
 
+    @Test("FreeMainViewController keeps the pomodoro controller and widget stable across tab switches")
+    func mainViewControllerKeepsPomodoroStableAcrossTabSwitches() {
+        let appState = isolatedAppState(name: "pomodoroTabSwitch")
+        appState.isTrusted = true
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .pomodoro,
+            initialShowSidebar: true
+        )
+
+        controller.loadViewIfNeeded()
+
+        let initialPomodoroController = controller.currentContentViewControllerForTesting as? FocusSectionViewController
+        let initialPomodoroWidgetIdentifier = controller.pomodoroWidgetIdentifierForTesting
+
+        #expect(initialPomodoroController != nil)
+        #expect(initialPomodoroWidgetIdentifier != nil)
+        #expect(controller.currentFocusSectionForTesting == .pomodoro)
+
+        controller.selectSectionForTesting(.focus)
+        #expect(controller.currentFocusSectionForTesting == .all)
+
+        controller.selectSectionForTesting(.pomodoro)
+
+        #expect(controller.currentFocusSectionForTesting == .pomodoro)
+        #expect(controller.currentContentViewControllerForTesting as? FocusSectionViewController === initialPomodoroController)
+        #expect(controller.pomodoroWidgetIdentifierForTesting == initialPomodoroWidgetIdentifier)
+    }
+
     @Test("SchedulesSheetViewController manages editor state without SwiftUI hosting")
     func schedulesSheetViewControllerEditorFlow() {
         let controller = SchedulesSheetViewController(
@@ -62,5 +91,30 @@ struct FreeAppKitShellTests {
         controller.openAddScheduleForTesting()
 
         #expect(controller.editorContextForTesting != nil)
+    }
+
+    @Test("FreeMainViewController blocks tab switches while floating windows are open")
+    func mainViewControllerBlocksTabSwitchesWhenFloatingWindowIsOpen() {
+        let appState = isolatedAppState(name: "tabSwitchBlockedByWindow")
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+
+        controller.loadViewIfNeeded()
+        #expect(controller.selectedSectionForTesting == .focus)
+
+        controller.setPresentedWindowStatesForTesting(showRules: true, showSchedules: false)
+        controller.selectSectionForTesting(.pomodoro)
+        #expect(controller.selectedSectionForTesting == .focus)
+
+        controller.setPresentedWindowStatesForTesting(showRules: false, showSchedules: true)
+        controller.selectSectionForTesting(.settings)
+        #expect(controller.selectedSectionForTesting == .focus)
+
+        controller.setPresentedWindowStatesForTesting(showRules: false, showSchedules: false)
+        controller.selectSectionForTesting(.pomodoro)
+        #expect(controller.selectedSectionForTesting == .pomodoro)
     }
 }

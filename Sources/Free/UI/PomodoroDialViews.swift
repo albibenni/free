@@ -165,6 +165,10 @@ final class PomodoroDurationDialView: NSView {
 
     var durationMinutesForTesting: Double { durationMinutes }
 
+    func setDurationMinutes(_ minutes: Double) {
+        durationMinutes = minutes
+    }
+
     private func applyInteraction(at point: CGPoint, commit: Bool) {
         guard bounds.width > 0, bounds.height > 0 else { return }
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
@@ -195,8 +199,8 @@ final class PomodoroProgressDialView: NSView {
     private let iconView = NSImageView()
     private let valueLabel = NSTextField(labelWithString: "")
     private let centerStack = NSStackView()
-    private let progress: Double
-    private let color: NSColor
+    private var progress: Double
+    private var color: NSColor
 
     override var intrinsicContentSize: NSSize {
         NSSize(width: 240, height: 240)
@@ -250,6 +254,24 @@ final class PomodoroProgressDialView: NSView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    func update(
+        progress: Double,
+        iconName: String,
+        color: NSColor,
+        centerText: String
+    ) {
+        self.progress = max(0, min(progress, 1))
+        self.color = color
+        iconView.image = appKitSymbolImage(
+            named: iconName,
+            pointSize: AppKitUIConstants.IconSize.extraLarge,
+            weight: .semibold,
+            color: color.withAlphaComponent(0.92)
+        )
+        valueLabel.stringValue = centerText
+        needsDisplay = true
     }
 
     override func draw(_ dirtyRect: NSRect) {

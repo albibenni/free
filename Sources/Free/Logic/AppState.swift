@@ -298,7 +298,7 @@ class AppState: ObservableObject {
     func addRule(_ rule: String, to setId: UUID) {
         if isStrictActive { return }
         updateSet(setId) { s in
-            let r = rule.trimmingCharacters(in: .whitespaces)
+            let r = rule.trimmingCharacters(in: .whitespacesAndNewlines)
             if !r.isEmpty && !s.urls.contains(r) { s.urls.append(r) }
         }
     }

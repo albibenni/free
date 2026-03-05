@@ -5,6 +5,21 @@ import Testing
 @testable import FreeLogic
 
 struct UIComponentTests {
+    private func rgbaComponents(_ cgColor: CGColor?) -> (CGFloat, CGFloat, CGFloat, CGFloat)? {
+        guard let cgColor,
+              let color = NSColor(cgColor: cgColor)?.usingColorSpace(.deviceRGB)
+        else {
+            return nil
+        }
+
+        return (
+            color.redComponent,
+            color.greenComponent,
+            color.blueComponent,
+            color.alphaComponent
+        )
+    }
+
 
     @Test("AddScheduleView configuration logic")
     func addScheduleViewLogic() {
@@ -83,11 +98,28 @@ struct UIComponentTests {
             action: {}
         )
 
-        #expect(plusButton.image != nil)
-        #expect(plusButton.imagePosition == .imageOnly)
+        #expect((plusButton as? AppKitSymbolControlButton)?.symbolNameForTesting == "plus.circle.fill")
         #expect(plusButton.isEnabled)
-        #expect(minusButton.image != nil)
+        #expect((minusButton as? AppKitSymbolControlButton)?.symbolNameForTesting == "minus.circle.fill")
         #expect(minusButton.isEnabled == false)
+    }
+
+    @Test("Shared AppKit icon button helper applies image inset when supported")
+    func sharedAppKitIconButtonInset() {
+        let button = IconInsetButton()
+        configureAppKitIconButton(
+            button,
+            symbolName: "chevron.left",
+            pointSize: 8,
+            weight: .medium,
+            color: .labelColor,
+            backgroundColor: .clear,
+            cornerRadius: 12,
+            imageInset: 2
+        )
+
+        #expect(button.image != nil)
+        #expect(button.imageInset == 2)
     }
 
     @Test("Shared AppKit pill and selectable-row helpers configure common controls")
@@ -108,9 +140,55 @@ struct UIComponentTests {
 
         #expect(pillButton.attributedTitle.string == "25/5")
         #expect(pillButton.image == nil)
-        #expect(rowButton.attributedTitle.string == "Default")
-        #expect(rowButton.image != nil)
-        #expect(rowButton.imageHugsTitle == false)
-        #expect(rowButton.subviews.contains { $0 is NSImageView })
+        #expect(rowButton.displayedTitleForTesting == "Default")
+        #expect(rowButton.isSelectedState)
+        #expect(rowButton.subviews.contains { $0 is NSStackView })
+    }
+
+    @Test("Shared AppKit selection button group applies accent to selected value")
+    func sharedAppKitSelectionButtonGroup() {
+        let control = AppKitSelectionButtonGroup(
+            options: [
+                AppKitSelectionButtonOption(title: "Focus", value: "focus"),
+                AppKitSelectionButtonOption(title: "Break", value: "break"),
+            ],
+            selectedValue: "focus",
+            accentColor: .systemOrange
+        )
+
+        #expect(control.selectedButtonTintColor == .systemOrange)
+
+        control.selectedValue = "break"
+        #expect(control.selectedButtonTintColor == .systemOrange)
+
+        control.accentColor = .systemPurple
+        #expect(control.selectedButtonTintColor == .systemPurple)
+        #expect(control.intrinsicContentSize.width > 80)
+        #expect(control.intrinsicContentSize.width < 220)
+        #expect(control.intrinsicContentSize.height == 26)
+    }
+
+    @Test("Dynamic AppKit color providers resolve inside the requested appearance")
+    func dynamicAppKitProviderResolution() {
+        let lightAppearance = NSAppearance(named: .aqua)
+        let darkAppearance = NSAppearance(named: .darkAqua)
+
+        let lightComponents = rgbaComponents(
+            resolvedAppKitCGColor(
+                { NSColor.controlBackgroundColor.withAlphaComponent(0.8) },
+                appearance: lightAppearance
+            )
+        )
+        let darkComponents = rgbaComponents(
+            resolvedAppKitCGColor(
+                { NSColor.controlBackgroundColor.withAlphaComponent(0.8) },
+                appearance: darkAppearance
+            )
+        )
+
+        #expect(lightComponents != nil)
+        #expect(darkComponents != nil)
+        #expect(lightComponents?.0 != darkComponents?.0)
+        #expect(lightComponents?.3 == darkComponents?.3)
     }
 }

@@ -146,6 +146,26 @@ struct SchedulesViewTests {
         #expect(controller.viewModeForTesting == 1)
     }
 
+    @Test("Schedules sheet controller skips full refresh for unrelated app-state changes")
+    @MainActor
+    func schedulesViewSkipsRefreshForUnrelatedStateChanges() {
+        let appState = isolatedAppState(name: "unrelatedRefresh")
+        appState.schedules = [sampleSchedule(name: "A")]
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: {},
+            initialViewMode: 1
+        )
+        _ = host(controller)
+        let initialRefreshGeneration = controller.refreshGenerationForTesting
+
+        appState.currentOpenUrls = ["https://example.com"]
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+
+        #expect(controller.refreshGenerationForTesting == initialRefreshGeneration)
+    }
+
     @Test("Schedules sheet controller exposes visible AppKit toolbar controls in calendar mode")
     @MainActor
     func schedulesViewCalendarModeShowsToolbarControls() {
@@ -167,7 +187,7 @@ struct SchedulesViewTests {
 
         let buttons = subviews.compactMap { $0 as? NSButton }
         #expect(buttons.contains(where: { !$0.isHidden && $0.title == "Today" }))
-        #expect(buttons.contains(where: { !$0.isHidden && $0.title == "Done" }))
+        #expect(buttons.contains(where: { !$0.isHidden && $0.title == "Done" }) == false)
     }
 
     @Test("Schedules sheet controller supports a preset editor context")

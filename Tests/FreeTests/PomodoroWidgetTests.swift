@@ -49,6 +49,17 @@ struct PomodoroWidgetTests {
         return all
     }
 
+    private func selectableRowButtons(in view: NSView) -> [AppKitSelectableRowButton] {
+        var all: [AppKitSelectableRowButton] = []
+        if let button = view as? AppKitSelectableRowButton {
+            all.append(button)
+        }
+        for subview in view.subviews {
+            all.append(contentsOf: selectableRowButtons(in: subview))
+        }
+        return all
+    }
+
     private func subviews<T: NSView>(ofType type: T.Type, in view: NSView) -> [T] {
         var all: [T] = []
         if let match = view as? T {
@@ -171,7 +182,7 @@ struct PomodoroWidgetTests {
 
         let hosted = host(FocusPomodoroWidgetView(appState: appState))
         let texts = visibleText(in: hosted)
-        let personalButton = buttons(in: hosted).first { $0.title == "Personal" }
+        let personalButton = selectableRowButtons(in: hosted).first { $0.displayedTitleForTesting == "Personal" }
 
         #expect(texts.contains("SELECT LIST"))
         #expect(personalButton?.isEnabled == true)
@@ -183,7 +194,7 @@ struct PomodoroWidgetTests {
         appState.isUnblockable = true
 
         let strictHosted = host(FocusPomodoroWidgetView(appState: appState))
-        let strictPersonalButton = buttons(in: strictHosted).first { $0.title == "Personal" }
+        let strictPersonalButton = selectableRowButtons(in: strictHosted).first { $0.displayedTitleForTesting == "Personal" }
         #expect(strictPersonalButton?.isEnabled == false)
         #expect(appState.activeRuleSetId == work.id)
     }

@@ -1,227 +1,29 @@
 import AppKit
 import Combine
 
-@MainActor
-final class FreeShellState: ObservableObject {
-    @Published var showSidebar = false
-    @Published var selectedSection: MainContentSection = .focus
-    @Published var showRules = false
-    @Published var showSchedules = false
-}
-
-final class FreeStatusItemController: NSObject {
-    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-    private let statusMenu = NSMenu()
-    private let statusLabelItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-    private let quitItem = NSMenuItem(title: "Quit", action: nil, keyEquivalent: "q")
-    private let onQuit: () -> Void
-
-    init(onQuit: @escaping () -> Void) {
-        self.onQuit = onQuit
-        super.init()
-
-        statusLabelItem.isEnabled = false
-        quitItem.target = self
-        quitItem.action = #selector(handleQuit)
-
-        statusMenu.addItem(statusLabelItem)
-        statusMenu.addItem(.separator())
-        statusMenu.addItem(quitItem)
-        statusItem.menu = statusMenu
-    }
-
-    func update(statusText: String, isQuitDisabled: Bool, iconColor: NSColor) {
-        statusLabelItem.title = statusText
-        quitItem.isEnabled = !isQuitDisabled
-
-        guard let button = statusItem.button else { return }
-        let configuration = NSImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
-        let image = NSImage(systemSymbolName: "leaf.fill", accessibilityDescription: nil)?
-            .withSymbolConfiguration(configuration)
-        image?.isTemplate = false
-        button.image = image
-        button.contentTintColor = iconColor
-    }
-
-    @objc
-    private func handleQuit() {
-        onQuit()
-    }
-}
-
-final class FreeSheetContainerViewController: NSViewController {
-    private let titleText: String
-    private let hostedController: NSViewController
-    private let onDone: () -> Void
-
-    private let titleLabel = NSTextField(labelWithString: "")
-    private let doneButton = NSButton(title: "Done", target: nil, action: nil)
-    private let divider = NSView()
-    private let contentContainer = NSView()
-
-    init(title: String, contentController: NSViewController, onDone: @escaping () -> Void) {
-        self.titleText = title
-        self.hostedController = contentController
-        self.onDone = onDone
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func loadView() {
-        view = NSView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-
-        titleLabel.stringValue = titleText
-        titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        doneButton.target = self
-        doneButton.action = #selector(handleDone)
-        doneButton.bezelStyle = .rounded
-        doneButton.controlSize = .regular
-
-        divider.wantsLayer = true
-        divider.layer?.backgroundColor = NSColor.separatorColor.cgColor
-
-        [titleLabel, doneButton, divider, contentContainer].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview($0)
-        }
-
-        addChild(hostedController)
-        let hostedView = hostedController.view
-        hostedView.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(hostedView)
-
-        NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            titleLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
-
-            doneButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            doneButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-
-            divider.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
-            divider.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            divider.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            divider.heightAnchor.constraint(equalToConstant: 1),
-
-            contentContainer.topAnchor.constraint(equalTo: divider.bottomAnchor),
-            contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            hostedView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
-            hostedView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
-            hostedView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
-            hostedView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
-        ])
-    }
-
-    @objc
-    private func handleDone() {
-        onDone()
-    }
-}
-
-final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
-    private let onClose: () -> Void
-    private var isClosingProgrammatically = false
-
-    init(
-        contentViewController: NSViewController,
-        contentSize: CGSize,
-        onClose: @escaping () -> Void
-    ) {
-        self.onClose = onClose
-
-        let window = NSWindow(contentViewController: contentViewController)
-        window.setContentSize(contentSize)
-        window.styleMask.insert(.fullSizeContentView)
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
-        window.isReleasedWhenClosed = false
-        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        window.standardWindowButton(.zoomButton)?.isHidden = true
-        window.standardWindowButton(.closeButton)?.isHidden = true
-
-        super.init(window: window)
-        window.delegate = self
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    func present(for parentWindow: NSWindow) {
-        guard let window else { return }
-        parentWindow.beginSheet(window)
-    }
-
-    func dismiss() {
-        guard let window else { return }
-        isClosingProgrammatically = true
-        if let parentWindow = window.sheetParent {
-            parentWindow.endSheet(window)
-        }
-        window.orderOut(nil)
-        isClosingProgrammatically = false
-        onClose()
-    }
-
-    func windowWillClose(_ notification: Notification) {
-        guard !isClosingProgrammatically else { return }
-        onClose()
-    }
-}
-
-final class FreeMainWindowController: NSWindowController {
-    init(rootViewController: NSViewController) {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 960, height: 820),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.center()
-        window.minSize = CGSize(width: 900, height: 800)
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
-        window.toolbarStyle = .unified
-        window.isReleasedWhenClosed = false
-        window.contentViewController = rootViewController
-        super.init(window: window)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-}
-
 final class FreeMainViewController: NSViewController {
     private let appState: AppState
     private let shellState: FreeShellState
-    private let focusSectionController: FocusSectionViewController
+    private let focusOverviewController: FocusSectionViewController
+    private let schedulesOverviewController: FocusSectionViewController
+    private let pomodoroSectionController: FocusSectionViewController
+    private let allowedWebsitesSectionController: FocusSectionViewController
     private let settingsSectionController: SettingsSectionViewController
 
-    private let sidebarContainer = NSView()
+    private let sidebarContainer = AppKitDynamicView()
     private let sidebarStack = NSStackView()
     private let headerRow = NSStackView()
     private let menuLabel = NSTextField(labelWithString: "Menu")
     private let sidebarToggleButton = NSButton()
-    private let sidebarDivider = NSView()
+    private let sidebarDivider = AppKitDynamicView()
     private let sectionButtonsStack = NSStackView()
-    private let settingsDivider = NSView()
-    private let contentDivider = NSView()
+    private let settingsDivider = AppKitDynamicView()
+    private let contentDivider = AppKitDynamicView()
     private let contentContainer = NSView()
 
     private var sectionButtons: [MainContentSection: NSButton] = [:]
     private var sidebarWidthConstraint: NSLayoutConstraint?
-    private var rulesSheetController: FreeSheetWindowController?
+    private var rulesSheetController: AllowedWebsitesSheetController?
     private var schedulesSheetController: FreeSheetWindowController?
     private var currentContentViewController: NSViewController?
     private var cancellables: Set<AnyCancellable> = []
@@ -236,12 +38,27 @@ final class FreeMainViewController: NSViewController {
         shellState.selectedSection = initialSection
         shellState.showSidebar = initialShowSidebar
         self.shellState = shellState
-        self.focusSectionController = FocusSectionViewController(
+        focusOverviewController = FocusSectionViewController(
             appState: appState,
             shellState: shellState,
             section: .all
         )
-        self.settingsSectionController = SettingsSectionViewController(appState: appState)
+        schedulesOverviewController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .schedules
+        )
+        pomodoroSectionController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .pomodoro
+        )
+        allowedWebsitesSectionController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .allowedWebsites
+        )
+        settingsSectionController = SettingsSectionViewController(appState: appState)
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -251,9 +68,9 @@ final class FreeMainViewController: NSViewController {
     }
 
     override func loadView() {
-        view = NSView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        let rootView = AppKitDynamicView()
+        rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
+        view = rootView
 
         configureSidebar()
         configureContent()
@@ -285,13 +102,11 @@ final class FreeMainViewController: NSViewController {
 
     private func configureSidebar() {
         sidebarContainer.translatesAutoresizingMaskIntoConstraints = false
-        sidebarContainer.wantsLayer = true
-        sidebarContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        sidebarContainer.backgroundColorProvider = { NSColor.windowBackgroundColor }
         view.addSubview(sidebarContainer)
 
         contentDivider.translatesAutoresizingMaskIntoConstraints = false
-        contentDivider.wantsLayer = true
-        contentDivider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        contentDivider.backgroundColorProvider = { NSColor.separatorColor }
         view.addSubview(contentDivider)
 
         sidebarStack.orientation = .vertical
@@ -312,8 +127,7 @@ final class FreeMainViewController: NSViewController {
         headerRow.addArrangedSubview(menuLabel)
         headerRow.addArrangedSubview(NSView())
 
-        sidebarDivider.wantsLayer = true
-        sidebarDivider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        sidebarDivider.backgroundColorProvider = { NSColor.separatorColor }
         sidebarDivider.translatesAutoresizingMaskIntoConstraints = false
         sidebarDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
         sidebarDivider.widthAnchor.constraint(equalToConstant: 156).isActive = true
@@ -328,8 +142,7 @@ final class FreeMainViewController: NSViewController {
             sectionButtonsStack.addArrangedSubview(button)
         }
 
-        settingsDivider.wantsLayer = true
-        settingsDivider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        settingsDivider.backgroundColorProvider = { NSColor.separatorColor }
         settingsDivider.translatesAutoresizingMaskIntoConstraints = false
         settingsDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
         settingsDivider.widthAnchor.constraint(equalToConstant: 156).isActive = true
@@ -397,7 +210,7 @@ final class FreeMainViewController: NSViewController {
             .removeDuplicates()
             .sink { [weak self] isShown in
                 guard let self else { return }
-                isShown ? self.presentRulesSheetIfNeeded() : self.dismissRulesSheetIfNeeded()
+                isShown ? presentRulesSheetIfNeeded() : dismissRulesSheetIfNeeded()
             }
             .store(in: &cancellables)
 
@@ -405,7 +218,7 @@ final class FreeMainViewController: NSViewController {
             .removeDuplicates()
             .sink { [weak self] isShown in
                 guard let self else { return }
-                isShown ? self.presentSchedulesSheetIfNeeded() : self.dismissSchedulesSheetIfNeeded()
+                isShown ? presentSchedulesSheetIfNeeded() : dismissSchedulesSheetIfNeeded()
             }
             .store(in: &cancellables)
     }
@@ -439,17 +252,13 @@ final class FreeMainViewController: NSViewController {
         case .settings:
             targetViewController = settingsSectionController
         case .focus:
-            focusSectionController.section = .all
-            targetViewController = focusSectionController
+            targetViewController = focusOverviewController
         case .schedules:
-            focusSectionController.section = .schedules
-            targetViewController = focusSectionController
+            targetViewController = schedulesOverviewController
         case .pomodoro:
-            focusSectionController.section = .pomodoro
-            targetViewController = focusSectionController
+            targetViewController = pomodoroSectionController
         case .allowedWebsites:
-            focusSectionController.section = .allowedWebsites
-            targetViewController = focusSectionController
+            targetViewController = allowedWebsitesSectionController
         }
 
         guard currentContentViewController !== targetViewController else { return }
@@ -471,9 +280,16 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func applySelectedSection(_ section: MainContentSection) {
+        if isTabSwitchBlockedByPresentedWindow, section != shellState.selectedSection {
+            return
+        }
         shellState.selectedSection = section
         updateSidebarSelection()
         updateContentController()
+    }
+
+    private var isTabSwitchBlockedByPresentedWindow: Bool {
+        shellState.showRules || shellState.showSchedules
     }
 
     private func configureIconButton(_ button: NSButton, symbolName: String) {
@@ -549,15 +365,17 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func presentRulesSheetIfNeeded() {
-        guard rulesSheetController == nil, let parentWindow = view.window else { return }
-
-        let rulesController = RulesSheetViewController(appState: appState)
-        let container = FreeSheetContainerViewController(title: "Allowed Websites", contentController: rulesController) { [weak self] in
-            self?.shellState.showRules = false
+        guard let parentWindow = view.window else { return }
+        if let rulesSheetController {
+            rulesSheetController.present(
+                for: parentWindow,
+                selectedRuleSetId: appState.activeRuleSetId
+            )
+            return
         }
-        let controller = FreeSheetWindowController(
-            contentViewController: container,
-            contentSize: CGSize(width: 700, height: 650)
+
+        let controller = AllowedWebsitesSheetController(
+            appState: appState
         ) { [weak self] in
             self?.rulesSheetController = nil
             if self?.shellState.showRules == true {
@@ -565,7 +383,10 @@ final class FreeMainViewController: NSViewController {
             }
         }
         rulesSheetController = controller
-        controller.present(for: parentWindow)
+        controller.present(
+            for: parentWindow,
+            selectedRuleSetId: appState.activeRuleSetId
+        )
     }
 
     private func dismissRulesSheetIfNeeded() {
@@ -575,14 +396,26 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func presentSchedulesSheetIfNeeded() {
-        guard schedulesSheetController == nil, let parentWindow = view.window else { return }
+        guard let parentWindow = view.window else { return }
+        if let attachedSheet = parentWindow.attachedSheet,
+           attachedSheet !== schedulesSheetController?.window
+        {
+            parentWindow.endSheet(attachedSheet)
+            attachedSheet.orderOut(nil)
+        }
+        if let schedulesSheetController {
+            schedulesSheetController.present(for: parentWindow)
+            return
+        }
 
         let schedulesController = SchedulesSheetViewController(appState: appState) { [weak self] in
             self?.shellState.showSchedules = false
         }
         let controller = FreeSheetWindowController(
             contentViewController: schedulesController,
-            contentSize: CGSize(width: 750, height: 700)
+            contentSize: CGSize(width: 750, height: 700),
+            presentsAsSheet: false,
+            showsNativeCloseButton: true
         ) { [weak self] in
             self?.schedulesSheetController = nil
             if self?.shellState.showSchedules == true {
@@ -625,6 +458,9 @@ extension FreeMainViewController {
     var currentFocusSectionForTesting: FocusContentSection? {
         (currentContentViewController as? FocusSectionViewController)?.section
     }
+    var pomodoroWidgetIdentifierForTesting: ObjectIdentifier? {
+        pomodoroSectionController.widgetViewIdentifierForTesting
+    }
     var selectedSidebarBackgroundColorForTesting: NSColor? {
         sectionButtons[shellState.selectedSection]?.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
     }
@@ -645,5 +481,10 @@ extension FreeMainViewController {
             return false
         }
         return color.alphaComponent > 0.01
+    }
+
+    func setPresentedWindowStatesForTesting(showRules: Bool, showSchedules: Bool) {
+        shellState.showRules = showRules
+        shellState.showSchedules = showSchedules
     }
 }
