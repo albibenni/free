@@ -139,6 +139,7 @@ final class MainSidebarView: AppKitDynamicView {
     }
 
     private func configureIconButton(_ button: NSButton) {
+        button.identifier = NSUserInterfaceItemIdentifier("sidebar.toggle")
         configureAppKitIconButton(
             button,
             symbol: AppKitUISymbols.sidebarToggle,

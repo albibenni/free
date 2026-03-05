@@ -20,6 +20,21 @@ struct UIComponentTests {
         )
     }
 
+    private func findButton(
+        with identifier: NSUserInterfaceItemIdentifier,
+        in view: NSView
+    ) -> NSButton? {
+        if let button = view as? NSButton, button.identifier == identifier {
+            return button
+        }
+        for subview in view.subviews {
+            if let button = findButton(with: identifier, in: subview) {
+                return button
+            }
+        }
+        return nil
+    }
+
 
     @Test("AddScheduleView configuration logic")
     func addScheduleViewLogic() {
@@ -190,5 +205,78 @@ struct UIComponentTests {
         #expect(darkComponents != nil)
         #expect(lightComponents?.0 != darkComponents?.0)
         #expect(lightComponents?.3 == darkComponents?.3)
+    }
+
+    @Test("Main sidebar selection callback routes to expected section controller")
+    @MainActor
+    func mainSidebarSelectionRoutesToExpectedController() {
+        let suite = "UIComponentTests.mainSidebarSelectionRoutesToExpectedController"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let appState = AppState(defaults: defaults, isTesting: true)
+        let shellState = FreeShellState()
+
+        let focusController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .all
+        )
+        let schedulesController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .schedules
+        )
+        let pomodoroController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .pomodoro
+        )
+        let allowedWebsitesController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .allowedWebsites
+        )
+        let settingsController = SettingsSectionViewController(appState: appState)
+        let router = MainSectionRouter(
+            focusOverviewController: focusController,
+            schedulesOverviewController: schedulesController,
+            pomodoroSectionController: pomodoroController,
+            allowedWebsitesSectionController: allowedWebsitesController,
+            settingsSectionController: settingsController
+        )
+
+        let sidebar = MainSidebarView(
+            selectedSection: .focus,
+            isSidebarVisible: true,
+            accentColorIndex: appState.accentColorIndex
+        )
+        sidebar.frame = NSRect(x: 0, y: 0, width: 220, height: 640)
+        sidebar.layoutSubtreeIfNeeded()
+        sidebar.displayIfNeeded()
+
+        var didToggle = false
+        sidebar.onToggleSidebar = { didToggle = true }
+
+        var selectedSection: MainContentSection?
+        var routedController: NSViewController?
+        sidebar.onSelectSection = { section in
+            selectedSection = section
+            routedController = router.controller(for: section)
+        }
+
+        let pomodoroButton = findButton(
+            with: NSUserInterfaceItemIdentifier(MainContentSection.pomodoro.rawValue),
+            in: sidebar
+        )
+        #expect(pomodoroButton != nil)
+        pomodoroButton?.performClick(nil)
+
+        #expect(selectedSection == .pomodoro)
+        #expect(routedController === pomodoroController)
+
+        let toggleButton = findButton(with: NSUserInterfaceItemIdentifier("sidebar.toggle"), in: sidebar)
+        #expect(toggleButton != nil)
+        toggleButton?.performClick(nil)
+        #expect(didToggle)
     }
 }
