@@ -93,7 +93,32 @@ struct RulesViewTests {
         #expect(importable.contains(where: { $0.rule == "github.com/issues" && !$0.isAlreadyAllowed }))
         #expect(importable.contains(where: { $0.rule == "youtube.com/watch?v=456" && !$0.isAlreadyAllowed }))
         #expect(importable.contains(where: { $0.rule == "youtube.com/watch?v=123" && $0.isAlreadyAllowed }))
-        #expect(importable.contains(where: { $0.rule == "google.com/search?q=1" && $0.isAlreadyAllowed }))
+        #expect(importable.contains(where: { $0.rule == "google.com/search?q=1" && !$0.isAlreadyAllowed }))
+
+        let importExactVsHost = RulesSectionSupport.importableWebsiteCandidates(
+            from: [
+                "https://youtube.com/watch?v=999",
+                "https://news.ycombinator.com/item?id=1",
+            ],
+            existing: RuleSet(
+                name: "ExactVsHost",
+                urls: ["https://youtube.com/watch?v=123", "news.ycombinator.com"]
+            )
+        )
+        #expect(importExactVsHost.contains(where: { $0.rule == "youtube.com/watch?v=999" && !$0.isAlreadyAllowed }))
+        #expect(importExactVsHost.contains(where: { $0.rule == "news.ycombinator.com/item?id=1" && !$0.isAlreadyAllowed }))
+
+        let wildcardRegression = RulesSectionSupport.importableWebsiteCandidates(
+            from: [
+                "https://www.youtube.com/watch?v=NZi0cJy8Eic",
+                "https://www.youtube.com/watch?v=abc123",
+            ],
+            existing: RuleSet(
+                name: "Wildcard Regression",
+                urls: ["https://gemini.google.com/*"]
+            )
+        )
+        #expect(wildcardRegression.allSatisfy { !$0.isAlreadyAllowed })
     }
 
     @Test("Rules sheet controller actions mutate rule-set state and UI state")

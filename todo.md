@@ -45,6 +45,7 @@
 - [ ] allow multiple selection to delete
 - [ ] check current open websites
   - [ ] add button to add for each listed website of the open
+- [ ] create new list
 
 ### Calendar
 

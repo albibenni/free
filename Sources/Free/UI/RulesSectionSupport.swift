@@ -43,9 +43,16 @@ enum RulesSectionSupport {
         return orderedRules.map { rule in
             OpenTabImportCandidate(
                 rule: rule,
-                isAlreadyAllowed: existing?.containsRule(rule) ?? false
+                isAlreadyAllowed: existing.map { isExactRuleAlreadyPresent(rule: rule, existing: $0) } ?? false
             )
         }
+    }
+
+    private static func isExactRuleAlreadyPresent(rule: String, existing: RuleSet) -> Bool {
+        let candidate = RuleMatcher.normalize(rule)
+        guard !candidate.isEmpty else { return false }
+
+        return existing.urls.contains { RuleMatcher.normalize($0) == candidate }
     }
 
     private static func websiteRule(from raw: String) -> String? {

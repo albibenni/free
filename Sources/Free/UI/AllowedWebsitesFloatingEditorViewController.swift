@@ -424,8 +424,8 @@ final class AllowedWebsitesFloatingEditorViewController:
             checkbox.title = candidate.isAlreadyAllowed
                 ? "\(candidate.rule) (already allowed)"
                 : candidate.rule
-            checkbox.state = candidate.isAlreadyAllowed ? .off : .on
-            checkbox.isEnabled = !candidate.isAlreadyAllowed
+            checkbox.state = .on
+            checkbox.isEnabled = true
             checkbox.font = .systemFont(ofSize: 12, weight: .regular)
             checkbox.alignment = .left
             return checkbox
@@ -475,7 +475,7 @@ final class AllowedWebsitesFloatingEditorViewController:
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
             for (index, checkbox) in importCandidateCheckboxes.enumerated()
-                where checkbox.isEnabled && checkbox.state == .on
+                where checkbox.state == .on
             {
                 appState.addSpecificRule(importCandidateRules[index], to: setId)
             }
