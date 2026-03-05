@@ -261,8 +261,31 @@ class AppState: ObservableObject {
         RuleSetService.removeRule(rule, from: setId, in: &ruleSets)
     }
     func deleteSet(id: UUID) {
-        if isStrictActive { return }
-        RuleSetService.deleteSet(id: id, in: &ruleSets, activeRuleSetId: &activeRuleSetId)
+        _ = RuleSetCoordinator.deleteRuleSet(
+            id: id,
+            in: &ruleSets,
+            activeRuleSetId: &activeRuleSetId,
+            isStrictActive: isStrictActive
+        )
+    }
+
+    @discardableResult
+    func createRuleSet(name: String, makeActive: Bool = false) -> RuleSet {
+        RuleSetCoordinator.createRuleSet(
+            name: name,
+            makeActive: makeActive,
+            in: &ruleSets,
+            activeRuleSetId: &activeRuleSetId
+        )
+    }
+
+    func selectActiveRuleSet(_ id: UUID) {
+        activeRuleSetId = RuleSetCoordinator.selectActiveRuleSet(
+            id,
+            in: ruleSets,
+            currentActiveRuleSetId: activeRuleSetId,
+            isStrictActive: isStrictActive
+        )
     }
 
     func saveSchedule(

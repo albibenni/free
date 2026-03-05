@@ -16,10 +16,7 @@ extension AllowedWebsitesFloatingEditorViewController {
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return }
 
-        let trimmed = input.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        let name = trimmed.isEmpty ? "New List" : trimmed
-        let newSet = RuleSet(name: name, urls: [])
-        appState.ruleSets.append(newSet)
+        let newSet = appState.createRuleSet(name: input.stringValue, makeActive: false)
         selectedRuleSetId = newSet.id
         reloadContent()
     }

@@ -476,8 +476,7 @@ final class RulesSheetViewController: NSViewController {
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return }
 
-        let newSet = RuleSet(name: input.stringValue, urls: [])
-        appState.ruleSets.append(newSet)
+        let newSet = appState.createRuleSet(name: input.stringValue, makeActive: false)
         selectedSetId = newSet.id
         reloadContent()
     }
@@ -541,8 +540,7 @@ extension RulesSheetViewController {
     var reloadGenerationForTesting: Int { reloadGeneration }
 
     func createSetForTesting(name: String) {
-        let newSet = RuleSet(name: name, urls: [])
-        appState.ruleSets.append(newSet)
+        let newSet = appState.createRuleSet(name: name, makeActive: false)
         selectedSetId = newSet.id
         reloadContent()
     }

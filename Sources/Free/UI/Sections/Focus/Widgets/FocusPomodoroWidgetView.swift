@@ -407,7 +407,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 isSelected: isSelected
             ) { [weak appState] in
                 guard let appState, !appState.isStrictActive else { return }
-                appState.activeRuleSetId = set.id
+                appState.selectActiveRuleSet(set.id)
             }
             ruleSetButtons[set.id] = button
             button.isEnabled = !appState.isStrictActive

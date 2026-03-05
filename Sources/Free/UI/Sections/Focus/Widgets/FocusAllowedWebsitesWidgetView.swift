@@ -34,8 +34,7 @@ final class FocusAllowedWebsitesWidgetView: AppKitCardView {
                     isSelected: appState.activeRuleSetId == set.id,
                     accentColor: accentColor
                 ) {
-                    guard !appState.isStrictActive else { return }
-                    appState.activeRuleSetId = set.id
+                    appState.selectActiveRuleSet(set.id)
                 }
                 button.isEnabled = !appState.isStrictActive
                 scrollView.stackView.addArrangedSubview(button)
