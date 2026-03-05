@@ -420,8 +420,8 @@ extension SchedulesSheetViewController {
 
             configureViewModeControl()
             configureNavigationGroup()
-            configureNavigationButton(previousWeekButton, symbolName: "chevron.left")
-            configureNavigationButton(nextWeekButton, symbolName: "chevron.right")
+            configureNavigationButton(previousWeekButton, symbolName: AppKitUISymbols.Name.chevronLeft)
+            configureNavigationButton(nextWeekButton, symbolName: AppKitUISymbols.Name.chevronRight)
             configureTodayButton()
             configureAddButton()
 
@@ -612,11 +612,11 @@ extension SchedulesSheetViewController {
             viewModeControl.setWidth(27, forSegment: 0)
             viewModeControl.setWidth(27, forSegment: 1)
             viewModeControl.setImage(
-                appKitSymbolImage(named: "list.bullet", pointSize: 11, weight: .regular),
+                appKitSymbolImage(spec: AppKitUISymbols.listMode),
                 forSegment: 0
             )
             viewModeControl.setImage(
-                appKitSymbolImage(named: "calendar", pointSize: 11, weight: .regular),
+                appKitSymbolImage(spec: AppKitUISymbols.calendarMode),
                 forSegment: 1
             )
         }
@@ -628,9 +628,11 @@ extension SchedulesSheetViewController {
         private func configureNavigationButton(_ button: NSButton, symbolName: String) {
             configureAppKitIconButton(
                 button,
-                symbolName: symbolName,
-                pointSize: 8,
-                weight: .medium,
+                symbol: AppKitUISymbolSpec(
+                    name: symbolName,
+                    pointSize: AppKitUISymbols.navChevron.pointSize,
+                    weight: AppKitUISymbols.navChevron.weight
+                ),
                 color: .labelColor.withAlphaComponent(0.9),
                 backgroundColor: NSColor.white.withAlphaComponent(0.08),
                 cornerRadius: 12,
@@ -842,9 +844,7 @@ extension SchedulesSheetViewController {
 
             deleteButton.isBordered = false
             deleteButton.image = appKitSymbolImage(
-                named: "trash",
-                pointSize: 13,
-                weight: .regular,
+                spec: AppKitUISymbols.deleteRule,
                 color: .systemRed
             )
             deleteButton.imagePosition = .imageOnly
@@ -955,9 +955,7 @@ extension SchedulesSheetViewController {
             let titleY: CGFloat = 10
 
             if let typeImage = appKitSymbolImage(
-                named: schedule.type == .focus ? "target" : "cup.and.saucer.fill",
-                pointSize: 11,
-                weight: .semibold,
+                spec: schedule.type == .focus ? AppKitUISymbols.scheduleTypeFocus : AppKitUISymbols.scheduleTypeBreak,
                 color: .secondaryLabelColor
             ) {
                 let iconRect = CGRect(x: titleX, y: titleY + 2, width: 11, height: 11)
@@ -977,7 +975,7 @@ extension SchedulesSheetViewController {
             if schedule.importedCalendarEventKey != nil {
                 drawBadge(
                     title: "Imported",
-                    symbolName: "calendar.badge.clock",
+                    symbolName: AppKitUISymbols.Name.importedCalendar,
                     in: CGRect(
                         x: max(titleRect.maxX + 8, contentLeft),
                         y: titleY - 1,
@@ -1030,9 +1028,7 @@ extension SchedulesSheetViewController {
             badgePath.fill()
 
             if let icon = appKitSymbolImage(
-                named: symbolName,
-                pointSize: 9,
-                weight: .semibold,
+                spec: AppKitUISymbols.importedBadge,
                 color: .secondaryLabelColor
             ) {
                 let iconRect = CGRect(x: rect.minX + 6, y: rect.minY + 4, width: 10, height: 10)

@@ -32,7 +32,7 @@ final class FocusSchedulesWidgetView: AppKitCardView {
         contentStack.addArrangedSubview(
             makeAppKitHeaderRow(
                 title: "Focus Schedules",
-                symbolName: "calendar",
+                symbolName: AppKitUISymbols.Name.schedules,
                 color: .systemPurple
             )
         )
@@ -168,7 +168,7 @@ final class FocusAllowedWebsitesWidgetView: AppKitCardView {
         contentStack.addArrangedSubview(
             makeAppKitHeaderRow(
                 title: "Allowed Websites",
-                symbolName: "globe",
+                symbolName: AppKitUISymbols.Name.globe,
                 color: .systemBlue
             )
         )
@@ -449,7 +449,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             : 0
         progressDialView?.update(
             progress: progress,
-            iconName: isFocus ? "leaf.fill" : "cup.and.saucer.fill",
+            iconName: isFocus ? AppKitUISymbols.Name.focus : AppKitUISymbols.Name.breakCup,
             color: isFocus ? accentColor : .systemOrange,
             centerText: appState.timeString(time: appState.pomodoroRemaining)
         )
@@ -474,9 +474,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     private func makePomodoroHeader() -> NSView {
         let chevronView = NSImageView()
         chevronView.image = appKitSymbolImage(
-            named: "chevron.up",
-            pointSize: 11,
-            weight: .semibold,
+            spec: AppKitUISymbols.toggleSidebarChevron,
             color: .secondaryLabelColor
         )
         chevronView.translatesAutoresizingMaskIntoConstraints = false
@@ -485,7 +483,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
 
         return makeAppKitHeaderRow(
             title: "Pomodoro Mode",
-            symbolName: "timer",
+            symbolName: AppKitUISymbols.Name.pomodoro,
             color: .systemRed,
             trailingView: chevronView
         )
@@ -533,7 +531,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
 
             let focusColumn = makeDurationDialColumn(
                 title: "FOCUS",
-                iconName: "leaf.fill",
+                iconName: AppKitUISymbols.Name.focus,
                 duration: appState.pomodoroFocusDuration,
                 maxMinutes: 120
             ) { [weak appState] minutes in
@@ -542,7 +540,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             }
             let breakColumn = makeDurationDialColumn(
                 title: "BREAK",
-                iconName: "cup.and.saucer.fill",
+                iconName: AppKitUISymbols.Name.breakCup,
                 duration: appState.pomodoroBreakDuration,
                 maxMinutes: 60
             ) { [weak appState] minutes in
@@ -577,7 +575,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             : 0
         let progressView = PomodoroProgressDialView(
             progress: progress,
-            iconName: appState.pomodoroStatus == .focus ? "leaf.fill" : "cup.and.saucer.fill",
+            iconName: appState.pomodoroStatus == .focus ? AppKitUISymbols.Name.focus : AppKitUISymbols.Name.breakCup,
             color: appState.pomodoroStatus == .focus ? accentColor : .systemOrange,
             centerText: appState.timeString(time: appState.pomodoroRemaining)
         )
@@ -837,9 +835,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
 
         let iconView = NSImageView()
         iconView.image = appKitSymbolImage(
-            named: "link",
-            pointSize: 11,
-            weight: .regular,
+            spec: AppKitUISymbols.activeRuleSet,
             color: .secondaryLabelColor
         )
 

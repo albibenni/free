@@ -119,7 +119,7 @@ final class FreeMainViewController: NSViewController {
         headerRow.alignment = .centerY
         headerRow.spacing = 8
 
-        configureIconButton(sidebarToggleButton, symbolName: "sidebar.left")
+        configureIconButton(sidebarToggleButton)
         sidebarToggleButton.target = self
         sidebarToggleButton.action = #selector(toggleSidebar)
         menuLabel.font = .systemFont(ofSize: 13, weight: .semibold)
@@ -237,11 +237,13 @@ final class FreeMainViewController: NSViewController {
         settingsDivider.isHidden = !isVisible
         sectionButtons[.settings]?.isHidden = !isVisible
         sidebarWidthConstraint?.constant = isVisible ? 180 : 56
-        let symbolName = isVisible ? "sidebar.left" : "sidebar.right"
+        let symbolName = isVisible ? AppKitUISymbols.Name.sidebarLeft : AppKitUISymbols.Name.sidebarRight
         sidebarToggleButton.image = appKitSymbolImage(
-            named: symbolName,
-            pointSize: 13,
-            weight: .semibold,
+            spec: AppKitUISymbolSpec(
+                name: symbolName,
+                pointSize: AppKitUISymbols.sidebarToggle.pointSize,
+                weight: AppKitUISymbols.sidebarToggle.weight
+            ),
             color: .secondaryLabelColor
         )
     }
@@ -292,12 +294,10 @@ final class FreeMainViewController: NSViewController {
         shellState.showRules || shellState.showSchedules
     }
 
-    private func configureIconButton(_ button: NSButton, symbolName: String) {
+    private func configureIconButton(_ button: NSButton) {
         configureAppKitIconButton(
             button,
-            symbolName: symbolName,
-            pointSize: 13,
-            weight: .semibold,
+            symbol: AppKitUISymbols.sidebarToggle,
             color: .secondaryLabelColor,
             backgroundColor: NSColor.labelColor.withAlphaComponent(0.05),
             cornerRadius: 8
@@ -349,9 +349,11 @@ final class FreeMainViewController: NSViewController {
 
         button.layer?.backgroundColor = backgroundColor.cgColor
         button.image = appKitSymbolImage(
-            named: section.icon,
-            pointSize: 13,
-            weight: fontWeight,
+            spec: AppKitUISymbolSpec(
+                name: section.icon,
+                pointSize: AppKitUISymbols.sidebarSection.pointSize,
+                weight: fontWeight
+            ),
             color: iconColor
         )
         button.attributedTitle = NSAttributedString(

@@ -482,9 +482,9 @@ final class AppKitSelectableRowButton: ActionButton {
         title: String,
         isSelected: Bool,
         accentColor: NSColor,
-        leadingSelectedSymbol: String = "link.circle.fill",
-        leadingUnselectedSymbol: String = "link",
-        trailingSelectedSymbol: String? = "checkmark"
+        leadingSelectedSymbol: String = AppKitUISymbols.Name.linkSelected,
+        leadingUnselectedSymbol: String = AppKitUISymbols.Name.link,
+        trailingSelectedSymbol: String? = AppKitUISymbols.Name.checkmark
     ) {
         self.rowTitle = title
         self.accentColor = accentColor
@@ -779,6 +779,18 @@ func appKitSymbolImage(
     return baseImage.withSymbolConfiguration(configuration) ?? baseImage
 }
 
+func appKitSymbolImage(
+    spec: AppKitUISymbolSpec,
+    color: NSColor? = nil
+) -> NSImage? {
+    appKitSymbolImage(
+        named: spec.name,
+        pointSize: spec.pointSize,
+        weight: spec.weight,
+        color: color
+    )
+}
+
 func makeAppKitHeaderRow(
     title: String,
     symbolName: String,
@@ -816,9 +828,9 @@ func makeAppKitHeaderRow(
 func resolvedAppKitControlSymbolName(_ symbol: String) -> String {
     switch symbol {
     case "+":
-        return "plus.circle.fill"
+        return AppKitUISymbols.Name.plusFilled
     case "-":
-        return "minus.circle.fill"
+        return AppKitUISymbols.Name.minus
     default:
         return symbol
     }
@@ -858,6 +870,26 @@ func configureAppKitIconButton(
     if let insetButton = button as? IconInsetButton {
         insetButton.imageInset = imageInset
     }
+}
+
+func configureAppKitIconButton(
+    _ button: NSButton,
+    symbol: AppKitUISymbolSpec,
+    color: NSColor = .secondaryLabelColor,
+    backgroundColor: NSColor? = nil,
+    cornerRadius: CGFloat = 0,
+    imageInset: CGFloat = 0
+) {
+    configureAppKitIconButton(
+        button,
+        symbolName: symbol.name,
+        pointSize: symbol.pointSize,
+        weight: symbol.weight,
+        color: color,
+        backgroundColor: backgroundColor,
+        cornerRadius: cornerRadius,
+        imageInset: imageInset
+    )
 }
 
 func configureAppKitWindowButton(
@@ -978,9 +1010,9 @@ func makeAppKitSelectableRowButton(
     title: String,
     isSelected: Bool,
     accentColor: NSColor,
-    leadingSelectedSymbol: String = "link.circle.fill",
-    leadingUnselectedSymbol: String = "link",
-    trailingSelectedSymbol: String? = "checkmark",
+    leadingSelectedSymbol: String = AppKitUISymbols.Name.linkSelected,
+    leadingUnselectedSymbol: String = AppKitUISymbols.Name.link,
+    trailingSelectedSymbol: String? = AppKitUISymbols.Name.checkmark,
     height: CGFloat = 34,
     action: @escaping () -> Void
 ) -> AppKitSelectableRowButton {

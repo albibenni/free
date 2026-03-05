@@ -157,9 +157,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
         configureAppKitIconButton(
             closeButton,
-            symbolName: "xmark.circle.fill",
-            pointSize: 18,
-            weight: .regular,
+            symbol: AppKitUISymbols.closeEditor,
             color: .secondaryLabelColor
         )
         closeButton.onAction = onRequestClose
@@ -245,12 +243,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         badge.layer?.borderWidth = 0
 
         let icon = NSImageView()
-        icon.image = appKitSymbolImage(
-            named: "calendar.badge.clock",
-            pointSize: 13,
-            weight: .semibold,
-            color: .secondaryLabelColor
-        )
+        icon.image = appKitSymbolImage(spec: AppKitUISymbols.importedEditorBadge, color: .secondaryLabelColor)
 
         let label = NSTextField(labelWithString: "Imported from Calendar")
         label.font = .systemFont(ofSize: 13, weight: .semibold)

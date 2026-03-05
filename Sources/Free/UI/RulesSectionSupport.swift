@@ -15,7 +15,7 @@ enum RulesSectionSupport {
     }
 
     static func sidebarToggleIcon(isSidebarVisible: Bool) -> String {
-        isSidebarVisible ? "chevron.left" : "chevron.right"
+        isSidebarVisible ? AppKitUISymbols.Name.chevronLeft : AppKitUISymbols.Name.chevronRight
     }
 
     static func filterSuggestions(_ urls: [String], existing: RuleSet) -> [String] {

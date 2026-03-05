@@ -26,9 +26,7 @@ final class FreeStatusItemController: NSObject {
         quitItem.isEnabled = !isQuitDisabled
 
         guard let button = statusItem.button else { return }
-        let configuration = NSImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
-        let image = NSImage(systemSymbolName: "leaf.fill", accessibilityDescription: nil)?
-            .withSymbolConfiguration(configuration)
+        let image = appKitSymbolImage(spec: AppKitUISymbols.menuBar)
         image?.isTemplate = false
         button.image = image
         button.contentTintColor = iconColor

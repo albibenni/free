@@ -10,15 +10,15 @@ enum MainContentSection: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .focus:
-            return "leaf.fill"
+            return AppKitUISymbols.Name.focus
         case .schedules:
-            return "calendar"
+            return AppKitUISymbols.Name.schedules
         case .allowedWebsites:
-            return "lock.fill"
+            return AppKitUISymbols.Name.allowedWebsites
         case .pomodoro:
-            return "timer"
+            return AppKitUISymbols.Name.pomodoro
         case .settings:
-            return "gearshape.fill"
+            return AppKitUISymbols.Name.settings
         }
     }
 }

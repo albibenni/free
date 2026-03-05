@@ -264,7 +264,7 @@ final class FocusSectionViewController: NSViewController {
     private func applySharedState() {
         permissionWarningView.isHidden = appState.isTrusted
 
-        let headerIconName = "leaf.fill"
+        let headerIconName = AppKitUISymbols.Name.focus
         headerIconView.image = NSImage(
             systemSymbolName: headerIconName,
             accessibilityDescription: nil
@@ -325,7 +325,7 @@ final class FocusSectionViewController: NSViewController {
         permissionWarningView.layer?.backgroundColor = NSColor.systemRed.cgColor
         permissionWarningView.layer?.cornerRadius = 12
 
-        let icon = NSImageView(image: NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil) ?? NSImage())
+        let icon = NSImageView(image: NSImage(systemSymbolName: AppKitUISymbols.Name.warning, accessibilityDescription: nil) ?? NSImage())
         icon.contentTintColor = .white
 
         permissionTitleLabel.font = .systemFont(ofSize: 13, weight: .bold)
@@ -497,7 +497,7 @@ final class FocusSectionViewController: NSViewController {
         if shouldShowSchedules {
             overviewRowsStack.addArrangedSubview(
                 makeOverviewRow(
-                    iconName: "calendar",
+                    iconName: AppKitUISymbols.Name.schedules,
                     title: "Active Schedules",
                     value: activeScheduleNames.joined(separator: ", ")
                 )
@@ -507,7 +507,7 @@ final class FocusSectionViewController: NSViewController {
         if shouldShowAllowList, let currentRuleSet {
             overviewRowsStack.addArrangedSubview(
                 makeOverviewRow(
-                    iconName: "globe",
+                    iconName: AppKitUISymbols.Name.globe,
                     title: "Allow List",
                     value: "\(currentRuleSet.name) • \(currentRuleSet.urls.count) rules"
                 )
@@ -517,7 +517,7 @@ final class FocusSectionViewController: NSViewController {
         if shouldShowPomodoro {
             overviewRowsStack.addArrangedSubview(
                 makeOverviewRow(
-                    iconName: "timer",
+                    iconName: AppKitUISymbols.Name.pomodoro,
                     title: "Pomodoro",
                     value: "\(FocusSectionSupport.pomodoroPhaseLabel(status: appState.pomodoroStatus)) • \(appState.timeString(time: appState.pomodoroRemaining))"
                 )
@@ -1371,9 +1371,7 @@ final class RulesSheetViewController: NSViewController {
         let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
         configureAppKitIconButton(
             addRuleSetButton,
-            symbolName: "plus",
-            pointSize: 10,
-            weight: .bold,
+            symbol: AppKitUISymbols.addList,
             color: accentColor,
             backgroundColor: NSColor.labelColor.withAlphaComponent(0.06),
             cornerRadius: 11
@@ -1457,7 +1455,7 @@ final class RulesSheetViewController: NSViewController {
                 deleteButton.isBordered = false
                 deleteButton.identifier = NSUserInterfaceItemIdentifier(ruleSet.id.uuidString)
                 deleteButton.image = appKitSymbolImage(
-                    named: "minus.circle.fill",
+                    named: AppKitUISymbols.Name.minus,
                     pointSize: 15,
                     weight: .regular,
                     color: .systemRed
@@ -1511,9 +1509,7 @@ final class RulesSheetViewController: NSViewController {
                 deleteButton.isBordered = false
                 deleteButton.identifier = NSUserInterfaceItemIdentifier(rule)
                 deleteButton.image = appKitSymbolImage(
-                    named: "trash",
-                    pointSize: 13,
-                    weight: .regular,
+                    spec: AppKitUISymbols.deleteRule,
                     color: .systemRed
                 )
                 deleteButton.contentTintColor = .systemRed
@@ -1560,7 +1556,7 @@ final class RulesSheetViewController: NSViewController {
                     row.alignment = .centerY
                     row.spacing = 8
                     let icon = NSImageView(
-                        image: NSImage(systemSymbolName: "plus.circle", accessibilityDescription: nil) ?? NSImage()
+                        image: NSImage(systemSymbolName: AppKitUISymbols.Name.plusCircle, accessibilityDescription: nil) ?? NSImage()
                     )
                     icon.contentTintColor = .systemGreen
                     let label = NSTextField(labelWithString: suggestion)

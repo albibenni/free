@@ -595,11 +595,11 @@ enum WeeklyCalendarSupport {
     }
 
     static func primarySymbolName(for schedule: Schedule) -> String {
-        schedule.type == .focus ? "target" : "cup.and.saucer.fill"
+        schedule.type == .focus ? AppKitUISymbols.Name.target : AppKitUISymbols.Name.breakCup
     }
 
     static func importedSymbolName(for schedule: Schedule) -> String? {
-        schedule.importedCalendarEventKey != nil ? "calendar.badge.clock" : nil
+        schedule.importedCalendarEventKey != nil ? AppKitUISymbols.Name.importedCalendar : nil
     }
 
     private static func normalizedInterval(
