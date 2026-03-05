@@ -134,7 +134,18 @@ final class SchedulesSheetViewController: NSViewController {
 
     private func updateWindowTitle() {
         let title = viewMode == 1 ? "Schedules · Calendar" : "Schedules · List"
-        schedulesContainerView.window?.title = title
+        guard let window = schedulesContainerView.window else { return }
+        window.title = title
+
+        // AppKit can relayout titlebar controls when the title changes.
+        // Re-apply our custom close button size/position on the next runloop.
+        DispatchQueue.main.async {
+            configureAppKitWindowButton(
+                in: window,
+                type: .closeButton,
+                controlSize: .large
+            )
+        }
     }
 
     private func makeAppKitConfiguration() -> SchedulesAppKitConfiguration {

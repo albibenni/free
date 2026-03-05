@@ -415,8 +415,7 @@ final class FreeMainViewController: NSViewController {
             contentViewController: schedulesController,
             contentSize: CGSize(width: 750, height: 700),
             presentsAsSheet: false,
-            showsNativeCloseButton: true,
-            nativeCloseButtonSize: 22
+            showsNativeCloseButton: true
         ) { [weak self] in
             self?.schedulesSheetController = nil
             if self?.shellState.showSchedules == true {
