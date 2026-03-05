@@ -364,17 +364,21 @@ class AppState: ObservableObject {
     }
 
     func startPause(minutes: Double) {
-        guard isBlocking, minutes > 0 else { return }
-        isPaused = true
-        pauseRemaining = minutes * 60
+        let updated = PauseEngine.start(from: pauseEngineState, minutes: minutes, isBlocking: isBlocking)
+        guard updated != pauseEngineState else { return }
+        applyPauseEngineState(updated)
         let timer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
-            if self.pauseRemaining > 0 { self.pauseRemaining -= 1 } else { self.cancelPause() }
+            let ticked = PauseEngine.tick(from: self.pauseEngineState)
+            self.applyPauseEngineState(ticked)
+            if !ticked.isPaused {
+                self.cancelPause()
+            }
         }
         replacePauseTimer(with: timer)
     }
     func cancelPause() {
-        isPaused = false
+        applyPauseEngineState(PauseEngine.cancel(from: pauseEngineState))
         replacePauseTimer(with: nil)
     }
     func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }
@@ -525,6 +529,15 @@ class AppState: ObservableObject {
     private func setWasStartedBySchedule(_ value: Bool) {
         wasStartedBySchedule = value
         settingsStore.setWasStartedBySchedule(value)
+    }
+
+    private var pauseEngineState: PauseEngine.State {
+        PauseEngine.State(isPaused: isPaused, remaining: pauseRemaining)
+    }
+
+    private func applyPauseEngineState(_ state: PauseEngine.State) {
+        isPaused = state.isPaused
+        pauseRemaining = state.remaining
     }
 
     private var pomodoroEngineState: PomodoroEngine.State {
