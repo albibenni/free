@@ -560,7 +560,7 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
 
         let panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: desiredContentSize),
-            styleMask: [.titled, .closable, .utilityWindow, .resizable],
+            styleMask: [.titled, .closable, .resizable],
             backing: .buffered,
             defer: false
         )
@@ -620,17 +620,15 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
     private static func configureNativeCloseButton(in panel: NSPanel) {
         guard let closeButton = panel.standardWindowButton(.closeButton) else { return }
         closeButton.controlSize = .large
-        let targetSize: CGFloat = 18
-        if closeButton.frame.width < targetSize || closeButton.frame.height < targetSize {
-            let originalFrame = closeButton.frame
-            closeButton.setFrameSize(NSSize(width: targetSize, height: targetSize))
-            closeButton.setFrameOrigin(
-                NSPoint(
-                    x: originalFrame.origin.x,
-                    y: originalFrame.origin.y - ((targetSize - originalFrame.height) / 2)
-                )
+        let targetSize: CGFloat = 22
+        let originalFrame = closeButton.frame
+        closeButton.setFrameSize(NSSize(width: targetSize, height: targetSize))
+        closeButton.setFrameOrigin(
+            NSPoint(
+                x: originalFrame.origin.x,
+                y: originalFrame.origin.y - ((targetSize - originalFrame.height) / 2)
             )
-        }
+        )
     }
 
     func dismiss() {
