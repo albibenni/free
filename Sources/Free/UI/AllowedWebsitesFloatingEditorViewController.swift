@@ -459,14 +459,14 @@ final class AllowedWebsitesFloatingEditorViewController:
         styleHeaderIconButtons(color: accentColor)
     }
 
-    private func styleHeaderIconButtons(color: NSColor) {
+    private func styleHeaderIconButtons(color _: NSColor) {
         configureAppKitIconButton(
             createListButton,
             symbolName: "plus",
             pointSize: 12,
             weight: .bold,
-            color: color,
-            backgroundColor: color.withAlphaComponent(0.12),
+            color: .white,
+            backgroundColor: NSColor.controlBackgroundColor.withAlphaComponent(0.95),
             cornerRadius: 6
         )
         configureAppKitIconButton(
@@ -474,8 +474,8 @@ final class AllowedWebsitesFloatingEditorViewController:
             symbolName: "trash",
             pointSize: 11,
             weight: .semibold,
-            color: color,
-            backgroundColor: color.withAlphaComponent(0.12),
+            color: .white,
+            backgroundColor: NSColor.controlBackgroundColor.withAlphaComponent(0.95),
             cornerRadius: 6
         )
     }

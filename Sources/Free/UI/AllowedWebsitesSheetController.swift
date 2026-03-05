@@ -45,8 +45,7 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
         configureAppKitWindowButton(
             in: panel,
             type: .closeButton,
-            controlSize: .large,
-            targetSize: 22
+            controlSize: .large
         )
     }
 
@@ -63,8 +62,7 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
             configureAppKitWindowButton(
                 in: panel,
                 type: .closeButton,
-                controlSize: .large,
-                targetSize: 22
+                controlSize: .large
             )
         }
         if !window.isVisible {
