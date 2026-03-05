@@ -67,7 +67,13 @@ final class AllowedWebsitesFloatingEditorViewController:
     private var importCandidateCheckboxes: [NSButton] = []
     private var importCandidateRules: [String] = []
 
-    private let listPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let ruleSetScrollView = VerticalStackScrollContainer(
+        contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+    )
+    private var ruleSetListHeightConstraint: NSLayoutConstraint?
+    private var ruleSetButtons: [UUID: AppKitSelectableRowButton] = [:]
+    private let createListButton = NSButton()
+    private let deleteListButton = NSButton()
     private let urlField = VerticallyCenteredTextField(string: "")
     private let addButton = ActionButton(title: "Add")
     private let importOpenTabsButton = ActionButton(title: "Import Open Tabs")
@@ -92,16 +98,33 @@ final class AllowedWebsitesFloatingEditorViewController:
         rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
         view = rootView
 
-        let listLabel = NSTextField(labelWithString: "List")
+        let listLabel = makeAppKitSectionLabel("SELECT LIST")
         listLabel.font = .systemFont(ofSize: 12, weight: .semibold)
         listLabel.textColor = .secondaryLabelColor
 
-        listPopup.target = self
-        listPopup.action = #selector(handleRuleSetSelection)
-        listPopup.translatesAutoresizingMaskIntoConstraints = false
-        listPopup.widthAnchor.constraint(equalToConstant: 220).isActive = true
+        ruleSetScrollView.drawsBackground = false
+        ruleSetScrollView.borderType = .noBorder
+        ruleSetScrollView.hasVerticalScroller = true
+        ruleSetScrollView.autohidesScrollers = true
+        ruleSetScrollView.translatesAutoresizingMaskIntoConstraints = false
+        ruleSetListHeightConstraint = ruleSetScrollView.heightAnchor.constraint(equalToConstant: 74)
+        ruleSetListHeightConstraint?.isActive = true
 
-        let headerRow = NSStackView(views: [listLabel, listPopup, NSView()])
+        createListButton.target = self
+        createListButton.action = #selector(handleCreateRuleSet)
+        createListButton.translatesAutoresizingMaskIntoConstraints = false
+        createListButton.widthAnchor.constraint(equalToConstant: 24).isActive = true
+        createListButton.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        createListButton.toolTip = "Create list"
+
+        deleteListButton.target = self
+        deleteListButton.action = #selector(handleDeleteRuleSet)
+        deleteListButton.translatesAutoresizingMaskIntoConstraints = false
+        deleteListButton.widthAnchor.constraint(equalToConstant: 24).isActive = true
+        deleteListButton.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        deleteListButton.toolTip = "Delete list"
+
+        let headerRow = NSStackView(views: [listLabel, NSView(), createListButton, deleteListButton])
         headerRow.orientation = .horizontal
         headerRow.alignment = .centerY
         headerRow.spacing = 10
@@ -201,7 +224,7 @@ final class AllowedWebsitesFloatingEditorViewController:
         let divider = makeAppKitDividerView()
         divider.translatesAutoresizingMaskIntoConstraints = false
 
-        [headerRow, addRow, divider, tableContainer, footerRow].forEach {
+        [headerRow, ruleSetScrollView, addRow, divider, tableContainer, footerRow].forEach {
             view.addSubview($0)
         }
 
@@ -210,9 +233,13 @@ final class AllowedWebsitesFloatingEditorViewController:
             headerRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
             headerRow.topAnchor.constraint(equalTo: view.topAnchor, constant: 14),
 
+            ruleSetScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
+            ruleSetScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
+            ruleSetScrollView.topAnchor.constraint(equalTo: headerRow.bottomAnchor, constant: 8),
+
             addRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
             addRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
-            addRow.topAnchor.constraint(equalTo: headerRow.bottomAnchor, constant: 12),
+            addRow.topAnchor.constraint(equalTo: ruleSetScrollView.bottomAnchor, constant: 12),
 
             divider.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             divider.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -282,11 +309,47 @@ final class AllowedWebsitesFloatingEditorViewController:
     }
 
     @objc
-    private func handleRuleSetSelection() {
-        guard let selectedItem = listPopup.selectedItem else { return }
-        guard let rawId = selectedItem.representedObject as? String else { return }
-        selectedRuleSetId = UUID(uuidString: rawId)
-        reloadRulesOnly()
+    private func handleCreateRuleSet() {
+        guard !appState.isStrictActive else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "New Allowed List"
+        let input = NSTextField(string: "")
+        input.placeholderString = "List Name"
+        input.frame = CGRect(x: 0, y: 0, width: 260, height: 24)
+        alert.accessoryView = input
+        alert.addButton(withTitle: "Create")
+        alert.addButton(withTitle: "Cancel")
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return }
+
+        let trimmed = input.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = trimmed.isEmpty ? "New List" : trimmed
+        let newSet = RuleSet(name: name, urls: [])
+        appState.ruleSets.append(newSet)
+        selectedRuleSetId = newSet.id
+        reloadContent()
+    }
+
+    @objc
+    private func handleDeleteRuleSet() {
+        guard !appState.isStrictActive else { return }
+        guard appState.ruleSets.count > 1 else { return }
+        guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
+        guard let selectedSet = appState.ruleSets.first(where: { $0.id == setId }) else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Delete \"\(selectedSet.name)\"?"
+        alert.informativeText = "This removes the list and all its allowed websites."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return }
+
+        appState.deleteSet(id: setId)
+        selectedRuleSetId = resolvedRuleSetId(nil)
+        reloadContent()
     }
 
     @objc
@@ -322,30 +385,40 @@ final class AllowedWebsitesFloatingEditorViewController:
         let previousSelection = selectedRuleSetId
         let resolvedSelection = resolvedRuleSetId(previousSelection)
         selectedRuleSetId = resolvedSelection
-        reloadRuleSetPopup()
+        reloadRuleSetRows()
         reloadRulesOnly()
     }
 
-    private func reloadRuleSetPopup() {
-        let selectedRawValue = selectedRuleSetId?.uuidString
-        listPopup.removeAllItems()
-        for ruleSet in appState.ruleSets {
-            listPopup.addItem(withTitle: ruleSet.name)
-            listPopup.lastItem?.representedObject = ruleSet.id.uuidString
+    private func reloadRuleSetRows() {
+        let stack = ruleSetScrollView.stackView
+        for subview in stack.arrangedSubviews {
+            stack.removeArrangedSubview(subview)
+            subview.removeFromSuperview()
         }
-        if let selectedRawValue {
-            for (index, item) in listPopup.itemArray.enumerated() {
-                if (item.representedObject as? String) == selectedRawValue {
-                    listPopup.selectItem(at: index)
-                    break
-                }
+        ruleSetButtons.removeAll()
+
+        let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        for set in appState.ruleSets {
+            let button = makeAppKitSelectableRowButton(
+                title: set.name,
+                isSelected: selectedRuleSetId == set.id,
+                accentColor: accentColor
+            ) { [weak self] in
+                guard let self else { return }
+                guard !self.appState.isStrictActive else { return }
+                self.selectedRuleSetId = set.id
+                self.reloadRuleSetRows()
+                self.reloadRulesOnly()
             }
-        } else if listPopup.numberOfItems > 0 {
-            listPopup.selectItem(at: 0)
-            if let rawId = listPopup.selectedItem?.representedObject as? String {
-                selectedRuleSetId = UUID(uuidString: rawId)
-            }
+            button.isEnabled = !appState.isStrictActive
+            stack.addArrangedSubview(button)
+            button.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+            ruleSetButtons[set.id] = button
         }
+
+        let rowCount = max(appState.ruleSets.count, 1)
+        let desiredHeight = CGFloat(rowCount) * 38
+        ruleSetListHeightConstraint?.constant = min(max(desiredHeight, 38), 150)
     }
 
     private func reloadRulesOnly() {
@@ -363,6 +436,28 @@ final class AllowedWebsitesFloatingEditorViewController:
         styleActionButton(addButton, title: "Add", color: accentColor)
         styleActionButton(importOpenTabsButton, title: "Import Open Tabs", color: accentColor)
         styleActionButton(removeButton, title: "Remove Selected", color: accentColor)
+        styleHeaderIconButtons(color: accentColor)
+    }
+
+    private func styleHeaderIconButtons(color: NSColor) {
+        configureAppKitIconButton(
+            createListButton,
+            symbolName: "plus",
+            pointSize: 12,
+            weight: .bold,
+            color: color,
+            backgroundColor: color.withAlphaComponent(0.12),
+            cornerRadius: 6
+        )
+        configureAppKitIconButton(
+            deleteListButton,
+            symbolName: "trash",
+            pointSize: 11,
+            weight: .semibold,
+            color: color,
+            backgroundColor: color.withAlphaComponent(0.12),
+            cornerRadius: 6
+        )
     }
 
     private func styleActionButton(_ button: ActionButton, title: String, color: NSColor) {
@@ -393,7 +488,11 @@ final class AllowedWebsitesFloatingEditorViewController:
         addButton.isEnabled = canEdit
         importOpenTabsButton.isEnabled = canEdit
         removeButton.isEnabled = canRemove
-        listPopup.isEnabled = !appState.ruleSets.isEmpty
+        createListButton.isEnabled = !appState.isStrictActive
+        deleteListButton.isEnabled = !appState.isStrictActive && appState.ruleSets.count > 1
+        for button in ruleSetButtons.values {
+            button.isEnabled = !appState.isStrictActive
+        }
     }
 
     @objc

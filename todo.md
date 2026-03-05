@@ -66,6 +66,7 @@
 - [ ] cannot delete imported schdule
   - [ ] future impl: allow modification to calendar if flag is toggled
 - [ ] delete multiple scheduled day pop alert out
+- [ ] define in setting which allowed list should be used for imported schedule
 
 ## Bug
 
