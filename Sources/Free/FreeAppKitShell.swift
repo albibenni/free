@@ -134,14 +134,23 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
     private let onClose: () -> Void
     private let desiredContentSize: CGSize
     private var isClosingProgrammatically = false
+    private let showsNativeCloseButton: Bool
+    private let nativeCloseButtonSize: CGFloat?
+    private let presentsAsSheet: Bool
 
     init(
         contentViewController: NSViewController,
         contentSize: CGSize,
+        presentsAsSheet: Bool = true,
+        showsNativeCloseButton: Bool = false,
+        nativeCloseButtonSize: CGFloat? = nil,
         onClose: @escaping () -> Void
     ) {
         self.onClose = onClose
         desiredContentSize = contentSize
+        self.presentsAsSheet = presentsAsSheet
+        self.showsNativeCloseButton = showsNativeCloseButton
+        self.nativeCloseButtonSize = nativeCloseButtonSize
         contentViewController.preferredContentSize = contentSize
 
         let window = NSWindow(contentViewController: contentViewController)
@@ -150,16 +159,24 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
         window.minSize = contentSize
         window.backgroundColor = .windowBackgroundColor
         window.isOpaque = true
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
+        window.titleVisibility = presentsAsSheet ? .hidden : .visible
+        window.titlebarAppearsTransparent = presentsAsSheet
         window.isReleasedWhenClosed = false
         window.isRestorable = false
         window.standardWindowButton(.miniaturizeButton)?.isHidden = true
         window.standardWindowButton(.zoomButton)?.isHidden = true
-        window.standardWindowButton(.closeButton)?.isHidden = true
+        window.standardWindowButton(.closeButton)?.isHidden = !showsNativeCloseButton
 
         super.init(window: window)
         window.delegate = self
+        if showsNativeCloseButton {
+            configureAppKitWindowButton(
+                in: window,
+                type: .closeButton,
+                controlSize: .large,
+                targetSize: nativeCloseButtonSize
+            )
+        }
     }
 
     @available(*, unavailable)
@@ -169,9 +186,32 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
 
     func present(for parentWindow: NSWindow) {
         guard let window else { return }
+        if showsNativeCloseButton {
+            configureAppKitWindowButton(
+                in: window,
+                type: .closeButton,
+                controlSize: .large,
+                targetSize: nativeCloseButtonSize
+            )
+        }
         restoreDesiredContentSize()
-        parentWindow.beginSheet(window)
-        restoreDesiredContentSize()
+        if presentsAsSheet {
+            parentWindow.beginSheet(window)
+            restoreDesiredContentSize()
+            return
+        }
+        if !window.isVisible {
+            let origin = NSPoint(
+                x: parentWindow.frame.midX - (window.frame.width / 2),
+                y: parentWindow.frame.midY - (window.frame.height / 2)
+            )
+            window.setFrameOrigin(origin)
+        }
+        if window.parent !== parentWindow {
+            parentWindow.addChildWindow(window, ordered: .above)
+        }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     func restoreDesiredContentSize() {
@@ -197,8 +237,12 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
     func dismiss() {
         guard let window else { return }
         isClosingProgrammatically = true
-        if let parentWindow = window.sheetParent {
-            parentWindow.endSheet(window)
+        if presentsAsSheet {
+            if let parentWindow = window.sheetParent {
+                parentWindow.endSheet(window)
+            }
+        } else if let parentWindow = window.parent {
+            parentWindow.removeChildWindow(window)
         }
         window.orderOut(nil)
         isClosingProgrammatically = false
@@ -1062,7 +1106,7 @@ final class FreeMainViewController: NSViewController {
             attachedSheet.orderOut(nil)
         }
         if let schedulesSheetController {
-            schedulesSheetController.restoreDesiredContentSize()
+            schedulesSheetController.present(for: parentWindow)
             return
         }
 
@@ -1071,7 +1115,10 @@ final class FreeMainViewController: NSViewController {
         }
         let controller = FreeSheetWindowController(
             contentViewController: schedulesController,
-            contentSize: CGSize(width: 750, height: 700)
+            contentSize: CGSize(width: 750, height: 700),
+            presentsAsSheet: false,
+            showsNativeCloseButton: true,
+            nativeCloseButtonSize: 22
         ) { [weak self] in
             self?.schedulesSheetController = nil
             if self?.shellState.showSchedules == true {

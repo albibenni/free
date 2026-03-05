@@ -187,7 +187,7 @@ struct SchedulesViewTests {
 
         let buttons = subviews.compactMap { $0 as? NSButton }
         #expect(buttons.contains(where: { !$0.isHidden && $0.title == "Today" }))
-        #expect(buttons.contains(where: { !$0.isHidden && $0.title == "Done" }))
+        #expect(buttons.contains(where: { !$0.isHidden && $0.title == "Done" }) == false)
     }
 
     @Test("Schedules sheet controller supports a preset editor context")

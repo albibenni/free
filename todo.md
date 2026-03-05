@@ -93,7 +93,7 @@
   - [x] add impossible to use
   - [x] current website open not working
   - [x] close tab button small
-  - [x] FreeAppKitShell too big, refactor
+  - [ ] FreeAppKitShell too big, refactor
 
 - [ ] redo tests
   - [ ] coverage

@@ -364,7 +364,6 @@ extension SchedulesSheetViewController {
         private let previousWeekButton = IconInsetButton()
         private let todayButton = NSButton(title: "Today", target: nil, action: nil)
         private let nextWeekButton = IconInsetButton()
-        private let doneButton = NSButton(title: "Done", target: nil, action: nil)
         private let listScrollView = NSScrollView()
         private let listDocumentView = SchedulesListDocumentNSView()
         private let calendarView = WeeklyCalendarSurfaceNSView()
@@ -398,7 +397,6 @@ extension SchedulesSheetViewController {
             configureNavigationButton(previousWeekButton, symbolName: "chevron.left")
             configureNavigationButton(nextWeekButton, symbolName: "chevron.right")
             configureTodayButton()
-            configureDoneButton()
             configureAddButton()
 
             viewModeControl.target = self
@@ -409,8 +407,6 @@ extension SchedulesSheetViewController {
             todayButton.action = #selector(goToCurrentWeek)
             nextWeekButton.target = self
             nextWeekButton.action = #selector(goToNextWeek)
-            doneButton.target = self
-            doneButton.action = #selector(dismissSheet)
             addButton.target = self
             addButton.action = #selector(addSchedule)
 
@@ -428,7 +424,6 @@ extension SchedulesSheetViewController {
             addSubview(viewModeLabel)
             addSubview(viewModeControl)
             addSubview(navigationGroupView)
-            addSubview(doneButton)
             addSubview(bottomDivider)
             addSubview(addButton)
         }
@@ -461,7 +456,6 @@ extension SchedulesSheetViewController {
             previousWeekButton.isHidden = !showsCalendar
             todayButton.isHidden = !showsCalendar
             nextWeekButton.isHidden = !showsCalendar
-            doneButton.isHidden = configuration.onDismiss == nil
 
             listDocumentView.configure(
                 schedules: configuration.schedules,
@@ -625,13 +619,6 @@ extension SchedulesSheetViewController {
             todayButton.font = .systemFont(ofSize: 12, weight: .semibold)
         }
 
-        private func configureDoneButton() {
-            doneButton.isBordered = false
-            doneButton.wantsLayer = true
-            doneButton.layer?.cornerRadius = 8
-            doneButton.font = .systemFont(ofSize: 13, weight: .semibold)
-        }
-
         private func applyAddButtonStyle(accentColor: NSColor) {
             addButton.layer?.backgroundColor = accentColor.withAlphaComponent(0.12).cgColor
             addButton.attributedTitle = NSAttributedString(
@@ -657,14 +644,6 @@ extension SchedulesSheetViewController {
                 ]
             )
             todayButton.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.08).cgColor
-            doneButton.layer?.backgroundColor = accentColor.cgColor
-            doneButton.attributedTitle = NSAttributedString(
-                string: "Done",
-                attributes: [
-                    .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
-                    .foregroundColor: NSColor.white,
-                ]
-            )
         }
 
         private func layoutToolbar(in rect: CGRect) {
@@ -673,8 +652,6 @@ extension SchedulesSheetViewController {
             let modeLabelSize = viewModeLabel.intrinsicContentSize
             let centerWidth = modeLabelSize.width + centerSpacing + segmentedSize.width
             let centerOriginX = rect.midX - centerWidth / 2
-            let doneSize = CGSize(width: 58, height: 32)
-            let doneOriginX = rect.maxX - 16 - doneSize.width
 
             viewModeLabel.frame = CGRect(
                 x: centerOriginX,
@@ -701,9 +678,7 @@ extension SchedulesSheetViewController {
             let todaySize = CGSize(width: 52, height: 24)
             let navSpacing: CGFloat = 8
             let totalNavWidth = navButtonSize.width * 2 + todaySize.width + navSpacing * 2
-            let navOriginX = doneButton.isHidden
-                ? rect.maxX - 16 - totalNavWidth
-                : doneOriginX - 12 - totalNavWidth
+            let navOriginX = rect.maxX - 16 - totalNavWidth
 
             navigationGroupView.frame = CGRect(
                 x: navOriginX,
@@ -728,12 +703,6 @@ extension SchedulesSheetViewController {
                 y: 0,
                 width: navButtonSize.width,
                 height: navButtonSize.height
-            )
-            doneButton.frame = CGRect(
-                x: doneOriginX,
-                y: rect.minY + floor((rect.height - doneSize.height) / 2),
-                width: doneSize.width,
-                height: doneSize.height
             )
         }
 
@@ -762,10 +731,6 @@ extension SchedulesSheetViewController {
             configuration?.onNextWeek()
         }
 
-        @objc
-        private func dismissSheet() {
-            configuration?.onDismiss?()
-        }
     }
 
     private final class SchedulesListDocumentNSView: NSView {
