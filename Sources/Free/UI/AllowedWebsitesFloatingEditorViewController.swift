@@ -133,15 +133,15 @@ final class AllowedWebsitesFloatingEditorViewController:
         createListButton.target = self
         createListButton.action = #selector(handleCreateRuleSet)
         createListButton.translatesAutoresizingMaskIntoConstraints = false
-        createListButton.widthAnchor.constraint(equalToConstant: 24).isActive = true
-        createListButton.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        createListButton.widthAnchor.constraint(equalToConstant: 20).isActive = true
+        createListButton.heightAnchor.constraint(equalToConstant: 20).isActive = true
         createListButton.toolTip = "Create list"
 
         deleteListButton.target = self
         deleteListButton.action = #selector(handleDeleteRuleSet)
         deleteListButton.translatesAutoresizingMaskIntoConstraints = false
-        deleteListButton.widthAnchor.constraint(equalToConstant: 24).isActive = true
-        deleteListButton.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        deleteListButton.widthAnchor.constraint(equalToConstant: 20).isActive = true
+        deleteListButton.heightAnchor.constraint(equalToConstant: 20).isActive = true
         deleteListButton.toolTip = "Delete list"
 
         let headerRow = NSStackView(views: [listLabel, NSView(), createListButton, deleteListButton])
@@ -463,20 +463,20 @@ final class AllowedWebsitesFloatingEditorViewController:
         configureAppKitIconButton(
             createListButton,
             symbolName: "plus",
-            pointSize: 12,
+            pointSize: 10,
             weight: .bold,
-            color: .white,
-            backgroundColor: NSColor.controlBackgroundColor.withAlphaComponent(0.95),
-            cornerRadius: 6
+            color: NSColor.secondaryLabelColor,
+            backgroundColor: NSColor.controlBackgroundColor.withAlphaComponent(0.5),
+            cornerRadius: 5
         )
         configureAppKitIconButton(
             deleteListButton,
             symbolName: "trash",
-            pointSize: 11,
+            pointSize: 9.5,
             weight: .semibold,
-            color: .white,
-            backgroundColor: NSColor.controlBackgroundColor.withAlphaComponent(0.95),
-            cornerRadius: 6
+            color: NSColor.secondaryLabelColor,
+            backgroundColor: NSColor.controlBackgroundColor.withAlphaComponent(0.5),
+            cornerRadius: 5
         )
     }
 
