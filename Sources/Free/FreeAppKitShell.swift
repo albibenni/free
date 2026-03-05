@@ -136,6 +136,7 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
     private var isClosingProgrammatically = false
     private let showsNativeCloseButton: Bool
     private let nativeCloseButtonSize: CGFloat?
+    private let nativeCloseButtonXOffset: CGFloat
     private let presentsAsSheet: Bool
 
     init(
@@ -144,6 +145,7 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
         presentsAsSheet: Bool = true,
         showsNativeCloseButton: Bool = false,
         nativeCloseButtonSize: CGFloat? = nil,
+        nativeCloseButtonXOffset: CGFloat = 0,
         onClose: @escaping () -> Void
     ) {
         self.onClose = onClose
@@ -151,9 +153,26 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
         self.presentsAsSheet = presentsAsSheet
         self.showsNativeCloseButton = showsNativeCloseButton
         self.nativeCloseButtonSize = nativeCloseButtonSize
+        self.nativeCloseButtonXOffset = nativeCloseButtonXOffset
         contentViewController.preferredContentSize = contentSize
 
-        let window = NSWindow(contentViewController: contentViewController)
+        let window: NSWindow
+        if presentsAsSheet {
+            window = NSWindow(contentViewController: contentViewController)
+        } else {
+            let panel = NSPanel(
+                contentRect: NSRect(origin: .zero, size: contentSize),
+                styleMask: [.titled, .closable, .resizable],
+                backing: .buffered,
+                defer: false
+            )
+            panel.contentViewController = contentViewController
+            panel.level = .floating
+            panel.isFloatingPanel = true
+            panel.hidesOnDeactivate = false
+            panel.collectionBehavior = [.fullScreenAuxiliary, .moveToActiveSpace]
+            window = panel
+        }
         window.setContentSize(contentSize)
         window.contentMinSize = contentSize
         window.minSize = contentSize
@@ -174,7 +193,8 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
                 in: window,
                 type: .closeButton,
                 controlSize: .large,
-                targetSize: nativeCloseButtonSize
+                targetSize: nativeCloseButtonSize,
+                xOffset: nativeCloseButtonXOffset
             )
         }
     }
@@ -191,7 +211,8 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
                 in: window,
                 type: .closeButton,
                 controlSize: .large,
-                targetSize: nativeCloseButtonSize
+                targetSize: nativeCloseButtonSize,
+                xOffset: nativeCloseButtonXOffset
             )
         }
         restoreDesiredContentSize()

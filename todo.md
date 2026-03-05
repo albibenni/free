@@ -94,6 +94,7 @@
   - [x] current website open not working
   - [x] close tab button small
   - [ ] FreeAppKitShell too big, refactor
+  - [ ] new floating window don't follow tab 'connection'
 
 - [ ] redo tests
   - [ ] coverage

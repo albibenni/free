@@ -847,7 +847,9 @@ func configureAppKitWindowButton(
     in window: NSWindow,
     type: NSWindow.ButtonType,
     controlSize: NSControl.ControlSize = .regular,
-    targetSize: CGFloat? = nil
+    targetSize: CGFloat? = nil,
+    xOffset: CGFloat = 0,
+    yOffset: CGFloat = 0
 ) {
     guard let button = window.standardWindowButton(type) else { return }
     let originalFrame = button.frame
@@ -856,8 +858,8 @@ func configureAppKitWindowButton(
     button.setFrameSize(NSSize(width: targetSize, height: targetSize))
     button.setFrameOrigin(
         NSPoint(
-            x: originalFrame.origin.x,
-            y: originalFrame.origin.y - ((targetSize - originalFrame.height) / 2)
+            x: originalFrame.origin.x - ((targetSize - originalFrame.width) / 2) + xOffset,
+            y: originalFrame.origin.y - ((targetSize - originalFrame.height) / 2) + yOffset
         )
     )
 }

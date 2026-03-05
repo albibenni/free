@@ -72,8 +72,11 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     override func loadView() {
-        applyConfiguration()
+        schedulesContainerView.onWindowAttached = { [weak self] _ in
+            self?.updateWindowTitle()
+        }
         view = schedulesContainerView
+        applyConfiguration()
     }
 
     override func viewDidLoad() {
@@ -85,6 +88,11 @@ final class SchedulesSheetViewController: NSViewController {
                 self?.handleObservedAppStateChange()
             }
             .store(in: &cancellables)
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        updateWindowTitle()
     }
 
     private func handleObservedAppStateChange() {
@@ -121,6 +129,12 @@ final class SchedulesSheetViewController: NSViewController {
         renderSignature = RenderSignature(appState: appState)
         refreshGeneration += 1
         schedulesContainerView.configure(with: makeAppKitConfiguration())
+        updateWindowTitle()
+    }
+
+    private func updateWindowTitle() {
+        let title = viewMode == 1 ? "Schedules · Calendar" : "Schedules · List"
+        schedulesContainerView.window?.title = title
     }
 
     private func makeAppKitConfiguration() -> SchedulesAppKitConfiguration {
@@ -373,6 +387,7 @@ extension SchedulesSheetViewController {
         private var editorSheetController: FreeSheetWindowController?
         private var presentedEditorContextId: UUID?
         private var editorDismissShouldClearContext = true
+        var onWindowAttached: ((NSWindow?) -> Void)?
 
         override var isFlipped: Bool { true }
 
@@ -434,6 +449,7 @@ extension SchedulesSheetViewController {
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
+            onWindowAttached?(window)
             syncEditorPresentation()
         }
 
