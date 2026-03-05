@@ -10,22 +10,12 @@ final class FreeMainViewController: NSViewController {
     private let allowedWebsitesSectionController: FocusSectionViewController
     private let settingsSectionController: SettingsSectionViewController
 
-    private let sidebarContainer = AppKitDynamicView()
-    private let sidebarStack = NSStackView()
-    private let headerRow = NSStackView()
-    private let menuLabel = NSTextField(labelWithString: "Menu")
-    private let sidebarToggleButton = NSButton()
-    private let sidebarDivider = AppKitDynamicView()
-    private let sectionButtonsStack = NSStackView()
-    private let settingsDivider = AppKitDynamicView()
+    private let sidebarView: MainSidebarView
     private let contentDivider = AppKitDynamicView()
-    private let contentContainer = NSView()
+    private let contentHostView = MainContentHostView()
 
-    private var sectionButtons: [MainContentSection: NSButton] = [:]
-    private var sidebarWidthConstraint: NSLayoutConstraint?
     private var rulesSheetController: AllowedWebsitesSheetController?
     private var schedulesSheetController: FreeSheetWindowController?
-    private var currentContentViewController: NSViewController?
     private var cancellables: Set<AnyCancellable> = []
 
     init(
@@ -38,6 +28,11 @@ final class FreeMainViewController: NSViewController {
         shellState.selectedSection = initialSection
         shellState.showSidebar = initialShowSidebar
         self.shellState = shellState
+        sidebarView = MainSidebarView(
+            selectedSection: initialSection,
+            isSidebarVisible: initialShowSidebar,
+            accentColorIndex: appState.accentColorIndex
+        )
         focusOverviewController = FocusSectionViewController(
             appState: appState,
             shellState: shellState,
@@ -72,8 +67,7 @@ final class FreeMainViewController: NSViewController {
         rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
         view = rootView
 
-        configureSidebar()
-        configureContent()
+        configureLayout()
         updateSidebarVisibility()
         updateSidebarSelection()
         updateContentController()
@@ -100,94 +94,35 @@ final class FreeMainViewController: NSViewController {
         }
     }
 
-    private func configureSidebar() {
-        sidebarContainer.translatesAutoresizingMaskIntoConstraints = false
-        sidebarContainer.backgroundColorProvider = { NSColor.windowBackgroundColor }
-        view.addSubview(sidebarContainer)
+    private func configureLayout() {
+        sidebarView.onToggleSidebar = { [weak self] in
+            self?.toggleSidebar()
+        }
+        sidebarView.onSelectSection = { [weak self] section in
+            self?.applySelectedSection(section)
+        }
+        view.addSubview(sidebarView)
 
+        contentHostView.parentViewController = self
         contentDivider.translatesAutoresizingMaskIntoConstraints = false
         contentDivider.backgroundColorProvider = { NSColor.separatorColor }
         view.addSubview(contentDivider)
-
-        sidebarStack.orientation = .vertical
-        sidebarStack.alignment = .leading
-        sidebarStack.spacing = 12
-        sidebarStack.translatesAutoresizingMaskIntoConstraints = false
-        sidebarContainer.addSubview(sidebarStack)
-
-        headerRow.orientation = .horizontal
-        headerRow.alignment = .centerY
-        headerRow.spacing = 8
-
-        configureIconButton(sidebarToggleButton)
-        sidebarToggleButton.target = self
-        sidebarToggleButton.action = #selector(toggleSidebar)
-        menuLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        headerRow.addArrangedSubview(sidebarToggleButton)
-        headerRow.addArrangedSubview(menuLabel)
-        headerRow.addArrangedSubview(NSView())
-
-        sidebarDivider.backgroundColorProvider = { NSColor.separatorColor }
-        sidebarDivider.translatesAutoresizingMaskIntoConstraints = false
-        sidebarDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        sidebarDivider.widthAnchor.constraint(equalToConstant: 156).isActive = true
-
-        sectionButtonsStack.orientation = .vertical
-        sectionButtonsStack.alignment = .leading
-        sectionButtonsStack.spacing = 8
-
-        for section in [.focus, .schedules, .pomodoro, .allowedWebsites] as [MainContentSection] {
-            let button = sidebarButton(for: section)
-            sectionButtons[section] = button
-            sectionButtonsStack.addArrangedSubview(button)
-        }
-
-        settingsDivider.backgroundColorProvider = { NSColor.separatorColor }
-        settingsDivider.translatesAutoresizingMaskIntoConstraints = false
-        settingsDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        settingsDivider.widthAnchor.constraint(equalToConstant: 156).isActive = true
-
-        if let settingsButton = sectionButtons[.settings] {
-            settingsButton.removeFromSuperview()
-        }
-        let settingsButton = sidebarButton(for: .settings)
-        sectionButtons[.settings] = settingsButton
-
-        let spacer = NSView()
-        spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
-
-        [headerRow, sidebarDivider, sectionButtonsStack, spacer, settingsDivider, settingsButton]
-            .forEach { sidebarStack.addArrangedSubview($0) }
-
-        sidebarWidthConstraint = sidebarContainer.widthAnchor.constraint(equalToConstant: 56)
-        sidebarWidthConstraint?.isActive = true
+        view.addSubview(contentHostView)
 
         NSLayoutConstraint.activate([
-            sidebarContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            sidebarContainer.topAnchor.constraint(equalTo: view.topAnchor),
-            sidebarContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            sidebarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            sidebarView.topAnchor.constraint(equalTo: view.topAnchor),
+            sidebarView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            contentDivider.leadingAnchor.constraint(equalTo: sidebarContainer.trailingAnchor),
+            contentDivider.leadingAnchor.constraint(equalTo: sidebarView.trailingAnchor),
             contentDivider.topAnchor.constraint(equalTo: view.topAnchor),
             contentDivider.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             contentDivider.widthAnchor.constraint(equalToConstant: 1),
 
-            sidebarStack.leadingAnchor.constraint(equalTo: sidebarContainer.leadingAnchor, constant: 12),
-            sidebarStack.trailingAnchor.constraint(equalTo: sidebarContainer.trailingAnchor, constant: -12),
-            sidebarStack.topAnchor.constraint(equalTo: sidebarContainer.topAnchor, constant: 12),
-            sidebarStack.bottomAnchor.constraint(equalTo: sidebarContainer.bottomAnchor, constant: -12),
-        ])
-    }
-
-    private func configureContent() {
-        contentContainer.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(contentContainer)
-
-        NSLayoutConstraint.activate([
-            contentContainer.leadingAnchor.constraint(equalTo: contentDivider.trailingAnchor),
-            contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentContainer.topAnchor.constraint(equalTo: view.topAnchor),
-            contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            contentHostView.leadingAnchor.constraint(equalTo: contentDivider.trailingAnchor),
+            contentHostView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            contentHostView.topAnchor.constraint(equalTo: view.topAnchor),
+            contentHostView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
 
@@ -224,28 +159,14 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func updateSidebarSelection() {
-        for (section, button) in sectionButtons {
-            applySidebarButtonStyle(button, section: section, isSelected: shellState.selectedSection == section)
-        }
+        sidebarView.updateSelection(
+            selectedSection: shellState.selectedSection,
+            accentColorIndex: appState.accentColorIndex
+        )
     }
 
     private func updateSidebarVisibility() {
-        let isVisible = shellState.showSidebar
-        menuLabel.isHidden = !isVisible
-        sectionButtonsStack.isHidden = !isVisible
-        sidebarDivider.isHidden = !isVisible
-        settingsDivider.isHidden = !isVisible
-        sectionButtons[.settings]?.isHidden = !isVisible
-        sidebarWidthConstraint?.constant = isVisible ? 180 : 56
-        let symbolName = isVisible ? AppKitUISymbols.Name.sidebarLeft : AppKitUISymbols.Name.sidebarRight
-        sidebarToggleButton.image = appKitSymbolImage(
-            spec: AppKitUISymbolSpec(
-                name: symbolName,
-                pointSize: AppKitUISymbols.sidebarToggle.pointSize,
-                weight: AppKitUISymbols.sidebarToggle.weight
-            ),
-            color: .secondaryLabelColor
-        )
+        sidebarView.setSidebarVisible(shellState.showSidebar)
     }
 
     private func updateContentController() {
@@ -263,22 +184,7 @@ final class FreeMainViewController: NSViewController {
             targetViewController = allowedWebsitesSectionController
         }
 
-        guard currentContentViewController !== targetViewController else { return }
-
-        currentContentViewController?.view.removeFromSuperview()
-        currentContentViewController?.removeFromParent()
-
-        addChild(targetViewController)
-        let childView = targetViewController.view
-        childView.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(childView)
-        NSLayoutConstraint.activate([
-            childView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
-            childView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
-            childView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
-            childView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
-        ])
-        currentContentViewController = targetViewController
+        contentHostView.display(targetViewController)
     }
 
     private func applySelectedSection(_ section: MainContentSection) {
@@ -292,78 +198,6 @@ final class FreeMainViewController: NSViewController {
 
     private var isTabSwitchBlockedByPresentedWindow: Bool {
         shellState.showRules || shellState.showSchedules
-    }
-
-    private func configureIconButton(_ button: NSButton) {
-        configureAppKitIconButton(
-            button,
-            symbol: AppKitUISymbols.sidebarToggle,
-            color: .secondaryLabelColor,
-            backgroundColor: NSColor.labelColor.withAlphaComponent(0.05),
-            cornerRadius: 8
-        )
-        button.setButtonType(.momentaryChange)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.widthAnchor.constraint(equalToConstant: 28).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 28).isActive = true
-    }
-
-    private func sidebarButton(for section: MainContentSection) -> NSButton {
-        let button = LeadingInsetActionButton(title: section.rawValue)
-        button.identifier = NSUserInterfaceItemIdentifier(section.rawValue)
-        button.target = self
-        button.action = #selector(handleSidebarButton(_:))
-        button.leadingInset = 6
-        button.titleAdditionalInset = 6
-        button.isBordered = false
-        button.wantsLayer = true
-        button.layer?.cornerRadius = 10
-        button.imagePosition = .imageLeading
-        button.alignment = .left
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.widthAnchor.constraint(equalToConstant: 156).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 32).isActive = true
-        applySidebarButtonStyle(button, section: section, isSelected: shellState.selectedSection == section)
-        return button
-    }
-
-    private func applySidebarButtonStyle(
-        _ button: NSButton,
-        section: MainContentSection,
-        isSelected: Bool
-    ) {
-        let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
-        let backgroundColor =
-            isSelected
-            ? accentColor.withAlphaComponent(0.18)
-            : .clear
-        let titleColor =
-            isSelected
-            ? NSColor.labelColor
-            : NSColor.secondaryLabelColor
-        let iconColor =
-            isSelected
-            ? accentColor
-            : NSColor.secondaryLabelColor
-        let fontWeight: NSFont.Weight = isSelected ? .semibold : .medium
-
-        button.layer?.backgroundColor = backgroundColor.cgColor
-        button.image = appKitSymbolImage(
-            spec: AppKitUISymbolSpec(
-                name: section.icon,
-                pointSize: AppKitUISymbols.sidebarSection.pointSize,
-                weight: fontWeight
-            ),
-            color: iconColor
-        )
-        button.attributedTitle = NSAttributedString(
-            string: section.rawValue,
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 13, weight: fontWeight),
-                .foregroundColor: titleColor,
-            ]
-        )
-        button.needsDisplay = true
     }
 
     private func presentRulesSheetIfNeeded() {
@@ -434,40 +268,27 @@ final class FreeMainViewController: NSViewController {
         controller.dismiss()
     }
 
-    private func section(for identifier: NSUserInterfaceItemIdentifier?) -> MainContentSection? {
-        MainContentSection.allCases.first { section in
-            identifier?.rawValue == section.rawValue
-        }
-    }
-
-    @objc
     private func toggleSidebar() {
         shellState.showSidebar.toggle()
         updateSidebarVisibility()
-    }
-
-    @objc
-    private func handleSidebarButton(_ sender: NSButton) {
-        guard let section = section(for: sender.identifier) else { return }
-        applySelectedSection(section)
     }
 }
 
 extension FreeMainViewController {
     var isSidebarVisibleForTesting: Bool { shellState.showSidebar }
     var selectedSectionForTesting: MainContentSection { shellState.selectedSection }
-    var currentContentViewControllerForTesting: NSViewController? { currentContentViewController }
+    var currentContentViewControllerForTesting: NSViewController? { contentHostView.currentViewController }
     var currentFocusSectionForTesting: FocusContentSection? {
-        (currentContentViewController as? FocusSectionViewController)?.section
+        (contentHostView.currentViewController as? FocusSectionViewController)?.section
     }
     var pomodoroWidgetIdentifierForTesting: ObjectIdentifier? {
         pomodoroSectionController.widgetViewIdentifierForTesting
     }
     var selectedSidebarBackgroundColorForTesting: NSColor? {
-        sectionButtons[shellState.selectedSection]?.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
+        sidebarView.selectedBackgroundColor(for: shellState.selectedSection)
     }
     func sidebarButtonLeadingInsetForTesting(_ section: MainContentSection) -> CGFloat? {
-        (sectionButtons[section] as? LeadingInsetActionButton)?.leadingInset
+        sidebarView.leadingInset(for: section)
     }
 
     func selectSectionForTesting(_ section: MainContentSection) {
@@ -479,7 +300,7 @@ extension FreeMainViewController {
     }
 
     func isSidebarButtonSelectedForTesting(_ section: MainContentSection) -> Bool {
-        guard let color = sectionButtons[section]?.layer?.backgroundColor.flatMap(NSColor.init(cgColor:)) else {
+        guard let color = sidebarView.selectedBackgroundColor(for: section) else {
             return false
         }
         return color.alphaComponent > 0.01
