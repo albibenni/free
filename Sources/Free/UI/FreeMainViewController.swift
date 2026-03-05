@@ -13,9 +13,20 @@ final class FreeMainViewController: NSViewController {
     private let sidebarView: MainSidebarView
     private let contentDivider = AppKitDynamicView()
     private let contentHostView = MainContentHostView()
+    private lazy var sheetPresenter = MainSheetPresenter(
+        appState: appState,
+        onRulesDismissed: { [weak self] in
+            if self?.shellState.showRules == true {
+                self?.shellState.showRules = false
+            }
+        },
+        onSchedulesDismissed: { [weak self] in
+            if self?.shellState.showSchedules == true {
+                self?.shellState.showSchedules = false
+            }
+        }
+    )
 
-    private var rulesSheetController: AllowedWebsitesSheetController?
-    private var schedulesSheetController: FreeSheetWindowController?
     private var cancellables: Set<AnyCancellable> = []
 
     init(
@@ -145,7 +156,9 @@ final class FreeMainViewController: NSViewController {
             .removeDuplicates()
             .sink { [weak self] isShown in
                 guard let self else { return }
-                isShown ? presentRulesSheetIfNeeded() : dismissRulesSheetIfNeeded()
+                isShown
+                    ? sheetPresenter.presentRules(from: view.window)
+                    : sheetPresenter.dismissRules()
             }
             .store(in: &cancellables)
 
@@ -153,7 +166,9 @@ final class FreeMainViewController: NSViewController {
             .removeDuplicates()
             .sink { [weak self] isShown in
                 guard let self else { return }
-                isShown ? presentSchedulesSheetIfNeeded() : dismissSchedulesSheetIfNeeded()
+                isShown
+                    ? sheetPresenter.presentSchedules(from: view.window)
+                    : sheetPresenter.dismissSchedules()
             }
             .store(in: &cancellables)
     }
@@ -198,74 +213,6 @@ final class FreeMainViewController: NSViewController {
 
     private var isTabSwitchBlockedByPresentedWindow: Bool {
         shellState.showRules || shellState.showSchedules
-    }
-
-    private func presentRulesSheetIfNeeded() {
-        guard let parentWindow = view.window else { return }
-        if let rulesSheetController {
-            rulesSheetController.present(
-                for: parentWindow,
-                selectedRuleSetId: appState.activeRuleSetId
-            )
-            return
-        }
-
-        let controller = AllowedWebsitesSheetController(
-            appState: appState
-        ) { [weak self] in
-            self?.rulesSheetController = nil
-            if self?.shellState.showRules == true {
-                self?.shellState.showRules = false
-            }
-        }
-        rulesSheetController = controller
-        controller.present(
-            for: parentWindow,
-            selectedRuleSetId: appState.activeRuleSetId
-        )
-    }
-
-    private func dismissRulesSheetIfNeeded() {
-        guard let controller = rulesSheetController else { return }
-        rulesSheetController = nil
-        controller.dismiss()
-    }
-
-    private func presentSchedulesSheetIfNeeded() {
-        guard let parentWindow = view.window else { return }
-        if let attachedSheet = parentWindow.attachedSheet,
-           attachedSheet !== schedulesSheetController?.window
-        {
-            parentWindow.endSheet(attachedSheet)
-            attachedSheet.orderOut(nil)
-        }
-        if let schedulesSheetController {
-            schedulesSheetController.present(for: parentWindow)
-            return
-        }
-
-        let schedulesController = SchedulesSheetViewController(appState: appState) { [weak self] in
-            self?.shellState.showSchedules = false
-        }
-        let controller = FreeSheetWindowController(
-            contentViewController: schedulesController,
-            contentSize: CGSize(width: 750, height: 700),
-            presentsAsSheet: false,
-            showsNativeCloseButton: true
-        ) { [weak self] in
-            self?.schedulesSheetController = nil
-            if self?.shellState.showSchedules == true {
-                self?.shellState.showSchedules = false
-            }
-        }
-        schedulesSheetController = controller
-        controller.present(for: parentWindow)
-    }
-
-    private func dismissSchedulesSheetIfNeeded() {
-        guard let controller = schedulesSheetController else { return }
-        schedulesSheetController = nil
-        controller.dismiss()
     }
 
     private func toggleSidebar() {
