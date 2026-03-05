@@ -117,74 +117,42 @@ class AppState: ObservableObject {
     var isStrictActive: Bool { isBlocking && isUnblockable }
 
     var currentPrimaryRuleSetId: UUID? {
-        if pomodoroStatus == .focus {
-            return normalizedRuleSetId(pomodoroRuleSetId ?? activeRuleSetId)
-        }
-        if isBlocking && !wasStartedBySchedule {
-            return normalizedRuleSetId(activeRuleSetId)
-        }
-        let activeScheduleRuleSetIds = activeScheduleRuleSetIds()
-        if activeScheduleRuleSetIds.count == 1 {
-            return activeScheduleRuleSetIds[0]
-        }
-        if activeScheduleRuleSetIds.count > 1 {
-            return nil
-        }
-        return ruleSets.first?.id
+        RuleSetService.currentPrimaryRuleSetId(
+            ruleSets: ruleSets,
+            schedules: schedules,
+            activeRuleSetId: activeRuleSetId,
+            pomodoroRuleSetId: pomodoroRuleSetId,
+            isPomodoroFocus: pomodoroStatus == .focus,
+            isBlocking: isBlocking,
+            wasStartedBySchedule: wasStartedBySchedule
+        )
     }
 
     var currentPrimaryRuleSetName: String {
-        if pomodoroStatus != .focus && (!isBlocking || wasStartedBySchedule) {
-            let activeScheduleRuleSetIds = activeScheduleRuleSetIds()
-            if activeScheduleRuleSetIds.count > 1 {
-                return "Multiple Lists"
-            }
-        }
-        guard let id = currentPrimaryRuleSetId else { return "No List" }
-        return ruleSets.first { $0.id == id }?.name ?? "Unknown List"
+        RuleSetService.currentPrimaryRuleSetName(
+            ruleSets: ruleSets,
+            schedules: schedules,
+            currentPrimaryRuleSetId: currentPrimaryRuleSetId,
+            isPomodoroFocus: pomodoroStatus == .focus,
+            isBlocking: isBlocking,
+            wasStartedBySchedule: wasStartedBySchedule
+        )
     }
 
     var allowedRules: [String] {
-        if pomodoroStatus == .focus {
-            if let set = ruleSet(for: pomodoroRuleSetId ?? activeRuleSetId) {
-                return set.urls
-            }
-            return []
-        }
-
-        var urls = Set<String>()
-        schedules.filter { $0.isActive() && $0.type == .focus }.forEach { s in
-            if let id = s.ruleSetId, let set = ruleSets.first(where: { $0.id == id }) {
-                urls.formUnion(set.urls)
-            }
-        }
-        if isBlocking && !wasStartedBySchedule,
-            let set = ruleSet(for: activeRuleSetId)
-        {
-            urls.formUnion(set.urls)
-        }
-        if urls.isEmpty && isBlocking, let firstSet = ruleSets.first {
-            urls.formUnion(firstSet.urls)
-        }
-        return Array(urls)
+        RuleSetService.allowedRules(
+            ruleSets: ruleSets,
+            schedules: schedules,
+            activeRuleSetId: activeRuleSetId,
+            pomodoroRuleSetId: pomodoroRuleSetId,
+            isPomodoroFocus: pomodoroStatus == .focus,
+            isBlocking: isBlocking,
+            wasStartedBySchedule: wasStartedBySchedule
+        )
     }
 
     var todaySchedules: [Schedule] {
-        let now = Date()
-        let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: now)
-
-        return schedules.filter { s in
-            if let specificDate = s.date {
-                return calendar.isDate(specificDate, inSameDayAs: now)
-            }
-            return s.days.contains(weekday)
-        }
-        .sorted { s1, s2 in
-            let m1 = minutesFromMidnight(s1.startTime)
-            let m2 = minutesFromMidnight(s2.startTime)
-            return m1 < m2
-        }
+        ScheduleEngine.todaySchedules(from: schedules)
     }
 
     init(
@@ -287,57 +255,39 @@ class AppState: ObservableObject {
 
     func addRule(_ rule: String, to setId: UUID) {
         if isStrictActive { return }
-        updateSet(setId) { s in
-            let r = rule.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !r.isEmpty && !s.urls.contains(r) { s.urls.append(r) }
-        }
+        RuleSetService.addRule(rule, to: setId, in: &ruleSets)
     }
     func addSpecificRule(_ rule: String, to setId: UUID) {
         if isStrictActive { return }
-        updateSet(setId) { if !$0.urls.contains(rule) { $0.urls.append(rule) } }
+        RuleSetService.addSpecificRule(rule, to: setId, in: &ruleSets)
     }
     func removeRule(_ rule: String, from setId: UUID) {
         if isStrictActive { return }
-        updateSet(setId) { $0.urls.removeAll { $0 == rule } }
+        RuleSetService.removeRule(rule, from: setId, in: &ruleSets)
     }
     func deleteSet(id: UUID) {
         if isStrictActive { return }
-        ruleSets.removeAll { $0.id == id }
-        if activeRuleSetId == id { activeRuleSetId = ruleSets.first?.id }
+        RuleSetService.deleteSet(id: id, in: &ruleSets, activeRuleSetId: &activeRuleSetId)
     }
 
     func saveSchedule(
         name: String, days: Set<Int>, date: Date?, start: Date, end: Date, color: Int,
         type: ScheduleType, ruleSet: UUID?, existingId: UUID?, modifyAllDays: Bool, initialDay: Int?
     ) {
-        let finalName =
-            name.trimmingCharacters(in: .whitespaces).isEmpty
-            ? (type == .focus ? "Focus Session" : "Break Session") : name
-
-        if let id = existingId, let i = schedules.firstIndex(where: { $0.id == id }) {
-            if modifyAllDays {
-                schedules[i].name = finalName
-                schedules[i].days = days
-                schedules[i].date = date
-                schedules[i].startTime = start
-                schedules[i].endTime = end
-                schedules[i].colorIndex = color
-                schedules[i].type = type
-                schedules[i].ruleSetId = ruleSet
-            } else if let day = initialDay {
-                schedules[i].days.remove(day)
-                if schedules[i].days.isEmpty { schedules.remove(at: i) }
-                schedules.append(
-                    Schedule(
-                        name: finalName, days: [day], date: date, startTime: start, endTime: end,
-                        colorIndex: color, type: type, ruleSetId: ruleSet))
-            }
-        } else {
-            schedules.append(
-                Schedule(
-                    name: finalName, days: days, date: date, startTime: start, endTime: end,
-                    colorIndex: color, type: type, ruleSetId: ruleSet))
-        }
+        ScheduleEngine.saveSchedule(
+            in: &schedules,
+            name: name,
+            days: days,
+            date: date,
+            start: start,
+            end: end,
+            color: color,
+            type: type,
+            ruleSet: ruleSet,
+            existingId: existingId,
+            modifyAllDays: modifyAllDays,
+            initialDay: initialDay
+        )
     }
 
     func updateScheduleOccurrence(
@@ -348,56 +298,25 @@ class AppState: ObservableObject {
         start: Date,
         end: Date
     ) {
-        guard let index = schedules.firstIndex(where: { $0.id == id }) else { return }
-        let schedule = schedules[index]
-        guard schedule.importedCalendarEventKey == nil else { return }
-
-        if schedule.date != nil {
-            schedules[index].date = targetDate
-            schedules[index].days = [targetDay]
-            schedules[index].startTime = start
-            schedules[index].endTime = end
-            return
-        }
-
-        if schedule.days.count == 1, schedule.days.contains(originalDay) {
-            schedules[index].days = [targetDay]
-            schedules[index].startTime = start
-            schedules[index].endTime = end
-            return
-        }
-
-        schedules[index].days.remove(originalDay)
-        if schedules[index].days.isEmpty {
-            schedules.remove(at: index)
-        }
-
-        schedules.append(
-            Schedule(
-                name: schedule.name,
-                days: [targetDay],
-                startTime: start,
-                endTime: end,
-                isEnabled: schedule.isEnabled,
-                colorIndex: schedule.colorIndex,
-                type: schedule.type,
-                ruleSetId: schedule.ruleSetId
-            )
+        ScheduleEngine.updateScheduleOccurrence(
+            in: &schedules,
+            id: id,
+            originalDay: originalDay,
+            targetDay: targetDay,
+            targetDate: targetDate,
+            start: start,
+            end: end
         )
     }
 
     func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
-        if let i = schedules.firstIndex(where: { $0.id == id }) {
-            if !modifyAllDays, let day = initialDay {
-                schedules[i].days.remove(day)
-                if schedules[i].days.isEmpty {
-                    suppressImportedCalendarEventIfNeeded(schedules[i])
-                    schedules.remove(at: i)
-                }
-            } else {
-                suppressImportedCalendarEventIfNeeded(schedules[i])
-                schedules.remove(at: i)
-            }
+        if let deletedSchedule = ScheduleEngine.deleteSchedule(
+            in: &schedules,
+            id: id,
+            modifyAllDays: modifyAllDays,
+            initialDay: initialDay
+        ) {
+            suppressImportedCalendarEventIfNeeded(deletedSchedule)
         }
     }
 
@@ -418,9 +337,12 @@ class AppState: ObservableObject {
 
     func startPomodoro() {
         if pomodoroStatus == .none {
-            pomodoroRuleSetId = normalizedRuleSetId(activeRuleSetId)
+            pomodoroRuleSetId = RuleSetService.normalizeRuleSetId(activeRuleSetId, in: ruleSets)
         }
-        pomodoroRuleSetId = normalizedRuleSetId(pomodoroRuleSetId ?? activeRuleSetId)
+        pomodoroRuleSetId = RuleSetService.normalizeRuleSetId(
+            pomodoroRuleSetId ?? activeRuleSetId,
+            in: ruleSets
+        )
         pomodoroStatus = .focus
         pomodoroRemaining = pomodoroFocusDuration * 60
         pomodoroStartedAt = Date()
@@ -543,12 +465,6 @@ class AppState: ObservableObject {
         String(format: "%02d:%02d", Int(time) / 60, Int(time) % 60)
     }
 
-    private func updateSet(_ id: UUID, _ action: (inout RuleSet) -> Void) {
-        if let i = ruleSets.firstIndex(where: { $0.id == id }) {
-            action(&ruleSets[i])
-            ruleSets = ruleSets
-        }
-    }
     private func runTimer() {
         let timer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
@@ -561,35 +477,6 @@ class AppState: ObservableObject {
         replacePomodoroTimer(with: timer)
         checkSchedules()
     }
-    private func minutesFromMidnight(_ date: Date) -> Int {
-        let calendar = Calendar.current
-        return calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
-    }
-
-    private func normalizedRuleSetId(_ id: UUID?) -> UUID? {
-        if let id, ruleSets.contains(where: { $0.id == id }) {
-            return id
-        }
-        return ruleSets.first?.id
-    }
-
-    private func ruleSet(for id: UUID?) -> RuleSet? {
-        guard let normalizedId = normalizedRuleSetId(id) else { return nil }
-        return ruleSets.first(where: { $0.id == normalizedId })
-    }
-
-    private func activeScheduleRuleSetIds() -> [UUID] {
-        var orderedIds: [UUID] = []
-        for schedule in schedules {
-            guard schedule.isActive(), schedule.type == .focus else { continue }
-            guard let ruleSetId = schedule.ruleSetId,
-                !orderedIds.contains(ruleSetId)
-            else { continue }
-            orderedIds.append(ruleSetId)
-        }
-        return orderedIds
-    }
-
     private func mergedSchedulesWithImportedCalendarEvents(
         baseSchedules: [Schedule],
         preservedImportedByKey: [String: Schedule]
@@ -604,7 +491,7 @@ class AppState: ObservableObject {
                 return (key, schedule)
             }
         )
-        let defaultImportedRuleSetId = normalizedRuleSetId(activeRuleSetId)
+        let defaultImportedRuleSetId = RuleSetService.normalizeRuleSetId(activeRuleSetId, in: ruleSets)
 
         let importedSchedules = calendarProvider.events
             .sorted { $0.startDate < $1.startDate }
@@ -642,26 +529,18 @@ class AppState: ObservableObject {
     }
 
     private func automaticBlockingState() -> Bool {
-        // Schedule precedence is intentional:
-        // 1. Any active Break disables blocking.
-        // 2. If one or more Focus schedules remain active, their allowlists are merged.
-        // 3. Pomodoro Focus/Break behaves like Focus/Break in that same precedence model.
-        // 4. Meetings only act as a break-style override when calendar imports are not used as blocking time.
-        let active = schedules.filter { $0.isActive() }
-        let focusSchedules = active.filter { $0.type == .focus }
-        let activeFocusIds = Set(focusSchedules.map { $0.id })
-        manuallyPausedScheduleIds.formIntersection(activeFocusIds)
-
-        let hasFocus =
-            (focusSchedules.contains { !manuallyPausedScheduleIds.contains($0.id) })
-            || pomodoroStatus == .focus
-        let hasBreak = active.contains { $0.type == .unfocus } || pomodoroStatus == .breakTime
-        let hasMeeting =
-            calendarIntegrationEnabled && !isUnblockable
-            && !calendarImportsBlockTime
-            && calendarProvider.events.contains { $0.isActive() }
-
-        return hasFocus && !hasBreak && !hasMeeting
+        let result = ScheduleEngine.automaticBlockingState(
+            schedules: schedules,
+            manuallyPausedScheduleIds: manuallyPausedScheduleIds,
+            pomodoroIsFocus: pomodoroStatus == .focus,
+            pomodoroIsBreak: pomodoroStatus == .breakTime,
+            calendarIntegrationEnabled: calendarIntegrationEnabled,
+            isUnblockable: isUnblockable,
+            calendarImportsBlockTime: calendarImportsBlockTime,
+            calendarEvents: calendarProvider.events
+        )
+        manuallyPausedScheduleIds = result.normalizedManuallyPausedScheduleIds
+        return result.shouldBlock
     }
 
     private func synchronizeImportedCalendarSchedulesIfNeeded(
