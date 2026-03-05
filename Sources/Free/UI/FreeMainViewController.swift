@@ -9,6 +9,7 @@ final class FreeMainViewController: NSViewController {
     private let pomodoroSectionController: FocusSectionViewController
     private let allowedWebsitesSectionController: FocusSectionViewController
     private let settingsSectionController: SettingsSectionViewController
+    private let sectionRouter: MainSectionRouter
 
     private let sidebarView: MainSidebarView
     private let contentDivider = AppKitDynamicView()
@@ -65,6 +66,13 @@ final class FreeMainViewController: NSViewController {
             section: .allowedWebsites
         )
         settingsSectionController = SettingsSectionViewController(appState: appState)
+        sectionRouter = MainSectionRouter(
+            focusOverviewController: focusOverviewController,
+            schedulesOverviewController: schedulesOverviewController,
+            pomodoroSectionController: pomodoroSectionController,
+            allowedWebsitesSectionController: allowedWebsitesSectionController,
+            settingsSectionController: settingsSectionController
+        )
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -185,20 +193,7 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func updateContentController() {
-        let targetViewController: NSViewController
-        switch shellState.selectedSection {
-        case .settings:
-            targetViewController = settingsSectionController
-        case .focus:
-            targetViewController = focusOverviewController
-        case .schedules:
-            targetViewController = schedulesOverviewController
-        case .pomodoro:
-            targetViewController = pomodoroSectionController
-        case .allowedWebsites:
-            targetViewController = allowedWebsitesSectionController
-        }
-
+        let targetViewController = sectionRouter.controller(for: shellState.selectedSection)
         contentHostView.display(targetViewController)
     }
 
