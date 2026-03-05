@@ -60,12 +60,20 @@ final class AllowedWebsitesFloatingEditorViewController:
     NSTableViewDataSource,
     NSTableViewDelegate
 {
+    private struct RenderSignature: Equatable {
+        let ruleSets: [RuleSet]
+        let activeRuleSetId: UUID?
+        let isStrictActive: Bool
+        let accentColorIndex: Int
+    }
+
     private let appState: AppState
     private var selectedRuleSetId: UUID?
     private var visibleRules: [String] = []
     private var cancellables: Set<AnyCancellable> = []
     private var importCandidateCheckboxes: [NSButton] = []
     private var importCandidateRules: [String] = []
+    private var renderSignature: RenderSignature?
 
     private let ruleSetScrollView = VerticalStackScrollContainer(
         contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
@@ -282,9 +290,20 @@ final class AllowedWebsitesFloatingEditorViewController:
         appState.objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.reloadContent()
+                self?.handleObservedAppStateChange()
             }
             .store(in: &cancellables)
+        reloadContent()
+    }
+
+    private func handleObservedAppStateChange() {
+        let nextSignature = RenderSignature(
+            ruleSets: appState.ruleSets,
+            activeRuleSetId: appState.activeRuleSetId,
+            isStrictActive: appState.isStrictActive,
+            accentColorIndex: appState.accentColorIndex
+        )
+        guard renderSignature != nextSignature else { return }
         reloadContent()
     }
 
@@ -402,6 +421,12 @@ final class AllowedWebsitesFloatingEditorViewController:
     }
 
     private func reloadContent() {
+        renderSignature = RenderSignature(
+            ruleSets: appState.ruleSets,
+            activeRuleSetId: appState.activeRuleSetId,
+            isStrictActive: appState.isStrictActive,
+            accentColorIndex: appState.accentColorIndex
+        )
         let previousSelection = selectedRuleSetId
         let resolvedSelection = resolvedRuleSetId(previousSelection)
         selectedRuleSetId = resolvedSelection
@@ -442,10 +467,23 @@ final class AllowedWebsitesFloatingEditorViewController:
     }
 
     private func reloadRulesOnly() {
+        let previouslySelectedRule: String? = {
+            let row = tableView.selectedRow
+            guard row >= 0, row < visibleRules.count else { return nil }
+            return visibleRules[row]
+        }()
+
         visibleRules =
             appState.ruleSets.first(where: { $0.id == selectedRuleSetId })?.urls
             ?? []
         tableView.reloadData()
+
+        if let previouslySelectedRule,
+           let selectedIndex = visibleRules.firstIndex(of: previouslySelectedRule)
+        {
+            tableView.selectRowIndexes(IndexSet(integer: selectedIndex), byExtendingSelection: false)
+        }
+
         emptyLabel.isHidden = !visibleRules.isEmpty
         updateControlStates()
         applyButtonStyling()
