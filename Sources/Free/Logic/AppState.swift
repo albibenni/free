@@ -103,10 +103,11 @@ class AppState: ObservableObject {
     enum PomodoroStatus: String, Codable { case none, focus, breakTime }
 
     var isPomodoroLocked: Bool {
-        guard isUnblockable, pomodoroStatus != .none, let startedAt = pomodoroStartedAt else {
-            return false
-        }
-        return Date().timeIntervalSince(startedAt) > 10
+        PomodoroEngine.isLocked(
+            isUnblockable: isUnblockable,
+            status: pomodoroStatus,
+            startedAt: pomodoroStartedAt
+        )
     }
     var isStrictActive: Bool { isBlocking && isUnblockable }
 
@@ -330,22 +331,18 @@ class AppState: ObservableObject {
     }
 
     func startPomodoro() {
-        if pomodoroStatus == .none {
-            pomodoroRuleSetId = RuleSetService.normalizeRuleSetId(activeRuleSetId, in: ruleSets)
-        }
-        pomodoroRuleSetId = RuleSetService.normalizeRuleSetId(
-            pomodoroRuleSetId ?? activeRuleSetId,
-            in: ruleSets
+        let updated = PomodoroEngine.startFocus(
+            from: pomodoroEngineState,
+            focusDurationMinutes: pomodoroFocusDuration,
+            activeRuleSetId: activeRuleSetId,
+            ruleSets: ruleSets
         )
-        pomodoroStatus = .focus
-        pomodoroRemaining = pomodoroFocusDuration * 60
-        pomodoroStartedAt = Date()
+        applyPomodoroEngineState(updated)
         runTimer()
     }
     func stopPomodoro() {
         if !isPomodoroLocked {
-            pomodoroStatus = .none
-            pomodoroRuleSetId = nil
+            applyPomodoroEngineState(PomodoroEngine.stop(from: pomodoroEngineState))
             replacePomodoroTimer(with: nil)
             checkSchedules()
         }
@@ -358,8 +355,11 @@ class AppState: ObservableObject {
         }
     }
     private func startBreak() {
-        pomodoroStatus = .breakTime
-        pomodoroRemaining = pomodoroBreakDuration * 60
+        let updated = PomodoroEngine.startBreak(
+            from: pomodoroEngineState,
+            breakDurationMinutes: pomodoroBreakDuration
+        )
+        applyPomodoroEngineState(updated)
         runTimer()
     }
 
@@ -525,6 +525,22 @@ class AppState: ObservableObject {
     private func setWasStartedBySchedule(_ value: Bool) {
         wasStartedBySchedule = value
         settingsStore.setWasStartedBySchedule(value)
+    }
+
+    private var pomodoroEngineState: PomodoroEngine.State {
+        PomodoroEngine.State(
+            status: pomodoroStatus,
+            remaining: pomodoroRemaining,
+            startedAt: pomodoroStartedAt,
+            ruleSetId: pomodoroRuleSetId
+        )
+    }
+
+    private func applyPomodoroEngineState(_ state: PomodoroEngine.State) {
+        pomodoroStatus = state.status
+        pomodoroRemaining = state.remaining
+        pomodoroStartedAt = state.startedAt
+        pomodoroRuleSetId = state.ruleSetId
     }
 
     private func invalidateAllTimers() {
