@@ -1,60 +1,6 @@
 import AppKit
 import Combine
 
-final class VerticallyCenteredTextFieldCell: NSTextFieldCell {
-    override func drawingRect(forBounds rect: NSRect) -> NSRect {
-        var adjustedRect = super.drawingRect(forBounds: rect)
-        let textSize = cellSize(forBounds: rect)
-        let delta = floor((adjustedRect.height - textSize.height) / 2)
-        if delta > 0 {
-            adjustedRect.origin.y += delta
-            adjustedRect.size.height -= delta * 2
-        }
-        return adjustedRect
-    }
-
-    override func edit(
-        withFrame rect: NSRect,
-        in controlView: NSView,
-        editor textObj: NSText,
-        delegate: Any?,
-        event: NSEvent?
-    ) {
-        super.edit(
-            withFrame: drawingRect(forBounds: rect),
-            in: controlView,
-            editor: textObj,
-            delegate: delegate,
-            event: event
-        )
-    }
-
-    override func select(
-        withFrame rect: NSRect,
-        in controlView: NSView,
-        editor textObj: NSText,
-        delegate: Any?,
-        start selStart: Int,
-        length selLength: Int
-    ) {
-        super.select(
-            withFrame: drawingRect(forBounds: rect),
-            in: controlView,
-            editor: textObj,
-            delegate: delegate,
-            start: selStart,
-            length: selLength
-        )
-    }
-}
-
-final class VerticallyCenteredTextField: NSTextField {
-    override class var cellClass: AnyClass? {
-        get { VerticallyCenteredTextFieldCell.self }
-        set { }
-    }
-}
-
 final class AllowedWebsitesFloatingEditorViewController:
     NSViewController,
     NSTableViewDataSource,
@@ -128,38 +74,4 @@ final class AllowedWebsitesFloatingEditorViewController:
         reloadContent()
     }
 
-    func numberOfRows(in tableView: NSTableView) -> Int {
-        visibleRules.count
-    }
-
-    func tableView(
-        _ tableView: NSTableView,
-        viewFor tableColumn: NSTableColumn?,
-        row: Int
-    ) -> NSView? {
-        let identifier = NSUserInterfaceItemIdentifier("AllowedRuleCell")
-        let cellView =
-            (tableView.makeView(withIdentifier: identifier, owner: self) as? NSTableCellView)
-            ?? {
-                let cell = NSTableCellView()
-                cell.identifier = identifier
-                let label = NSTextField(labelWithString: "")
-                label.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
-                label.textColor = .labelColor
-                label.lineBreakMode = .byTruncatingMiddle
-                label.translatesAutoresizingMaskIntoConstraints = false
-                cell.addSubview(label)
-                cell.textField = label
-                NSLayoutConstraint.activate([
-                    label.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 8),
-                    label.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -8),
-                    label.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-                ])
-                return cell
-            }()
-        if row >= 0, row < visibleRules.count {
-            cellView.textField?.stringValue = visibleRules[row]
-        }
-        return cellView
-    }
 }
