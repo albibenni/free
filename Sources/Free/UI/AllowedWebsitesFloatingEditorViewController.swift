@@ -98,7 +98,7 @@ final class AllowedWebsitesFloatingEditorViewController:
         rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
         view = rootView
 
-        let listLabel = makeAppKitSectionLabel("SELECT LIST")
+        let listLabel = makeAppKitSectionLabel("LISTS")
         listLabel.font = .systemFont(ofSize: 12, weight: .semibold)
         listLabel.textColor = .secondaryLabelColor
 
@@ -109,6 +109,26 @@ final class AllowedWebsitesFloatingEditorViewController:
         ruleSetScrollView.translatesAutoresizingMaskIntoConstraints = false
         ruleSetListHeightConstraint = ruleSetScrollView.heightAnchor.constraint(equalToConstant: 74)
         ruleSetListHeightConstraint?.isActive = true
+
+        let listContainer = AppKitDynamicView()
+        listContainer.backgroundColorProvider = {
+            NSColor.controlBackgroundColor.withAlphaComponent(0.35)
+        }
+        listContainer.borderColorProvider = {
+            NSColor.separatorColor.withAlphaComponent(0.45)
+        }
+        listContainer.borderWidthValue = 1
+        listContainer.wantsLayer = true
+        listContainer.layer?.cornerRadius = 8
+        listContainer.translatesAutoresizingMaskIntoConstraints = false
+        listContainer.addSubview(ruleSetScrollView)
+
+        NSLayoutConstraint.activate([
+            ruleSetScrollView.leadingAnchor.constraint(equalTo: listContainer.leadingAnchor, constant: 8),
+            ruleSetScrollView.trailingAnchor.constraint(equalTo: listContainer.trailingAnchor, constant: -8),
+            ruleSetScrollView.topAnchor.constraint(equalTo: listContainer.topAnchor, constant: 8),
+            ruleSetScrollView.bottomAnchor.constraint(equalTo: listContainer.bottomAnchor, constant: -8),
+        ])
 
         createListButton.target = self
         createListButton.action = #selector(handleCreateRuleSet)
@@ -224,7 +244,7 @@ final class AllowedWebsitesFloatingEditorViewController:
         let divider = makeAppKitDividerView()
         divider.translatesAutoresizingMaskIntoConstraints = false
 
-        [headerRow, ruleSetScrollView, addRow, divider, tableContainer, footerRow].forEach {
+        [headerRow, listContainer, addRow, divider, tableContainer, footerRow].forEach {
             view.addSubview($0)
         }
 
@@ -233,13 +253,13 @@ final class AllowedWebsitesFloatingEditorViewController:
             headerRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
             headerRow.topAnchor.constraint(equalTo: view.topAnchor, constant: 14),
 
-            ruleSetScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
-            ruleSetScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
-            ruleSetScrollView.topAnchor.constraint(equalTo: headerRow.bottomAnchor, constant: 8),
+            listContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
+            listContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
+            listContainer.topAnchor.constraint(equalTo: headerRow.bottomAnchor, constant: 8),
 
             addRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 14),
             addRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -14),
-            addRow.topAnchor.constraint(equalTo: ruleSetScrollView.bottomAnchor, constant: 12),
+            addRow.topAnchor.constraint(equalTo: listContainer.bottomAnchor, constant: 12),
 
             divider.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             divider.trailingAnchor.constraint(equalTo: view.trailingAnchor),
