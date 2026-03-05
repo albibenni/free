@@ -1010,9 +1010,16 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func applySelectedSection(_ section: MainContentSection) {
+        if isTabSwitchBlockedByPresentedWindow, section != shellState.selectedSection {
+            return
+        }
         shellState.selectedSection = section
         updateSidebarSelection()
         updateContentController()
+    }
+
+    private var isTabSwitchBlockedByPresentedWindow: Bool {
+        shellState.showRules || shellState.showSchedules
     }
 
     private func configureIconButton(_ button: NSButton, symbolName: String) {
@@ -1205,5 +1212,10 @@ extension FreeMainViewController {
             return false
         }
         return color.alphaComponent > 0.01
+    }
+
+    func setPresentedWindowStatesForTesting(showRules: Bool, showSchedules: Bool) {
+        shellState.showRules = showRules
+        shellState.showSchedules = showSchedules
     }
 }

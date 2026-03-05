@@ -92,4 +92,29 @@ struct FreeAppKitShellTests {
 
         #expect(controller.editorContextForTesting != nil)
     }
+
+    @Test("FreeMainViewController blocks tab switches while floating windows are open")
+    func mainViewControllerBlocksTabSwitchesWhenFloatingWindowIsOpen() {
+        let appState = isolatedAppState(name: "tabSwitchBlockedByWindow")
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+
+        controller.loadViewIfNeeded()
+        #expect(controller.selectedSectionForTesting == .focus)
+
+        controller.setPresentedWindowStatesForTesting(showRules: true, showSchedules: false)
+        controller.selectSectionForTesting(.pomodoro)
+        #expect(controller.selectedSectionForTesting == .focus)
+
+        controller.setPresentedWindowStatesForTesting(showRules: false, showSchedules: true)
+        controller.selectSectionForTesting(.settings)
+        #expect(controller.selectedSectionForTesting == .focus)
+
+        controller.setPresentedWindowStatesForTesting(showRules: false, showSchedules: false)
+        controller.selectSectionForTesting(.pomodoro)
+        #expect(controller.selectedSectionForTesting == .pomodoro)
+    }
 }
