@@ -130,6 +130,42 @@ final class FreeApp {
 
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
+
+        let editMenuItem = NSMenuItem()
+        let editMenu = NSMenu(title: "Edit")
+
+        let undoItem = NSMenuItem(title: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        undoItem.target = nil
+        editMenu.addItem(undoItem)
+
+        let redoItem = NSMenuItem(title: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        redoItem.keyEquivalentModifierMask = [.command, .shift]
+        redoItem.target = nil
+        editMenu.addItem(redoItem)
+        editMenu.addItem(.separator())
+
+        let cutItem = NSMenuItem(title: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        cutItem.target = nil
+        editMenu.addItem(cutItem)
+
+        let copyItem = NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        copyItem.target = nil
+        editMenu.addItem(copyItem)
+
+        let pasteItem = NSMenuItem(title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        pasteItem.target = nil
+        editMenu.addItem(pasteItem)
+
+        let selectAllItem = NSMenuItem(
+            title: "Select All",
+            action: #selector(NSText.selectAll(_:)),
+            keyEquivalent: "a"
+        )
+        selectAllItem.target = nil
+        editMenu.addItem(selectAllItem)
+
+        editMenuItem.submenu = editMenu
+        mainMenu.addItem(editMenuItem)
         return mainMenu
     }
 
@@ -167,7 +203,15 @@ final class FreeApp {
     }
 
     func applyMacOSAppearance(_ mode: AppearanceMode) {
-        NSApp.appearance = Self.nsAppearance(for: mode)
+        let appearance = Self.nsAppearance(for: mode)
+        NSApp.appearance = appearance
+
+        for window in NSApp.windows {
+            window.appearance = appearance
+            window.contentView?.needsLayout = true
+            window.contentView?.needsDisplay = true
+            window.contentView?.subviews.forEach { $0.needsDisplay = true }
+        }
     }
 
     private func bindStateIfNeeded() {

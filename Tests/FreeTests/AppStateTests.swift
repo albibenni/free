@@ -1492,6 +1492,9 @@ struct AppStateTests {
 
         appState.addRule(" google.com ", to: id)
         #expect(appState.ruleSets[0].urls.count == count, "Should trim and detect duplicate")
+
+        appState.addRule("google.com\n", to: id)
+        #expect(appState.ruleSets[0].urls.count == count, "Should trim newlines and detect duplicate")
     }
 
     @Test("Negative: Stop Pomodoro when locked without challenge")

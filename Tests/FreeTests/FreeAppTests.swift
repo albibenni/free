@@ -67,7 +67,7 @@ struct FreeAppTests {
     func mainMenuContainsQuitShortcut() {
         let menu = FreeApp.makeMainMenu(appName: "Free")
 
-        #expect(menu.items.count == 1)
+        #expect(menu.items.count == 2)
         let appMenu = menu.items.first?.submenu
         #expect(appMenu != nil)
 
@@ -76,6 +76,12 @@ struct FreeAppTests {
         #expect(quitItem?.action == #selector(NSApplication.terminate(_:)))
         #expect(quitItem?.keyEquivalent == "q")
         #expect(quitItem?.keyEquivalentModifierMask == [.command])
+
+        let editMenu = menu.items.last?.submenu
+        let pasteItem = editMenu?.items.first(where: { $0.title == "Paste" })
+        #expect(pasteItem?.action == #selector(NSText.paste(_:)))
+        #expect(pasteItem?.keyEquivalent == "v")
+        #expect(pasteItem?.keyEquivalentModifierMask == [.command])
     }
 
     @Test("FreeApp default initializer can be created")

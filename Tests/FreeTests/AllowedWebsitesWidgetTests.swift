@@ -49,6 +49,17 @@ struct AllowedWebsitesWidgetTests {
         return all
     }
 
+    private func selectableRowButtons(in view: NSView) -> [AppKitSelectableRowButton] {
+        var all: [AppKitSelectableRowButton] = []
+        if let button = view as? AppKitSelectableRowButton {
+            all.append(button)
+        }
+        for subview in view.subviews {
+            all.append(contentsOf: selectableRowButtons(in: subview))
+        }
+        return all
+    }
+
     private func sampleRuleSet(name: String, url: String) -> RuleSet {
         RuleSet(name: name, urls: [url])
     }
@@ -90,7 +101,7 @@ struct AllowedWebsitesWidgetTests {
         appState.isUnblockable = false
 
         let hosted = host(FocusAllowedWebsitesWidgetView(appState: appState, shellState: FreeShellState()))
-        let personalButton = buttons(in: hosted).first { $0.title == "Personal" }
+        let personalButton = selectableRowButtons(in: hosted).first { $0.displayedTitleForTesting == "Personal" }
         #expect(personalButton?.isEnabled == true)
 
         personalButton?.performClick(nil)
@@ -109,7 +120,7 @@ struct AllowedWebsitesWidgetTests {
         appState.isUnblockable = true
 
         let hosted = host(FocusAllowedWebsitesWidgetView(appState: appState, shellState: FreeShellState()))
-        let personalButton = buttons(in: hosted).first { $0.title == "Personal" }
+        let personalButton = selectableRowButtons(in: hosted).first { $0.displayedTitleForTesting == "Personal" }
 
         #expect(personalButton != nil)
         #expect(personalButton?.isEnabled == false)

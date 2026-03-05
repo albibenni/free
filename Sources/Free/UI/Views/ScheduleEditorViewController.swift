@@ -52,10 +52,16 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     private var ruleSetId: UUID?
     private var modifyAllDays = true
     private var isRecurring = false
+    private var sessionTypeControl: AppKitSelectionButtonGroup<ScheduleType>?
+    private var repeatCheckbox: NSButton?
+    private var recurringDaysSection: NSView?
+    private var recurringDayButtons: [Int: ActionButton] = [:]
+    private var saveButton: ActionButton?
+    private var reloadGeneration = 0
 
     private let headerTitleLabel = NSTextField(labelWithString: "")
     private let closeButton = ActionButton()
-    private let divider = NSView()
+    private let divider = AppKitDynamicView()
     private let scrollContainer = VerticalStackScrollContainer(
         contentInsets: NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
     )
@@ -99,14 +105,13 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     override func loadView() {
-        view = AppKitFlippedView()
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        let rootView = AppKitFlippedView()
+        rootView.backgroundColorProvider = { NSColor.windowBackgroundColor }
+        view = rootView
 
         configureHeader()
 
-        divider.wantsLayer = true
-        divider.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        divider.backgroundColorProvider = { NSColor.separatorColor }
         divider.translatesAutoresizingMaskIntoConstraints = false
 
         scrollContainer.translatesAutoresizingMaskIntoConstraints = false
@@ -173,7 +178,12 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     private func reloadForm() {
+        reloadGeneration += 1
         removeArrangedSubviews(from: scrollContainer.stackView)
+        recurringDaysSection = nil
+        recurringDayButtons = [:]
+        saveButton = nil
+        repeatCheckbox = nil
 
         if importedSchedule {
             addSection(makeImportedBadge())
@@ -189,9 +199,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
         addSection(makeSessionTypeSection())
 
-        if ScheduleEditorSupport.shouldShowAllowedList(for: sessionType) {
-            addSection(makeAllowedListSection())
-        }
+        addSection(makeAllowedListSection())
 
         if canEditImportedDetails {
             if ScheduleEditorSupport.shouldShowEditScope(
@@ -216,13 +224,13 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         if canEditImportedDetails {
             addSection(makeTimeSection())
             addSection(makeRepeatSection())
-
-            if isRecurring {
-                addSection(makeRecurringDaysSection())
-            }
+            let recurringDaysSection = makeRecurringDaysSection()
+            self.recurringDaysSection = recurringDaysSection
+            addSection(recurringDaysSection)
         }
 
         addSection(makeActionSection())
+        updateRecurringUI()
     }
 
     private func addSection(_ sectionView: NSView) {
@@ -233,7 +241,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private func makeImportedBadge() -> NSView {
         let badge = AppKitCardView()
-        badge.layer?.backgroundColor = NSColor.secondaryLabelColor.withAlphaComponent(0.12).cgColor
+        badge.backgroundColorProvider = { NSColor.secondaryLabelColor.withAlphaComponent(0.12) }
         badge.layer?.borderWidth = 0
 
         let icon = NSImageView()
@@ -259,8 +267,19 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private func makeSessionTypeSection() -> NSView {
         let section = makeSectionContainer(title: "SESSION TYPE")
-        let control = NSSegmentedControl(labels: ["Focus", "Break"], trackingMode: .selectOne, target: self, action: #selector(changeSessionType(_:)))
-        control.selectedSegment = sessionType == .focus ? 0 : 1
+        let control = AppKitSelectionButtonGroup(
+            options: [
+                AppKitSelectionButtonOption(title: "Focus", value: ScheduleType.focus),
+                AppKitSelectionButtonOption(title: "Break", value: ScheduleType.unfocus),
+            ],
+            selectedValue: sessionType,
+            accentColor: accentColor
+        )
+        control.onSelection = { [weak self] type in
+            self?.sessionType = type
+            self?.reloadForm()
+        }
+        sessionTypeControl = control
         section.contentStack.addArrangedSubview(control)
         return section
     }
@@ -268,22 +287,30 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     private func makeAllowedListSection() -> NSView {
         let section = makeSectionContainer(title: "ALLOWED LIST")
         let popup = NSPopUpButton()
-        popup.target = self
-        popup.action = #selector(changeRuleSet(_:))
         popup.removeAllItems()
-        popup.addItem(withTitle: "None")
-        popup.lastItem?.representedObject = Optional<UUID>.none
+        if ScheduleEditorSupport.shouldShowAllowedList(for: sessionType) {
+            popup.target = self
+            popup.action = #selector(changeRuleSet(_:))
+            popup.isEnabled = true
 
-        for set in appState.ruleSets {
-            popup.addItem(withTitle: set.name)
-            popup.lastItem?.representedObject = UUID?.some(set.id)
-        }
+            popup.addItem(withTitle: "None")
+            popup.lastItem?.representedObject = Optional<UUID>.none
 
-        let desiredSelection = ruleSetId
-        if let index = popup.itemArray.firstIndex(where: { ($0.representedObject as? UUID) == desiredSelection }) {
-            popup.selectItem(at: index)
+            for set in appState.ruleSets {
+                popup.addItem(withTitle: set.name)
+                popup.lastItem?.representedObject = UUID?.some(set.id)
+            }
+
+            let desiredSelection = ruleSetId
+            if let index = popup.itemArray.firstIndex(where: { ($0.representedObject as? UUID) == desiredSelection }) {
+                popup.selectItem(at: index)
+            } else {
+                popup.selectItem(at: 0)
+            }
         } else {
+            popup.addItem(withTitle: "Not used for breaks")
             popup.selectItem(at: 0)
+            popup.isEnabled = false
         }
 
         section.contentStack.addArrangedSubview(popup)
@@ -293,8 +320,18 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     private func makeEditScopeSection() -> NSView {
         let section = makeSectionContainer(title: "EDIT SCOPE")
         let onlyDayTitle = "Only \(ScheduleEditorSupport.dayName(for: initialDay ?? 1))"
-        let control = NSSegmentedControl(labels: ["All Days", onlyDayTitle], trackingMode: .selectOne, target: self, action: #selector(changeEditScope(_:)))
-        control.selectedSegment = modifyAllDays ? 0 : 1
+        let control = AppKitSelectionButtonGroup(
+            options: [
+                AppKitSelectionButtonOption(title: "All Days", value: true),
+                AppKitSelectionButtonOption(title: onlyDayTitle, value: false),
+            ],
+            selectedValue: modifyAllDays,
+            accentColor: accentColor
+        )
+        control.onSelection = { [weak self] modifyAllDays in
+            self?.modifyAllDays = modifyAllDays
+            self?.reloadForm()
+        }
         section.contentStack.addArrangedSubview(control)
         return section
     }
@@ -367,6 +404,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         checkbox.font = .systemFont(ofSize: 14, weight: .semibold)
         checkbox.state = isRecurring ? .on : .off
         checkbox.translatesAutoresizingMaskIntoConstraints = false
+        repeatCheckbox = checkbox
         section.addSubview(checkbox)
         NSLayoutConstraint.activate([
             checkbox.leadingAnchor.constraint(equalTo: section.leadingAnchor),
@@ -399,31 +437,18 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         row.spacing = 12
 
         for day in ScheduleEditorSupport.weekDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday) {
-            let isSelected = days.contains(day)
             let button = ActionButton(title: ScheduleEditorSupport.daySymbol(at: day))
             button.isBordered = false
             button.wantsLayer = true
             button.layer?.cornerRadius = 22
-            button.layer?.backgroundColor = (
-                isSelected
-                    ? accentColor
-                    : NSColor.secondaryLabelColor.withAlphaComponent(0.2)
-            ).cgColor
-            button.attributedTitle = NSAttributedString(
-                string: ScheduleEditorSupport.daySymbol(at: day),
-                attributes: [
-                    .font: NSFont.systemFont(ofSize: 16, weight: .bold),
-                    .foregroundColor: isSelected ? NSColor.white : NSColor.labelColor,
-                ]
-            )
             button.onAction = { [weak self] in
                 guard let self else { return }
-                self.days = ScheduleEditorSupport.toggledDays(self.days, day: day)
-                self.reloadForm()
+                self.toggleRecurringDay(day)
             }
             button.translatesAutoresizingMaskIntoConstraints = false
             button.widthAnchor.constraint(equalToConstant: 44).isActive = true
             button.heightAnchor.constraint(equalToConstant: 44).isActive = true
+            recurringDayButtons[day] = button
             row.addArrangedSubview(button)
         }
 
@@ -452,6 +477,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
             modifyAllDays: modifyAllDays,
             isRecurring: isRecurring
         )
+        self.saveButton = saveButton
         saveButton.onAction = { [weak self] in
             self?.saveSchedule()
         }
@@ -491,7 +517,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private func makeTimePickerCard(title: String, date: Date, action: Selector) -> NSView {
         let card = AppKitCardView()
-        card.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.03).cgColor
+        card.backgroundColorProvider = { NSColor.labelColor.withAlphaComponent(0.03) }
 
         let label = makeAppKitSectionLabel(title)
 
@@ -549,24 +575,12 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     @objc
-    private func changeSessionType(_ sender: NSSegmentedControl) {
-        sessionType = sender.selectedSegment == 0 ? .focus : .unfocus
-        reloadForm()
-    }
-
-    @objc
     private func changeRuleSet(_ sender: NSPopUpButton) {
         if sender.indexOfSelectedItem == 0 {
             ruleSetId = nil
         } else {
             ruleSetId = appState.ruleSets[safe: sender.indexOfSelectedItem - 1]?.id
         }
-    }
-
-    @objc
-    private func changeEditScope(_ sender: NSSegmentedControl) {
-        modifyAllDays = sender.selectedSegment == 0
-        reloadForm()
     }
 
     @objc
@@ -582,7 +596,51 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     @objc
     private func toggleRecurring(_ sender: NSButton) {
         isRecurring = sender.state == .on
-        reloadForm()
+        updateRecurringUI()
+    }
+
+    private func updateRecurringUI() {
+        repeatCheckbox?.state = isRecurring ? .on : .off
+        recurringDaysSection?.alphaValue = isRecurring ? 1 : 0.45
+        applyRecurringDayButtonStyles()
+        saveButton?.isEnabled = !ScheduleEditorSupport.isSaveDisabled(
+            days: days,
+            modifyAllDays: modifyAllDays,
+            isRecurring: isRecurring
+        )
+        scrollContainer.needsLayout = true
+    }
+
+    private func toggleRecurringDay(_ day: Int) {
+        guard isRecurring else { return }
+        days = ScheduleEditorSupport.toggledDays(days, day: day)
+        applyRecurringDayButtonStyles()
+        saveButton?.isEnabled = !ScheduleEditorSupport.isSaveDisabled(
+            days: days,
+            modifyAllDays: modifyAllDays,
+            isRecurring: isRecurring
+        )
+    }
+
+    private func applyRecurringDayButtonStyles() {
+        for (day, button) in recurringDayButtons {
+            let isSelected = days.contains(day)
+            button.isEnabled = isRecurring
+            button.layer?.backgroundColor = (
+                isSelected
+                    ? accentColor.withAlphaComponent(isRecurring ? 1 : 0.45)
+                    : NSColor.secondaryLabelColor.withAlphaComponent(isRecurring ? 0.2 : 0.12)
+            ).cgColor
+            button.attributedTitle = NSAttributedString(
+                string: ScheduleEditorSupport.daySymbol(at: day),
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: 16, weight: .bold),
+                    .foregroundColor: isSelected
+                        ? NSColor.white.withAlphaComponent(isRecurring ? 1 : 0.75)
+                        : NSColor.labelColor.withAlphaComponent(isRecurring ? 1 : 0.6),
+                ]
+            )
+        }
     }
 }
 
@@ -596,6 +654,12 @@ extension ScheduleEditorViewController {
     var headerTitleForTesting: String { headerTitleLabel.stringValue }
     var importedScheduleForTesting: Bool { importedSchedule }
     var canEditImportedDetailsForTesting: Bool { canEditImportedDetails }
+    var sessionTypeSelectionColorForTesting: NSColor? { sessionTypeControl?.selectedButtonTintColor }
+    var formReloadGenerationForTesting: Int { reloadGeneration }
+    var isRecurringDaysSectionHiddenForTesting: Bool? { recurringDaysSection?.isHidden }
+    var areRecurringDayButtonsEnabledForTesting: Bool? {
+        recurringDayButtons.values.first?.isEnabled
+    }
 
     func dismissForTesting() {
         onRequestClose()
@@ -607,5 +671,10 @@ extension ScheduleEditorViewController {
 
     func deleteScheduleForTesting() {
         deleteSchedule()
+    }
+
+    func setRecurringForTesting(_ isRecurring: Bool) {
+        self.isRecurring = isRecurring
+        updateRecurringUI()
     }
 }

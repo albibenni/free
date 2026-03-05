@@ -31,7 +31,10 @@ final class WeeklyCalendarSurfaceNSView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        layer?.backgroundColor = resolvedAppKitCGColor(
+            NSColor.windowBackgroundColor,
+            appearance: effectiveAppearance
+        )
         layer?.masksToBounds = true
 
         scrollView.drawsBackground = false
@@ -51,6 +54,10 @@ final class WeeklyCalendarSurfaceNSView: NSView {
 
     func configure(with configuration: WeeklyCalendarSurfaceConfiguration) {
         self.configuration = configuration
+        layer?.backgroundColor = resolvedAppKitCGColor(
+            NSColor.windowBackgroundColor,
+            appearance: effectiveAppearance
+        )
         headerView.configure(
             dayOrder: configuration.dayOrder,
             weekRange: configuration.weekRange,
@@ -224,7 +231,10 @@ private final class WeeklyCalendarSurfaceDocumentNSView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
-        layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        layer?.backgroundColor = resolvedAppKitCGColor(
+            NSColor.windowBackgroundColor,
+            appearance: effectiveAppearance
+        )
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.needsDisplay = true
         }
@@ -241,6 +251,10 @@ private final class WeeklyCalendarSurfaceDocumentNSView: NSView {
 
     func configure(with configuration: WeeklyCalendarSurfaceConfiguration) {
         self.configuration = configuration
+        layer?.backgroundColor = resolvedAppKitCGColor(
+            NSColor.windowBackgroundColor,
+            appearance: effectiveAppearance
+        )
         if activeInteractionBlockID == nil {
             rebuildScheduleBlocks()
             needsScheduleBlockRefresh = false

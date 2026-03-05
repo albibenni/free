@@ -35,6 +35,23 @@ struct AddScheduleViewTests {
         return all
     }
 
+    private func visibleText(in view: NSView) -> [String] {
+        guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
+
+        var values: [String] = []
+        if let label = view as? NSTextField, !label.stringValue.isEmpty {
+            values.append(label.stringValue)
+        }
+        if let button = view as? NSButton, !button.title.isEmpty {
+            values.append(button.title)
+        }
+
+        for child in view.subviews {
+            values.append(contentsOf: visibleText(in: child))
+        }
+        return values
+    }
+
     private func makeController(
         appState: AppState,
         context: ScheduleEditorContext = ScheduleEditorContext(),
@@ -130,12 +147,14 @@ struct AddScheduleViewTests {
     @MainActor
     func addScheduleViewRender() {
         let appState = isolatedAppState(name: "renderAndSave")
+        appState.accentColorIndex = 4
         appState.ruleSets = [RuleSet(name: "Allowlist", urls: ["example.com"])]
 
         let controller = makeController(appState: appState)
         let hosted = host(controller)
         #expect(hosted.fittingSize.width >= 0)
         #expect(controller.headerTitleForTesting == "New Schedule")
+        #expect(controller.sessionTypeSelectionColorForTesting == FocusColor.nsColor(for: 4))
     }
 
     @Test("ScheduleEditorViewController header renders close button and dismisses")
@@ -212,6 +231,7 @@ struct AddScheduleViewTests {
     @MainActor
     func addScheduleViewBreakPath() {
         let appState = isolatedAppState(name: "breakPath")
+        appState.accentColorIndex = 6
         let schedule = Schedule(
             name: "Break Session",
             days: [2],
@@ -231,7 +251,36 @@ struct AddScheduleViewTests {
             )
         )
         let hosted = host(controller)
+        let texts = visibleText(in: hosted)
         #expect(hosted.fittingSize.height >= 0)
+        #expect(controller.sessionTypeSelectionColorForTesting == FocusColor.nsColor(for: 6))
+        #expect(texts.contains("ALLOWED LIST"))
+        #expect(texts.contains("Not used for breaks"))
+    }
+
+    @Test("ScheduleEditorViewController does not reload the whole form when toggling repeat weekly")
+    @MainActor
+    func addScheduleViewRepeatToggleStaysInPlace() {
+        let appState = isolatedAppState(name: "repeatToggle")
+        let controller = makeController(appState: appState)
+        _ = host(controller)
+
+        let initialReloadGeneration = controller.formReloadGenerationForTesting
+
+        #expect(controller.isRecurringDaysSectionHiddenForTesting == false)
+        #expect(controller.areRecurringDayButtonsEnabledForTesting == false)
+
+        controller.setRecurringForTesting(true)
+
+        #expect(controller.formReloadGenerationForTesting == initialReloadGeneration)
+        #expect(controller.isRecurringDaysSectionHiddenForTesting == false)
+        #expect(controller.areRecurringDayButtonsEnabledForTesting == true)
+
+        controller.setRecurringForTesting(false)
+
+        #expect(controller.formReloadGenerationForTesting == initialReloadGeneration)
+        #expect(controller.isRecurringDaysSectionHiddenForTesting == false)
+        #expect(controller.areRecurringDayButtonsEnabledForTesting == false)
     }
 
     @Test("ScheduleEditorViewController renders imported schedule editor with limited editable sections")
