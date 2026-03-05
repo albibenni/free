@@ -10,72 +10,69 @@ enum AppearanceMode: String, Codable, CaseIterable {
 class AppState: ObservableObject {
     static let challengePhrase =
         "I am choosing to break my focus and I acknowledge that this may impact my productivity."
-    private static let wasStartedByScheduleKey = "WasStartedBySchedule"
-    private static let launchAtLoginPromptShownKey = "LaunchAtLoginPromptShown"
-    private static let suppressedImportedCalendarEventKeysKey = "SuppressedImportedCalendarEventKeys"
-    private let defaults: UserDefaults
+    private let settingsStore: SettingsStore
 
     @Published var isBlocking = false {
         didSet {
-            defaults.set(isBlocking, forKey: "IsBlocking")
+            settingsStore.setIsBlocking(isBlocking)
             if !isBlocking { cancelPause() }
         }
     }
     @Published var isUnblockable = false {
-        didSet { defaults.set(isUnblockable, forKey: "IsUnblockable") }
+        didSet { settingsStore.setIsUnblockable(isUnblockable) }
     }
     @Published var isTrusted = false
     @Published var weekStartsOnMonday = false {
-        didSet { defaults.set(weekStartsOnMonday, forKey: "WeekStartsOnMonday") }
+        didSet { settingsStore.setWeekStartsOnMonday(weekStartsOnMonday) }
     }
     @Published var accentColorIndex = 0 {
-        didSet { defaults.set(accentColorIndex, forKey: "AccentColorIndex") }
+        didSet { settingsStore.setAccentColorIndex(accentColorIndex) }
     }
     @Published var appearanceMode: AppearanceMode = .system {
-        didSet { defaults.set(appearanceMode.rawValue, forKey: "AppearanceMode") }
+        didSet { settingsStore.setAppearanceModeRawValue(appearanceMode.rawValue) }
     }
     @Published var calendarIntegrationEnabled = false {
         didSet {
-            defaults.set(calendarIntegrationEnabled, forKey: "CalendarIntegrationEnabled")
+            settingsStore.setCalendarIntegrationEnabled(calendarIntegrationEnabled)
             if calendarIntegrationEnabled { calendarProvider.requestAccess() }
             checkSchedules()
         }
     }
     @Published var calendarImportsBlockTime = false {
         didSet {
-            defaults.set(calendarImportsBlockTime, forKey: "CalendarImportsBlockTime")
+            settingsStore.setCalendarImportsBlockTime(calendarImportsBlockTime)
             checkSchedules()
         }
     }
     @Published var blockNewTabs = false {
-        didSet { defaults.set(blockNewTabs, forKey: "BlockNewTabs") }
+        didSet { settingsStore.setBlockNewTabs(blockNewTabs) }
     }
     @Published var blockDeveloperHosts = false {
-        didSet { defaults.set(blockDeveloperHosts, forKey: "BlockDeveloperHosts") }
+        didSet { settingsStore.setBlockDeveloperHosts(blockDeveloperHosts) }
     }
     @Published var blockLocalNetworkHosts = false {
-        didSet { defaults.set(blockLocalNetworkHosts, forKey: "BlockLocalNetworkHosts") }
+        didSet { settingsStore.setBlockLocalNetworkHosts(blockLocalNetworkHosts) }
     }
-    @Published var ruleSets: [RuleSet] = [] { didSet { saveJSON(ruleSets, key: "RuleSets") } }
+    @Published var ruleSets: [RuleSet] = [] { didSet { settingsStore.saveRuleSets(ruleSets) } }
     @Published var activeRuleSetId: UUID? = nil {
-        didSet { defaults.set(activeRuleSetId?.uuidString, forKey: "ActiveRuleSetId") }
+        didSet { settingsStore.setActiveRuleSetId(activeRuleSetId) }
     }
     @Published var schedules: [Schedule] = [] {
         didSet {
-            saveJSON(schedules, key: "Schedules")
+            settingsStore.saveSchedules(schedules)
             checkSchedules()
         }
     }
 
     @Published var pomodoroFocusDuration: Double = 25 {
         didSet {
-            defaults.set(pomodoroFocusDuration, forKey: "PomodoroFocusDuration")
+            settingsStore.setPomodoroFocusDuration(pomodoroFocusDuration)
             if pomodoroStatus == .focus { pomodoroRemaining = pomodoroFocusDuration * 60 }
         }
     }
     @Published var pomodoroBreakDuration: Double = 5 {
         didSet {
-            defaults.set(pomodoroBreakDuration, forKey: "PomodoroBreakDuration")
+            settingsStore.setPomodoroBreakDuration(pomodoroBreakDuration)
             if pomodoroStatus == .breakTime { pomodoroRemaining = pomodoroBreakDuration * 60 }
         }
     }
@@ -200,7 +197,7 @@ class AppState: ObservableObject {
         },
         isTesting: Bool = false
     ) {
-        self.defaults = defaults
+        self.settingsStore = SettingsStore(defaults: defaults)
         self.calendarProvider =
             calendar
             ?? (isTesting ? MockCalendarManager() : RealCalendarManager(nowProvider: { Date() }))
@@ -208,36 +205,29 @@ class AppState: ObservableObject {
         self.launchAtLoginManager = launchAtLoginManager
         self.canPromptForLaunchAtLogin = canPromptForLaunchAtLogin
 
-        self.isBlocking = defaults.bool(forKey: "IsBlocking")
-        self.isUnblockable = defaults.bool(forKey: "IsUnblockable")
-        self.weekStartsOnMonday = defaults.bool(forKey: "WeekStartsOnMonday")
-        self.accentColorIndex = defaults.integer(forKey: "AccentColorIndex")
-        self.calendarIntegrationEnabled = defaults.bool(forKey: "CalendarIntegrationEnabled")
-        self.calendarImportsBlockTime = defaults.bool(forKey: "CalendarImportsBlockTime")
-        self.blockNewTabs = defaults.bool(forKey: "BlockNewTabs")
-        self.blockDeveloperHosts = defaults.bool(forKey: "BlockDeveloperHosts")
-        self.blockLocalNetworkHosts = defaults.bool(forKey: "BlockLocalNetworkHosts")
-        self.pomodoroFocusDuration =
-            defaults.double(forKey: "PomodoroFocusDuration") == 0
-            ? 25 : defaults.double(forKey: "PomodoroFocusDuration")
-        self.pomodoroBreakDuration =
-            defaults.double(forKey: "PomodoroBreakDuration") == 0
-            ? 5 : defaults.double(forKey: "PomodoroBreakDuration")
+        self.isBlocking = settingsStore.isBlocking()
+        self.isUnblockable = settingsStore.isUnblockable()
+        self.weekStartsOnMonday = settingsStore.weekStartsOnMonday()
+        self.accentColorIndex = settingsStore.accentColorIndex()
+        self.calendarIntegrationEnabled = settingsStore.calendarIntegrationEnabled()
+        self.calendarImportsBlockTime = settingsStore.calendarImportsBlockTime()
+        self.blockNewTabs = settingsStore.blockNewTabs()
+        self.blockDeveloperHosts = settingsStore.blockDeveloperHosts()
+        self.blockLocalNetworkHosts = settingsStore.blockLocalNetworkHosts()
+        self.pomodoroFocusDuration = settingsStore.pomodoroFocusDuration(default: 25)
+        self.pomodoroBreakDuration = settingsStore.pomodoroBreakDuration(default: 5)
 
-        if let modeStr = defaults.string(forKey: "AppearanceMode") {
+        if let modeStr = settingsStore.appearanceModeRawValue() {
             self.appearanceMode = AppearanceMode(rawValue: modeStr) ?? .system
         }
-        self.ruleSets = loadJSON(key: "RuleSets", as: [RuleSet].self) ?? [RuleSet.defaultSet()]
-        self.schedules = loadJSON(key: "Schedules", as: [Schedule].self) ?? []
-        self.activeRuleSetId =
-            UUID(uuidString: defaults.string(forKey: "ActiveRuleSetId") ?? "") ?? ruleSets.first?.id
-        self.wasStartedBySchedule = defaults.bool(forKey: Self.wasStartedByScheduleKey)
-        self.suppressedImportedCalendarEventKeys = Set(
-            defaults.stringArray(forKey: Self.suppressedImportedCalendarEventKeysKey) ?? []
-        )
+        self.ruleSets = settingsStore.loadRuleSets() ?? [RuleSet.defaultSet()]
+        self.schedules = settingsStore.loadSchedules() ?? []
+        self.activeRuleSetId = settingsStore.activeRuleSetId() ?? ruleSets.first?.id
+        self.wasStartedBySchedule = settingsStore.wasStartedBySchedule()
+        self.suppressedImportedCalendarEventKeys = settingsStore.suppressedImportedCalendarEventKeys()
 
         // Migration for older builds that persisted IsBlocking but not its source.
-        if defaults.object(forKey: Self.wasStartedByScheduleKey) == nil, isBlocking {
+        if !settingsStore.hasPersistedWasStartedBySchedule(), isBlocking {
             let shouldBeBlockingNow = automaticBlockingState()
             if !shouldBeBlockingNow {
                 isBlocking = false
@@ -514,10 +504,10 @@ class AppState: ObservableObject {
 
     func prepareLaunchAtLoginPromptIfNeeded() -> Bool {
         guard canPromptForLaunchAtLogin() else { return false }
-        if defaults.bool(forKey: Self.launchAtLoginPromptShownKey) {
+        if settingsStore.launchAtLoginPromptShown() {
             return false
         }
-        defaults.set(true, forKey: Self.launchAtLoginPromptShownKey)
+        settingsStore.setLaunchAtLoginPromptShown(true)
         return !launchAtLoginManager.isEnabled
     }
 
@@ -571,14 +561,6 @@ class AppState: ObservableObject {
         replacePomodoroTimer(with: timer)
         checkSchedules()
     }
-    private func saveJSON<T: Encodable>(_ v: T, key: String) {
-        if let e = try? JSONEncoder().encode(v) { defaults.set(e, forKey: key) }
-    }
-    private func loadJSON<T: Decodable>(key: String, as type: T.Type) -> T? {
-        guard let d = defaults.data(forKey: key) else { return nil }
-        return try? JSONDecoder().decode(T.self, from: d)
-    }
-
     private func minutesFromMidnight(_ date: Date) -> Int {
         let calendar = Calendar.current
         return calendar.component(.hour, from: date) * 60 + calendar.component(.minute, from: date)
@@ -713,16 +695,13 @@ class AppState: ObservableObject {
     private func suppressImportedCalendarEventIfNeeded(_ schedule: Schedule) {
         guard let key = schedule.importedCalendarEventKey else { return }
         if suppressedImportedCalendarEventKeys.insert(key).inserted {
-            defaults.set(
-                Array(suppressedImportedCalendarEventKeys).sorted(),
-                forKey: Self.suppressedImportedCalendarEventKeysKey
-            )
+            settingsStore.setSuppressedImportedCalendarEventKeys(suppressedImportedCalendarEventKeys)
         }
     }
 
     private func setWasStartedBySchedule(_ value: Bool) {
         wasStartedBySchedule = value
-        defaults.set(value, forKey: Self.wasStartedByScheduleKey)
+        settingsStore.setWasStartedBySchedule(value)
     }
 
     private func invalidateAllTimers() {
