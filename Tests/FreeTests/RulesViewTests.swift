@@ -71,6 +71,29 @@ struct RulesViewTests {
         #expect(filtered.count == 2)
         #expect(filtered.contains("https://github.com"))
         #expect(filtered.contains("https://youtube.com/watch?v=456"))
+
+        let existingForImport = RuleSet(
+            name: "Import Existing",
+            urls: ["https://google.com/*", "https://youtube.com/watch?v=123"]
+        )
+        let importable = RulesSectionSupport.importableWebsiteCandidates(
+            from: [
+                "https://www.github.com/pulls",
+                "https://github.com/issues",
+                "https://google.com/search?q=1",
+                "https://youtube.com/watch?v=123",
+                "https://youtube.com/watch?v=456",
+                "about:blank",
+                "localhost:10000",
+            ],
+            existing: existingForImport
+        )
+        #expect(importable.count == 5)
+        #expect(importable.contains(where: { $0.rule == "github.com/pulls" && !$0.isAlreadyAllowed }))
+        #expect(importable.contains(where: { $0.rule == "github.com/issues" && !$0.isAlreadyAllowed }))
+        #expect(importable.contains(where: { $0.rule == "youtube.com/watch?v=456" && !$0.isAlreadyAllowed }))
+        #expect(importable.contains(where: { $0.rule == "youtube.com/watch?v=123" && $0.isAlreadyAllowed }))
+        #expect(importable.contains(where: { $0.rule == "google.com/search?q=1" && $0.isAlreadyAllowed }))
     }
 
     @Test("Rules sheet controller actions mutate rule-set state and UI state")
