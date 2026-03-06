@@ -106,7 +106,7 @@ enum AppStateFocusFlowCoordinator {
         )
     }
 
-    static func skipPhaseAction(for status: AppState.PomodoroStatus) -> SkipPhaseAction {
+    static func skipPhaseAction(for status: PomodoroStatus) -> SkipPhaseAction {
         switch status {
         case .focus:
             return .startBreak
@@ -118,7 +118,7 @@ enum AppStateFocusFlowCoordinator {
     }
 
     static func pomodoroTickAction(
-        status: AppState.PomodoroStatus,
+        status: PomodoroStatus,
         remaining: TimeInterval
     ) -> PomodoroTickAction {
         switch AppStateRuntimeCoordinator.pomodoroTickAction(status: status, remaining: remaining) {

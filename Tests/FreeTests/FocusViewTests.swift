@@ -149,7 +149,7 @@ struct FocusViewTests {
 
         let appState = isolatedAppState(name: "cancelPauseAction")
         appState.isPaused = true
-        let cancelPause = FocusSectionSupport.makeCancelPauseAction(appState: appState)
+        let cancelPause = FocusSectionSupport.makeCancelPauseAction(cancelPause: { appState.cancelPause() })
         cancelPause()
         #expect(appState.isPaused == false)
     }

@@ -3,7 +3,7 @@ import Foundation
 enum AppStatePomodoroMutationService {
     struct Context {
         let state: PomodoroEngine.State
-        let status: AppState.PomodoroStatus
+        let status: PomodoroStatus
         let remaining: TimeInterval
         let focusDurationMinutes: Double
         let breakDurationMinutes: Double
@@ -46,7 +46,7 @@ enum AppStatePomodoroMutationService {
 
     static func skipPhaseAction(
         logicFacade: AppStateLogicFacade,
-        status: AppState.PomodoroStatus
+        status: PomodoroStatus
     ) -> AppStateLogicFacade.SkipPhaseAction {
         logicFacade.skipPhaseAction(for: status)
     }

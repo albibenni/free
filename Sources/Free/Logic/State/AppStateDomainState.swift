@@ -14,7 +14,7 @@ struct AppSessionDomainState: Equatable {
 }
 
 struct AppPomodoroDomainState: Equatable {
-    var status: AppState.PomodoroStatus
+    var status: PomodoroStatus
     var remaining: TimeInterval
     var startedAt: Date?
     var focusDurationMinutes: Double

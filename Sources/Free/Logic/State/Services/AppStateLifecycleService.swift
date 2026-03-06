@@ -72,7 +72,7 @@ enum AppStateLifecycleService {
         hasPersistedWasStartedBySchedule: Bool,
         current: AppStateLogicFacade.SessionState,
         schedules: [Schedule],
-        pomodoroStatus: AppState.PomodoroStatus,
+        pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isUnblockable: Bool,
         calendarImportsBlockTime: Bool,
@@ -95,13 +95,19 @@ enum AppStateLifecycleService {
         isTesting: Bool,
         calendarProvider: any CalendarProvider,
         timerCoordinator: AppStateTimerCoordinator,
-        buildMonitor: () -> BrowserMonitor,
+        monitorStateSnapshotProvider: @escaping () -> BrowserMonitor.StateSnapshot?,
+        setTrustedState: @escaping (Bool) -> Void,
         onScheduleUpdate: @escaping () -> Void
     ) -> RuntimeBindings {
         let monitor = AppStateRuntimeWiringCoordinator.resolveMonitor(
             injectedMonitor: injectedMonitor,
             isTesting: isTesting
-        ) { buildMonitor() }
+        ) {
+            AppStateRuntimeMonitorFactory.makeMonitor(
+                stateSnapshotProvider: monitorStateSnapshotProvider,
+                setTrustedState: setTrustedState
+            )
+        }
 
         let calendarCancellable = AppStateRuntimeWiringCoordinator.start(
             calendarProvider: calendarProvider,

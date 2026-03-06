@@ -41,7 +41,7 @@ struct AppStatePomodoroCoordinatorTests {
         let unlocked = AppStatePomodoroCoordinator.stopIfUnlocked(from: running, isLocked: false)
 
         #expect(locked == nil)
-        #expect(unlocked?.status == AppState.PomodoroStatus.none)
+        #expect(unlocked?.status == PomodoroStatus.none)
         #expect(unlocked?.remaining == 60)
         #expect(unlocked?.startedAt == running.startedAt)
         #expect(unlocked?.ruleSetId == nil)

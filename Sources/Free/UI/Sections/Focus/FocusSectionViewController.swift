@@ -13,7 +13,7 @@ final class FocusSectionViewController: NSViewController {
             let accentColorIndex: Int
             let isBlocking: Bool
             let isStrictActive: Bool
-            let pomodoroStatus: AppState.PomodoroStatus
+            let pomodoroStatus: PomodoroStatus
             let pomodoroFocusDuration: Double
             let pomodoroBreakDuration: Double
             let pomodoroRemaining: TimeInterval
@@ -25,7 +25,7 @@ final class FocusSectionViewController: NSViewController {
         let accentColorIndex: Int
         let isBlocking: Bool
         let isStrictActive: Bool
-        let pomodoroStatus: AppState.PomodoroStatus
+        let pomodoroStatus: PomodoroStatus
         let pomodoroFocusDuration: Double
         let pomodoroBreakDuration: Double
         let pomodoroRemaining: TimeInterval

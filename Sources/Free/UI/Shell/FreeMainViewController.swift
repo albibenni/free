@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 
 final class FreeMainViewController: NSViewController {
     private let appState: AppState
@@ -145,7 +146,9 @@ final class FreeMainViewController: NSViewController {
 
     private func bindShellState() {
         bindings.bind(
-            appState: appState,
+            appStateChanges: appState.objectWillChange
+                .map { () }
+                .eraseToAnyPublisher(),
             shellState: shellState,
             onSelectedSectionChanged: { [weak self] in
                 self?.updateSidebarSelection()

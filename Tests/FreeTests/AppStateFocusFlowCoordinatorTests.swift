@@ -52,7 +52,7 @@ struct AppStateFocusFlowCoordinatorTests {
         )
         #expect(stopped?.shouldStopTimer == true)
         #expect(stopped?.shouldCheckSchedules == true)
-        #expect(stopped?.state.status == AppState.PomodoroStatus.none)
+        #expect(stopped?.state.status == PomodoroStatus.none)
     }
 
     @Test("pause transitions cover start guard and cancel behavior")

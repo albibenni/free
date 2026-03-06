@@ -39,7 +39,7 @@ struct AppStatePomodoroCoordinator {
         return PomodoroEngine.stop(from: state)
     }
 
-    static func timerAction(status: AppState.PomodoroStatus, remaining: TimeInterval) -> TimerAction {
+    static func timerAction(status: PomodoroStatus, remaining: TimeInterval) -> TimerAction {
         if remaining > 0 { return .decrement }
         return status == .focus ? .startBreak : .startFocus
     }

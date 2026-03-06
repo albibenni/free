@@ -31,7 +31,7 @@ struct AppStateLogicFacade {
         hasPersistedWasStartedBySchedule: Bool,
         current: SessionState,
         schedules: [Schedule],
-        pomodoroStatus: AppState.PomodoroStatus,
+        pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isUnblockable: Bool,
         calendarImportsBlockTime: Bool,
@@ -64,7 +64,7 @@ struct AppStateLogicFacade {
     func checkSession(
         current: SessionState,
         schedules: [Schedule],
-        pomodoroStatus: AppState.PomodoroStatus,
+        pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isUnblockable: Bool,
         calendarImportsBlockTime: Bool,
@@ -253,7 +253,7 @@ struct AppStateLogicFacade {
         )
     }
 
-    func skipPhaseAction(for status: AppState.PomodoroStatus) -> SkipPhaseAction {
+    func skipPhaseAction(for status: PomodoroStatus) -> SkipPhaseAction {
         AppStateFocusFlowCoordinator.skipPhaseAction(for: status)
     }
 
@@ -288,7 +288,7 @@ struct AppStateLogicFacade {
     }
 
     func pomodoroTickAction(
-        status: AppState.PomodoroStatus,
+        status: PomodoroStatus,
         remaining: TimeInterval
     ) -> PomodoroTickAction {
         AppStateFocusFlowCoordinator.pomodoroTickAction(status: status, remaining: remaining)

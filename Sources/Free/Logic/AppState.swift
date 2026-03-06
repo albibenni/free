@@ -93,8 +93,6 @@ class AppState: ObservableObject {
     private var persistenceCancellables = Set<AnyCancellable>()
     var internalState = AppStateInternalState()
 
-    enum PomodoroStatus: String, Codable { case none, focus, breakTime }
-
     init(
         defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil,
         calendar: (any CalendarProvider)? = nil,
@@ -152,23 +150,19 @@ class AppState: ObservableObject {
             isTesting: isTesting,
             calendarProvider: calendarProvider,
             timerCoordinator: timerCoordinator,
-            buildMonitor: {
-                BrowserMonitor(
-                    stateSnapshotProvider: { [weak self] in
-                        guard let self else { return nil }
-                        return BrowserMonitor.StateSnapshot(
-                            isBlocking: self.isBlocking,
-                            isPaused: self.isPaused,
-                            blockNewTabs: self.blockNewTabs,
-                            blockDeveloperHosts: self.blockDeveloperHosts,
-                            blockLocalNetworkHosts: self.blockLocalNetworkHosts,
-                            allowedRules: self.allowedRules
-                        )
-                    },
-                    setTrustedState: { [weak self] trusted in
-                        self?.isTrusted = trusted
-                    }
+            monitorStateSnapshotProvider: { [weak self] in
+                guard let self else { return nil }
+                return BrowserMonitor.StateSnapshot(
+                    isBlocking: self.isBlocking,
+                    isPaused: self.isPaused,
+                    blockNewTabs: self.blockNewTabs,
+                    blockDeveloperHosts: self.blockDeveloperHosts,
+                    blockLocalNetworkHosts: self.blockLocalNetworkHosts,
+                    allowedRules: self.allowedRules
                 )
+            },
+            setTrustedState: { [weak self] trusted in
+                self?.isTrusted = trusted
             },
             onScheduleUpdate: { [weak self] in self?.checkSchedules() }
         )

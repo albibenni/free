@@ -7,7 +7,7 @@ enum AppStateRuntimeCoordinator {
     }
 
     static func pomodoroTickAction(
-        status: AppState.PomodoroStatus,
+        status: PomodoroStatus,
         remaining: TimeInterval
     ) -> AppStatePomodoroCoordinator.TimerAction {
         AppStatePomodoroCoordinator.timerAction(status: status, remaining: remaining)

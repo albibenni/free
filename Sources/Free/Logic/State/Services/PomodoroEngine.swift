@@ -2,7 +2,7 @@ import Foundation
 
 struct PomodoroEngine {
     struct State: Equatable {
-        var status: AppState.PomodoroStatus
+        var status: PomodoroStatus
         var remaining: TimeInterval
         var startedAt: Date?
         var ruleSetId: UUID?
@@ -10,7 +10,7 @@ struct PomodoroEngine {
 
     static func isLocked(
         isUnblockable: Bool,
-        status: AppState.PomodoroStatus,
+        status: PomodoroStatus,
         startedAt: Date?,
         now: Date = Date(),
         gracePeriod: TimeInterval = 10

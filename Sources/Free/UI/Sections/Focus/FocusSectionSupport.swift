@@ -43,14 +43,14 @@ enum FocusSectionSupport {
 
     static func shouldShowAllowListPreview(
         isBlocking: Bool,
-        pomodoroStatus: AppState.PomodoroStatus,
+        pomodoroStatus: PomodoroStatus,
         hasActiveFocusSchedule: Bool,
         hasCurrentRuleSet: Bool
     ) -> Bool {
         hasCurrentRuleSet && (isBlocking || pomodoroStatus != .none || hasActiveFocusSchedule)
     }
 
-    static func pomodoroPhaseLabel(status: AppState.PomodoroStatus) -> String {
+    static func pomodoroPhaseLabel(status: PomodoroStatus) -> String {
         switch status {
         case .none:
             return "Inactive"
@@ -61,7 +61,7 @@ enum FocusSectionSupport {
         }
     }
 
-    static func makeCancelPauseAction(appState: AppState) -> () -> Void {
-        { appState.cancelPause() }
+    static func makeCancelPauseAction(cancelPause: @escaping () -> Void) -> () -> Void {
+        cancelPause
     }
 }

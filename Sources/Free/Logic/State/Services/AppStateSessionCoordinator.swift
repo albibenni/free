@@ -29,7 +29,7 @@ enum AppStateSessionCoordinator {
     static func check(
         current: SessionState,
         schedules: [Schedule],
-        pomodoroStatus: AppState.PomodoroStatus,
+        pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isUnblockable: Bool,
         calendarImportsBlockTime: Bool,
@@ -57,7 +57,7 @@ enum AppStateSessionCoordinator {
         hasPersistedWasStartedBySchedule: Bool,
         current: SessionState,
         schedules: [Schedule],
-        pomodoroStatus: AppState.PomodoroStatus,
+        pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isUnblockable: Bool,
         calendarImportsBlockTime: Bool,

@@ -9,7 +9,7 @@ struct AppStateBlockingCoordinator {
     static func evaluateAutomaticBlocking(
         schedules: [Schedule],
         manuallyPausedScheduleIds: Set<UUID>,
-        pomodoroStatus: AppState.PomodoroStatus,
+        pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isUnblockable: Bool,
         calendarImportsBlockTime: Bool,

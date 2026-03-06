@@ -6,7 +6,7 @@ final class MainShellBindings {
     private var cancellables: Set<AnyCancellable> = []
 
     func bind(
-        appState: AppState,
+        appStateChanges: AnyPublisher<Void, Never>,
         shellState: FreeShellState,
         onSelectedSectionChanged: @escaping () -> Void,
         onAppStateChanged: @escaping () -> Void,
@@ -21,7 +21,7 @@ final class MainShellBindings {
             }
             .store(in: &cancellables)
 
-        appState.objectWillChange
+        appStateChanges
             .receive(on: RunLoop.main)
             .sink {
                 onAppStateChanged()
