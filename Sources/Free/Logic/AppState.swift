@@ -68,11 +68,7 @@ class AppState: ObservableObject {
     let launchAtLoginService: LaunchAtLoginService
     let timerCoordinator: AppStateTimerCoordinator
     private var persistenceCancellables = Set<AnyCancellable>()
-    var wasStartedBySchedule = false
-    var manuallyPausedScheduleIds: Set<UUID> = []
-    var pomodoroRuleSetId: UUID?
-    var isSynchronizingImportedSchedules = false
-    var suppressedImportedCalendarEventKeys: Set<String> = []
+    var internalState = AppStateInternalState()
 
     enum PomodoroStatus: String, Codable { case none, focus, breakTime }
 
