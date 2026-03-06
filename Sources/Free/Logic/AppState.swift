@@ -175,26 +175,27 @@ class AppState: ObservableObject {
         ) {
             applySessionState(migration)
         }
-        if let monitor = monitor {
-            self.monitor = monitor
-        } else if !isTesting {
-            self.monitor = BrowserMonitor(appState: self)
+        self.monitor = AppStateRuntimeWiringCoordinator.resolveMonitor(
+            injectedMonitor: monitor,
+            isTesting: isTesting
+        ) {
+            BrowserMonitor(appState: self)
         }
 
-        calendarCancellable = calendarProvider.objectWillChange.sink { [weak self] _ in
-            DispatchQueue.main.async { self?.checkSchedules() }
-        }
-
-        let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 60) { [weak self] in
-            self?.checkSchedules()
-        }
-        timerCoordinator.replaceScheduleTimer(with: timer)
+        calendarCancellable = AppStateRuntimeWiringCoordinator.start(
+            calendarProvider: calendarProvider,
+            timerCoordinator: timerCoordinator,
+            onCalendarChange: { [weak self] in self?.checkSchedules() },
+            onScheduleTick: { [weak self] in self?.checkSchedules() }
+        )
         checkSchedules()
     }
 
     deinit {
-        timerCoordinator.invalidateAllTimers()
-        calendarCancellable?.cancel()
+        AppStateRuntimeWiringCoordinator.teardown(
+            timerCoordinator: timerCoordinator,
+            calendarCancellable: &calendarCancellable
+        )
     }
 
     func toggleBlocking() {
