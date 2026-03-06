@@ -2,6 +2,14 @@ import Combine
 import Foundation
 
 enum AppStateLifecycleService {
+    struct BootstrapProjection {
+        let session: AppSessionDomainState
+        let settings: AppSettingsDomainState
+        let pomodoro: AppPomodoroDomainState
+        let rules: AppRulesDomainState
+        let schedule: AppScheduleDomainState
+    }
+
     struct RuntimeBindings {
         let monitor: BrowserMonitor?
         let calendarCancellable: AnyCancellable
@@ -17,89 +25,89 @@ enum AppStateLifecycleService {
         )
     }
 
-    static func applyBootstrapSnapshot(
-        appState: AppState,
+    static func makeBootstrapProjection(
         snapshot: AppStateBootstrapService.Snapshot
-    ) {
-        appState.applySessionDomainState(
-            AppSessionDomainState(
-                isBlocking: snapshot.isBlocking,
-                isUnblockable: snapshot.isUnblockable,
-                isPaused: false,
-                pauseRemaining: 0,
-                wasStartedBySchedule: snapshot.wasStartedBySchedule,
-                manuallyPausedScheduleIds: []
-            )
+    ) -> BootstrapProjection {
+        BootstrapProjection(
+            session: AppSessionDomainState(
+            isBlocking: snapshot.isBlocking,
+            isUnblockable: snapshot.isUnblockable,
+            isPaused: false,
+            pauseRemaining: 0,
+            wasStartedBySchedule: snapshot.wasStartedBySchedule,
+            manuallyPausedScheduleIds: []
+        ),
+            settings: AppSettingsDomainState(
+            weekStartsOnMonday: snapshot.weekStartsOnMonday,
+            accentColorIndex: snapshot.accentColorIndex,
+            appearanceMode: snapshot.appearanceMode,
+            blockNewTabs: snapshot.blockNewTabs,
+            blockDeveloperHosts: snapshot.blockDeveloperHosts,
+            blockLocalNetworkHosts: snapshot.blockLocalNetworkHosts
+        ),
+            pomodoro: AppPomodoroDomainState(
+            status: .none,
+            remaining: 0,
+            startedAt: nil,
+            focusDurationMinutes: snapshot.pomodoroFocusDuration,
+            breakDurationMinutes: snapshot.pomodoroBreakDuration,
+            ruleSetId: nil
+        ),
+            rules: AppRulesDomainState(
+            ruleSets: snapshot.ruleSets,
+            activeRuleSetId: snapshot.activeRuleSetId
+        ),
+            schedule: AppScheduleDomainState(
+            schedules: snapshot.schedules,
+            calendarIntegrationEnabled: snapshot.calendarIntegrationEnabled,
+            calendarImportsBlockTime: snapshot.calendarImportsBlockTime,
+            isSynchronizingImportedSchedules: false,
+            suppressedImportedCalendarEventKeys: snapshot.suppressedImportedCalendarEventKeys
         )
-        appState.applySettingsDomainState(
-            AppSettingsDomainState(
-                weekStartsOnMonday: snapshot.weekStartsOnMonday,
-                accentColorIndex: snapshot.accentColorIndex,
-                appearanceMode: snapshot.appearanceMode,
-                blockNewTabs: snapshot.blockNewTabs,
-                blockDeveloperHosts: snapshot.blockDeveloperHosts,
-                blockLocalNetworkHosts: snapshot.blockLocalNetworkHosts
-            )
-        )
-        appState.applyPomodoroDomainState(
-            AppPomodoroDomainState(
-                status: .none,
-                remaining: 0,
-                startedAt: nil,
-                focusDurationMinutes: snapshot.pomodoroFocusDuration,
-                breakDurationMinutes: snapshot.pomodoroBreakDuration,
-                ruleSetId: nil
-            )
-        )
-        appState.applyRulesDomainState(
-            AppRulesDomainState(
-                ruleSets: snapshot.ruleSets,
-                activeRuleSetId: snapshot.activeRuleSetId
-            )
-        )
-        appState.applyScheduleDomainState(
-            AppScheduleDomainState(
-                schedules: snapshot.schedules,
-                calendarIntegrationEnabled: snapshot.calendarIntegrationEnabled,
-                calendarImportsBlockTime: snapshot.calendarImportsBlockTime,
-                isSynchronizingImportedSchedules: false,
-                suppressedImportedCalendarEventKeys: snapshot.suppressedImportedCalendarEventKeys
-            )
         )
     }
 
-    static func performLegacyBlockingMigrationIfNeeded(appState: AppState) {
-        if let migration = appState.logicFacade.migrateLegacyBlockingSourceIfNeeded(
-            hasPersistedWasStartedBySchedule: appState.settingsStore.hasPersistedWasStartedBySchedule(),
-            current: appState.sessionState,
-            schedules: appState.schedules,
-            pomodoroStatus: appState.pomodoroStatus,
-            calendarIntegrationEnabled: appState.calendarIntegrationEnabled,
-            isUnblockable: appState.isUnblockable,
-            calendarImportsBlockTime: appState.calendarImportsBlockTime,
-            calendarEvents: appState.calendarProvider.events
-        ) {
-            appState.applySessionState(migration)
-        }
+    static func resolveLegacyBlockingMigration(
+        logicFacade: AppStateLogicFacade,
+        hasPersistedWasStartedBySchedule: Bool,
+        current: AppStateLogicFacade.SessionState,
+        schedules: [Schedule],
+        pomodoroStatus: AppState.PomodoroStatus,
+        calendarIntegrationEnabled: Bool,
+        isUnblockable: Bool,
+        calendarImportsBlockTime: Bool,
+        calendarEvents: [ExternalEvent]
+    ) -> AppStateLogicFacade.SessionState? {
+        logicFacade.migrateLegacyBlockingSourceIfNeeded(
+            hasPersistedWasStartedBySchedule: hasPersistedWasStartedBySchedule,
+            current: current,
+            schedules: schedules,
+            pomodoroStatus: pomodoroStatus,
+            calendarIntegrationEnabled: calendarIntegrationEnabled,
+            isUnblockable: isUnblockable,
+            calendarImportsBlockTime: calendarImportsBlockTime,
+            calendarEvents: calendarEvents
+        )
     }
 
     static func startRuntime(
-        appState: AppState,
         injectedMonitor: BrowserMonitor?,
-        isTesting: Bool
+        isTesting: Bool,
+        calendarProvider: any CalendarProvider,
+        timerCoordinator: AppStateTimerCoordinator,
+        buildMonitor: () -> BrowserMonitor,
+        onScheduleUpdate: @escaping () -> Void
     ) -> RuntimeBindings {
         let monitor = AppStateRuntimeWiringCoordinator.resolveMonitor(
             injectedMonitor: injectedMonitor,
             isTesting: isTesting
-        ) {
-            BrowserMonitor(appState: appState)
-        }
+        ) { buildMonitor() }
 
         let calendarCancellable = AppStateRuntimeWiringCoordinator.start(
-            calendarProvider: appState.calendarProvider,
-            timerCoordinator: appState.timerCoordinator,
-            onCalendarChange: { [weak appState] in appState?.checkSchedules() },
-            onScheduleTick: { [weak appState] in appState?.checkSchedules() }
+            calendarProvider: calendarProvider,
+            timerCoordinator: timerCoordinator,
+            onCalendarChange: onScheduleUpdate,
+            onScheduleTick: onScheduleUpdate
         )
 
         return RuntimeBindings(

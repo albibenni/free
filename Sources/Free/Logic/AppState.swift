@@ -15,7 +15,10 @@ class AppState: ObservableObject {
 
     @Published var isBlocking = false {
         didSet {
-            AppStatePropertyEffectsService.handleIsBlockingDidChange(appState: self)
+            AppStatePropertyEffectsService.handleIsBlockingDidChange(
+                isBlocking: isBlocking,
+                cancelPause: { cancelPause() }
+            )
         }
     }
     @Published var isUnblockable = false
@@ -25,12 +28,18 @@ class AppState: ObservableObject {
     @Published var appearanceMode: AppearanceMode = .system
     @Published var calendarIntegrationEnabled = false {
         didSet {
-            AppStatePropertyEffectsService.handleCalendarIntegrationEnabledDidChange(appState: self)
+            AppStatePropertyEffectsService.handleCalendarIntegrationEnabledDidChange(
+                isEnabled: calendarIntegrationEnabled,
+                requestAccess: { calendarProvider.requestAccess() },
+                checkSchedules: { checkSchedules() }
+            )
         }
     }
     @Published var calendarImportsBlockTime = false {
         didSet {
-            AppStatePropertyEffectsService.handleCalendarImportsBlockTimeDidChange(appState: self)
+            AppStatePropertyEffectsService.handleCalendarImportsBlockTimeDidChange(
+                checkSchedules: { checkSchedules() }
+            )
         }
     }
     @Published var blockNewTabs = false
@@ -40,18 +49,32 @@ class AppState: ObservableObject {
     @Published var activeRuleSetId: UUID? = nil
     @Published var schedules: [Schedule] = [] {
         didSet {
-            AppStatePropertyEffectsService.handleSchedulesDidChange(appState: self)
+            AppStatePropertyEffectsService.handleSchedulesDidChange(
+                schedules: schedules,
+                settingsStore: settingsStore,
+                checkSchedules: { checkSchedules() }
+            )
         }
     }
 
     @Published var pomodoroFocusDuration: Double = 25 {
         didSet {
-            AppStatePropertyEffectsService.handlePomodoroFocusDurationDidChange(appState: self)
+            pomodoroRemaining = AppStatePropertyEffectsService
+                .updatedPomodoroRemainingAfterFocusDurationDidChange(
+                    isFocusActive: pomodoroStatus == .focus,
+                    focusDurationMinutes: pomodoroFocusDuration,
+                    currentRemaining: pomodoroRemaining
+                )
         }
     }
     @Published var pomodoroBreakDuration: Double = 5 {
         didSet {
-            AppStatePropertyEffectsService.handlePomodoroBreakDurationDidChange(appState: self)
+            pomodoroRemaining = AppStatePropertyEffectsService
+                .updatedPomodoroRemainingAfterBreakDurationDidChange(
+                    isBreakActive: pomodoroStatus == .breakTime,
+                    breakDurationMinutes: pomodoroBreakDuration,
+                    currentRemaining: pomodoroRemaining
+                )
         }
     }
 
@@ -99,21 +122,38 @@ class AppState: ObservableObject {
         self.launchAtLoginService = dependencies.launchAtLoginService
 
         let snapshot = AppStateBootstrapService.snapshot(from: settingsStore)
-        AppStateLifecycleService.applyBootstrapSnapshot(
-            appState: self,
-            snapshot: snapshot
-        )
+        let bootstrapProjection = AppStateLifecycleService.makeBootstrapProjection(snapshot: snapshot)
+        applySessionDomainState(bootstrapProjection.session)
+        applySettingsDomainState(bootstrapProjection.settings)
+        applyPomodoroDomainState(bootstrapProjection.pomodoro)
+        applyRulesDomainState(bootstrapProjection.rules)
+        applyScheduleDomainState(bootstrapProjection.schedule)
         persistenceCancellables = AppStateLifecycleService.bindPersistence(
             appState: self,
             settingsStore: settingsStore
         )
 
         // Migration for older builds that persisted IsBlocking but not its source.
-        AppStateLifecycleService.performLegacyBlockingMigrationIfNeeded(appState: self)
+        if let migration = AppStateLifecycleService.resolveLegacyBlockingMigration(
+            logicFacade: logicFacade,
+            hasPersistedWasStartedBySchedule: settingsStore.hasPersistedWasStartedBySchedule(),
+            current: sessionState,
+            schedules: schedules,
+            pomodoroStatus: pomodoroStatus,
+            calendarIntegrationEnabled: calendarIntegrationEnabled,
+            isUnblockable: isUnblockable,
+            calendarImportsBlockTime: calendarImportsBlockTime,
+            calendarEvents: calendarProvider.events
+        ) {
+            applySessionState(migration)
+        }
         let runtimeBindings = AppStateLifecycleService.startRuntime(
-            appState: self,
             injectedMonitor: monitor,
-            isTesting: isTesting
+            isTesting: isTesting,
+            calendarProvider: calendarProvider,
+            timerCoordinator: timerCoordinator,
+            buildMonitor: { BrowserMonitor(appState: self) },
+            onScheduleUpdate: { [weak self] in self?.checkSchedules() }
         )
         self.monitor = runtimeBindings.monitor
         calendarCancellable = runtimeBindings.calendarCancellable

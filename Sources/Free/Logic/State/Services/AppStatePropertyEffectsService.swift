@@ -1,36 +1,55 @@
 import Foundation
 
 enum AppStatePropertyEffectsService {
-    static func handleIsBlockingDidChange(appState: AppState) {
-        if !appState.isBlocking { appState.cancelPause() }
+    static func handleIsBlockingDidChange(
+        isBlocking: Bool,
+        cancelPause: () -> Void
+    ) {
+        if !isBlocking { cancelPause() }
     }
 
-    static func handleCalendarIntegrationEnabledDidChange(appState: AppState) {
-        if appState.calendarIntegrationEnabled { appState.calendarProvider.requestAccess() }
-        appState.checkSchedules()
+    static func handleCalendarIntegrationEnabledDidChange(
+        isEnabled: Bool,
+        requestAccess: () -> Void,
+        checkSchedules: () -> Void
+    ) {
+        if isEnabled { requestAccess() }
+        checkSchedules()
     }
 
-    static func handleCalendarImportsBlockTimeDidChange(appState: AppState) {
-        appState.checkSchedules()
+    static func handleCalendarImportsBlockTimeDidChange(
+        checkSchedules: () -> Void
+    ) {
+        checkSchedules()
     }
 
-    static func handleSchedulesDidChange(appState: AppState) {
+    static func handleSchedulesDidChange(
+        schedules: [Schedule],
+        settingsStore: SettingsStore,
+        checkSchedules: () -> Void
+    ) {
         AppStatePersistenceCoordinator.persistSchedulesSynchronously(
-            appState.schedules,
-            settingsStore: appState.settingsStore
+            schedules,
+            settingsStore: settingsStore
         )
-        appState.checkSchedules()
+        checkSchedules()
     }
 
-    static func handlePomodoroFocusDurationDidChange(appState: AppState) {
-        if appState.pomodoroStatus == .focus {
-            appState.pomodoroRemaining = appState.pomodoroFocusDuration * 60
-        }
+    static func updatedPomodoroRemainingAfterFocusDurationDidChange(
+        isFocusActive: Bool,
+        focusDurationMinutes: Double,
+        currentRemaining: TimeInterval
+    ) -> TimeInterval {
+        guard isFocusActive else { return currentRemaining }
+        return focusDurationMinutes * 60
     }
 
-    static func handlePomodoroBreakDurationDidChange(appState: AppState) {
-        if appState.pomodoroStatus == .breakTime {
-            appState.pomodoroRemaining = appState.pomodoroBreakDuration * 60
-        }
+    static func updatedPomodoroRemainingAfterBreakDurationDidChange(
+        isBreakActive: Bool,
+        breakDurationMinutes: Double,
+        currentRemaining: TimeInterval
+    ) -> TimeInterval {
+        guard isBreakActive else { return currentRemaining }
+        return breakDurationMinutes * 60
     }
 }
