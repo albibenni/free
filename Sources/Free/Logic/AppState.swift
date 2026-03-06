@@ -432,12 +432,12 @@ class AppState: ObservableObject {
     func resyncImportedCalendarSchedules(
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
-        guard calendarIntegrationEnabled else { return }
         guard
-            let rebuilt = AppStateScheduleCoordinator.rebuildIfNeeded(
+            let rebuilt = AppStateCalendarSyncCoordinator.rebuildForResync(
+                calendarIntegrationEnabled: calendarIntegrationEnabled,
                 currentSchedules: schedules,
                 events: calendarProvider.events,
-                shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+                calendarImportsBlockTime: calendarImportsBlockTime,
                 suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
                 activeRuleSetId: activeRuleSetId,
                 ruleSets: ruleSets,
@@ -519,12 +519,13 @@ class AppState: ObservableObject {
     private func synchronizeImportedCalendarSchedulesIfNeeded(
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
-        guard !isSynchronizingImportedSchedules else { return }
         guard
-            let merged = AppStateScheduleCoordinator.rebuildIfNeeded(
+            let merged = AppStateCalendarSyncCoordinator.rebuildForScheduleCheck(
+                isSynchronizingImportedSchedules: isSynchronizingImportedSchedules,
                 currentSchedules: schedules,
                 events: calendarProvider.events,
-                shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+                calendarIntegrationEnabled: calendarIntegrationEnabled,
+                calendarImportsBlockTime: calendarImportsBlockTime,
                 suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
                 activeRuleSetId: activeRuleSetId,
                 ruleSets: ruleSets,
