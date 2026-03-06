@@ -42,6 +42,20 @@ struct AllowedWebsitesActionsCoordinatorsTests {
         )
         #expect(selected?.id == created.id)
 
+        let strictSelection = AllowedWebsitesRuleSetActionsCoordinator.selectedRuleSetAfterRowTap(
+            tappedId: UUID(),
+            currentSelectedId: created.id,
+            isStrictActive: true
+        )
+        #expect(strictSelection == created.id)
+
+        let relaxedSelection = AllowedWebsitesRuleSetActionsCoordinator.selectedRuleSetAfterRowTap(
+            tappedId: created.id,
+            currentSelectedId: nil,
+            isStrictActive: false
+        )
+        #expect(relaxedSelection == created.id)
+
         AllowedWebsitesRuleSetActionsCoordinator.deleteRuleSet(
             appState: appState,
             id: created.id

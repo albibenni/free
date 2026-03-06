@@ -20,6 +20,15 @@ enum AllowedWebsitesRuleSetActionsCoordinator {
         return ruleSets.first(where: { $0.id == id })
     }
 
+    static func selectedRuleSetAfterRowTap(
+        tappedId: UUID,
+        currentSelectedId: UUID?,
+        isStrictActive: Bool
+    ) -> UUID? {
+        guard !isStrictActive else { return currentSelectedId }
+        return tappedId
+    }
+
     static func createRuleSet(
         appState: AppState,
         name: String

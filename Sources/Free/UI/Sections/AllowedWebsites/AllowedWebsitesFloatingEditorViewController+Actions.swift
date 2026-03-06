@@ -105,8 +105,11 @@ extension AllowedWebsitesFloatingEditorViewController {
             isRowSelectionEnabled: !appState.isStrictActive
         ) { [weak self] selectedId in
             guard let self else { return }
-            guard !self.appState.isStrictActive else { return }
-            self.selectedRuleSetId = selectedId
+            self.selectedRuleSetId = AllowedWebsitesRuleSetActionsCoordinator.selectedRuleSetAfterRowTap(
+                tappedId: selectedId,
+                currentSelectedId: self.selectedRuleSetId,
+                isStrictActive: self.appState.isStrictActive
+            )
             self.reloadRuleSetRows()
             self.reloadRulesOnly()
         }
