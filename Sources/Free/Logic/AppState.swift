@@ -11,7 +11,7 @@ class AppState: ObservableObject {
     static let challengePhrase =
         "I am choosing to break my focus and I acknowledge that this may impact my productivity."
     private let settingsStore: SettingsStore
-    private let logicFacade: AppStateLogicFacade
+    let logicFacade: AppStateLogicFacade
 
     @Published var isBlocking = false {
         didSet {
@@ -70,7 +70,7 @@ class AppState: ObservableObject {
     var monitor: BrowserMonitor?
     let calendarProvider: any CalendarProvider
     private var calendarCancellable: AnyCancellable?
-    private let launchAtLoginService: LaunchAtLoginService
+    let launchAtLoginService: LaunchAtLoginService
     private let timerCoordinator: AppStateTimerCoordinator
     private var persistenceCancellables = Set<AnyCancellable>()
     private var wasStartedBySchedule = false
@@ -240,105 +240,6 @@ class AppState: ObservableObject {
         applySessionState(updated)
     }
 
-    func addRule(_ rule: String, to setId: UUID) {
-        ruleSets = logicFacade.mutateRule(
-            rule,
-            setId: setId,
-            currentRuleSets: ruleSets,
-            isStrictActive: isStrictActive,
-            mutation: .add
-        )
-    }
-    func addSpecificRule(_ rule: String, to setId: UUID) {
-        ruleSets = logicFacade.mutateRule(
-            rule,
-            setId: setId,
-            currentRuleSets: ruleSets,
-            isStrictActive: isStrictActive,
-            mutation: .addSpecific
-        )
-    }
-    func removeRule(_ rule: String, from setId: UUID) {
-        ruleSets = logicFacade.mutateRule(
-            rule,
-            setId: setId,
-            currentRuleSets: ruleSets,
-            isStrictActive: isStrictActive,
-            mutation: .remove
-        )
-    }
-    func deleteSet(id: UUID) {
-        let result = logicFacade.deleteRuleSet(
-            id: id,
-            currentRuleSets: ruleSets,
-            currentActiveRuleSetId: activeRuleSetId,
-            isStrictActive: isStrictActive
-        )
-        ruleSets = result.ruleSets
-        activeRuleSetId = result.activeRuleSetId
-    }
-
-    @discardableResult
-    func createRuleSet(name: String, makeActive: Bool = false) -> RuleSet {
-        let result = logicFacade.createRuleSet(
-            name: name,
-            makeActive: makeActive,
-            currentRuleSets: ruleSets,
-            currentActiveRuleSetId: activeRuleSetId
-        )
-        ruleSets = result.ruleSets
-        activeRuleSetId = result.activeRuleSetId
-        return result.created
-    }
-
-    func selectActiveRuleSet(_ id: UUID) {
-        activeRuleSetId = logicFacade.selectActiveRuleSet(
-            id,
-            currentRuleSets: ruleSets,
-            currentActiveRuleSetId: activeRuleSetId,
-            isStrictActive: isStrictActive
-        )
-    }
-
-    func saveSchedule(
-        name: String, days: Set<Int>, date: Date?, start: Date, end: Date, color: Int,
-        type: ScheduleType, ruleSet: UUID?, existingId: UUID?, modifyAllDays: Bool, initialDay: Int?
-    ) {
-        schedules = logicFacade.saveSchedule(
-            currentSchedules: schedules,
-            name: name,
-            days: days,
-            date: date,
-            start: start,
-            end: end,
-            color: color,
-            type: type,
-            ruleSet: ruleSet,
-            existingId: existingId,
-            modifyAllDays: modifyAllDays,
-            initialDay: initialDay
-        )
-    }
-
-    func updateScheduleOccurrence(
-        id: UUID,
-        originalDay: Int,
-        targetDay: Int,
-        targetDate: Date?,
-        start: Date,
-        end: Date
-    ) {
-        schedules = logicFacade.updateScheduleOccurrence(
-            currentSchedules: schedules,
-            id: id,
-            originalDay: originalDay,
-            targetDay: targetDay,
-            targetDate: targetDate,
-            start: start,
-            end: end
-        )
-    }
-
     func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
         let result = logicFacade.deleteSchedule(
             currentSchedules: schedules,
@@ -354,31 +255,6 @@ class AppState: ObservableObject {
             settingsStore.setSuppressedImportedCalendarEventKeys(suppressedImportedCalendarEventKeys)
         }
         schedules = result.schedules
-    }
-
-    func stopPomodoroWithChallenge(phrase: String) -> Bool {
-        let result = logicFacade.stopPomodoroChallenge(
-            phrase: phrase,
-            challengePhrase: AppState.challengePhrase,
-            currentIsUnblockable: isUnblockable
-        )
-        guard result.didSucceed else { return false }
-
-        isUnblockable = result.temporaryIsUnblockable
-        stopPomodoro()
-        isUnblockable = result.restoredIsUnblockable
-        return true
-    }
-
-    func disableUnblockableWithChallenge(phrase: String) -> Bool {
-        let result = logicFacade.disableUnblockableChallenge(
-            phrase: phrase,
-            challengePhrase: AppState.challengePhrase,
-            currentIsUnblockable: isUnblockable
-        )
-        guard result.didSucceed else { return false }
-        isUnblockable = result.isUnblockable
-        return result.didSucceed
     }
 
     func startPomodoro() {
@@ -481,28 +357,6 @@ class AppState: ObservableObject {
         state.schedules = rebuilt
         state.isSynchronizingImportedSchedules = false
         applyScheduleDomainState(state)
-    }
-
-    func prepareLaunchAtLoginPromptIfNeeded() -> Bool {
-        logicFacade.prepareLaunchAtLoginPromptIfNeeded(service: launchAtLoginService)
-    }
-
-    func launchAtLoginStatus() -> Bool {
-        logicFacade.launchAtLoginStatus(service: launchAtLoginService)
-    }
-
-    @discardableResult
-    func enableLaunchAtLogin() -> Bool {
-        logicFacade.enableLaunchAtLogin(service: launchAtLoginService)
-    }
-
-    @discardableResult
-    func setLaunchAtLoginEnabled(_ enabled: Bool) -> Bool {
-        logicFacade.setLaunchAtLoginEnabled(enabled, service: launchAtLoginService)
-    }
-
-    func timeString(time: TimeInterval) -> String {
-        logicFacade.timeString(time: time)
     }
 
     private func runTimer() {
