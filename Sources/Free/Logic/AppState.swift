@@ -15,7 +15,7 @@ class AppState: ObservableObject {
 
     @Published var isBlocking = false {
         didSet {
-            if !isBlocking { cancelPause() }
+            handleIsBlockingDidChange()
         }
     }
     @Published var isUnblockable = false
@@ -25,13 +25,12 @@ class AppState: ObservableObject {
     @Published var appearanceMode: AppearanceMode = .system
     @Published var calendarIntegrationEnabled = false {
         didSet {
-            if calendarIntegrationEnabled { calendarProvider.requestAccess() }
-            checkSchedules()
+            handleCalendarIntegrationEnabledDidChange()
         }
     }
     @Published var calendarImportsBlockTime = false {
         didSet {
-            checkSchedules()
+            handleCalendarImportsBlockTimeDidChange()
         }
     }
     @Published var blockNewTabs = false
@@ -41,22 +40,18 @@ class AppState: ObservableObject {
     @Published var activeRuleSetId: UUID? = nil
     @Published var schedules: [Schedule] = [] {
         didSet {
-            AppStatePersistenceCoordinator.persistSchedulesSynchronously(
-                schedules,
-                settingsStore: settingsStore
-            )
-            checkSchedules()
+            handleSchedulesDidChange()
         }
     }
 
     @Published var pomodoroFocusDuration: Double = 25 {
         didSet {
-            if pomodoroStatus == .focus { pomodoroRemaining = pomodoroFocusDuration * 60 }
+            handlePomodoroFocusDurationDidChange()
         }
     }
     @Published var pomodoroBreakDuration: Double = 5 {
         didSet {
-            if pomodoroStatus == .breakTime { pomodoroRemaining = pomodoroBreakDuration * 60 }
+            handlePomodoroBreakDurationDidChange()
         }
     }
 
