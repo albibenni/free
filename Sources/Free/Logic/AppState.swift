@@ -481,21 +481,30 @@ class AppState: ObservableObject {
     }
 
     func prepareLaunchAtLoginPromptIfNeeded() -> Bool {
-        launchAtLoginService.preparePromptIfNeeded()
+        AppStateLaunchAtLoginCoordinator.preparePromptIfNeeded(
+            dependencies: .live(service: launchAtLoginService)
+        )
     }
 
     func launchAtLoginStatus() -> Bool {
-        launchAtLoginService.isEnabled()
+        AppStateLaunchAtLoginCoordinator.status(
+            dependencies: .live(service: launchAtLoginService)
+        )
     }
 
     @discardableResult
     func enableLaunchAtLogin() -> Bool {
-        launchAtLoginService.enable()
+        AppStateLaunchAtLoginCoordinator.enable(
+            dependencies: .live(service: launchAtLoginService)
+        )
     }
 
     @discardableResult
     func setLaunchAtLoginEnabled(_ enabled: Bool) -> Bool {
-        launchAtLoginService.setEnabled(enabled)
+        AppStateLaunchAtLoginCoordinator.setEnabled(
+            enabled,
+            dependencies: .live(service: launchAtLoginService)
+        )
     }
 
     func timeString(time: TimeInterval) -> String {
