@@ -11,6 +11,7 @@ class AppState: ObservableObject {
     static let challengePhrase =
         "I am choosing to break my focus and I acknowledge that this may impact my productivity."
     private let settingsStore: SettingsStore
+    private let logicFacade: AppStateLogicFacade
 
     @Published var isBlocking = false {
         didSet {
@@ -90,25 +91,26 @@ class AppState: ObservableObject {
     var isStrictActive: Bool { isBlocking && isUnblockable }
 
     var currentPrimaryRuleSetId: UUID? {
-        AppStateReadModelCoordinator.currentPrimaryRuleSetId(context: ruleContext)
+        logicFacade.currentPrimaryRuleSetId(context: ruleContext)
     }
 
     var currentPrimaryRuleSetName: String {
-        AppStateReadModelCoordinator.currentPrimaryRuleSetName(context: ruleContext)
+        logicFacade.currentPrimaryRuleSetName(context: ruleContext)
     }
 
     var allowedRules: [String] {
-        AppStateReadModelCoordinator.allowedRules(context: ruleContext)
+        logicFacade.allowedRules(context: ruleContext)
     }
 
     var todaySchedules: [Schedule] {
-        ScheduleEngine.todaySchedules(from: schedules)
+        logicFacade.todaySchedules(from: schedules)
     }
 
     init(
         defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil,
         calendar: (any CalendarProvider)? = nil,
         timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
+        logicFacade: AppStateLogicFacade = .live,
         launchAtLoginManager: any LaunchAtLoginManaging = DefaultLaunchAtLoginManager(),
         canPromptForLaunchAtLogin: @escaping () -> Bool = {
             ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
@@ -116,6 +118,7 @@ class AppState: ObservableObject {
         isTesting: Bool = false
     ) {
         self.settingsStore = SettingsStore(defaults: defaults)
+        self.logicFacade = logicFacade
         self.calendarProvider =
             calendar
             ?? (isTesting ? MockCalendarManager() : RealCalendarManager(nowProvider: { Date() }))
@@ -150,7 +153,7 @@ class AppState: ObservableObject {
         )
 
         // Migration for older builds that persisted IsBlocking but not its source.
-        if let migration = AppStateSessionCoordinator.migrateLegacyBlockingSourceIfNeeded(
+        if let migration = logicFacade.migrateLegacyBlockingSourceIfNeeded(
             hasPersistedWasStartedBySchedule: settingsStore.hasPersistedWasStartedBySchedule(),
             current: sessionState,
             schedules: schedules,
@@ -187,7 +190,7 @@ class AppState: ObservableObject {
     }
 
     func toggleBlocking() {
-        let updated = AppStateSessionCoordinator.toggle(
+        let updated = logicFacade.toggleSession(
             current: sessionState,
             isUnblockable: isUnblockable,
             schedules: schedules
@@ -197,7 +200,7 @@ class AppState: ObservableObject {
 
     func checkSchedules() {
         synchronizeImportedCalendarSchedulesIfNeeded()
-        let updated = AppStateSessionCoordinator.check(
+        let updated = logicFacade.checkSession(
             current: sessionState,
             schedules: schedules,
             pomodoroStatus: pomodoroStatus,
@@ -210,7 +213,7 @@ class AppState: ObservableObject {
     }
 
     func addRule(_ rule: String, to setId: UUID) {
-        ruleSets = AppStateRuleSetCoordinator.mutateRule(
+        ruleSets = logicFacade.mutateRule(
             rule,
             setId: setId,
             currentRuleSets: ruleSets,
@@ -219,7 +222,7 @@ class AppState: ObservableObject {
         )
     }
     func addSpecificRule(_ rule: String, to setId: UUID) {
-        ruleSets = AppStateRuleSetCoordinator.mutateRule(
+        ruleSets = logicFacade.mutateRule(
             rule,
             setId: setId,
             currentRuleSets: ruleSets,
@@ -228,7 +231,7 @@ class AppState: ObservableObject {
         )
     }
     func removeRule(_ rule: String, from setId: UUID) {
-        ruleSets = AppStateRuleSetCoordinator.mutateRule(
+        ruleSets = logicFacade.mutateRule(
             rule,
             setId: setId,
             currentRuleSets: ruleSets,
@@ -237,7 +240,7 @@ class AppState: ObservableObject {
         )
     }
     func deleteSet(id: UUID) {
-        let result = AppStateRuleSetCoordinator.deleteRuleSet(
+        let result = logicFacade.deleteRuleSet(
             id: id,
             currentRuleSets: ruleSets,
             currentActiveRuleSetId: activeRuleSetId,
@@ -249,7 +252,7 @@ class AppState: ObservableObject {
 
     @discardableResult
     func createRuleSet(name: String, makeActive: Bool = false) -> RuleSet {
-        let result = AppStateRuleSetCoordinator.createRuleSet(
+        let result = logicFacade.createRuleSet(
             name: name,
             makeActive: makeActive,
             currentRuleSets: ruleSets,
@@ -261,7 +264,7 @@ class AppState: ObservableObject {
     }
 
     func selectActiveRuleSet(_ id: UUID) {
-        activeRuleSetId = AppStateRuleSetCoordinator.selectActiveRuleSet(
+        activeRuleSetId = logicFacade.selectActiveRuleSet(
             id,
             currentRuleSets: ruleSets,
             currentActiveRuleSetId: activeRuleSetId,
@@ -273,7 +276,7 @@ class AppState: ObservableObject {
         name: String, days: Set<Int>, date: Date?, start: Date, end: Date, color: Int,
         type: ScheduleType, ruleSet: UUID?, existingId: UUID?, modifyAllDays: Bool, initialDay: Int?
     ) {
-        schedules = AppStateScheduleMutationCoordinator.saveSchedule(
+        schedules = logicFacade.saveSchedule(
             currentSchedules: schedules,
             name: name,
             days: days,
@@ -297,7 +300,7 @@ class AppState: ObservableObject {
         start: Date,
         end: Date
     ) {
-        schedules = AppStateScheduleMutationCoordinator.updateScheduleOccurrence(
+        schedules = logicFacade.updateScheduleOccurrence(
             currentSchedules: schedules,
             id: id,
             originalDay: originalDay,
@@ -309,7 +312,7 @@ class AppState: ObservableObject {
     }
 
     func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
-        let result = AppStateScheduleMutationCoordinator.deleteSchedule(
+        let result = logicFacade.deleteSchedule(
             currentSchedules: schedules,
             id: id,
             modifyAllDays: modifyAllDays,
@@ -326,7 +329,7 @@ class AppState: ObservableObject {
     }
 
     func stopPomodoroWithChallenge(phrase: String) -> Bool {
-        let result = AppStateChallengeCoordinator.stopPomodoro(
+        let result = logicFacade.stopPomodoroChallenge(
             phrase: phrase,
             challengePhrase: AppState.challengePhrase,
             currentIsUnblockable: isUnblockable
@@ -340,7 +343,7 @@ class AppState: ObservableObject {
     }
 
     func disableUnblockableWithChallenge(phrase: String) -> Bool {
-        let result = AppStateChallengeCoordinator.disableUnblockable(
+        let result = logicFacade.disableUnblockableChallenge(
             phrase: phrase,
             challengePhrase: AppState.challengePhrase,
             currentIsUnblockable: isUnblockable
@@ -351,7 +354,7 @@ class AppState: ObservableObject {
     }
 
     func startPomodoro() {
-        let transition = AppStateFocusFlowCoordinator.startPomodoro(
+        let transition = logicFacade.startPomodoro(
             state: pomodoroEngineState,
             focusDurationMinutes: pomodoroFocusDuration,
             activeRuleSetId: activeRuleSetId,
@@ -364,7 +367,7 @@ class AppState: ObservableObject {
     }
     func stopPomodoro() {
         guard
-            let transition = AppStateFocusFlowCoordinator.stopPomodoroIfUnlocked(
+            let transition = logicFacade.stopPomodoroIfUnlocked(
                 state: pomodoroEngineState,
                 isLocked: isPomodoroLocked
             )
@@ -378,7 +381,7 @@ class AppState: ObservableObject {
         }
     }
     func skipPomodoroPhase() {
-        switch AppStateFocusFlowCoordinator.skipPhaseAction(for: pomodoroStatus) {
+        switch logicFacade.skipPhaseAction(for: pomodoroStatus) {
         case .startBreak:
             startBreak()
         case .startFocus:
@@ -388,7 +391,7 @@ class AppState: ObservableObject {
         }
     }
     private func startBreak() {
-        let transition = AppStateFocusFlowCoordinator.startBreak(
+        let transition = logicFacade.startBreak(
             state: pomodoroEngineState,
             breakDurationMinutes: pomodoroBreakDuration
         )
@@ -400,7 +403,7 @@ class AppState: ObservableObject {
 
     func startPause(minutes: Double) {
         guard
-            let transition = AppStateFocusFlowCoordinator.startPause(
+            let transition = logicFacade.startPause(
                 state: pauseEngineState,
                 minutes: minutes,
                 isBlocking: isBlocking
@@ -410,7 +413,7 @@ class AppState: ObservableObject {
         if transition.shouldStartTimer {
             let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
                 guard let self = self else { return }
-                let result = AppStateFocusFlowCoordinator.pauseTick(state: self.pauseEngineState)
+                let result = self.logicFacade.pauseTick(state: self.pauseEngineState)
                 self.applyPauseEngineState(result.state)
                 if result.shouldCancelPause {
                     self.cancelPause()
@@ -420,7 +423,7 @@ class AppState: ObservableObject {
         }
     }
     func cancelPause() {
-        let transition = AppStateFocusFlowCoordinator.cancelPause(state: pauseEngineState)
+        let transition = logicFacade.cancelPause(state: pauseEngineState)
         applyPauseEngineState(transition.state)
         if transition.shouldStopTimer {
             timerCoordinator.replacePauseTimer(with: nil)
@@ -432,7 +435,7 @@ class AppState: ObservableObject {
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
         guard
-            let rebuilt = AppStateCalendarSyncCoordinator.rebuildForResync(
+            let rebuilt = logicFacade.rebuildForResync(
                 calendarIntegrationEnabled: calendarIntegrationEnabled,
                 currentSchedules: schedules,
                 events: calendarProvider.events,
@@ -450,40 +453,31 @@ class AppState: ObservableObject {
     }
 
     func prepareLaunchAtLoginPromptIfNeeded() -> Bool {
-        AppStateLaunchAtLoginCoordinator.preparePromptIfNeeded(
-            dependencies: .live(service: launchAtLoginService)
-        )
+        logicFacade.prepareLaunchAtLoginPromptIfNeeded(service: launchAtLoginService)
     }
 
     func launchAtLoginStatus() -> Bool {
-        AppStateLaunchAtLoginCoordinator.status(
-            dependencies: .live(service: launchAtLoginService)
-        )
+        logicFacade.launchAtLoginStatus(service: launchAtLoginService)
     }
 
     @discardableResult
     func enableLaunchAtLogin() -> Bool {
-        AppStateLaunchAtLoginCoordinator.enable(
-            dependencies: .live(service: launchAtLoginService)
-        )
+        logicFacade.enableLaunchAtLogin(service: launchAtLoginService)
     }
 
     @discardableResult
     func setLaunchAtLoginEnabled(_ enabled: Bool) -> Bool {
-        AppStateLaunchAtLoginCoordinator.setEnabled(
-            enabled,
-            dependencies: .live(service: launchAtLoginService)
-        )
+        logicFacade.setLaunchAtLoginEnabled(enabled, service: launchAtLoginService)
     }
 
     func timeString(time: TimeInterval) -> String {
-        AppStateReadModelCoordinator.timeString(time: time)
+        logicFacade.timeString(time: time)
     }
 
     private func runTimer() {
         let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
-            switch AppStateFocusFlowCoordinator.pomodoroTickAction(
+            switch self.logicFacade.pomodoroTickAction(
             status: self.pomodoroStatus,
             remaining: self.pomodoroRemaining
             ) {
@@ -503,7 +497,7 @@ class AppState: ObservableObject {
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
         guard
-            let merged = AppStateCalendarSyncCoordinator.rebuildForScheduleCheck(
+            let merged = logicFacade.rebuildForScheduleCheck(
                 isSynchronizingImportedSchedules: isSynchronizingImportedSchedules,
                 currentSchedules: schedules,
                 events: calendarProvider.events,
@@ -526,15 +520,15 @@ class AppState: ObservableObject {
         settingsStore.setWasStartedBySchedule(value)
     }
 
-    private var sessionState: AppStateSessionCoordinator.SessionState {
-        AppStateSessionCoordinator.SessionState(
+    private var sessionState: AppStateLogicFacade.SessionState {
+        logicFacade.makeSessionState(
             isBlocking: isBlocking,
             wasStartedBySchedule: wasStartedBySchedule,
             manuallyPausedScheduleIds: manuallyPausedScheduleIds
         )
     }
 
-    private func applySessionState(_ state: AppStateSessionCoordinator.SessionState) {
+    private func applySessionState(_ state: AppStateLogicFacade.SessionState) {
         manuallyPausedScheduleIds = state.manuallyPausedScheduleIds
         if state.isBlocking != isBlocking {
             isBlocking = state.isBlocking
@@ -562,8 +556,8 @@ class AppState: ObservableObject {
         )
     }
 
-    private var ruleContext: AppStateReadModelCoordinator.RuleContext {
-        AppStateReadModelCoordinator.RuleContext(
+    private var ruleContext: AppStateLogicFacade.RuleContext {
+        logicFacade.makeRuleContext(
             ruleSets: ruleSets,
             schedules: schedules,
             activeRuleSetId: activeRuleSetId,
