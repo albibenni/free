@@ -257,40 +257,60 @@ class AppState: ObservableObject {
     }
 
     func addRule(_ rule: String, to setId: UUID) {
-        if isStrictActive { return }
-        RuleSetService.addRule(rule, to: setId, in: &ruleSets)
+        ruleSets = AppStateRuleSetCoordinator.mutateRule(
+            rule,
+            setId: setId,
+            currentRuleSets: ruleSets,
+            isStrictActive: isStrictActive,
+            mutation: .add
+        )
     }
     func addSpecificRule(_ rule: String, to setId: UUID) {
-        if isStrictActive { return }
-        RuleSetService.addSpecificRule(rule, to: setId, in: &ruleSets)
+        ruleSets = AppStateRuleSetCoordinator.mutateRule(
+            rule,
+            setId: setId,
+            currentRuleSets: ruleSets,
+            isStrictActive: isStrictActive,
+            mutation: .addSpecific
+        )
     }
     func removeRule(_ rule: String, from setId: UUID) {
-        if isStrictActive { return }
-        RuleSetService.removeRule(rule, from: setId, in: &ruleSets)
+        ruleSets = AppStateRuleSetCoordinator.mutateRule(
+            rule,
+            setId: setId,
+            currentRuleSets: ruleSets,
+            isStrictActive: isStrictActive,
+            mutation: .remove
+        )
     }
     func deleteSet(id: UUID) {
-        _ = RuleSetCoordinator.deleteRuleSet(
+        let result = AppStateRuleSetCoordinator.deleteRuleSet(
             id: id,
-            in: &ruleSets,
-            activeRuleSetId: &activeRuleSetId,
+            currentRuleSets: ruleSets,
+            currentActiveRuleSetId: activeRuleSetId,
             isStrictActive: isStrictActive
         )
+        ruleSets = result.ruleSets
+        activeRuleSetId = result.activeRuleSetId
     }
 
     @discardableResult
     func createRuleSet(name: String, makeActive: Bool = false) -> RuleSet {
-        RuleSetCoordinator.createRuleSet(
+        let result = AppStateRuleSetCoordinator.createRuleSet(
             name: name,
             makeActive: makeActive,
-            in: &ruleSets,
-            activeRuleSetId: &activeRuleSetId
+            currentRuleSets: ruleSets,
+            currentActiveRuleSetId: activeRuleSetId
         )
+        ruleSets = result.ruleSets
+        activeRuleSetId = result.activeRuleSetId
+        return result.created
     }
 
     func selectActiveRuleSet(_ id: UUID) {
-        activeRuleSetId = RuleSetCoordinator.selectActiveRuleSet(
+        activeRuleSetId = AppStateRuleSetCoordinator.selectActiveRuleSet(
             id,
-            in: ruleSets,
+            currentRuleSets: ruleSets,
             currentActiveRuleSetId: activeRuleSetId,
             isStrictActive: isStrictActive
         )
