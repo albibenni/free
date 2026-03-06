@@ -166,26 +166,24 @@ class AppState: ObservableObject {
             canPromptForLaunchAtLogin: canPromptForLaunchAtLogin
         )
 
-        self.isBlocking = settingsStore.isBlocking()
-        self.isUnblockable = settingsStore.isUnblockable()
-        self.weekStartsOnMonday = settingsStore.weekStartsOnMonday()
-        self.accentColorIndex = settingsStore.accentColorIndex()
-        self.calendarIntegrationEnabled = settingsStore.calendarIntegrationEnabled()
-        self.calendarImportsBlockTime = settingsStore.calendarImportsBlockTime()
-        self.blockNewTabs = settingsStore.blockNewTabs()
-        self.blockDeveloperHosts = settingsStore.blockDeveloperHosts()
-        self.blockLocalNetworkHosts = settingsStore.blockLocalNetworkHosts()
-        self.pomodoroFocusDuration = settingsStore.pomodoroFocusDuration(default: 25)
-        self.pomodoroBreakDuration = settingsStore.pomodoroBreakDuration(default: 5)
-
-        if let modeStr = settingsStore.appearanceModeRawValue() {
-            self.appearanceMode = AppearanceMode(rawValue: modeStr) ?? .system
-        }
-        self.ruleSets = settingsStore.loadRuleSets() ?? [RuleSet.defaultSet()]
-        self.schedules = settingsStore.loadSchedules() ?? []
-        self.activeRuleSetId = settingsStore.activeRuleSetId() ?? ruleSets.first?.id
-        self.wasStartedBySchedule = settingsStore.wasStartedBySchedule()
-        self.suppressedImportedCalendarEventKeys = settingsStore.suppressedImportedCalendarEventKeys()
+        let snapshot = AppStateBootstrapService.snapshot(from: settingsStore)
+        self.isBlocking = snapshot.isBlocking
+        self.isUnblockable = snapshot.isUnblockable
+        self.weekStartsOnMonday = snapshot.weekStartsOnMonday
+        self.accentColorIndex = snapshot.accentColorIndex
+        self.appearanceMode = snapshot.appearanceMode
+        self.calendarIntegrationEnabled = snapshot.calendarIntegrationEnabled
+        self.calendarImportsBlockTime = snapshot.calendarImportsBlockTime
+        self.blockNewTabs = snapshot.blockNewTabs
+        self.blockDeveloperHosts = snapshot.blockDeveloperHosts
+        self.blockLocalNetworkHosts = snapshot.blockLocalNetworkHosts
+        self.pomodoroFocusDuration = snapshot.pomodoroFocusDuration
+        self.pomodoroBreakDuration = snapshot.pomodoroBreakDuration
+        self.ruleSets = snapshot.ruleSets
+        self.schedules = snapshot.schedules
+        self.activeRuleSetId = snapshot.activeRuleSetId
+        self.wasStartedBySchedule = snapshot.wasStartedBySchedule
+        self.suppressedImportedCalendarEventKeys = snapshot.suppressedImportedCalendarEventKeys
 
         // Migration for older builds that persisted IsBlocking but not its source.
         if !settingsStore.hasPersistedWasStartedBySchedule(), isBlocking {
