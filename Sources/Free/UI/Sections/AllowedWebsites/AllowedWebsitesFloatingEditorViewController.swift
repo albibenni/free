@@ -2,9 +2,7 @@ import AppKit
 import Combine
 
 final class AllowedWebsitesFloatingEditorViewController:
-    NSViewController,
-    NSTableViewDataSource,
-    NSTableViewDelegate
+    NSViewController
 {
     struct RenderSignature: Equatable {
         let ruleSets: [RuleSet]
@@ -35,6 +33,7 @@ final class AllowedWebsitesFloatingEditorViewController:
     let emptyLabel = NSTextField(labelWithString: "No allowed websites in this list yet.")
     let rulesTableView = NSTableView()
     let tableScrollView = NSScrollView()
+    let rulesTableController = AllowedWebsitesRulesTableController()
 
     init(appState: AppState, initialRuleSetId: UUID?) {
         self.appState = appState
@@ -49,6 +48,13 @@ final class AllowedWebsitesFloatingEditorViewController:
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        rulesTableController.numberOfRules = { [weak self] in
+            self?.visibleRules.count ?? 0
+        }
+        rulesTableController.ruleAt = { [weak self] index in
+            guard let self, index >= 0, index < visibleRules.count else { return nil }
+            return visibleRules[index]
+        }
         appState.objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in

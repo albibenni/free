@@ -864,7 +864,7 @@ private final class WeeklyCalendarSurfaceScheduleBlockNSView: NSView {
         var titleMinX = titleLineRect.minX
         var titleMaxX = titleLineRect.maxX
 
-        if let typeIcon = symbolImage(
+        if let typeIcon = appKitSymbolImage(
             named: WeeklyCalendarSupport.primarySymbolName(for: schedule),
             pointSize: 10,
             weight: .bold,
@@ -881,7 +881,7 @@ private final class WeeklyCalendarSurfaceScheduleBlockNSView: NSView {
         }
 
         if let importedSymbolName = WeeklyCalendarSupport.importedSymbolName(for: schedule),
-           let importedIcon = symbolImage(
+           let importedIcon = appKitSymbolImage(
                 named: importedSymbolName,
                 pointSize: 9,
                 weight: .bold,
@@ -931,26 +931,6 @@ private final class WeeklyCalendarSurfaceScheduleBlockNSView: NSView {
     private func finishInteraction(rebuildImmediately: Bool) {
         guard isInteractionActive else { return }
         onInteractionDidEnd?(rebuildImmediately)
-    }
-
-    private func symbolImage(
-        named symbolName: String,
-        pointSize: CGFloat,
-        weight: NSFont.Weight,
-        color: NSColor
-    ) -> NSImage? {
-        guard
-            let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
-        else {
-            return nil
-        }
-
-        let configuredImage =
-            baseImage
-            .withSymbolConfiguration(.init(pointSize: pointSize, weight: weight))?
-            .withSymbolConfiguration(.init(paletteColors: [color]))
-
-        return configuredImage ?? baseImage
     }
 
     private func drawInteractionPreviewLabels(_ labels: (start: String, end: String)) {

@@ -95,8 +95,8 @@ extension AllowedWebsitesFloatingEditorViewController {
         rulesTableView.intercellSpacing = NSSize(width: 0, height: 2)
         rulesTableView.usesAlternatingRowBackgroundColors = false
         rulesTableView.allowsMultipleSelection = true
-        rulesTableView.delegate = self
-        rulesTableView.dataSource = self
+        rulesTableView.delegate = rulesTableController
+        rulesTableView.dataSource = rulesTableController
         rulesTableView.target = self
         rulesTableView.action = #selector(handleTableSelectionChange)
         rulesTableView.doubleAction = #selector(handleRemoveSelected)

@@ -60,9 +60,11 @@ extension AllowedWebsitesFloatingEditorViewController {
     @objc
     func handleRemoveSelected() {
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
-        let selectedIndexes = rulesTableView.selectedRowIndexes.filter { $0 >= 0 && $0 < visibleRules.count }
-        guard !selectedIndexes.isEmpty else { return }
-        let rulesToRemove = selectedIndexes.map { visibleRules[$0] }
+        let rulesToRemove = AllowedWebsitesSelectionCoordinator.selectedRules(
+            indexes: rulesTableView.selectedRowIndexes,
+            visibleRules: visibleRules
+        )
+        guard !rulesToRemove.isEmpty else { return }
         for rule in rulesToRemove {
             appState.removeRule(rule, from: setId)
         }
@@ -121,11 +123,10 @@ extension AllowedWebsitesFloatingEditorViewController {
     }
 
     func reloadRulesOnly() {
-        let previouslySelectedRules = Set(
-            rulesTableView.selectedRowIndexes
-                .filter { $0 >= 0 && $0 < visibleRules.count }
-                .map { visibleRules[$0] }
-        )
+        let previouslySelectedRules = Set(AllowedWebsitesSelectionCoordinator.selectedRules(
+            indexes: rulesTableView.selectedRowIndexes,
+            visibleRules: visibleRules
+        ))
 
         visibleRules =
             appState.ruleSets.first(where: { $0.id == selectedRuleSetId })?.urls
@@ -133,10 +134,9 @@ extension AllowedWebsitesFloatingEditorViewController {
         rulesTableView.reloadData()
 
         if !previouslySelectedRules.isEmpty {
-            let selectedIndexes = IndexSet(
-                visibleRules.enumerated().compactMap { index, rule in
-                    previouslySelectedRules.contains(rule) ? index : nil
-                }
+            let selectedIndexes = AllowedWebsitesSelectionCoordinator.selectedIndexes(
+                preserving: previouslySelectedRules,
+                in: visibleRules
             )
             if !selectedIndexes.isEmpty {
                 rulesTableView.selectRowIndexes(selectedIndexes, byExtendingSelection: false)
@@ -150,8 +150,10 @@ extension AllowedWebsitesFloatingEditorViewController {
 
     func updateControlStates() {
         let canEdit = resolvedRuleSetId(selectedRuleSetId) != nil && !appState.isStrictActive
-        let hasSelection = rulesTableView.selectedRowIndexes.contains { $0 >= 0 && $0 < visibleRules.count }
-        let canRemove = canEdit && hasSelection
+        let canRemove = canEdit && AllowedWebsitesSelectionCoordinator.canRemoveSelection(
+            selectedIndexes: rulesTableView.selectedRowIndexes,
+            visibleRulesCount: visibleRules.count
+        )
         urlField.isEnabled = canEdit
         addButton.isEnabled = canEdit
         importOpenTabsButton.isEnabled = canEdit
@@ -164,14 +166,10 @@ extension AllowedWebsitesFloatingEditorViewController {
     }
 
     func resolvedRuleSetId(_ id: UUID?) -> UUID? {
-        if let id, appState.ruleSets.contains(where: { $0.id == id }) {
-            return id
-        }
-        if let activeId = appState.activeRuleSetId,
-           appState.ruleSets.contains(where: { $0.id == activeId })
-        {
-            return activeId
-        }
-        return appState.ruleSets.first?.id
+        AllowedWebsitesSelectionCoordinator.resolvedRuleSetId(
+            id,
+            ruleSets: appState.ruleSets,
+            activeRuleSetId: appState.activeRuleSetId
+        )
     }
 }

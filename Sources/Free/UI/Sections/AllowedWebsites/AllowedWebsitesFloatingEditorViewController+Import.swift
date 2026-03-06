@@ -7,9 +7,9 @@ extension AllowedWebsitesFloatingEditorViewController {
         guard let selectedSet = appState.ruleSets.first(where: { $0.id == setId }) else { return }
 
         appState.refreshCurrentOpenUrls()
-        let candidates = RulesSectionSupport.importableWebsiteCandidates(
-            from: appState.currentOpenUrls,
-            existing: selectedSet
+        let candidates = AllowedWebsitesImportCoordinator.buildCandidates(
+            currentOpenUrls: appState.currentOpenUrls,
+            selectedSet: selectedSet
         )
 
         guard !candidates.isEmpty else {
@@ -26,11 +26,9 @@ extension AllowedWebsitesFloatingEditorViewController {
         importCandidateRules = candidates.map(\.rule)
         importCandidateCheckboxes = candidates.map { candidate in
             let checkbox = NSButton(checkboxWithTitle: candidate.rule, target: nil, action: nil)
-            checkbox.title = candidate.isAlreadyAllowed
-                ? "\(candidate.rule) (already allowed)"
-                : candidate.rule
-            checkbox.state = candidate.isAlreadyAllowed ? .off : .on
-            checkbox.isEnabled = !candidate.isAlreadyAllowed
+            checkbox.title = candidate.title
+            checkbox.state = candidate.defaultSelected ? .on : .off
+            checkbox.isEnabled = candidate.isSelectable
             checkbox.font = .systemFont(ofSize: 12, weight: .regular)
             checkbox.alignment = .left
             return checkbox
@@ -79,10 +77,12 @@ extension AllowedWebsitesFloatingEditorViewController {
 
         let response = alert.runModal()
         if response == .alertFirstButtonReturn {
-            for (index, checkbox) in importCandidateCheckboxes.enumerated()
-                where checkbox.isEnabled && checkbox.state == .on
-            {
-                appState.addSpecificRule(importCandidateRules[index], to: setId)
+            let selectedRules = AllowedWebsitesImportCoordinator.selectedRulesToImport(
+                candidates: candidates,
+                checkboxStates: importCandidateCheckboxes.map(\.state)
+            )
+            for rule in selectedRules {
+                appState.addSpecificRule(rule, to: setId)
             }
             reloadRulesOnly()
         }
