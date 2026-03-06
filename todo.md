@@ -106,6 +106,10 @@
 - [ ] cpu usage
 - [ ] ram usage
 
+## Simplify issues
+
+- [ ] any in LaunchAtLoginService.swift
+
 ## TODO: pass
 
 Highest-impact findings

@@ -87,12 +87,8 @@ class AppState: ObservableObject {
     var monitor: BrowserMonitor?
     let calendarProvider: any CalendarProvider
     private var calendarCancellable: AnyCancellable?
-    private let timerScheduler: any RepeatingTimerScheduling
     private let launchAtLoginService: LaunchAtLoginService
-    private let timerLock = NSLock()
-    private var pauseTimer: (any RepeatingTimer)?
-    private var pomodoroTimer: (any RepeatingTimer)?
-    private var scheduleTimer: (any RepeatingTimer)?
+    private let timerCoordinator: AppStateTimerCoordinator
     private var wasStartedBySchedule = false
     private var manuallyPausedScheduleIds: Set<UUID> = []
     private var pomodoroRuleSetId: UUID?
@@ -163,7 +159,7 @@ class AppState: ObservableObject {
         self.calendarProvider =
             calendar
             ?? (isTesting ? MockCalendarManager() : RealCalendarManager(nowProvider: { Date() }))
-        self.timerScheduler = timerScheduler
+        self.timerCoordinator = AppStateTimerCoordinator(timerScheduler: timerScheduler)
         self.launchAtLoginService = LaunchAtLoginService(
             launchAtLoginManager: launchAtLoginManager,
             settingsStore: self.settingsStore,
@@ -210,7 +206,7 @@ class AppState: ObservableObject {
             DispatchQueue.main.async { self?.checkSchedules() }
         }
 
-        let timer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 60) { [weak self] in
+        let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 60) { [weak self] in
             self?.checkSchedules()
         }
         replaceScheduleTimer(with: timer)
@@ -218,7 +214,7 @@ class AppState: ObservableObject {
     }
 
     deinit {
-        invalidateAllTimers()
+        timerCoordinator.invalidateAllTimers()
         calendarCancellable?.cancel()
     }
 
@@ -392,7 +388,7 @@ class AppState: ObservableObject {
         let updated = PauseEngine.start(from: pauseEngineState, minutes: minutes, isBlocking: isBlocking)
         guard updated != pauseEngineState else { return }
         applyPauseEngineState(updated)
-        let timer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
+        let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
             let ticked = PauseEngine.tick(from: self.pauseEngineState)
             self.applyPauseEngineState(ticked)
@@ -465,7 +461,7 @@ class AppState: ObservableObject {
     }
 
     private func runTimer() {
-        let timer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
+        let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
             if self.pomodoroRemaining > 0 {
                 self.pomodoroRemaining -= 1
@@ -477,15 +473,15 @@ class AppState: ObservableObject {
         checkSchedules()
     }
     private func replacePauseTimer(with newTimer: (any RepeatingTimer)?) {
-        replaceTimer(keyPath: \.pauseTimer, with: newTimer)
+        timerCoordinator.replacePauseTimer(with: newTimer)
     }
 
     private func replacePomodoroTimer(with newTimer: (any RepeatingTimer)?) {
-        replaceTimer(keyPath: \.pomodoroTimer, with: newTimer)
+        timerCoordinator.replacePomodoroTimer(with: newTimer)
     }
 
     private func replaceScheduleTimer(with newTimer: (any RepeatingTimer)?) {
-        replaceTimer(keyPath: \.scheduleTimer, with: newTimer)
+        timerCoordinator.replaceScheduleTimer(with: newTimer)
     }
 
     private func automaticBlockingState() -> Bool {
@@ -563,19 +559,6 @@ class AppState: ObservableObject {
     }
 
     private func invalidateAllTimers() {
-        replacePauseTimer(with: nil)
-        replacePomodoroTimer(with: nil)
-        replaceScheduleTimer(with: nil)
-    }
-
-    private func replaceTimer(
-        keyPath: ReferenceWritableKeyPath<AppState, (any RepeatingTimer)?>,
-        with newTimer: (any RepeatingTimer)?
-    ) {
-        timerLock.lock()
-        let oldTimer = self[keyPath: keyPath]
-        self[keyPath: keyPath] = newTimer
-        timerLock.unlock()
-        oldTimer?.invalidate()
+        timerCoordinator.invalidateAllTimers()
     }
 }
