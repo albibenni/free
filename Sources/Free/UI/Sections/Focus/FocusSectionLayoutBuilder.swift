@@ -30,11 +30,12 @@ enum FocusSectionLayoutBuilder {
         grantPermissionButton.target = target
         grantPermissionButton.action = grantAction
 
-        let row = NSStackView(views: [icon, permissionTitleLabel, NSView(), grantPermissionButton])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 10
-        row.edgeInsets = NSEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+        let row = makeAppKitHorizontalRow(
+            views: [icon, permissionTitleLabel, NSView(), grantPermissionButton],
+            alignment: .centerY,
+            spacing: 10,
+            edgeInsets: NSEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+        )
         row.translatesAutoresizingMaskIntoConstraints = false
 
         permissionWarningView.addSubview(row)
@@ -62,16 +63,18 @@ enum FocusSectionLayoutBuilder {
         headerStatusLabel.font = .systemFont(ofSize: 13)
         headerStatusLabel.textColor = .secondaryLabelColor
 
-        let labelStack = NSStackView(views: [headerTitleLabel, headerStatusLabel])
-        labelStack.orientation = .vertical
-        labelStack.alignment = .leading
-        labelStack.spacing = 4
+        let labelStack = makeAppKitVerticalStack(
+            views: [headerTitleLabel, headerStatusLabel],
+            alignment: .leading,
+            spacing: 4
+        )
 
-        let row = NSStackView(views: [headerIconView, labelStack, NSView()])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 12
-        row.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        let row = makeAppKitHorizontalRow(
+            views: [headerIconView, labelStack, NSView()],
+            alignment: .centerY,
+            spacing: 12,
+            edgeInsets: NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        )
         row.translatesAutoresizingMaskIntoConstraints = false
 
         headerCardView.addSubview(row)
@@ -108,11 +111,12 @@ enum FocusSectionLayoutBuilder {
         pauseEndButton.target = target
         pauseEndButton.action = cancelAction
 
-        let stack = NSStackView(views: [pauseTitleLabel, pauseTimeLabel, pauseEndButton])
-        stack.orientation = .vertical
-        stack.alignment = .centerX
-        stack.spacing = 10
-        stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        let stack = makeAppKitVerticalStack(
+            views: [pauseTitleLabel, pauseTimeLabel, pauseEndButton],
+            alignment: .centerX,
+            spacing: 10,
+            edgeInsets: NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        )
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         pauseDashboardView.addSubview(stack)
@@ -138,11 +142,12 @@ enum FocusSectionLayoutBuilder {
         overviewRowsStack.alignment = .leading
         overviewRowsStack.spacing = 10
 
-        let stack = NSStackView(views: [overviewTitleLabel, overviewRowsStack])
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 12
-        stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        let stack = makeAppKitVerticalStack(
+            views: [overviewTitleLabel, overviewRowsStack],
+            alignment: .leading,
+            spacing: 12,
+            edgeInsets: NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        )
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         overviewCardView.addSubview(stack)
@@ -175,10 +180,11 @@ enum FocusSectionLayoutBuilder {
         valueLabel.alignment = .right
         valueLabel.lineBreakMode = .byTruncatingTail
 
-        let row = NSStackView(views: [icon, titleLabel, NSView(), valueLabel])
-        row.orientation = .horizontal
-        row.alignment = .firstBaseline
-        row.spacing = 8
+        let row = makeAppKitHorizontalRow(
+            views: [icon, titleLabel, NSView(), valueLabel],
+            alignment: .firstBaseline,
+            spacing: 8
+        )
         row.widthAnchor.constraint(equalToConstant: max(availableWidth, 1)).isActive = true
         return row
     }

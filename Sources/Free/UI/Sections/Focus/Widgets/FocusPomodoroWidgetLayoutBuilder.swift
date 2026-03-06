@@ -51,10 +51,11 @@ enum FocusPomodoroWidgetLayoutBuilder {
         label.font = .systemFont(ofSize: 12, weight: .bold)
         label.textColor = .secondaryLabelColor
 
-        let row = NSStackView(views: [iconView, label])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 6
+        let row = makeAppKitHorizontalRow(
+            views: [iconView, label],
+            alignment: .centerY,
+            spacing: 6
+        )
         row.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(row)
 

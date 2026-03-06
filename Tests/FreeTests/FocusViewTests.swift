@@ -351,6 +351,54 @@ struct FocusViewTests {
         #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
     }
 
+    @Test("Focus section switching preserves widget reuse behavior when returning to pomodoro")
+    @MainActor
+    func focusViewSectionSwitchingKeepsPomodoroReuse() {
+        let appState = isolatedAppState(name: "sectionSwitchingPomodoroReuse")
+        appState.isTrusted = true
+        appState.isBlocking = true
+        appState.ruleSets = [
+            RuleSet(name: "Default", urls: ["example.com"]),
+            RuleSet(name: "Study", urls: ["example.org"]),
+        ]
+        appState.activeRuleSetId = appState.ruleSets.first?.id
+        appState.schedules = [
+            Schedule(
+                name: "Study Block",
+                days: [Calendar.current.component(.weekday, from: Date())],
+                startTime: Date().addingTimeInterval(-300),
+                endTime: Date().addingTimeInterval(1200),
+                colorIndex: 1,
+                type: .focus
+            )
+        ]
+
+        let controller = makeController(appState: appState, section: .pomodoro)
+        _ = host(controller)
+
+        let initialPomodoroId = controller.widgetViewIdentifierForTesting
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusPomodoroWidgetView")
+        #expect(initialPomodoroId != nil)
+
+        controller.section = .schedules
+        controller.view.layoutSubtreeIfNeeded()
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusSchedulesWidgetView")
+
+        controller.section = .pomodoro
+        controller.view.layoutSubtreeIfNeeded()
+        let returnedPomodoroId = controller.widgetViewIdentifierForTesting
+        let returnedRefreshGeneration = controller.pomodoroWidgetRefreshGenerationForTesting
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusPomodoroWidgetView")
+        #expect(returnedPomodoroId != nil)
+        #expect(returnedPomodoroId != initialPomodoroId)
+        #expect(returnedRefreshGeneration != nil)
+
+        appState.activeRuleSetId = appState.ruleSets.last?.id
+        controller.simulateObservedAppStateChangeForTesting()
+        #expect(controller.widgetViewIdentifierForTesting == returnedPomodoroId)
+        #expect(controller.pomodoroWidgetRefreshGenerationForTesting == returnedRefreshGeneration)
+    }
+
     @Test("Focus section schedules widget stays mounted for unrelated app-state changes")
     @MainActor
     func focusViewKeepsSchedulesWidgetForUnrelatedStateChanges() {

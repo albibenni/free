@@ -1,5 +1,52 @@
 import AppKit
 
+func makeAppKitStack(
+    views: [NSView],
+    orientation: NSUserInterfaceLayoutOrientation,
+    alignment: NSLayoutConstraint.Attribute,
+    spacing: CGFloat,
+    edgeInsets: NSEdgeInsets? = nil
+) -> NSStackView {
+    let stack = NSStackView(views: views)
+    stack.orientation = orientation
+    stack.alignment = alignment
+    stack.spacing = spacing
+    if let edgeInsets {
+        stack.edgeInsets = edgeInsets
+    }
+    return stack
+}
+
+func makeAppKitHorizontalRow(
+    views: [NSView],
+    alignment: NSLayoutConstraint.Attribute = .centerY,
+    spacing: CGFloat = 8,
+    edgeInsets: NSEdgeInsets? = nil
+) -> NSStackView {
+    makeAppKitStack(
+        views: views,
+        orientation: .horizontal,
+        alignment: alignment,
+        spacing: spacing,
+        edgeInsets: edgeInsets
+    )
+}
+
+func makeAppKitVerticalStack(
+    views: [NSView],
+    alignment: NSLayoutConstraint.Attribute = .leading,
+    spacing: CGFloat = 8,
+    edgeInsets: NSEdgeInsets? = nil
+) -> NSStackView {
+    makeAppKitStack(
+        views: views,
+        orientation: .vertical,
+        alignment: alignment,
+        spacing: spacing,
+        edgeInsets: edgeInsets
+    )
+}
+
 func removeAllArrangedSubviews(from stackView: NSStackView) {
     let subviews = stackView.arrangedSubviews
     subviews.forEach { subview in

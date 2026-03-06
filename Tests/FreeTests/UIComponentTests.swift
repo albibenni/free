@@ -183,6 +183,33 @@ struct UIComponentTests {
         #expect(control.intrinsicContentSize.height == 26)
     }
 
+    @Test("Shared AppKit stack helpers build consistent row and column layouts")
+    func sharedAppKitStackHelpers() {
+        let leading = NSTextField(labelWithString: "A")
+        let trailing = NSTextField(labelWithString: "B")
+        let row = makeAppKitHorizontalRow(
+            views: [leading, trailing],
+            alignment: .centerY,
+            spacing: 12,
+            edgeInsets: NSEdgeInsets(top: 1, left: 2, bottom: 3, right: 4)
+        )
+        #expect(row.orientation == .horizontal)
+        #expect(row.alignment == .centerY)
+        #expect(row.spacing == 12)
+        #expect(row.edgeInsets.left == 2)
+        #expect(row.arrangedSubviews.count == 2)
+
+        let column = makeAppKitVerticalStack(
+            views: [leading, trailing],
+            alignment: .leading,
+            spacing: 6
+        )
+        #expect(column.orientation == .vertical)
+        #expect(column.alignment == .leading)
+        #expect(column.spacing == 6)
+        #expect(column.arrangedSubviews.count == 2)
+    }
+
     @Test("Dynamic AppKit color providers resolve inside the requested appearance")
     func dynamicAppKitProviderResolution() {
         let lightAppearance = NSAppearance(named: .aqua)
