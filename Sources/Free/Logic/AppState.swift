@@ -219,30 +219,36 @@ class AppState: ObservableObject {
     }
 
     func toggleBlocking() {
-        if !(isBlocking && isUnblockable) {
-            if isBlocking {
-                let activeFocusIds = schedules.filter { $0.isActive() && $0.type == .focus }.map {
-                    $0.id
-                }
-                manuallyPausedScheduleIds.formUnion(activeFocusIds)
-            } else {
-                manuallyPausedScheduleIds.removeAll()
-            }
-            isBlocking.toggle()
-            setWasStartedBySchedule(false)
+        let result = BlockingSessionService.toggleBlocking(
+            isBlocking: isBlocking,
+            isUnblockable: isUnblockable,
+            schedules: schedules,
+            manuallyPausedScheduleIds: manuallyPausedScheduleIds,
+            wasStartedBySchedule: wasStartedBySchedule
+        )
+
+        manuallyPausedScheduleIds = result.manuallyPausedScheduleIds
+        if result.isBlocking != isBlocking {
+            isBlocking = result.isBlocking
+        }
+        if result.wasStartedBySchedule != wasStartedBySchedule {
+            setWasStartedBySchedule(result.wasStartedBySchedule)
         }
     }
 
     func checkSchedules() {
         synchronizeImportedCalendarSchedulesIfNeeded()
         let shouldBeBlocking = automaticBlockingState()
-
-        if shouldBeBlocking && !isBlocking {
-            isBlocking = true
-            setWasStartedBySchedule(true)
-        } else if !shouldBeBlocking && isBlocking && wasStartedBySchedule {
-            isBlocking = false
-            setWasStartedBySchedule(false)
+        let transition = BlockingSessionService.scheduleTransition(
+            isBlocking: isBlocking,
+            wasStartedBySchedule: wasStartedBySchedule,
+            shouldBeBlocking: shouldBeBlocking
+        )
+        if transition.isBlocking != isBlocking {
+            isBlocking = transition.isBlocking
+        }
+        if transition.wasStartedBySchedule != wasStartedBySchedule {
+            setWasStartedBySchedule(transition.wasStartedBySchedule)
         }
     }
 
