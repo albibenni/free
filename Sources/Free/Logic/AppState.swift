@@ -163,14 +163,14 @@ class AppState: ObservableObject {
         self.suppressedImportedCalendarEventKeys = snapshot.suppressedImportedCalendarEventKeys
 
         // Migration for older builds that persisted IsBlocking but not its source.
-        if !settingsStore.hasPersistedWasStartedBySchedule(), isBlocking {
-            let shouldBeBlockingNow = automaticBlockingState()
-            if !shouldBeBlockingNow {
-                isBlocking = false
-            }
-            setWasStartedBySchedule(shouldBeBlockingNow)
+        if let migration = AppStateLegacyBlockingMigrationCoordinator.resolve(
+            hasPersistedWasStartedBySchedule: settingsStore.hasPersistedWasStartedBySchedule(),
+            isBlocking: isBlocking,
+            shouldBeBlockingNow: automaticBlockingState()
+        ) {
+            isBlocking = migration.isBlocking
+            setWasStartedBySchedule(migration.wasStartedBySchedule)
         }
-
         if let monitor = monitor {
             self.monitor = monitor
         } else if !isTesting {
