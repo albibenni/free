@@ -79,15 +79,12 @@ extension AllowedWebsitesFloatingEditorViewController {
     }
 
     func reloadContent() {
-        renderSignature = RenderSignature(
-            ruleSets: appState.ruleSets,
-            activeRuleSetId: appState.activeRuleSetId,
-            isStrictActive: appState.isStrictActive,
-            accentColorIndex: appState.accentColorIndex
+        let state = AllowedWebsitesReloadCoordinator.reloadState(
+            appState: appState,
+            previousSelectedRuleSetId: selectedRuleSetId
         )
-        let previousSelection = selectedRuleSetId
-        let resolvedSelection = resolvedRuleSetId(previousSelection)
-        selectedRuleSetId = resolvedSelection
+        renderSignature = state.renderSignature
+        selectedRuleSetId = state.selectedRuleSetId
         reloadRuleSetRows()
         reloadRulesOnly()
     }

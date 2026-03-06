@@ -92,4 +92,26 @@ struct AllowedWebsitesActionsCoordinatorsTests {
             appState.ruleSets.first(where: { $0.id == set.id })?.urls.contains("example.com") == false
         )
     }
+
+    @Test("Reload coordinator resolves signature and selected rule-set fallback")
+    func reloadCoordinatorState() {
+        let appState = isolatedAppState(name: "reloadCoordinator")
+        let a = AllowedWebsitesRuleSetActionsCoordinator.createRuleSet(appState: appState, name: "A")
+        let b = AllowedWebsitesRuleSetActionsCoordinator.createRuleSet(appState: appState, name: "B")
+        appState.activeRuleSetId = b.id
+
+        let state = AllowedWebsitesReloadCoordinator.reloadState(
+            appState: appState,
+            previousSelectedRuleSetId: UUID()
+        )
+
+        #expect(state.selectedRuleSetId == b.id)
+        #expect(
+            state.renderSignature == AllowedWebsitesReloadCoordinator.renderSignature(
+                appState: appState
+            )
+        )
+        #expect(state.renderSignature.ruleSets.contains(where: { $0.id == a.id }))
+        #expect(state.renderSignature.ruleSets.contains(where: { $0.id == b.id }))
+    }
 }

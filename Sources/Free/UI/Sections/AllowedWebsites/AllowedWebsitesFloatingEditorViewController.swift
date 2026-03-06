@@ -63,11 +63,8 @@ final class AllowedWebsitesFloatingEditorViewController:
     }
 
     private func handleObservedAppStateChange() {
-        let nextSignature = RenderSignature(
-            ruleSets: appState.ruleSets,
-            activeRuleSetId: appState.activeRuleSetId,
-            isStrictActive: appState.isStrictActive,
-            accentColorIndex: appState.accentColorIndex
+        let nextSignature = AllowedWebsitesReloadCoordinator.renderSignature(
+            appState: appState
         )
         guard renderSignature != nextSignature else { return }
         reloadContent()

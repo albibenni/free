@@ -179,7 +179,10 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private func handleObservedAppStateChange() {
-        guard !(section == .pomodoro && pomodoroWidgetInteractionDepth > 0) else {
+        guard !FocusInteractionReloadCoordinator.shouldDeferObservedChange(
+            section: section,
+            interactionDepth: pomodoroWidgetInteractionDepth
+        ) else {
             needsReloadAfterPomodoroInteraction = true
             return
         }
@@ -241,8 +244,10 @@ final class FocusSectionViewController: NSViewController {
         guard pomodoroWidgetInteractionDepth > 0 else { return }
         pomodoroWidgetInteractionDepth -= 1
 
-        guard pomodoroWidgetInteractionDepth == 0 else { return }
-        guard needsReloadAfterPomodoroInteraction else { return }
+        guard FocusInteractionReloadCoordinator.shouldFlushDeferredReload(
+            interactionDepth: pomodoroWidgetInteractionDepth,
+            needsReloadAfterInteraction: needsReloadAfterPomodoroInteraction
+        ) else { return }
 
         needsReloadAfterPomodoroInteraction = false
         handleObservedAppStateChange()

@@ -133,7 +133,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func updateWindowTitle() {
-        let title = viewMode == 1 ? "Schedules · Calendar" : "Schedules · List"
+        let title = SchedulesSheetPresentationCoordinator.windowTitle(viewMode: viewMode)
         guard let window = schedulesContainerView.window else { return }
         window.title = title
 
@@ -241,17 +241,26 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func goToPreviousWeek() {
-        weekOffset -= 1
+        weekOffset = SchedulesSheetPresentationCoordinator.weekOffset(
+            current: weekOffset,
+            action: .previous
+        )
         refreshConfiguration()
     }
 
     private func goToCurrentWeek() {
-        weekOffset = 0
+        weekOffset = SchedulesSheetPresentationCoordinator.weekOffset(
+            current: weekOffset,
+            action: .current
+        )
         refreshConfiguration()
     }
 
     private func goToNextWeek() {
-        weekOffset += 1
+        weekOffset = SchedulesSheetPresentationCoordinator.weekOffset(
+            current: weekOffset,
+            action: .next
+        )
         refreshConfiguration()
     }
 
