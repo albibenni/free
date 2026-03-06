@@ -76,31 +76,6 @@ class AppState: ObservableObject {
 
     enum PomodoroStatus: String, Codable { case none, focus, breakTime }
 
-    var isPomodoroLocked: Bool {
-        PomodoroEngine.isLocked(
-            isUnblockable: isUnblockable,
-            status: pomodoroStatus,
-            startedAt: pomodoroStartedAt
-        )
-    }
-    var isStrictActive: Bool { isBlocking && isUnblockable }
-
-    var currentPrimaryRuleSetId: UUID? {
-        logicFacade.currentPrimaryRuleSetId(context: ruleContext)
-    }
-
-    var currentPrimaryRuleSetName: String {
-        logicFacade.currentPrimaryRuleSetName(context: ruleContext)
-    }
-
-    var allowedRules: [String] {
-        logicFacade.allowedRules(context: ruleContext)
-    }
-
-    var todaySchedules: [Schedule] {
-        logicFacade.todaySchedules(from: scheduleDomainState.schedules)
-    }
-
     init(
         defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil,
         calendar: (any CalendarProvider)? = nil,
