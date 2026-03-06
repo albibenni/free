@@ -117,28 +117,19 @@ extension AllowedWebsitesFloatingEditorViewController {
     }
 
     func reloadRulesOnly() {
-        let previouslySelectedRules = Set(AllowedWebsitesSelectionCoordinator.selectedRules(
-            indexes: rulesTableView.selectedRowIndexes,
-            visibleRules: visibleRules
-        ))
-
-        visibleRules = AllowedWebsitesPresentationCoordinator.visibleRules(
+        let contentState = AllowedWebsitesPresentationCoordinator.rulesContentState(
             selectedRuleSetId: selectedRuleSetId,
-            ruleSets: appState.ruleSets
+            ruleSets: appState.ruleSets,
+            previousVisibleRules: visibleRules,
+            previousSelection: rulesTableView.selectedRowIndexes
         )
+        visibleRules = contentState.visibleRules
         rulesTableView.reloadData()
-
-        if !previouslySelectedRules.isEmpty {
-            let selectedIndexes = AllowedWebsitesSelectionCoordinator.selectedIndexes(
-                preserving: previouslySelectedRules,
-                in: visibleRules
-            )
-            if !selectedIndexes.isEmpty {
-                rulesTableView.selectRowIndexes(selectedIndexes, byExtendingSelection: false)
-            }
+        if !contentState.preservedSelection.isEmpty {
+            rulesTableView.selectRowIndexes(contentState.preservedSelection, byExtendingSelection: false)
         }
 
-        emptyLabel.isHidden = !visibleRules.isEmpty
+        emptyLabel.isHidden = !contentState.showsEmptyState
         updateControlStates()
         applyButtonStyling()
     }

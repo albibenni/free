@@ -77,4 +77,35 @@ struct AllowedWebsitesPresentationCoordinatorTests {
         #expect(noSelection.canCreateList)
         #expect(!noSelection.canDeleteList)
     }
+
+    @Test("Presentation coordinator preserves selection across rules-content reload")
+    func rulesContentState() {
+        let selectedId = UUID()
+        let set = RuleSet(
+            id: selectedId,
+            name: "A",
+            urls: ["a.com", "c.com"]
+        )
+
+        let state = AllowedWebsitesPresentationCoordinator.rulesContentState(
+            selectedRuleSetId: selectedId,
+            ruleSets: [set],
+            previousVisibleRules: ["a.com", "b.com", "c.com"],
+            previousSelection: IndexSet([0, 1, 2])
+        )
+
+        #expect(state.visibleRules == ["a.com", "c.com"])
+        #expect(state.preservedSelection == IndexSet([0, 1]))
+        #expect(!state.showsEmptyState)
+
+        let emptyState = AllowedWebsitesPresentationCoordinator.rulesContentState(
+            selectedRuleSetId: UUID(),
+            ruleSets: [set],
+            previousVisibleRules: ["a.com"],
+            previousSelection: IndexSet([0])
+        )
+        #expect(emptyState.visibleRules.isEmpty)
+        #expect(emptyState.preservedSelection.isEmpty)
+        #expect(emptyState.showsEmptyState)
+    }
 }

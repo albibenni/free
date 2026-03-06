@@ -14,11 +14,44 @@ enum AllowedWebsitesPresentationCoordinator {
         let canDeleteList: Bool
     }
 
+    struct RulesContentState: Equatable {
+        let visibleRules: [String]
+        let preservedSelection: IndexSet
+
+        var showsEmptyState: Bool {
+            visibleRules.isEmpty
+        }
+    }
+
     static func visibleRules(
         selectedRuleSetId: UUID?,
         ruleSets: [RuleSet]
     ) -> [String] {
         ruleSets.first(where: { $0.id == selectedRuleSetId })?.urls ?? []
+    }
+
+    static func rulesContentState(
+        selectedRuleSetId: UUID?,
+        ruleSets: [RuleSet],
+        previousVisibleRules: [String],
+        previousSelection: IndexSet
+    ) -> RulesContentState {
+        let nextVisibleRules = visibleRules(
+            selectedRuleSetId: selectedRuleSetId,
+            ruleSets: ruleSets
+        )
+        let previouslySelectedRules = Set(AllowedWebsitesSelectionCoordinator.selectedRules(
+            indexes: previousSelection,
+            visibleRules: previousVisibleRules
+        ))
+        let preservedSelection = AllowedWebsitesSelectionCoordinator.selectedIndexes(
+            preserving: previouslySelectedRules,
+            in: nextVisibleRules
+        )
+        return RulesContentState(
+            visibleRules: nextVisibleRules,
+            preservedSelection: preservedSelection
+        )
     }
 
     static func ruleSetRows(
