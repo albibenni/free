@@ -107,38 +107,15 @@ class AppState: ObservableObject {
     var isStrictActive: Bool { isBlocking && isUnblockable }
 
     var currentPrimaryRuleSetId: UUID? {
-        RuleSetService.currentPrimaryRuleSetId(
-            ruleSets: ruleSets,
-            schedules: schedules,
-            activeRuleSetId: activeRuleSetId,
-            pomodoroRuleSetId: pomodoroRuleSetId,
-            isPomodoroFocus: pomodoroStatus == .focus,
-            isBlocking: isBlocking,
-            wasStartedBySchedule: wasStartedBySchedule
-        )
+        AppStateReadModelCoordinator.currentPrimaryRuleSetId(context: ruleContext)
     }
 
     var currentPrimaryRuleSetName: String {
-        RuleSetService.currentPrimaryRuleSetName(
-            ruleSets: ruleSets,
-            schedules: schedules,
-            currentPrimaryRuleSetId: currentPrimaryRuleSetId,
-            isPomodoroFocus: pomodoroStatus == .focus,
-            isBlocking: isBlocking,
-            wasStartedBySchedule: wasStartedBySchedule
-        )
+        AppStateReadModelCoordinator.currentPrimaryRuleSetName(context: ruleContext)
     }
 
     var allowedRules: [String] {
-        RuleSetService.allowedRules(
-            ruleSets: ruleSets,
-            schedules: schedules,
-            activeRuleSetId: activeRuleSetId,
-            pomodoroRuleSetId: pomodoroRuleSetId,
-            isPomodoroFocus: pomodoroStatus == .focus,
-            isBlocking: isBlocking,
-            wasStartedBySchedule: wasStartedBySchedule
-        )
+        AppStateReadModelCoordinator.allowedRules(context: ruleContext)
     }
 
     var todaySchedules: [Schedule] {
@@ -508,7 +485,7 @@ class AppState: ObservableObject {
     }
 
     func timeString(time: TimeInterval) -> String {
-        String(format: "%02d:%02d", Int(time) / 60, Int(time) % 60)
+        AppStateReadModelCoordinator.timeString(time: time)
     }
 
     private func runTimer() {
@@ -597,6 +574,18 @@ class AppState: ObservableObject {
             remaining: pomodoroRemaining,
             startedAt: pomodoroStartedAt,
             ruleSetId: pomodoroRuleSetId
+        )
+    }
+
+    private var ruleContext: AppStateReadModelCoordinator.RuleContext {
+        AppStateReadModelCoordinator.RuleContext(
+            ruleSets: ruleSets,
+            schedules: schedules,
+            activeRuleSetId: activeRuleSetId,
+            pomodoroRuleSetId: pomodoroRuleSetId,
+            isPomodoroFocus: pomodoroStatus == .focus,
+            isBlocking: isBlocking,
+            wasStartedBySchedule: wasStartedBySchedule
         )
     }
 
