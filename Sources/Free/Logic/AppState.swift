@@ -88,8 +88,7 @@ class AppState: ObservableObject {
     let calendarProvider: any CalendarProvider
     private var calendarCancellable: AnyCancellable?
     private let timerScheduler: any RepeatingTimerScheduling
-    private let launchAtLoginManager: any LaunchAtLoginManaging
-    private let canPromptForLaunchAtLogin: () -> Bool
+    private let launchAtLoginService: LaunchAtLoginService
     private let timerLock = NSLock()
     private var pauseTimer: (any RepeatingTimer)?
     private var pomodoroTimer: (any RepeatingTimer)?
@@ -165,8 +164,11 @@ class AppState: ObservableObject {
             calendar
             ?? (isTesting ? MockCalendarManager() : RealCalendarManager(nowProvider: { Date() }))
         self.timerScheduler = timerScheduler
-        self.launchAtLoginManager = launchAtLoginManager
-        self.canPromptForLaunchAtLogin = canPromptForLaunchAtLogin
+        self.launchAtLoginService = LaunchAtLoginService(
+            launchAtLoginManager: launchAtLoginManager,
+            settingsStore: self.settingsStore,
+            canPromptForLaunchAtLogin: canPromptForLaunchAtLogin
+        )
 
         self.isBlocking = settingsStore.isBlocking()
         self.isUnblockable = settingsStore.isUnblockable()
@@ -441,40 +443,21 @@ class AppState: ObservableObject {
     }
 
     func prepareLaunchAtLoginPromptIfNeeded() -> Bool {
-        guard canPromptForLaunchAtLogin() else { return false }
-        if settingsStore.launchAtLoginPromptShown() {
-            return false
-        }
-        settingsStore.setLaunchAtLoginPromptShown(true)
-        return !launchAtLoginManager.isEnabled
+        launchAtLoginService.preparePromptIfNeeded()
     }
 
     func launchAtLoginStatus() -> Bool {
-        launchAtLoginManager.isEnabled
+        launchAtLoginService.isEnabled()
     }
 
     @discardableResult
     func enableLaunchAtLogin() -> Bool {
-        do {
-            try launchAtLoginManager.enable()
-            return true
-        } catch {
-            return false
-        }
+        launchAtLoginService.enable()
     }
 
     @discardableResult
     func setLaunchAtLoginEnabled(_ enabled: Bool) -> Bool {
-        if enabled {
-            return enableLaunchAtLogin()
-        }
-
-        do {
-            try launchAtLoginManager.disable()
-            return true
-        } catch {
-            return false
-        }
+        launchAtLoginService.setEnabled(enabled)
     }
 
     func timeString(time: TimeInterval) -> String {
