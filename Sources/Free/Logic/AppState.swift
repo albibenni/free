@@ -326,6 +326,13 @@ class AppState: ObservableObject {
     }
 
     func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
+        guard let index = schedules.firstIndex(where: { $0.id == id }) else { return }
+        if schedules[index].importedCalendarEventKey != nil {
+            let deletedSchedule = schedules.remove(at: index)
+            suppressImportedCalendarEventIfNeeded(deletedSchedule)
+            return
+        }
+
         if let deletedSchedule = ScheduleEngine.deleteSchedule(
             in: &schedules,
             id: id,
@@ -404,26 +411,20 @@ class AppState: ObservableObject {
     }
     func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }
 
-    func resyncImportedCalendarSchedules() {
+    func resyncImportedCalendarSchedules(
+        preservedImportedByKey: [String: Schedule] = [:]
+    ) {
         guard calendarIntegrationEnabled else { return }
 
-        let preservedImportedByKey: [String: Schedule] = Dictionary(
+        let preservedImportedByKey = preservedImportedByKey.isEmpty ? Dictionary(
             uniqueKeysWithValues: schedules.compactMap { schedule in
                 guard let key = schedule.importedCalendarEventKey else { return nil }
                 return (key, schedule)
             }
-        )
+        ) : preservedImportedByKey
 
-        let signatures = CalendarImportService.legacyImportedEventSignatures(
-            from: calendarProvider.events
-        )
-
-        let cleaned = CalendarImportService.removeLegacyImportedDuplicates(
-            from: schedules,
-            signatures: signatures
-        )
-        let rebuilt = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
-            schedules: cleaned,
+        let rebuilt = ScheduleCalendarService.rebuildSchedulesFromCalendarEvents(
+            schedules: schedules,
             events: calendarProvider.events,
             shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
@@ -503,14 +504,22 @@ class AppState: ObservableObject {
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
         guard !isSynchronizingImportedSchedules else { return }
-        let merged = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
+
+        let preserved = preservedImportedByKey.isEmpty ? Dictionary(
+            uniqueKeysWithValues: schedules.compactMap { schedule in
+                guard let key = schedule.importedCalendarEventKey else { return nil }
+                return (key, schedule)
+            }
+        ) : preservedImportedByKey
+
+        let merged = ScheduleCalendarService.rebuildSchedulesFromCalendarEvents(
             schedules: schedules,
             events: calendarProvider.events,
             shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
-            preservedImportedByKey: preservedImportedByKey
+            preservedImportedByKey: preserved
         )
         guard merged != schedules else { return }
 
@@ -520,9 +529,9 @@ class AppState: ObservableObject {
     }
 
     private func suppressImportedCalendarEventIfNeeded(_ schedule: Schedule) {
-        if CalendarImportService.suppressImportedCalendarEventIfNeeded(
+        if ScheduleCalendarService.suppressImportedCalendarEventIfNeeded(
             for: schedule,
-            suppressedKeys: &suppressedImportedCalendarEventKeys
+            suppressedImportedCalendarEventKeys: &suppressedImportedCalendarEventKeys
         ) {
             settingsStore.setSuppressedImportedCalendarEventKeys(suppressedImportedCalendarEventKeys)
         }

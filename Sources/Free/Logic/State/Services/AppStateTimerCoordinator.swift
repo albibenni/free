@@ -1,12 +1,6 @@
 import Foundation
 
 final class AppStateTimerCoordinator {
-    enum TimerKind {
-        case pause
-        case pomodoro
-        case schedule
-    }
-
     private let timerScheduler: any RepeatingTimerScheduling
     private let timerLock = NSLock()
     private var pauseTimer: (any RepeatingTimer)?
