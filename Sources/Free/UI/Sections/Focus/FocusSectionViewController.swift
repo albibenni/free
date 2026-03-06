@@ -88,61 +88,45 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private func handleObservedAppStateChange() {
-        guard !FocusInteractionReloadCoordinator.shouldDeferObservedChange(
+        let action = FocusSectionObservedChangeCoordinator.action(
             section: section,
-            interactionDepth: pomodoroWidgetInteractionDepth
-        ) else {
+            interactionDepth: pomodoroWidgetInteractionDepth,
+            widgetKind: FocusSectionWidgetReloadCoordinator.widgetKind(for: widgetView),
+            hasPomodoroSignature: pomodoroWidgetSignature != nil
+        )
+        switch action {
+        case .deferReload:
             needsReloadAfterPomodoroInteraction = true
-            return
+        case .updatePomodoroWidget:
+            guard let pomodoroWidgetView = widgetView as? FocusPomodoroWidgetView else { return }
+            pomodoroWidgetSignature = FocusPomodoroWidgetSignature(appState: appState)
+            applySharedState()
+            pomodoroWidgetView.updateRuleSetSelection()
+            pomodoroWidgetView.updateForStateChange()
+        case .reloadContent:
+            reloadContent()
         }
-        if handlePomodoroSectionStateChange() {
-            return
-        }
-        reloadContent()
     }
 
     private func applySharedState() {
-        permissionWarningView.isHidden = appState.isTrusted
+        let sharedState = FocusSectionSharedStateCoordinator.makePresentation(appState: appState)
+
+        permissionWarningView.isHidden = sharedState.isPermissionWarningHidden
 
         let headerIconName = AppKitUISymbols.Name.focus
         headerIconView.image = NSImage(
             systemSymbolName: headerIconName,
             accessibilityDescription: nil
         )
-        headerIconView.contentTintColor = FocusSectionSupport.focusIconColor(
-            isBlocking: appState.isBlocking,
-            isPaused: appState.isPaused
-        )
-        headerStatusLabel.stringValue = headerStatusText()
+        headerIconView.contentTintColor = sharedState.focusIconColor
+        headerStatusLabel.stringValue = sharedState.headerStatusText
 
         unblockableWarningLabel.font = .systemFont(ofSize: 12)
         unblockableWarningLabel.textColor = .systemOrange
-        unblockableWarningLabel.isHidden = !FocusSectionSupport.shouldShowUnblockableWarning(
-            isBlocking: appState.isBlocking,
-            isUnblockable: appState.isUnblockable
-        )
+        unblockableWarningLabel.isHidden = sharedState.isUnblockableWarningHidden
 
-        pauseDashboardView.isHidden = !FocusSectionSupport.shouldShowPauseDashboard(
-            isBlocking: appState.isBlocking,
-            isPaused: appState.isPaused
-        )
-        pauseTimeLabel.stringValue = appState.timeString(time: appState.pauseRemaining)
-    }
-
-    private func handlePomodoroSectionStateChange() -> Bool {
-        guard section == .pomodoro,
-              let pomodoroWidgetView = widgetView as? FocusPomodoroWidgetView,
-              pomodoroWidgetSignature != nil
-        else {
-            return false
-        }
-
-        let nextSignature = FocusPomodoroWidgetSignature(appState: appState)
-        pomodoroWidgetSignature = nextSignature
-        applySharedState()
-        pomodoroWidgetView.updateRuleSetSelection()
-        pomodoroWidgetView.updateForStateChange()
-        return true
+        pauseDashboardView.isHidden = sharedState.isPauseDashboardHidden
+        pauseTimeLabel.stringValue = sharedState.pauseTimeText
     }
 
     private func beginPomodoroWidgetInteraction() {
@@ -207,52 +191,27 @@ final class FocusSectionViewController: NSViewController {
     private func reloadContent() {
         applySharedState()
 
-        overviewCardView.isHidden = section != .all
-        if section == .all {
+        let visibility = FocusSectionVisibilityCoordinator.visibility(for: section)
+        overviewCardView.isHidden = !visibility.shouldShowOverview
+        if visibility.shouldShowOverview {
             reloadOverviewRows()
         }
         reloadWidget()
         scrollContainer.needsLayout = true
     }
 
-    private func headerStatusText() -> String {
-        let status = FocusSectionSupport.statusLabel(
-            isBlocking: appState.isBlocking,
-            isPaused: appState.isPaused
-        )
-        guard FocusSectionSupport.shouldShowRuleSetName(
-            isBlocking: appState.isBlocking,
-            isPaused: appState.isPaused
-        ) else {
-            return status
-        }
-        return "\(status) • \(appState.currentPrimaryRuleSetName)"
-    }
-
     private func reloadOverviewRows() {
-        removeAllArrangedSubviews(from: overviewRowsStack)
-        let rows = FocusSectionOverviewCoordinator.rows(appState: appState)
-        for row in rows {
-            overviewRowsStack.addArrangedSubview(
-                FocusSectionLayoutBuilder.makeOverviewRow(
-                    iconName: row.iconName,
-                    title: row.title,
-                    value: row.value,
-                    accentColorIndex: appState.accentColorIndex,
-                    availableWidth: scrollContainer.stackView.bounds.width
-                )
-            )
-        }
-
-        if rows.isEmpty {
-            let emptyLabel = NSTextField(labelWithString: "No active schedule, allow list, or pomodoro session.")
-            emptyLabel.font = .systemFont(ofSize: 13)
-            emptyLabel.textColor = .secondaryLabelColor
-            overviewRowsStack.addArrangedSubview(emptyLabel)
-        }
+        let renderModel = FocusSectionOverviewRenderCoordinator.renderModel(appState: appState)
+        FocusSectionOverviewViewApplier.apply(
+            renderModel: renderModel,
+            to: overviewRowsStack,
+            accentColorIndex: appState.accentColorIndex,
+            availableWidth: scrollContainer.stackView.bounds.width
+        )
     }
 
     private func reloadWidget() {
+        let visibility = FocusSectionVisibilityCoordinator.visibility(for: section)
         let decision = FocusSectionWidgetReloadCoordinator.decide(
             section: section,
             appState: appState,
@@ -273,37 +232,25 @@ final class FocusSectionViewController: NSViewController {
 
         switch decision.operation {
         case .reusePomodoro(let action):
-            guard let pomodoroWidgetView = widgetView as? FocusPomodoroWidgetView else { return }
-            widgetContainer.isHidden = false
-            switch action {
-            case .updateSelection:
-                pomodoroWidgetView.updateRuleSetSelection()
-            case .refresh:
-                pomodoroWidgetView.refreshForStateChange()
-            case .keepLayout:
-                pomodoroWidgetView.needsLayout = true
-            }
+            FocusSectionWidgetHostApplier.applyPomodoroReuse(
+                action: action,
+                widgetView: widgetView,
+                widgetContainer: widgetContainer
+            )
             return
         case .keepExisting:
-            widgetContainer.isHidden = section == .all
+            FocusSectionWidgetHostApplier.applyKeepExisting(
+                isContainerHidden: visibility.isWidgetContainerHidden,
+                widgetContainer: widgetContainer
+            )
             return
         case .rebuild(let buildResult):
-            widgetView?.removeFromSuperview()
-            widgetView = nil
-            widgetContainer.isHidden = section == .all
-            guard let nextWidgetView = buildResult.widgetView else {
-                return
-            }
-
-            nextWidgetView.translatesAutoresizingMaskIntoConstraints = false
-            widgetContainer.addSubview(nextWidgetView)
-            NSLayoutConstraint.activate([
-                nextWidgetView.leadingAnchor.constraint(equalTo: widgetContainer.leadingAnchor),
-                nextWidgetView.trailingAnchor.constraint(equalTo: widgetContainer.trailingAnchor),
-                nextWidgetView.topAnchor.constraint(equalTo: widgetContainer.topAnchor),
-                nextWidgetView.bottomAnchor.constraint(equalTo: widgetContainer.bottomAnchor),
-            ])
-            widgetView = nextWidgetView
+            widgetView = FocusSectionWidgetHostApplier.applyRebuild(
+                buildResult: buildResult,
+                currentWidgetView: widgetView,
+                widgetContainer: widgetContainer,
+                isContainerHidden: visibility.isWidgetContainerHidden
+            )
         }
     }
 

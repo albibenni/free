@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 
@@ -208,5 +209,157 @@ struct SectionCoordinatorsTests {
         default:
             Issue.record("Expected allowed-websites rebuild decision")
         }
+    }
+
+    @Test("Focus observed-change coordinator routes defer, widget update, and full reload")
+    func focusObservedChangeCoordinator() {
+        #expect(
+            FocusSectionObservedChangeCoordinator.action(
+                section: .pomodoro,
+                interactionDepth: 1,
+                widgetKind: .pomodoro,
+                hasPomodoroSignature: true
+            ) == .deferReload
+        )
+        #expect(
+            FocusSectionObservedChangeCoordinator.action(
+                section: .pomodoro,
+                interactionDepth: 0,
+                widgetKind: .pomodoro,
+                hasPomodoroSignature: true
+            ) == .updatePomodoroWidget
+        )
+        #expect(
+            FocusSectionObservedChangeCoordinator.action(
+                section: .all,
+                interactionDepth: 0,
+                widgetKind: .none,
+                hasPomodoroSignature: false
+            ) == .reloadContent
+        )
+    }
+
+    @Test("Focus shared-state coordinator computes header status and visibility flags")
+    @MainActor
+    func focusSharedStateCoordinator() {
+        let appState = AppState()
+        appState.isTrusted = false
+        appState.isBlocking = true
+        appState.isPaused = true
+        appState.isUnblockable = true
+        appState.pauseRemaining = 75
+
+        let presentation = FocusSectionSharedStateCoordinator.makePresentation(appState: appState)
+        #expect(!presentation.isPermissionWarningHidden)
+        #expect(presentation.isUnblockableWarningHidden == false)
+        #expect(presentation.isPauseDashboardHidden == false)
+        #expect(presentation.headerStatusText == "Paused")
+        #expect(presentation.pauseTimeText == "01:15")
+    }
+
+    @Test("Focus overview render coordinator derives rows and empty-state text")
+    @MainActor
+    func focusOverviewRenderCoordinator() {
+        let defaults = UserDefaults(suiteName: "SectionCoordinatorsTests.focusOverviewRenderCoordinator.\(UUID().uuidString)")!
+        let appState = AppState(defaults: defaults, isTesting: true)
+        appState.ruleSets = []
+        appState.activeRuleSetId = nil
+        appState.isBlocking = false
+        appState.schedules = []
+        appState.pomodoroStatus = .none
+        appState.pomodoroRemaining = 0
+        let emptyModel = FocusSectionOverviewRenderCoordinator.renderModel(appState: appState)
+        #expect(emptyModel.rows.isEmpty)
+        #expect(emptyModel.emptyStateText == FocusSectionOverviewRenderCoordinator.emptyStateText)
+
+        let setId = UUID()
+        appState.ruleSets = [RuleSet(id: setId, name: "Work", urls: ["example.com"])]
+        appState.activeRuleSetId = setId
+        appState.isBlocking = true
+        let activeModel = FocusSectionOverviewRenderCoordinator.renderModel(appState: appState)
+        #expect(!activeModel.rows.isEmpty)
+        #expect(activeModel.emptyStateText == nil)
+    }
+
+    @Test("Focus overview view applier renders rows or empty message into stack")
+    func focusOverviewViewApplier() {
+        let stack = NSStackView()
+        let rowModel = FocusSectionOverviewRenderCoordinator.RenderModel(
+            rows: [
+                .init(
+                    iconName: AppKitUISymbols.Name.globe,
+                    title: "Allow List",
+                    value: "Work • 1 rules"
+                )
+            ],
+            emptyStateText: nil
+        )
+
+        FocusSectionOverviewViewApplier.apply(
+            renderModel: rowModel,
+            to: stack,
+            accentColorIndex: 0,
+            availableWidth: 320
+        )
+        #expect(stack.arrangedSubviews.count == 1)
+
+        let emptyModel = FocusSectionOverviewRenderCoordinator.RenderModel(
+            rows: [],
+            emptyStateText: FocusSectionOverviewRenderCoordinator.emptyStateText
+        )
+        FocusSectionOverviewViewApplier.apply(
+            renderModel: emptyModel,
+            to: stack,
+            accentColorIndex: 0,
+            availableWidth: 320
+        )
+        #expect(stack.arrangedSubviews.count == 1)
+        #expect((stack.arrangedSubviews.first as? NSTextField)?.stringValue == FocusSectionOverviewRenderCoordinator.emptyStateText)
+    }
+
+    @Test("Focus widget host applier updates container and view hierarchy")
+    @MainActor
+    func focusWidgetHostApplier() {
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 300))
+        let current = NSView(frame: NSRect(x: 0, y: 0, width: 10, height: 10))
+        container.addSubview(current)
+
+        FocusSectionWidgetHostApplier.applyKeepExisting(
+            isContainerHidden: true,
+            widgetContainer: container
+        )
+        #expect(container.isHidden)
+
+        let next = NSView(frame: NSRect(x: 0, y: 0, width: 20, height: 20))
+        let rebuilt = FocusSectionWidgetHostApplier.applyRebuild(
+            buildResult: .init(
+                widgetView: next,
+                pomodoroSignature: nil,
+                schedulesSignature: nil,
+                allowedWebsitesSignature: nil
+            ),
+            currentWidgetView: current,
+            widgetContainer: container,
+            isContainerHidden: false
+        )
+        #expect(!container.isHidden)
+        #expect(rebuilt === next)
+        #expect(container.subviews.count == 1)
+        #expect(container.subviews.first === next)
+    }
+
+    @Test("Focus visibility coordinator maps section to overview and widget visibility")
+    func focusVisibilityCoordinator() {
+        let all = FocusSectionVisibilityCoordinator.visibility(for: .all)
+        #expect(all.shouldShowOverview)
+        #expect(all.isWidgetContainerHidden)
+
+        let pomodoro = FocusSectionVisibilityCoordinator.visibility(for: .pomodoro)
+        #expect(!pomodoro.shouldShowOverview)
+        #expect(!pomodoro.isWidgetContainerHidden)
+
+        let schedules = FocusSectionVisibilityCoordinator.visibility(for: .schedules)
+        #expect(!schedules.shouldShowOverview)
+        #expect(!schedules.isWidgetContainerHidden)
     }
 }
