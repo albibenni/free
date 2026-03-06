@@ -419,24 +419,17 @@ class AppState: ObservableObject {
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
         guard calendarIntegrationEnabled else { return }
-
-        let preservedImportedByKey = preservedImportedByKey.isEmpty ? Dictionary(
-            uniqueKeysWithValues: schedules.compactMap { schedule in
-                guard let key = schedule.importedCalendarEventKey else { return nil }
-                return (key, schedule)
-            }
-        ) : preservedImportedByKey
-
-        let rebuilt = ScheduleCalendarService.rebuildSchedulesFromCalendarEvents(
-            schedules: schedules,
-            events: calendarProvider.events,
-            shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
-            suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
-            activeRuleSetId: activeRuleSetId,
-            ruleSets: ruleSets,
-            preservedImportedByKey: preservedImportedByKey
-        )
-        guard rebuilt != schedules else { return }
+        guard
+            let rebuilt = AppStateScheduleCoordinator.rebuildIfNeeded(
+                currentSchedules: schedules,
+                events: calendarProvider.events,
+                shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+                suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
+                activeRuleSetId: activeRuleSetId,
+                ruleSets: ruleSets,
+                preservedImportedByKey: preservedImportedByKey
+            )
+        else { return }
 
         isSynchronizingImportedSchedules = true
         schedules = rebuilt
@@ -508,24 +501,17 @@ class AppState: ObservableObject {
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
         guard !isSynchronizingImportedSchedules else { return }
-
-        let preserved = preservedImportedByKey.isEmpty ? Dictionary(
-            uniqueKeysWithValues: schedules.compactMap { schedule in
-                guard let key = schedule.importedCalendarEventKey else { return nil }
-                return (key, schedule)
-            }
-        ) : preservedImportedByKey
-
-        let merged = ScheduleCalendarService.rebuildSchedulesFromCalendarEvents(
-            schedules: schedules,
-            events: calendarProvider.events,
-            shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
-            suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
-            activeRuleSetId: activeRuleSetId,
-            ruleSets: ruleSets,
-            preservedImportedByKey: preserved
-        )
-        guard merged != schedules else { return }
+        guard
+            let merged = AppStateScheduleCoordinator.rebuildIfNeeded(
+                currentSchedules: schedules,
+                events: calendarProvider.events,
+                shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+                suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
+                activeRuleSetId: activeRuleSetId,
+                ruleSets: ruleSets,
+                preservedImportedByKey: preservedImportedByKey
+            )
+        else { return }
 
         isSynchronizingImportedSchedules = true
         schedules = merged
