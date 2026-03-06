@@ -152,7 +152,24 @@ class AppState: ObservableObject {
             isTesting: isTesting,
             calendarProvider: calendarProvider,
             timerCoordinator: timerCoordinator,
-            buildMonitor: { BrowserMonitor(appState: self) },
+            buildMonitor: {
+                BrowserMonitor(
+                    stateSnapshotProvider: { [weak self] in
+                        guard let self else { return nil }
+                        return BrowserMonitor.StateSnapshot(
+                            isBlocking: self.isBlocking,
+                            isPaused: self.isPaused,
+                            blockNewTabs: self.blockNewTabs,
+                            blockDeveloperHosts: self.blockDeveloperHosts,
+                            blockLocalNetworkHosts: self.blockLocalNetworkHosts,
+                            allowedRules: self.allowedRules
+                        )
+                    },
+                    setTrustedState: { [weak self] trusted in
+                        self?.isTrusted = trusted
+                    }
+                )
+            },
             onScheduleUpdate: { [weak self] in self?.checkSchedules() }
         )
         self.monitor = runtimeBindings.monitor

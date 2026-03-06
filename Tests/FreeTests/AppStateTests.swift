@@ -54,6 +54,31 @@ struct AppStateTests {
         return AppState(defaults: defaults, timerScheduler: timerScheduler, isTesting: true)
     }
 
+    private func makeMonitor(
+        appState: AppState,
+        automator: BrowserAutomator = MockBrowserAutomator(),
+        startTimer: Bool = false
+    ) -> BrowserMonitor {
+        BrowserMonitor(
+            stateSnapshotProvider: {
+                BrowserMonitor.StateSnapshot(
+                    isBlocking: appState.isBlocking,
+                    isPaused: appState.isPaused,
+                    blockNewTabs: appState.blockNewTabs,
+                    blockDeveloperHosts: appState.blockDeveloperHosts,
+                    blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
+                    allowedRules: appState.allowedRules
+                )
+            },
+            setTrustedState: { trusted in
+                appState.isTrusted = trusted
+            },
+            server: nil,
+            automator: automator,
+            startTimer: startTimer
+        )
+    }
+
     @Test("Pomodoro locking logic works correctly with grace period")
     func pomodoroLocking() {
         let appState = isolatedAppState(name: "pomodoroLocking")
@@ -700,12 +725,7 @@ struct AppStateTests {
         let defaultsA = UserDefaults(suiteName: suiteA)!
         defaultsA.removePersistentDomain(forName: suiteA)
         let sourceAppState = AppState(defaults: defaultsA, isTesting: true)
-        let monitor = BrowserMonitor(
-            appState: sourceAppState,
-            server: nil,
-            automator: MockBrowserAutomator(),
-            startTimer: false
-        )
+        let monitor = makeMonitor(appState: sourceAppState)
 
         let suiteB = "AppStateTests.initFallbackAndInjectedMonitorCoverage.B"
         let defaultsB = UserDefaults(suiteName: suiteB)!
@@ -723,12 +743,7 @@ struct AppStateTests {
         let sourceDefaults = UserDefaults(suiteName: sourceSuite)!
         sourceDefaults.removePersistentDomain(forName: sourceSuite)
         let sourceState = AppState(defaults: sourceDefaults, isTesting: true)
-        let injectedMonitor = BrowserMonitor(
-            appState: sourceState,
-            server: nil,
-            automator: MockBrowserAutomator(),
-            startTimer: false
-        )
+        let injectedMonitor = makeMonitor(appState: sourceState)
 
         let targetSuite = "AppStateTests.initProductionCalendarPathCoverage.target"
         let targetDefaults = UserDefaults(suiteName: targetSuite)!
@@ -828,12 +843,7 @@ struct AppStateTests {
         let automator = MockBrowserAutomator()
         automator.activeUrl = "https://example.com"
 
-        let monitor = BrowserMonitor(
-            appState: appState,
-            server: nil,
-            automator: automator,
-            startTimer: false
-        )
+        let monitor = makeMonitor(appState: appState, automator: automator)
         appState.monitor = monitor
 
         appState.refreshCurrentOpenUrls()

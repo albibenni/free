@@ -86,45 +86,6 @@ class BrowserMonitor {
         }
     }
 
-    convenience init(
-        appState: AppState,
-        server: LocalServer? = LocalServer(),
-        automator: BrowserAutomator = DefaultBrowserAutomator(),
-        supportedBrowsers: Set<String> = BrowserMonitor.defaultBrowsers,
-        frontmostAppProvider: @escaping () -> NSRunningApplication? = { NSWorkspace.shared.frontmostApplication },
-        bundleIdProvider: @escaping (NSRunningApplication) -> String? = { $0.bundleIdentifier },
-        nowProvider: @escaping () -> Date = Date.init,
-        monitorInterval: TimeInterval = 1.0,
-        timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
-        startTimer: Bool = true
-    ) {
-        self.init(
-            stateSnapshotProvider: { [weak appState] in
-                guard let appState = appState else { return nil }
-                return StateSnapshot(
-                    isBlocking: appState.isBlocking,
-                    isPaused: appState.isPaused,
-                    blockNewTabs: appState.blockNewTabs,
-                    blockDeveloperHosts: appState.blockDeveloperHosts,
-                    blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
-                    allowedRules: appState.allowedRules
-                )
-            },
-            setTrustedState: { [weak appState] trusted in
-                appState?.isTrusted = trusted
-            },
-            server: server,
-            automator: automator,
-            supportedBrowsers: supportedBrowsers,
-            frontmostAppProvider: frontmostAppProvider,
-            bundleIdProvider: bundleIdProvider,
-            nowProvider: nowProvider,
-            monitorInterval: monitorInterval,
-            timerScheduler: timerScheduler,
-            startTimer: startTimer
-        )
-    }
-
     deinit {
         stopMonitoring()
     }

@@ -5,10 +5,27 @@ import Testing
 @testable import FreeLogic
 
 struct AppStateRuntimeWiringCoordinatorTests {
+    private func makeMonitor(startTimer: Bool = false) -> BrowserMonitor {
+        BrowserMonitor(
+            stateSnapshotProvider: {
+                BrowserMonitor.StateSnapshot(
+                    isBlocking: false,
+                    isPaused: false,
+                    blockNewTabs: false,
+                    blockDeveloperHosts: false,
+                    blockLocalNetworkHosts: false,
+                    allowedRules: []
+                )
+            },
+            setTrustedState: { _ in },
+            server: nil,
+            startTimer: startTimer
+        )
+    }
+
     @Test("resolveMonitor prefers injected monitor and skips builder")
     func resolveMonitorPrefersInjected() {
-        let appState = AppState(isTesting: true)
-        let injected = BrowserMonitor(appState: appState, server: nil, startTimer: false)
+        let injected = makeMonitor()
         var buildCallCount = 0
 
         let resolved = AppStateRuntimeWiringCoordinator.resolveMonitor(
@@ -16,7 +33,7 @@ struct AppStateRuntimeWiringCoordinatorTests {
             isTesting: false
         ) {
             buildCallCount += 1
-            return BrowserMonitor(appState: appState, server: nil, startTimer: false)
+            return makeMonitor()
         }
 
         #expect(resolved === injected)
@@ -32,7 +49,7 @@ struct AppStateRuntimeWiringCoordinatorTests {
             isTesting: true
         ) {
             buildCallCount += 1
-            return BrowserMonitor(appState: AppState(isTesting: true), server: nil, startTimer: false)
+            return makeMonitor()
         }
 
         #expect(resolved == nil)
