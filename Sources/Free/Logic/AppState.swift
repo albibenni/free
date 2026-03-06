@@ -14,49 +14,30 @@ class AppState: ObservableObject {
 
     @Published var isBlocking = false {
         didSet {
-            settingsStore.setIsBlocking(isBlocking)
             if !isBlocking { cancelPause() }
         }
     }
-    @Published var isUnblockable = false {
-        didSet { settingsStore.setIsUnblockable(isUnblockable) }
-    }
+    @Published var isUnblockable = false
     @Published var isTrusted = false
-    @Published var weekStartsOnMonday = false {
-        didSet { settingsStore.setWeekStartsOnMonday(weekStartsOnMonday) }
-    }
-    @Published var accentColorIndex = 0 {
-        didSet { settingsStore.setAccentColorIndex(accentColorIndex) }
-    }
-    @Published var appearanceMode: AppearanceMode = .system {
-        didSet { settingsStore.setAppearanceModeRawValue(appearanceMode.rawValue) }
-    }
+    @Published var weekStartsOnMonday = false
+    @Published var accentColorIndex = 0
+    @Published var appearanceMode: AppearanceMode = .system
     @Published var calendarIntegrationEnabled = false {
         didSet {
-            settingsStore.setCalendarIntegrationEnabled(calendarIntegrationEnabled)
             if calendarIntegrationEnabled { calendarProvider.requestAccess() }
             checkSchedules()
         }
     }
     @Published var calendarImportsBlockTime = false {
         didSet {
-            settingsStore.setCalendarImportsBlockTime(calendarImportsBlockTime)
             checkSchedules()
         }
     }
-    @Published var blockNewTabs = false {
-        didSet { settingsStore.setBlockNewTabs(blockNewTabs) }
-    }
-    @Published var blockDeveloperHosts = false {
-        didSet { settingsStore.setBlockDeveloperHosts(blockDeveloperHosts) }
-    }
-    @Published var blockLocalNetworkHosts = false {
-        didSet { settingsStore.setBlockLocalNetworkHosts(blockLocalNetworkHosts) }
-    }
-    @Published var ruleSets: [RuleSet] = [] { didSet { settingsStore.saveRuleSets(ruleSets) } }
-    @Published var activeRuleSetId: UUID? = nil {
-        didSet { settingsStore.setActiveRuleSetId(activeRuleSetId) }
-    }
+    @Published var blockNewTabs = false
+    @Published var blockDeveloperHosts = false
+    @Published var blockLocalNetworkHosts = false
+    @Published var ruleSets: [RuleSet] = []
+    @Published var activeRuleSetId: UUID? = nil
     @Published var schedules: [Schedule] = [] {
         didSet {
             settingsStore.saveSchedules(schedules)
@@ -66,13 +47,11 @@ class AppState: ObservableObject {
 
     @Published var pomodoroFocusDuration: Double = 25 {
         didSet {
-            settingsStore.setPomodoroFocusDuration(pomodoroFocusDuration)
             if pomodoroStatus == .focus { pomodoroRemaining = pomodoroFocusDuration * 60 }
         }
     }
     @Published var pomodoroBreakDuration: Double = 5 {
         didSet {
-            settingsStore.setPomodoroBreakDuration(pomodoroBreakDuration)
             if pomodoroStatus == .breakTime { pomodoroRemaining = pomodoroBreakDuration * 60 }
         }
     }
@@ -89,6 +68,7 @@ class AppState: ObservableObject {
     private var calendarCancellable: AnyCancellable?
     private let launchAtLoginService: LaunchAtLoginService
     private let timerCoordinator: AppStateTimerCoordinator
+    private var persistenceCancellables = Set<AnyCancellable>()
     private var wasStartedBySchedule = false
     private var manuallyPausedScheduleIds: Set<UUID> = []
     private var pomodoroRuleSetId: UUID?
@@ -161,6 +141,10 @@ class AppState: ObservableObject {
         self.activeRuleSetId = snapshot.activeRuleSetId
         self.wasStartedBySchedule = snapshot.wasStartedBySchedule
         self.suppressedImportedCalendarEventKeys = snapshot.suppressedImportedCalendarEventKeys
+        persistenceCancellables = AppStatePersistenceCoordinator.bind(
+            appState: self,
+            settingsStore: settingsStore
+        )
 
         // Migration for older builds that persisted IsBlocking but not its source.
         if let migration = AppStateSessionCoordinator.migrateLegacyBlockingSourceIfNeeded(
@@ -196,6 +180,7 @@ class AppState: ObservableObject {
             timerCoordinator: timerCoordinator,
             calendarCancellable: &calendarCancellable
         )
+        persistenceCancellables.removeAll()
     }
 
     func toggleBlocking() {
