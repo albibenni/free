@@ -2,97 +2,6 @@ import AppKit
 import Combine
 
 final class FocusSectionViewController: NSViewController {
-    private struct PomodoroWidgetSignature: Equatable {
-        struct RuleSetSnapshot: Equatable {
-            let id: UUID
-            let name: String
-        }
-
-        struct ContentSignature: Equatable {
-            let appearanceMode: AppearanceMode
-            let accentColorIndex: Int
-            let isBlocking: Bool
-            let isStrictActive: Bool
-            let pomodoroStatus: PomodoroStatus
-            let pomodoroFocusDuration: Double
-            let pomodoroBreakDuration: Double
-            let pomodoroRemaining: TimeInterval
-            let isPomodoroLocked: Bool
-            let ruleSets: [RuleSetSnapshot]
-        }
-
-        let appearanceMode: AppearanceMode
-        let accentColorIndex: Int
-        let isBlocking: Bool
-        let isStrictActive: Bool
-        let pomodoroStatus: PomodoroStatus
-        let pomodoroFocusDuration: Double
-        let pomodoroBreakDuration: Double
-        let pomodoroRemaining: TimeInterval
-        let isPomodoroLocked: Bool
-        let activeRuleSetId: UUID?
-        let currentPrimaryRuleSetId: UUID?
-        let ruleSets: [RuleSetSnapshot]
-
-        var contentSignature: ContentSignature {
-            ContentSignature(
-                appearanceMode: appearanceMode,
-                accentColorIndex: accentColorIndex,
-                isBlocking: isBlocking,
-                isStrictActive: isStrictActive,
-                pomodoroStatus: pomodoroStatus,
-                pomodoroFocusDuration: pomodoroFocusDuration,
-                pomodoroBreakDuration: pomodoroBreakDuration,
-                pomodoroRemaining: pomodoroRemaining,
-                isPomodoroLocked: isPomodoroLocked,
-                ruleSets: ruleSets
-            )
-        }
-
-        init(appState: AppState) {
-            appearanceMode = appState.appearanceMode
-            accentColorIndex = appState.accentColorIndex
-            isBlocking = appState.isBlocking
-            isStrictActive = appState.isStrictActive
-            pomodoroStatus = appState.pomodoroStatus
-            pomodoroFocusDuration = appState.pomodoroFocusDuration
-            pomodoroBreakDuration = appState.pomodoroBreakDuration
-            pomodoroRemaining = appState.pomodoroRemaining
-            isPomodoroLocked = appState.isPomodoroLocked
-            activeRuleSetId = appState.activeRuleSetId
-            currentPrimaryRuleSetId = appState.currentPrimaryRuleSetId
-            ruleSets = appState.ruleSets.map { RuleSetSnapshot(id: $0.id, name: $0.name) }
-        }
-    }
-
-    private struct SchedulesWidgetSignature: Equatable {
-        let appearanceMode: AppearanceMode
-        let accentColorIndex: Int
-        let todaySchedules: [Schedule]
-
-        init(appState: AppState) {
-            appearanceMode = appState.appearanceMode
-            accentColorIndex = appState.accentColorIndex
-            todaySchedules = appState.todaySchedules
-        }
-    }
-
-    private struct AllowedWebsitesWidgetSignature: Equatable {
-        let appearanceMode: AppearanceMode
-        let accentColorIndex: Int
-        let activeRuleSetId: UUID?
-        let isStrictActive: Bool
-        let ruleSets: [RuleSet]
-
-        init(appState: AppState) {
-            appearanceMode = appState.appearanceMode
-            accentColorIndex = appState.accentColorIndex
-            activeRuleSetId = appState.activeRuleSetId
-            isStrictActive = appState.isStrictActive
-            ruleSets = appState.ruleSets
-        }
-    }
-
     private let appState: AppState
     private let shellState: FreeShellState
     var section: FocusContentSection {
@@ -121,9 +30,9 @@ final class FocusSectionViewController: NSViewController {
     private var cancellables: Set<AnyCancellable> = []
     private var pomodoroWidgetInteractionDepth = 0
     private var needsReloadAfterPomodoroInteraction = false
-    private var pomodoroWidgetSignature: PomodoroWidgetSignature?
-    private var schedulesWidgetSignature: SchedulesWidgetSignature?
-    private var allowedWebsitesWidgetSignature: AllowedWebsitesWidgetSignature?
+    private var pomodoroWidgetSignature: FocusPomodoroWidgetSignature?
+    private var schedulesWidgetSignature: FocusSchedulesWidgetSignature?
+    private var allowedWebsitesWidgetSignature: FocusAllowedWebsitesWidgetSignature?
 
     init(appState: AppState, shellState: FreeShellState, section: FocusContentSection) {
         self.appState = appState
@@ -228,7 +137,7 @@ final class FocusSectionViewController: NSViewController {
             return false
         }
 
-        let nextSignature = PomodoroWidgetSignature(appState: appState)
+        let nextSignature = FocusPomodoroWidgetSignature(appState: appState)
         pomodoroWidgetSignature = nextSignature
         applySharedState()
         pomodoroWidgetView.updateRuleSetSelection()
@@ -491,7 +400,7 @@ final class FocusSectionViewController: NSViewController {
            let widgetView,
            let pomodoroWidgetView = widgetView as? FocusPomodoroWidgetView
         {
-            let nextSignature = PomodoroWidgetSignature(appState: appState)
+            let nextSignature = FocusPomodoroWidgetSignature(appState: appState)
             widgetContainer.isHidden = false
 
             if let currentSignature = pomodoroWidgetSignature,
@@ -515,7 +424,7 @@ final class FocusSectionViewController: NSViewController {
         if section == .schedules,
            widgetView is FocusSchedulesWidgetView
         {
-            let nextSignature = SchedulesWidgetSignature(appState: appState)
+            let nextSignature = FocusSchedulesWidgetSignature(appState: appState)
             if schedulesWidgetSignature == nextSignature {
                 return
             }
@@ -527,7 +436,7 @@ final class FocusSectionViewController: NSViewController {
         if section == .allowedWebsites,
            widgetView is FocusAllowedWebsitesWidgetView
         {
-            let nextSignature = AllowedWebsitesWidgetSignature(appState: appState)
+            let nextSignature = FocusAllowedWebsitesWidgetSignature(appState: appState)
             if allowedWebsitesWidgetSignature == nextSignature {
                 return
             }
@@ -543,7 +452,7 @@ final class FocusSectionViewController: NSViewController {
         let nextWidgetView: NSView
         switch section {
         case .pomodoro:
-            pomodoroWidgetSignature = PomodoroWidgetSignature(appState: appState)
+            pomodoroWidgetSignature = FocusPomodoroWidgetSignature(appState: appState)
             nextWidgetView = FocusPomodoroWidgetView(
                 appState: appState,
                 onDialInteractionDidBegin: { [weak self] in
@@ -554,10 +463,10 @@ final class FocusSectionViewController: NSViewController {
                 }
             )
         case .schedules:
-            schedulesWidgetSignature = SchedulesWidgetSignature(appState: appState)
+            schedulesWidgetSignature = FocusSchedulesWidgetSignature(appState: appState)
             nextWidgetView = FocusSchedulesWidgetView(appState: appState, shellState: shellState)
         case .allowedWebsites:
-            allowedWebsitesWidgetSignature = AllowedWebsitesWidgetSignature(appState: appState)
+            allowedWebsitesWidgetSignature = FocusAllowedWebsitesWidgetSignature(appState: appState)
             nextWidgetView = FocusAllowedWebsitesWidgetView(appState: appState, shellState: shellState)
         case .all:
             pomodoroWidgetSignature = nil
