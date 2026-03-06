@@ -80,7 +80,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         activeRuleSetBadgeLabel = nil
         skipButton = nil
         contentStack.spacing = 12
-        contentStack.addArrangedSubview(makePomodoroHeader())
+        contentStack.addArrangedSubview(FocusPomodoroWidgetLayoutBuilder.makePomodoroHeader())
         let topContentSection = makeTopContentSection()
         contentStack.addArrangedSubview(topContentSection)
         topContentSection.widthAnchor.constraint(equalTo: contentStack.widthAnchor).isActive = true
@@ -238,24 +238,6 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         }
     }
 
-    private func makePomodoroHeader() -> NSView {
-        let chevronView = NSImageView()
-        chevronView.image = appKitSymbolImage(
-            spec: AppKitUISymbols.toggleSidebarChevron,
-            color: .secondaryLabelColor
-        )
-        chevronView.translatesAutoresizingMaskIntoConstraints = false
-        chevronView.widthAnchor.constraint(equalToConstant: 12).isActive = true
-        chevronView.heightAnchor.constraint(equalToConstant: 12).isActive = true
-
-        return makeAppKitHeaderRow(
-            title: "Pomodoro Mode",
-            symbolName: AppKitUISymbols.Name.pomodoro,
-            color: .systemRed,
-            trailingView: chevronView
-        )
-    }
-
     private func makeTopContentSection() -> NSView {
         let row = NSStackView()
         row.orientation = .horizontal
@@ -356,7 +338,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         if let activeId = appState.currentPrimaryRuleSetId,
            let setName = appState.ruleSets.first(where: { $0.id == activeId })?.name,
            appState.pomodoroStatus == .focus {
-            let badge = makeActiveRuleSetBadge(name: setName)
+            let badge = FocusPomodoroWidgetLayoutBuilder.makeActiveRuleSetBadge(name: setName)
             if let label = badge.subviews.compactMap({ FocusPomodoroWidgetSupport.firstLabel(in: $0) }).first {
                 activeRuleSetBadgeLabel = label
             }
@@ -386,9 +368,10 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         let selectedId = FocusPomodoroWidgetSupport.selectedRuleSetId(appState)
         for set in appState.ruleSets {
             let isSelected = selectedId == set.id
-            let button = makeRuleSetRowButton(
+            let button = FocusPomodoroWidgetLayoutBuilder.makeRuleSetRowButton(
                 set: set,
-                isSelected: isSelected
+                isSelected: isSelected,
+                accentColor: accentColor
             ) { [weak appState] in
                 guard let appState, !appState.isStrictActive else { return }
                 appState.selectActiveRuleSet(set.id)
@@ -550,12 +533,12 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 ? self.appState.pomodoroFocusDuration
                 : self.appState.pomodoroBreakDuration
         }
-        let minusButton = makeDialAdjustmentButton(
+        let minusButton = FocusPomodoroWidgetLayoutBuilder.makeDialAdjustmentButton(
             symbol: "-",
             isEnabled: duration > minimumValue,
             action: { onCommit(max(minimumValue, currentDuration() - 5)) }
         )
-        let plusButton = makeDialAdjustmentButton(
+        let plusButton = FocusPomodoroWidgetLayoutBuilder.makeDialAdjustmentButton(
             symbol: "+",
             isEnabled: duration < Double(maxMinutes),
             action: { onCommit(min(Double(maxMinutes), currentDuration() + 5)) }
@@ -577,67 +560,6 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         column.addArrangedSubview(dial)
         column.addArrangedSubview(controls)
         return column
-    }
-
-    private func makeDialAdjustmentButton(
-        symbol: String,
-        isEnabled: Bool,
-        action: @escaping () -> Void
-    ) -> ActionButton {
-        makeAppKitSymbolControlButton(
-            symbol: symbol,
-            isEnabled: isEnabled,
-            pointSize: 24,
-            dimension: 24,
-            color: .secondaryLabelColor,
-            action: action
-        )
-    }
-
-    private func makeActiveRuleSetBadge(name: String) -> NSView {
-        let container = AppKitFlippedView()
-        container.wantsLayer = true
-        container.layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.05).cgColor
-        container.layer?.cornerRadius = 999
-
-        let iconView = NSImageView()
-        iconView.image = appKitSymbolImage(
-            spec: AppKitUISymbols.activeRuleSet,
-            color: .secondaryLabelColor
-        )
-
-        let label = NSTextField(labelWithString: name)
-        label.font = .systemFont(ofSize: 12, weight: .bold)
-        label.textColor = .secondaryLabelColor
-
-        let row = NSStackView(views: [iconView, label])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 6
-        row.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(row)
-
-        NSLayoutConstraint.activate([
-            row.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
-            row.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
-            row.topAnchor.constraint(equalTo: container.topAnchor, constant: 4),
-            row.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4),
-        ])
-
-        return container
-    }
-
-    private func makeRuleSetRowButton(
-        set: RuleSet,
-        isSelected: Bool,
-        action: @escaping () -> Void
-    ) -> AppKitSelectableRowButton {
-        makeAppKitSelectableRowButton(
-            title: set.name,
-            isSelected: isSelected,
-            accentColor: accentColor,
-            action: action
-        )
     }
 
     private func presentCustomBreakPrompt() {

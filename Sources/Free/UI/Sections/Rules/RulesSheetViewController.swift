@@ -279,52 +279,17 @@ final class RulesSheetViewController: NSViewController {
     private func reloadSidebar() {
         removeAllArrangedSubviews(from: sidebarScrollView.stackView)
         for ruleSet in appState.ruleSets {
-            let row = NSStackView()
-            row.orientation = .horizontal
-            row.alignment = .centerY
-            row.spacing = 8
-            row.edgeInsets = NSEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
-            row.wantsLayer = true
-            row.layer?.cornerRadius = 6
-            row.layer?.backgroundColor =
-                selectedSetId == ruleSet.id
-                ? NSColor.labelColor.withAlphaComponent(0.08).cgColor
-                : NSColor.clear.cgColor
-
-            let button = NSButton(title: ruleSet.name, target: self, action: #selector(selectRuleSet(_:)))
-            button.identifier = NSUserInterfaceItemIdentifier(ruleSet.id.uuidString)
-            button.isBordered = false
-            button.alignment = .left
-            button.font = .systemFont(
-                ofSize: 13,
-                weight: selectedSetId == ruleSet.id ? .semibold : .regular
+            let row = RulesSheetLayoutBuilder.makeSidebarRow(
+                ruleSet: ruleSet,
+                isSelected: selectedSetId == ruleSet.id,
+                canDelete: RulesSectionSupport.shouldShowDeleteSetButton(
+                    ruleSetCount: appState.ruleSets.count,
+                    isBlocking: appState.isBlocking
+                ),
+                onSelect: #selector(selectRuleSet(_:)),
+                onDelete: #selector(deleteRuleSet(_:)),
+                target: self
             )
-            button.contentTintColor =
-                selectedSetId == ruleSet.id
-                ? .labelColor
-                : .secondaryLabelColor
-            row.addArrangedSubview(button)
-            row.addArrangedSubview(NSView())
-
-            if RulesSectionSupport.shouldShowDeleteSetButton(
-                ruleSetCount: appState.ruleSets.count,
-                isBlocking: appState.isBlocking
-            ) {
-                let deleteButton = NSButton()
-                deleteButton.isBordered = false
-                deleteButton.identifier = NSUserInterfaceItemIdentifier(ruleSet.id.uuidString)
-                deleteButton.image = appKitSymbolImage(
-                    named: AppKitUISymbols.Name.minus,
-                    pointSize: 15,
-                    weight: .regular,
-                    color: .systemRed
-                )
-                deleteButton.contentTintColor = .systemRed
-                deleteButton.target = self
-                deleteButton.action = #selector(deleteRuleSet(_:))
-                row.addArrangedSubview(deleteButton)
-            }
-
             sidebarScrollView.stackView.addArrangedSubview(row)
         }
         sidebarScrollView.needsLayout = true
@@ -358,25 +323,11 @@ final class RulesSheetViewController: NSViewController {
             contentScrollView.stackView.addArrangedSubview(emptyLabel)
         } else {
             for rule in selectedSet.urls {
-                let row = NSStackView()
-                row.orientation = .horizontal
-                row.alignment = .centerY
-                row.spacing = 8
-                let label = NSTextField(labelWithString: rule)
-                label.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
-                let deleteButton = NSButton()
-                deleteButton.isBordered = false
-                deleteButton.identifier = NSUserInterfaceItemIdentifier(rule)
-                deleteButton.image = appKitSymbolImage(
-                    spec: AppKitUISymbols.deleteRule,
-                    color: .systemRed
+                let row = RulesSheetLayoutBuilder.makeRuleRow(
+                    rule: rule,
+                    onDelete: #selector(deleteRule(_:)),
+                    target: self
                 )
-                deleteButton.contentTintColor = .systemRed
-                deleteButton.target = self
-                deleteButton.action = #selector(deleteRule(_:))
-                row.addArrangedSubview(label)
-                row.addArrangedSubview(NSView())
-                row.addArrangedSubview(deleteButton)
                 contentScrollView.stackView.addArrangedSubview(row)
             }
         }
@@ -410,27 +361,12 @@ final class RulesSheetViewController: NSViewController {
                 contentScrollView.stackView.addArrangedSubview(label)
             } else {
                 for suggestion in filtered {
-                    let row = NSStackView()
-                    row.orientation = .horizontal
-                    row.alignment = .centerY
-                    row.spacing = 8
-                    let icon = NSImageView(
-                        image: NSImage(systemSymbolName: AppKitUISymbols.Name.plusCircle, accessibilityDescription: nil) ?? NSImage()
+                    let row = RulesSheetLayoutBuilder.makeSuggestionRow(
+                        suggestion: suggestion,
+                        accentColor: accentColor,
+                        onAdd: #selector(addSuggestion(_:)),
+                        target: self
                     )
-                    icon.contentTintColor = .systemGreen
-                    let label = NSTextField(labelWithString: suggestion)
-                    label.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
-                    let addButton = makeAppKitSecondaryButton(title: "Add", color: accentColor)
-                    addButton.identifier = NSUserInterfaceItemIdentifier(suggestion)
-                    addButton.target = self
-                    addButton.action = #selector(addSuggestion(_:))
-                    addButton.translatesAutoresizingMaskIntoConstraints = false
-                    addButton.widthAnchor.constraint(equalToConstant: 48).isActive = true
-                    addButton.heightAnchor.constraint(equalToConstant: 24).isActive = true
-                    row.addArrangedSubview(icon)
-                    row.addArrangedSubview(label)
-                    row.addArrangedSubview(NSView())
-                    row.addArrangedSubview(addButton)
                     contentScrollView.stackView.addArrangedSubview(row)
                 }
             }

@@ -200,24 +200,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     private func makeImportedBadge() -> NSView {
-        let badge = AppKitCardView()
-        badge.backgroundColorProvider = { NSColor.secondaryLabelColor.withAlphaComponent(0.12) }
-        badge.layer?.borderWidth = 0
-
-        let icon = NSImageView()
-        icon.image = appKitSymbolImage(spec: AppKitUISymbols.importedEditorBadge, color: .secondaryLabelColor)
-
-        let label = NSTextField(labelWithString: "Imported from Calendar")
-        label.font = .systemFont(ofSize: 13, weight: .semibold)
-        label.textColor = .secondaryLabelColor
-
-        let row = NSStackView(views: [icon, label, NSView()])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 8
-
-        badge.contentStack.addArrangedSubview(row)
-        return badge
+        ScheduleEditorLayoutBuilder.makeImportedBadge()
     }
 
     private func makeSessionTypeSection() -> NSView {
@@ -297,45 +280,22 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         editable: Bool,
         placeholder: String
     ) -> NSView {
-        let section = makeSectionContainer(title: title)
-        let field = NSTextField(string: text)
-        field.placeholderString = placeholder
-        field.font = .systemFont(ofSize: 18, weight: .regular)
-        field.delegate = self
-        field.isEditable = editable
-        field.isEnabled = editable
-        field.identifier = NSUserInterfaceItemIdentifier("scheduleNameField")
-        section.contentStack.addArrangedSubview(field)
-        return section
+        ScheduleEditorLayoutBuilder.makeTextFieldSection(
+            title: title,
+            text: text,
+            editable: editable,
+            placeholder: placeholder,
+            delegate: self
+        )
     }
 
     private func makeThemeColorSection() -> NSView {
-        let section = makeSectionContainer(title: "THEME COLOR")
-        let row = NSStackView()
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 12
-
-        for index in 0..<FocusColor.all.count {
-            let button = ActionButton()
-            button.wantsLayer = true
-            button.isBordered = false
-            button.layer?.backgroundColor = FocusColor.nsColor(for: index).cgColor
-            button.layer?.cornerRadius = 15
-            button.layer?.borderWidth = selectedColorIndex == index ? 2 : 0
-            button.layer?.borderColor = NSColor.labelColor.cgColor
-            button.onAction = { [weak self] in
-                self?.selectedColorIndex = index
-                self?.reloadForm()
-            }
-            button.translatesAutoresizingMaskIntoConstraints = false
-            button.widthAnchor.constraint(equalToConstant: 30).isActive = true
-            button.heightAnchor.constraint(equalToConstant: 30).isActive = true
-            row.addArrangedSubview(button)
+        ScheduleEditorLayoutBuilder.makeThemeColorSection(
+            selectedColorIndex: selectedColorIndex
+        ) { [weak self] index in
+            self?.selectedColorIndex = index
+            self?.reloadForm()
         }
-
-        section.contentStack.addArrangedSubview(row)
-        return section
     }
 
     private func makeTimeSection() -> NSView {
@@ -354,19 +314,13 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     private func makeRepeatSection() -> NSView {
-        let section = AppKitFlippedView()
-        let checkbox = NSButton(checkboxWithTitle: "Repeat weekly", target: self, action: #selector(toggleRecurring(_:)))
-        checkbox.font = .systemFont(ofSize: 14, weight: .semibold)
-        checkbox.state = isRecurring ? .on : .off
-        checkbox.translatesAutoresizingMaskIntoConstraints = false
-        repeatCheckbox = checkbox
-        section.addSubview(checkbox)
-        NSLayoutConstraint.activate([
-            checkbox.leadingAnchor.constraint(equalTo: section.leadingAnchor),
-            checkbox.topAnchor.constraint(equalTo: section.topAnchor),
-            checkbox.bottomAnchor.constraint(equalTo: section.bottomAnchor),
-        ])
-        return section
+        let repeatSection = ScheduleEditorLayoutBuilder.makeRepeatSection(
+            isRecurring: isRecurring,
+            target: self,
+            action: #selector(toggleRecurring(_:))
+        )
+        repeatCheckbox = repeatSection.checkbox
+        return repeatSection.container
     }
 
     private func makeRecurringDaysSection() -> NSView {
@@ -392,17 +346,12 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         row.spacing = 12
 
         for day in ScheduleEditorSupport.weekDayOrder(weekStartsOnMonday: appState.weekStartsOnMonday) {
-            let button = ActionButton(title: ScheduleEditorSupport.daySymbol(at: day))
-            button.isBordered = false
-            button.wantsLayer = true
-            button.layer?.cornerRadius = 22
-            button.onAction = { [weak self] in
+            let button = ScheduleEditorLayoutBuilder.makeRecurringDayButton(
+                symbol: ScheduleEditorSupport.daySymbol(at: day)
+            ) { [weak self] in
                 guard let self else { return }
                 self.toggleRecurringDay(day)
             }
-            button.translatesAutoresizingMaskIntoConstraints = false
-            button.widthAnchor.constraint(equalToConstant: 44).isActive = true
-            button.heightAnchor.constraint(equalToConstant: 44).isActive = true
             recurringDayButtons[day] = button
             row.addArrangedSubview(button)
         }
@@ -471,21 +420,12 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     private func makeTimePickerCard(title: String, date: Date, action: Selector) -> NSView {
-        let card = AppKitCardView()
-        card.backgroundColorProvider = { NSColor.labelColor.withAlphaComponent(0.03) }
-
-        let label = makeAppKitSectionLabel(title)
-
-        let picker = NSDatePicker()
-        picker.datePickerElements = .hourMinute
-        picker.datePickerStyle = .textField
-        picker.dateValue = date
-        picker.target = self
-        picker.action = action
-
-        card.contentStack.addArrangedSubview(label)
-        card.contentStack.addArrangedSubview(picker)
-        return card
+        ScheduleEditorLayoutBuilder.makeTimePickerCard(
+            title: title,
+            date: date,
+            target: self,
+            action: action
+        )
     }
 
     private func saveSchedule() {
@@ -531,11 +471,10 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     @objc
     private func changeRuleSet(_ sender: NSPopUpButton) {
-        if sender.indexOfSelectedItem == 0 {
-            ruleSetId = nil
-        } else {
-            ruleSetId = appState.ruleSets[safe: sender.indexOfSelectedItem - 1]?.id
-        }
+        ruleSetId = ScheduleEditorActionsCoordinator.ruleSetIdForSelectedPopupIndex(
+            sender.indexOfSelectedItem,
+            ruleSets: appState.ruleSets
+        )
     }
 
     @objc
@@ -550,7 +489,9 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     @objc
     private func toggleRecurring(_ sender: NSButton) {
-        isRecurring = sender.state == .on
+        isRecurring = ScheduleEditorActionsCoordinator.toggledRecurring(
+            checkboxState: sender.state
+        )
         updateRecurringUI()
     }
 
