@@ -1,6 +1,23 @@
 import Foundation
 
 extension AppState {
+    func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
+        let result = logicFacade.deleteSchedule(
+            currentSchedules: schedules,
+            id: id,
+            modifyAllDays: modifyAllDays,
+            initialDay: initialDay,
+            suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys
+        )
+        guard result.didMutateSchedules else { return }
+
+        suppressedImportedCalendarEventKeys = result.suppressedImportedCalendarEventKeys
+        if result.didPersistSuppressedImportedKeys {
+            settingsStore.setSuppressedImportedCalendarEventKeys(suppressedImportedCalendarEventKeys)
+        }
+        schedules = result.schedules
+    }
+
     func saveSchedule(
         name: String,
         days: Set<Int>,
