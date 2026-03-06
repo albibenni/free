@@ -555,9 +555,14 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     private func updateRecurringUI() {
-        repeatCheckbox?.state = isRecurring ? .on : .off
-        recurringDaysSection?.alphaValue = isRecurring ? 1 : 0.45
-        applyRecurringDayButtonStyles()
+        ScheduleEditorRecurringUICoordinator.applyRecurringUI(
+            repeatCheckbox: repeatCheckbox,
+            recurringDaysSection: recurringDaysSection,
+            recurringDayButtons: recurringDayButtons,
+            days: days,
+            isRecurring: isRecurring,
+            accentColor: accentColor
+        )
         saveButton?.isEnabled = !ScheduleEditorSupport.isSaveDisabled(
             days: days,
             modifyAllDays: modifyAllDays,
@@ -578,24 +583,14 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     private func applyRecurringDayButtonStyles() {
-        for (day, button) in recurringDayButtons {
-            let isSelected = days.contains(day)
-            button.isEnabled = isRecurring
-            button.layer?.backgroundColor = (
-                isSelected
-                    ? accentColor.withAlphaComponent(isRecurring ? 1 : 0.45)
-                    : NSColor.secondaryLabelColor.withAlphaComponent(isRecurring ? 0.2 : 0.12)
-            ).cgColor
-            button.attributedTitle = NSAttributedString(
-                string: ScheduleEditorSupport.daySymbol(at: day),
-                attributes: [
-                    .font: NSFont.systemFont(ofSize: 16, weight: .bold),
-                    .foregroundColor: isSelected
-                        ? NSColor.white.withAlphaComponent(isRecurring ? 1 : 0.75)
-                        : NSColor.labelColor.withAlphaComponent(isRecurring ? 1 : 0.6),
-                ]
-            )
-        }
+        ScheduleEditorRecurringUICoordinator.applyRecurringUI(
+            repeatCheckbox: nil,
+            recurringDaysSection: nil,
+            recurringDayButtons: recurringDayButtons,
+            days: days,
+            isRecurring: isRecurring,
+            accentColor: accentColor
+        )
     }
 }
 

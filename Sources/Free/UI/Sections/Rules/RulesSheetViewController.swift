@@ -2,24 +2,6 @@ import AppKit
 import Combine
 
 final class RulesSheetViewController: NSViewController {
-    private struct RenderSignature: Equatable {
-        let appearanceMode: AppearanceMode
-        let accentColorIndex: Int
-        let ruleSets: [RuleSet]
-        let currentPrimaryRuleSetId: UUID?
-        let isBlocking: Bool
-        let currentOpenUrls: [String]
-
-        init(appState: AppState, isSuggestionsExpanded: Bool) {
-            appearanceMode = appState.appearanceMode
-            accentColorIndex = appState.accentColorIndex
-            ruleSets = appState.ruleSets
-            currentPrimaryRuleSetId = appState.currentPrimaryRuleSetId
-            isBlocking = appState.isBlocking
-            currentOpenUrls = isSuggestionsExpanded ? appState.currentOpenUrls : []
-        }
-    }
-
     private let appState: AppState
     private var selectedSetId: UUID?
     private var isSidebarVisible = true
@@ -38,7 +20,7 @@ final class RulesSheetViewController: NSViewController {
     private let addRuleButton = ActionButton(title: "Add")
     private let doneButton = ActionButton(title: "Done")
     private let onDismiss: (() -> Void)?
-    private var renderSignature: RenderSignature?
+    private var renderSignature: RulesSheetRenderSignature?
     private var reloadGeneration = 0
     private var cancellables: Set<AnyCancellable> = []
 
@@ -104,7 +86,7 @@ final class RulesSheetViewController: NSViewController {
     }
 
     private func handleObservedAppStateChange() {
-        let nextSignature = RenderSignature(
+        let nextSignature = RulesSheetRenderSignature(
             appState: appState,
             isSuggestionsExpanded: isSuggestionsExpanded
         )
@@ -220,20 +202,25 @@ final class RulesSheetViewController: NSViewController {
     }
 
     private var selectedSet: RuleSet? {
-        appState.ruleSets.first(where: { $0.id == selectedSetId })
+        RulesSheetActionsCoordinator.selectedRuleSet(
+            id: selectedSetId,
+            ruleSets: appState.ruleSets
+        )
     }
 
     private func reloadContent() {
-        renderSignature = RenderSignature(
+        renderSignature = RulesSheetRenderSignature(
             appState: appState,
             isSuggestionsExpanded: isSuggestionsExpanded
         )
         reloadGeneration += 1
         applyActionButtonStyling()
 
-        if selectedSetId == nil || selectedSet == nil {
-            selectedSetId = appState.currentPrimaryRuleSetId ?? appState.ruleSets.first?.id
-        }
+        selectedSetId = RulesSheetActionsCoordinator.fallbackSelectedSetId(
+            currentSelectedId: selectedSetId,
+            currentPrimaryRuleSetId: appState.currentPrimaryRuleSetId,
+            ruleSets: appState.ruleSets
+        )
 
         reloadSidebar()
         reloadRuleContent()
@@ -465,27 +452,20 @@ final class RulesSheetViewController: NSViewController {
 
     @objc
     private func addRuleSet() {
-        let alert = NSAlert()
-        alert.messageText = "New Allowed List"
-        let input = NSTextField(string: "")
-        input.placeholderString = "List Name"
-        input.frame = CGRect(x: 0, y: 0, width: 260, height: 24)
-        alert.accessoryView = input
-        alert.addButton(withTitle: "Create")
-        alert.addButton(withTitle: "Cancel")
-        let response = alert.runModal()
-        guard response == .alertFirstButtonReturn else { return }
-
-        let newSet = appState.createRuleSet(name: input.stringValue, makeActive: false)
+        guard let name = RulesSheetAlertPresenter.promptForNewRuleSetName() else { return }
+        let newSet = appState.createRuleSet(name: name, makeActive: false)
         selectedSetId = newSet.id
         reloadContent()
     }
 
     @objc
     private func selectRuleSet(_ sender: NSButton) {
-        guard !appState.isBlocking else { return }
         guard let raw = sender.identifier?.rawValue, let id = UUID(uuidString: raw) else { return }
-        selectedSetId = id
+        selectedSetId = RulesSheetActionsCoordinator.selectedSetIdAfterRowTap(
+            tappedId: id,
+            isBlocking: appState.isBlocking,
+            currentSelectedId: selectedSetId
+        )
         reloadContent()
     }
 
@@ -493,9 +473,11 @@ final class RulesSheetViewController: NSViewController {
     private func deleteRuleSet(_ sender: NSButton) {
         guard let raw = sender.identifier?.rawValue, let id = UUID(uuidString: raw) else { return }
         appState.deleteSet(id: id)
-        if selectedSetId == id {
-            selectedSetId = appState.ruleSets.first?.id
-        }
+        selectedSetId = RulesSheetActionsCoordinator.selectedSetIdAfterDelete(
+            deletedId: id,
+            currentSelectedId: selectedSetId,
+            remainingRuleSets: appState.ruleSets
+        )
         reloadContent()
     }
 
@@ -514,7 +496,9 @@ final class RulesSheetViewController: NSViewController {
 
     @objc
     private func toggleSuggestions() {
-        isSuggestionsExpanded.toggle()
+        isSuggestionsExpanded = RulesSheetActionsCoordinator.toggledSuggestions(
+            isSuggestionsExpanded
+        )
         if isSuggestionsExpanded {
             appState.refreshCurrentOpenUrls()
         }
@@ -546,16 +530,21 @@ extension RulesSheetViewController {
     }
 
     func selectRuleSetForTesting(_ ruleSet: RuleSet) {
-        guard !appState.isBlocking else { return }
-        selectedSetId = ruleSet.id
+        selectedSetId = RulesSheetActionsCoordinator.selectedSetIdAfterRowTap(
+            tappedId: ruleSet.id,
+            isBlocking: appState.isBlocking,
+            currentSelectedId: selectedSetId
+        )
         reloadContent()
     }
 
     func deleteRuleSetForTesting(_ ruleSet: RuleSet) {
         appState.deleteSet(id: ruleSet.id)
-        if selectedSetId == ruleSet.id {
-            selectedSetId = appState.ruleSets.first?.id
-        }
+        selectedSetId = RulesSheetActionsCoordinator.selectedSetIdAfterDelete(
+            deletedId: ruleSet.id,
+            currentSelectedId: selectedSetId,
+            remainingRuleSets: appState.ruleSets
+        )
         reloadContent()
     }
 

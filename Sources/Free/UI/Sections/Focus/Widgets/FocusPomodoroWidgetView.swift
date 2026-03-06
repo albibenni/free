@@ -1,21 +1,5 @@
 import AppKit
 
-private func selectedRuleSetIdForPomodoro(_ appState: AppState) -> UUID? {
-    appState.activeRuleSetId ?? appState.ruleSets.first?.id
-}
-
-private func findLabel(in view: NSView) -> NSTextField? {
-    if let label = view as? NSTextField {
-        return label
-    }
-    for subview in view.subviews {
-        if let label = findLabel(in: subview) {
-            return label
-        }
-    }
-    return nil
-}
-
 final class FocusPomodoroWidgetView: AppKitCardView {
     private static let stableMainStatusHeight: CGFloat = 320
     private static let stableMainStatusWidth: CGFloat = 560
@@ -143,7 +127,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     }
 
     func updateRuleSetSelection() {
-        let selectedId = selectedRuleSetIdForPomodoro(appState)
+        let selectedId = FocusPomodoroWidgetSupport.selectedRuleSetId(appState)
         for set in appState.ruleSets {
             guard let button = ruleSetButtons[set.id] else { continue }
             button.accentColor = accentColor
@@ -373,7 +357,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
            let setName = appState.ruleSets.first(where: { $0.id == activeId })?.name,
            appState.pomodoroStatus == .focus {
             let badge = makeActiveRuleSetBadge(name: setName)
-            if let label = badge.subviews.compactMap({ findLabel(in: $0) }).first {
+            if let label = badge.subviews.compactMap({ FocusPomodoroWidgetSupport.firstLabel(in: $0) }).first {
                 activeRuleSetBadgeLabel = label
             }
             column.addArrangedSubview(badge)
@@ -399,7 +383,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.heightAnchor.constraint(equalToConstant: 140).isActive = true
 
-        let selectedId = selectedRuleSetIdForPomodoro(appState)
+        let selectedId = FocusPomodoroWidgetSupport.selectedRuleSetId(appState)
         for set in appState.ruleSets {
             let isSelected = selectedId == set.id
             let button = makeRuleSetRowButton(
@@ -465,7 +449,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         buttons.alignment = .leading
         buttons.spacing = 6
 
-        for (focus, breakTime, label) in [(25.0, 5.0, "25/5"), (45.0, 15.0, "45/15"), (50.0, 10.0, "50/10"), (90.0, 20.0, "90/20")] {
+        for (focus, breakTime, label) in FocusPomodoroWidgetSupport.sidebarPresets {
             let button = makeAppKitPillButton(
                 title: label,
                 isSelected: appState.pomodoroFocusDuration == focus && appState.pomodoroBreakDuration == breakTime,
