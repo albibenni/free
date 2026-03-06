@@ -130,91 +130,30 @@ class AppState: ObservableObject {
         )
 
         let snapshot = AppStateBootstrapService.snapshot(from: settingsStore)
-        applySessionDomainState(
-            AppSessionDomainState(
-                isBlocking: snapshot.isBlocking,
-                isUnblockable: snapshot.isUnblockable,
-                isPaused: false,
-                pauseRemaining: 0,
-                wasStartedBySchedule: snapshot.wasStartedBySchedule,
-                manuallyPausedScheduleIds: []
-            )
-        )
-        applySettingsDomainState(
-            AppSettingsDomainState(
-                weekStartsOnMonday: snapshot.weekStartsOnMonday,
-                accentColorIndex: snapshot.accentColorIndex,
-                appearanceMode: snapshot.appearanceMode,
-                blockNewTabs: snapshot.blockNewTabs,
-                blockDeveloperHosts: snapshot.blockDeveloperHosts,
-                blockLocalNetworkHosts: snapshot.blockLocalNetworkHosts
-            )
-        )
-        applyPomodoroDomainState(
-            AppPomodoroDomainState(
-                status: .none,
-                remaining: 0,
-                startedAt: nil,
-                focusDurationMinutes: snapshot.pomodoroFocusDuration,
-                breakDurationMinutes: snapshot.pomodoroBreakDuration,
-                ruleSetId: nil
-            )
-        )
-        applyRulesDomainState(
-            AppRulesDomainState(
-                ruleSets: snapshot.ruleSets,
-                activeRuleSetId: snapshot.activeRuleSetId
-            )
-        )
-        applyScheduleDomainState(
-            AppScheduleDomainState(
-                schedules: snapshot.schedules,
-                calendarIntegrationEnabled: snapshot.calendarIntegrationEnabled,
-                calendarImportsBlockTime: snapshot.calendarImportsBlockTime,
-                isSynchronizingImportedSchedules: false,
-                suppressedImportedCalendarEventKeys: snapshot.suppressedImportedCalendarEventKeys
-            )
-        )
-        persistenceCancellables = AppStatePersistenceCoordinator.bind(
+        applyBootstrapSnapshot(snapshot)
+        persistenceCancellables = AppStateLifecycleService.bindPersistence(
             appState: self,
             settingsStore: settingsStore
         )
 
         // Migration for older builds that persisted IsBlocking but not its source.
-        if let migration = logicFacade.migrateLegacyBlockingSourceIfNeeded(
-            hasPersistedWasStartedBySchedule: settingsStore.hasPersistedWasStartedBySchedule(),
-            current: sessionState,
-            schedules: schedules,
-            pomodoroStatus: pomodoroStatus,
-            calendarIntegrationEnabled: calendarIntegrationEnabled,
-            isUnblockable: isUnblockable,
-            calendarImportsBlockTime: calendarImportsBlockTime,
-            calendarEvents: calendarProvider.events
-        ) {
-            applySessionState(migration)
-        }
-        self.monitor = AppStateRuntimeWiringCoordinator.resolveMonitor(
+        performLegacyBlockingMigrationIfNeeded()
+        let runtimeBindings = AppStateLifecycleService.startRuntime(
+            appState: self,
             injectedMonitor: monitor,
             isTesting: isTesting
-        ) {
-            BrowserMonitor(appState: self)
-        }
-
-        calendarCancellable = AppStateRuntimeWiringCoordinator.start(
-            calendarProvider: calendarProvider,
-            timerCoordinator: timerCoordinator,
-            onCalendarChange: { [weak self] in self?.checkSchedules() },
-            onScheduleTick: { [weak self] in self?.checkSchedules() }
         )
+        self.monitor = runtimeBindings.monitor
+        calendarCancellable = runtimeBindings.calendarCancellable
         checkSchedules()
     }
 
     deinit {
-        AppStateRuntimeWiringCoordinator.teardown(
+        AppStateLifecycleService.teardown(
             timerCoordinator: timerCoordinator,
-            calendarCancellable: &calendarCancellable
+            calendarCancellable: &calendarCancellable,
+            persistenceCancellables: &persistenceCancellables
         )
-        persistenceCancellables.removeAll()
     }
 
     func toggleBlocking() {
