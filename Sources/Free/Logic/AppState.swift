@@ -294,8 +294,8 @@ class AppState: ObservableObject {
         name: String, days: Set<Int>, date: Date?, start: Date, end: Date, color: Int,
         type: ScheduleType, ruleSet: UUID?, existingId: UUID?, modifyAllDays: Bool, initialDay: Int?
     ) {
-        ScheduleEngine.saveSchedule(
-            in: &schedules,
+        schedules = AppStateScheduleMutationCoordinator.saveSchedule(
+            currentSchedules: schedules,
             name: name,
             days: days,
             date: date,
@@ -318,8 +318,8 @@ class AppState: ObservableObject {
         start: Date,
         end: Date
     ) {
-        ScheduleEngine.updateScheduleOccurrence(
-            in: &schedules,
+        schedules = AppStateScheduleMutationCoordinator.updateScheduleOccurrence(
+            currentSchedules: schedules,
             id: id,
             originalDay: originalDay,
             targetDay: targetDay,
@@ -330,21 +330,20 @@ class AppState: ObservableObject {
     }
 
     func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
-        guard let index = schedules.firstIndex(where: { $0.id == id }) else { return }
-        if schedules[index].importedCalendarEventKey != nil {
-            let deletedSchedule = schedules.remove(at: index)
-            suppressImportedCalendarEventIfNeeded(deletedSchedule)
-            return
-        }
-
-        if let deletedSchedule = ScheduleEngine.deleteSchedule(
-            in: &schedules,
+        let result = AppStateScheduleMutationCoordinator.deleteSchedule(
+            currentSchedules: schedules,
             id: id,
             modifyAllDays: modifyAllDays,
-            initialDay: initialDay
-        ) {
-            suppressImportedCalendarEventIfNeeded(deletedSchedule)
+            initialDay: initialDay,
+            suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys
+        )
+        guard result.didMutateSchedules else { return }
+
+        suppressedImportedCalendarEventKeys = result.suppressedImportedCalendarEventKeys
+        if result.didPersistSuppressedImportedKeys {
+            settingsStore.setSuppressedImportedCalendarEventKeys(suppressedImportedCalendarEventKeys)
         }
+        schedules = result.schedules
     }
 
     func stopPomodoroWithChallenge(phrase: String) -> Bool {
@@ -498,11 +497,10 @@ class AppState: ObservableObject {
     }
 
     private func automaticBlockingState() -> Bool {
-        let result = ScheduleEngine.automaticBlockingState(
+        let result = AppStateBlockingCoordinator.evaluateAutomaticBlocking(
             schedules: schedules,
             manuallyPausedScheduleIds: manuallyPausedScheduleIds,
-            pomodoroIsFocus: pomodoroStatus == .focus,
-            pomodoroIsBreak: pomodoroStatus == .breakTime,
+            pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
             isUnblockable: isUnblockable,
             calendarImportsBlockTime: calendarImportsBlockTime,
@@ -531,15 +529,6 @@ class AppState: ObservableObject {
         isSynchronizingImportedSchedules = true
         schedules = merged
         isSynchronizingImportedSchedules = false
-    }
-
-    private func suppressImportedCalendarEventIfNeeded(_ schedule: Schedule) {
-        if ScheduleCalendarService.suppressImportedCalendarEventIfNeeded(
-            for: schedule,
-            suppressedImportedCalendarEventKeys: &suppressedImportedCalendarEventKeys
-        ) {
-            settingsStore.setSuppressedImportedCalendarEventKeys(suppressedImportedCalendarEventKeys)
-        }
     }
 
     private func setWasStartedBySchedule(_ value: Bool) {
