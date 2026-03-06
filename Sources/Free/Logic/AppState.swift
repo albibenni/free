@@ -400,12 +400,17 @@ class AppState: ObservableObject {
     }
 
     func startPause(minutes: Double) {
-        let updated = PauseEngine.start(from: pauseEngineState, minutes: minutes, isBlocking: isBlocking)
-        guard updated != pauseEngineState else { return }
+        guard
+            let updated = AppStatePauseCoordinator.start(
+                from: pauseEngineState,
+                minutes: minutes,
+                isBlocking: isBlocking
+            )
+        else { return }
         applyPauseEngineState(updated)
         let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
-            let ticked = PauseEngine.tick(from: self.pauseEngineState)
+            let ticked = AppStatePauseCoordinator.tick(from: self.pauseEngineState)
             self.applyPauseEngineState(ticked)
             if !ticked.isPaused {
                 self.cancelPause()
@@ -414,7 +419,7 @@ class AppState: ObservableObject {
         replacePauseTimer(with: timer)
     }
     func cancelPause() {
-        applyPauseEngineState(PauseEngine.cancel(from: pauseEngineState))
+        applyPauseEngineState(AppStatePauseCoordinator.cancel(from: pauseEngineState))
         replacePauseTimer(with: nil)
     }
     func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }
