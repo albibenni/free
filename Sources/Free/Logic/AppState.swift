@@ -353,18 +353,28 @@ class AppState: ObservableObject {
     }
 
     func stopPomodoroWithChallenge(phrase: String) -> Bool {
-        guard phrase == AppState.challengePhrase else { return false }
-        let wasUnblockable = isUnblockable
-        isUnblockable = false
+        let result = AppStateChallengeCoordinator.stopPomodoro(
+            phrase: phrase,
+            challengePhrase: AppState.challengePhrase,
+            currentIsUnblockable: isUnblockable
+        )
+        guard result.didSucceed else { return false }
+
+        isUnblockable = result.temporaryIsUnblockable
         stopPomodoro()
-        isUnblockable = wasUnblockable
+        isUnblockable = result.restoredIsUnblockable
         return true
     }
 
     func disableUnblockableWithChallenge(phrase: String) -> Bool {
-        guard phrase == AppState.challengePhrase else { return false }
-        isUnblockable = false
-        return true
+        let result = AppStateChallengeCoordinator.disableUnblockable(
+            phrase: phrase,
+            challengePhrase: AppState.challengePhrase,
+            currentIsUnblockable: isUnblockable
+        )
+        guard result.didSucceed else { return false }
+        isUnblockable = result.isUnblockable
+        return result.didSucceed
     }
 
     func startPomodoro() {
