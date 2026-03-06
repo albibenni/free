@@ -96,9 +96,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func handleObservedAppStateChange() {
-        let nextSignature = RenderSignature(appState: appState)
-        guard renderSignature != nextSignature else { return }
-        refreshConfiguration()
+        refreshConfiguration(force: false)
     }
 
     private var dayOrder: [Int] {
@@ -121,7 +119,11 @@ final class SchedulesSheetViewController: NSViewController {
         appState.calendarIntegrationEnabled && !appState.calendarImportsBlockTime
     }
 
-    private func refreshConfiguration() {
+    private func refreshConfiguration(force: Bool = true) {
+        if !force {
+            let nextSignature = RenderSignature(appState: appState)
+            guard renderSignature != nextSignature else { return }
+        }
         applyConfiguration()
     }
 

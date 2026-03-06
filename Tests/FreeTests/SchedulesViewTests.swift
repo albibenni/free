@@ -190,6 +190,38 @@ struct SchedulesViewTests {
         #expect(buttons.contains(where: { !$0.isHidden && $0.title == "Done" }) == false)
     }
 
+    @Test("Schedules sheet controller supports switching between calendar and list via segmented control")
+    @MainActor
+    func schedulesViewToggleSwitchesModes() {
+        let appState = isolatedAppState(name: "toggleModes")
+        appState.schedules = [sampleSchedule(name: "A")]
+
+        let hosted = host(
+            SchedulesSheetViewController(
+                appState: appState,
+                onDismiss: {},
+                initialViewMode: 1
+            ),
+            size: CGSize(width: 900, height: 760)
+        )
+        let subviews = allSubviews(in: hosted)
+        guard let segmented = subviews
+            .compactMap({ $0 as? NSSegmentedControl })
+            .first(where: { !$0.isHidden && $0.segmentCount == 2 })
+        else {
+            Issue.record("Expected list/calendar segmented control in toolbar")
+            return
+        }
+
+        segmented.setSelected(true, forSegment: 0)
+        if let action = segmented.action {
+            NSApp.sendAction(action, to: segmented.target, from: segmented)
+        }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+
+        #expect(segmented.selectedSegment == 0)
+    }
+
     @Test("Schedules sheet controller supports a preset editor context")
     @MainActor
     func schedulesViewPresetEditorSheetRender() {
