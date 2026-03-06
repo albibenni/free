@@ -103,7 +103,7 @@ class AppState: ObservableObject {
     }
 
     var todaySchedules: [Schedule] {
-        logicFacade.todaySchedules(from: schedules)
+        logicFacade.todaySchedules(from: scheduleDomainState.schedules)
     }
 
     init(
@@ -130,23 +130,51 @@ class AppState: ObservableObject {
         )
 
         let snapshot = AppStateBootstrapService.snapshot(from: settingsStore)
-        self.isBlocking = snapshot.isBlocking
-        self.isUnblockable = snapshot.isUnblockable
-        self.weekStartsOnMonday = snapshot.weekStartsOnMonday
-        self.accentColorIndex = snapshot.accentColorIndex
-        self.appearanceMode = snapshot.appearanceMode
-        self.calendarIntegrationEnabled = snapshot.calendarIntegrationEnabled
-        self.calendarImportsBlockTime = snapshot.calendarImportsBlockTime
-        self.blockNewTabs = snapshot.blockNewTabs
-        self.blockDeveloperHosts = snapshot.blockDeveloperHosts
-        self.blockLocalNetworkHosts = snapshot.blockLocalNetworkHosts
-        self.pomodoroFocusDuration = snapshot.pomodoroFocusDuration
-        self.pomodoroBreakDuration = snapshot.pomodoroBreakDuration
-        self.ruleSets = snapshot.ruleSets
-        self.schedules = snapshot.schedules
-        self.activeRuleSetId = snapshot.activeRuleSetId
-        self.wasStartedBySchedule = snapshot.wasStartedBySchedule
-        self.suppressedImportedCalendarEventKeys = snapshot.suppressedImportedCalendarEventKeys
+        applySessionDomainState(
+            AppSessionDomainState(
+                isBlocking: snapshot.isBlocking,
+                isUnblockable: snapshot.isUnblockable,
+                isPaused: false,
+                pauseRemaining: 0,
+                wasStartedBySchedule: snapshot.wasStartedBySchedule,
+                manuallyPausedScheduleIds: []
+            )
+        )
+        applySettingsDomainState(
+            AppSettingsDomainState(
+                weekStartsOnMonday: snapshot.weekStartsOnMonday,
+                accentColorIndex: snapshot.accentColorIndex,
+                appearanceMode: snapshot.appearanceMode,
+                blockNewTabs: snapshot.blockNewTabs,
+                blockDeveloperHosts: snapshot.blockDeveloperHosts,
+                blockLocalNetworkHosts: snapshot.blockLocalNetworkHosts
+            )
+        )
+        applyPomodoroDomainState(
+            AppPomodoroDomainState(
+                status: .none,
+                remaining: 0,
+                startedAt: nil,
+                focusDurationMinutes: snapshot.pomodoroFocusDuration,
+                breakDurationMinutes: snapshot.pomodoroBreakDuration,
+                ruleSetId: nil
+            )
+        )
+        applyRulesDomainState(
+            AppRulesDomainState(
+                ruleSets: snapshot.ruleSets,
+                activeRuleSetId: snapshot.activeRuleSetId
+            )
+        )
+        applyScheduleDomainState(
+            AppScheduleDomainState(
+                schedules: snapshot.schedules,
+                calendarIntegrationEnabled: snapshot.calendarIntegrationEnabled,
+                calendarImportsBlockTime: snapshot.calendarImportsBlockTime,
+                isSynchronizingImportedSchedules: false,
+                suppressedImportedCalendarEventKeys: snapshot.suppressedImportedCalendarEventKeys
+            )
+        )
         persistenceCancellables = AppStatePersistenceCoordinator.bind(
             appState: self,
             settingsStore: settingsStore
@@ -192,8 +220,8 @@ class AppState: ObservableObject {
     func toggleBlocking() {
         let updated = logicFacade.toggleSession(
             current: sessionState,
-            isUnblockable: isUnblockable,
-            schedules: schedules
+            isUnblockable: sessionDomainState.isUnblockable,
+            schedules: scheduleDomainState.schedules
         )
         applySessionState(updated)
     }
@@ -202,11 +230,11 @@ class AppState: ObservableObject {
         synchronizeImportedCalendarSchedulesIfNeeded()
         let updated = logicFacade.checkSession(
             current: sessionState,
-            schedules: schedules,
-            pomodoroStatus: pomodoroStatus,
-            calendarIntegrationEnabled: calendarIntegrationEnabled,
-            isUnblockable: isUnblockable,
-            calendarImportsBlockTime: calendarImportsBlockTime,
+            schedules: scheduleDomainState.schedules,
+            pomodoroStatus: pomodoroDomainState.status,
+            calendarIntegrationEnabled: scheduleDomainState.calendarIntegrationEnabled,
+            isUnblockable: sessionDomainState.isUnblockable,
+            calendarImportsBlockTime: scheduleDomainState.calendarImportsBlockTime,
             calendarEvents: calendarProvider.events
         )
         applySessionState(updated)
@@ -404,16 +432,16 @@ class AppState: ObservableObject {
     func startPause(minutes: Double) {
         guard
             let transition = logicFacade.startPause(
-                state: pauseEngineState,
+                state: sessionDomainState.pauseEngineState,
                 minutes: minutes,
-                isBlocking: isBlocking
+                isBlocking: sessionDomainState.isBlocking
             )
         else { return }
         applyPauseEngineState(transition.state)
         if transition.shouldStartTimer {
             let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
                 guard let self = self else { return }
-                let result = self.logicFacade.pauseTick(state: self.pauseEngineState)
+                let result = self.logicFacade.pauseTick(state: self.sessionDomainState.pauseEngineState)
                 self.applyPauseEngineState(result.state)
                 if result.shouldCancelPause {
                     self.cancelPause()
@@ -423,7 +451,7 @@ class AppState: ObservableObject {
         }
     }
     func cancelPause() {
-        let transition = logicFacade.cancelPause(state: pauseEngineState)
+        let transition = logicFacade.cancelPause(state: sessionDomainState.pauseEngineState)
         applyPauseEngineState(transition.state)
         if transition.shouldStopTimer {
             timerCoordinator.replacePauseTimer(with: nil)
@@ -436,20 +464,23 @@ class AppState: ObservableObject {
     ) {
         guard
             let rebuilt = logicFacade.rebuildForResync(
-                calendarIntegrationEnabled: calendarIntegrationEnabled,
-                currentSchedules: schedules,
+                calendarIntegrationEnabled: scheduleDomainState.calendarIntegrationEnabled,
+                currentSchedules: scheduleDomainState.schedules,
                 events: calendarProvider.events,
-                calendarImportsBlockTime: calendarImportsBlockTime,
-                suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
-                activeRuleSetId: activeRuleSetId,
-                ruleSets: ruleSets,
+                calendarImportsBlockTime: scheduleDomainState.calendarImportsBlockTime,
+                suppressedImportedCalendarEventKeys: scheduleDomainState
+                    .suppressedImportedCalendarEventKeys,
+                activeRuleSetId: rulesDomainState.activeRuleSetId,
+                ruleSets: rulesDomainState.ruleSets,
                 preservedImportedByKey: preservedImportedByKey
             )
         else { return }
 
-        isSynchronizingImportedSchedules = true
-        schedules = rebuilt
-        isSynchronizingImportedSchedules = false
+        var state = scheduleDomainState
+        state.isSynchronizingImportedSchedules = true
+        state.schedules = rebuilt
+        state.isSynchronizingImportedSchedules = false
+        applyScheduleDomainState(state)
     }
 
     func prepareLaunchAtLoginPromptIfNeeded() -> Bool {
@@ -498,21 +529,24 @@ class AppState: ObservableObject {
     ) {
         guard
             let merged = logicFacade.rebuildForScheduleCheck(
-                isSynchronizingImportedSchedules: isSynchronizingImportedSchedules,
-                currentSchedules: schedules,
+                isSynchronizingImportedSchedules: scheduleDomainState.isSynchronizingImportedSchedules,
+                currentSchedules: scheduleDomainState.schedules,
                 events: calendarProvider.events,
-                calendarIntegrationEnabled: calendarIntegrationEnabled,
-                calendarImportsBlockTime: calendarImportsBlockTime,
-                suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
-                activeRuleSetId: activeRuleSetId,
-                ruleSets: ruleSets,
+                calendarIntegrationEnabled: scheduleDomainState.calendarIntegrationEnabled,
+                calendarImportsBlockTime: scheduleDomainState.calendarImportsBlockTime,
+                suppressedImportedCalendarEventKeys: scheduleDomainState
+                    .suppressedImportedCalendarEventKeys,
+                activeRuleSetId: rulesDomainState.activeRuleSetId,
+                ruleSets: rulesDomainState.ruleSets,
                 preservedImportedByKey: preservedImportedByKey
             )
         else { return }
 
-        isSynchronizingImportedSchedules = true
-        schedules = merged
-        isSynchronizingImportedSchedules = false
+        var state = scheduleDomainState
+        state.isSynchronizingImportedSchedules = true
+        state.schedules = merged
+        state.isSynchronizingImportedSchedules = false
+        applyScheduleDomainState(state)
     }
 
     private func setWasStartedBySchedule(_ value: Bool) {
@@ -522,9 +556,9 @@ class AppState: ObservableObject {
 
     private var sessionState: AppStateLogicFacade.SessionState {
         logicFacade.makeSessionState(
-            isBlocking: isBlocking,
-            wasStartedBySchedule: wasStartedBySchedule,
-            manuallyPausedScheduleIds: manuallyPausedScheduleIds
+            isBlocking: sessionDomainState.isBlocking,
+            wasStartedBySchedule: sessionDomainState.wasStartedBySchedule,
+            manuallyPausedScheduleIds: sessionDomainState.manuallyPausedScheduleIds
         )
     }
 
@@ -538,41 +572,145 @@ class AppState: ObservableObject {
         }
     }
 
-    private var pauseEngineState: PauseEngine.State {
-        PauseEngine.State(isPaused: isPaused, remaining: pauseRemaining)
-    }
-
     private func applyPauseEngineState(_ state: PauseEngine.State) {
-        isPaused = state.isPaused
-        pauseRemaining = state.remaining
+        var domainState = sessionDomainState
+        domainState.isPaused = state.isPaused
+        domainState.pauseRemaining = state.remaining
+        applySessionDomainState(domainState)
     }
 
     private var pomodoroEngineState: PomodoroEngine.State {
-        PomodoroEngine.State(
-            status: pomodoroStatus,
-            remaining: pomodoroRemaining,
-            startedAt: pomodoroStartedAt,
-            ruleSetId: pomodoroRuleSetId
-        )
+        pomodoroDomainState.pomodoroEngineState
     }
 
     private var ruleContext: AppStateLogicFacade.RuleContext {
         logicFacade.makeRuleContext(
-            ruleSets: ruleSets,
-            schedules: schedules,
-            activeRuleSetId: activeRuleSetId,
-            pomodoroRuleSetId: pomodoroRuleSetId,
-            isPomodoroFocus: pomodoroStatus == .focus,
-            isBlocking: isBlocking,
-            wasStartedBySchedule: wasStartedBySchedule
+            ruleSets: rulesDomainState.ruleSets,
+            schedules: scheduleDomainState.schedules,
+            activeRuleSetId: rulesDomainState.activeRuleSetId,
+            pomodoroRuleSetId: pomodoroDomainState.ruleSetId,
+            isPomodoroFocus: pomodoroDomainState.status == .focus,
+            isBlocking: sessionDomainState.isBlocking,
+            wasStartedBySchedule: sessionDomainState.wasStartedBySchedule
         )
     }
 
     private func applyPomodoroEngineState(_ state: PomodoroEngine.State) {
-        pomodoroStatus = state.status
-        pomodoroRemaining = state.remaining
-        pomodoroStartedAt = state.startedAt
-        pomodoroRuleSetId = state.ruleSetId
+        var domainState = pomodoroDomainState
+        domainState.status = state.status
+        domainState.remaining = state.remaining
+        domainState.startedAt = state.startedAt
+        domainState.ruleSetId = state.ruleSetId
+        applyPomodoroDomainState(domainState)
+    }
+
+    private var sessionDomainState: AppSessionDomainState {
+        AppSessionDomainState(
+            isBlocking: isBlocking,
+            isUnblockable: isUnblockable,
+            isPaused: isPaused,
+            pauseRemaining: pauseRemaining,
+            wasStartedBySchedule: wasStartedBySchedule,
+            manuallyPausedScheduleIds: manuallyPausedScheduleIds
+        )
+    }
+
+    private func applySessionDomainState(_ state: AppSessionDomainState) {
+        if isBlocking != state.isBlocking { isBlocking = state.isBlocking }
+        if isUnblockable != state.isUnblockable { isUnblockable = state.isUnblockable }
+        if isPaused != state.isPaused { isPaused = state.isPaused }
+        if pauseRemaining != state.pauseRemaining { pauseRemaining = state.pauseRemaining }
+        if wasStartedBySchedule != state.wasStartedBySchedule {
+            wasStartedBySchedule = state.wasStartedBySchedule
+        }
+        if manuallyPausedScheduleIds != state.manuallyPausedScheduleIds {
+            manuallyPausedScheduleIds = state.manuallyPausedScheduleIds
+        }
+    }
+
+    private var settingsDomainState: AppSettingsDomainState {
+        AppSettingsDomainState(
+            weekStartsOnMonday: weekStartsOnMonday,
+            accentColorIndex: accentColorIndex,
+            appearanceMode: appearanceMode,
+            blockNewTabs: blockNewTabs,
+            blockDeveloperHosts: blockDeveloperHosts,
+            blockLocalNetworkHosts: blockLocalNetworkHosts
+        )
+    }
+
+    private func applySettingsDomainState(_ state: AppSettingsDomainState) {
+        if weekStartsOnMonday != state.weekStartsOnMonday {
+            weekStartsOnMonday = state.weekStartsOnMonday
+        }
+        if accentColorIndex != state.accentColorIndex { accentColorIndex = state.accentColorIndex }
+        if appearanceMode != state.appearanceMode { appearanceMode = state.appearanceMode }
+        if blockNewTabs != state.blockNewTabs { blockNewTabs = state.blockNewTabs }
+        if blockDeveloperHosts != state.blockDeveloperHosts {
+            blockDeveloperHosts = state.blockDeveloperHosts
+        }
+        if blockLocalNetworkHosts != state.blockLocalNetworkHosts {
+            blockLocalNetworkHosts = state.blockLocalNetworkHosts
+        }
+    }
+
+    private var rulesDomainState: AppRulesDomainState {
+        AppRulesDomainState(ruleSets: ruleSets, activeRuleSetId: activeRuleSetId)
+    }
+
+    private func applyRulesDomainState(_ state: AppRulesDomainState) {
+        if ruleSets != state.ruleSets { ruleSets = state.ruleSets }
+        if activeRuleSetId != state.activeRuleSetId { activeRuleSetId = state.activeRuleSetId }
+    }
+
+    private var scheduleDomainState: AppScheduleDomainState {
+        AppScheduleDomainState(
+            schedules: schedules,
+            calendarIntegrationEnabled: calendarIntegrationEnabled,
+            calendarImportsBlockTime: calendarImportsBlockTime,
+            isSynchronizingImportedSchedules: isSynchronizingImportedSchedules,
+            suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys
+        )
+    }
+
+    private func applyScheduleDomainState(_ state: AppScheduleDomainState) {
+        if schedules != state.schedules { schedules = state.schedules }
+        if calendarIntegrationEnabled != state.calendarIntegrationEnabled {
+            calendarIntegrationEnabled = state.calendarIntegrationEnabled
+        }
+        if calendarImportsBlockTime != state.calendarImportsBlockTime {
+            calendarImportsBlockTime = state.calendarImportsBlockTime
+        }
+        if isSynchronizingImportedSchedules != state.isSynchronizingImportedSchedules {
+            isSynchronizingImportedSchedules = state.isSynchronizingImportedSchedules
+        }
+        if suppressedImportedCalendarEventKeys != state.suppressedImportedCalendarEventKeys {
+            suppressedImportedCalendarEventKeys = state.suppressedImportedCalendarEventKeys
+        }
+    }
+
+    private var pomodoroDomainState: AppPomodoroDomainState {
+        AppPomodoroDomainState(
+            status: pomodoroStatus,
+            remaining: pomodoroRemaining,
+            startedAt: pomodoroStartedAt,
+            focusDurationMinutes: pomodoroFocusDuration,
+            breakDurationMinutes: pomodoroBreakDuration,
+            ruleSetId: pomodoroRuleSetId
+        )
+    }
+
+    private func applyPomodoroDomainState(_ state: AppPomodoroDomainState) {
+        if pomodoroStatus != state.status { pomodoroStatus = state.status }
+        if pomodoroRemaining != state.remaining { pomodoroRemaining = state.remaining }
+        if pomodoroStartedAt != state.startedAt { pomodoroStartedAt = state.startedAt }
+        if pomodoroFocusDuration != state.focusDurationMinutes {
+            pomodoroFocusDuration = state.focusDurationMinutes
+        }
+        if pomodoroBreakDuration != state.breakDurationMinutes {
+            pomodoroBreakDuration = state.breakDurationMinutes
+        }
+        if pomodoroRuleSetId != state.ruleSetId { pomodoroRuleSetId = state.ruleSetId }
     }
 
 }
