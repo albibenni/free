@@ -259,18 +259,17 @@ final class FocusSectionViewController: NSViewController {
         {
             let nextSignature = FocusPomodoroWidgetSignature(appState: appState)
             widgetContainer.isHidden = false
-
-            if let currentSignature = pomodoroWidgetSignature,
-               currentSignature.contentSignature == nextSignature.contentSignature,
-               currentSignature.activeRuleSetId != nextSignature.activeRuleSetId
-                    || currentSignature.currentPrimaryRuleSetId != nextSignature.currentPrimaryRuleSetId
-            {
-                pomodoroWidgetSignature = nextSignature
+            let action = FocusSectionWidgetCoordinator.pomodoroReuseAction(
+                current: pomodoroWidgetSignature,
+                next: nextSignature
+            )
+            pomodoroWidgetSignature = nextSignature
+            switch action {
+            case .updateSelection:
                 pomodoroWidgetView.updateRuleSetSelection()
-            } else if pomodoroWidgetSignature != nextSignature {
-                pomodoroWidgetSignature = nextSignature
+            case .refresh:
                 pomodoroWidgetView.refreshForStateChange()
-            } else {
+            case .keepLayout:
                 pomodoroWidgetView.needsLayout = true
             }
             return
@@ -306,29 +305,23 @@ final class FocusSectionViewController: NSViewController {
         widgetView = nil
         widgetContainer.isHidden = section == .all
 
-        let nextWidgetView: NSView
-        switch section {
-        case .pomodoro:
-            pomodoroWidgetSignature = FocusPomodoroWidgetSignature(appState: appState)
-            nextWidgetView = FocusPomodoroWidgetView(
-                appState: appState,
-                onDialInteractionDidBegin: { [weak self] in
-                    self?.beginPomodoroWidgetInteraction()
-                },
-                onDialInteractionDidEnd: { [weak self] in
-                    self?.endPomodoroWidgetInteraction()
-                }
-            )
-        case .schedules:
-            schedulesWidgetSignature = FocusSchedulesWidgetSignature(appState: appState)
-            nextWidgetView = FocusSchedulesWidgetView(appState: appState, shellState: shellState)
-        case .allowedWebsites:
-            allowedWebsitesWidgetSignature = FocusAllowedWebsitesWidgetSignature(appState: appState)
-            nextWidgetView = FocusAllowedWebsitesWidgetView(appState: appState, shellState: shellState)
-        case .all:
-            pomodoroWidgetSignature = nil
-            schedulesWidgetSignature = nil
-            allowedWebsitesWidgetSignature = nil
+        let buildResult = FocusSectionWidgetFactory.build(
+            section: section,
+            appState: appState,
+            shellState: shellState,
+            onPomodoroInteractionDidBegin: { [weak self] in
+                self?.beginPomodoroWidgetInteraction()
+            },
+            onPomodoroInteractionDidEnd: { [weak self] in
+                self?.endPomodoroWidgetInteraction()
+            }
+        )
+
+        pomodoroWidgetSignature = buildResult.pomodoroSignature
+        schedulesWidgetSignature = buildResult.schedulesSignature
+        allowedWebsitesWidgetSignature = buildResult.allowedWebsitesSignature
+
+        guard let nextWidgetView = buildResult.widgetView else {
             return
         }
 
