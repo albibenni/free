@@ -135,9 +135,9 @@ extension AllowedWebsitesFloatingEditorViewController {
             ruleSetButtons[set.id] = button
         }
 
-        let rowCount = max(appState.ruleSets.count, 1)
-        let desiredHeight = CGFloat(rowCount) * 38
-        ruleSetListHeightConstraint?.constant = min(max(desiredHeight, 38), 150)
+        ruleSetListHeightConstraint?.constant = AllowedWebsitesPresentationCoordinator.ruleSetListHeight(
+            ruleSetCount: appState.ruleSets.count
+        )
     }
 
     func reloadRulesOnly() {
@@ -146,9 +146,10 @@ extension AllowedWebsitesFloatingEditorViewController {
             visibleRules: visibleRules
         ))
 
-        visibleRules =
-            appState.ruleSets.first(where: { $0.id == selectedRuleSetId })?.urls
-            ?? []
+        visibleRules = AllowedWebsitesPresentationCoordinator.visibleRules(
+            selectedRuleSetId: selectedRuleSetId,
+            ruleSets: appState.ruleSets
+        )
         rulesTableView.reloadData()
 
         if !previouslySelectedRules.isEmpty {
@@ -167,19 +168,21 @@ extension AllowedWebsitesFloatingEditorViewController {
     }
 
     func updateControlStates() {
-        let canEdit = resolvedRuleSetId(selectedRuleSetId) != nil && !appState.isStrictActive
-        let canRemove = canEdit && AllowedWebsitesSelectionCoordinator.canRemoveSelection(
+        let state = AllowedWebsitesPresentationCoordinator.controlState(
+            selectedRuleSetId: resolvedRuleSetId(selectedRuleSetId),
+            isStrictActive: appState.isStrictActive,
             selectedIndexes: rulesTableView.selectedRowIndexes,
-            visibleRulesCount: visibleRules.count
+            visibleRulesCount: visibleRules.count,
+            ruleSetCount: appState.ruleSets.count
         )
-        urlField.isEnabled = canEdit
-        addButton.isEnabled = canEdit
-        importOpenTabsButton.isEnabled = canEdit
-        removeButton.isEnabled = canRemove
-        createListButton.isEnabled = !appState.isStrictActive
-        deleteListButton.isEnabled = !appState.isStrictActive && appState.ruleSets.count > 1
+        urlField.isEnabled = state.canEdit
+        addButton.isEnabled = state.canEdit
+        importOpenTabsButton.isEnabled = state.canEdit
+        removeButton.isEnabled = state.canRemove
+        createListButton.isEnabled = state.canCreateList
+        deleteListButton.isEnabled = state.canDeleteList
         for button in ruleSetButtons.values {
-            button.isEnabled = !appState.isStrictActive
+            button.isEnabled = state.canCreateList
         }
     }
 
