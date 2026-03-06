@@ -67,12 +67,12 @@ final class SettingsSectionViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        appState.objectWillChange
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.reloadSettings()
-            }
-            .store(in: &cancellables)
+        AppKitAppStateObservation.bind(
+            appState: appState,
+            cancellables: &cancellables
+        ) { [weak self] in
+            self?.reloadSettings()
+        }
 
         reloadSettings()
     }
