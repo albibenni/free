@@ -1,21 +1,30 @@
 import Foundation
 
 extension AppState {
-    func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
-        let result = logicFacade.deleteSchedule(
-            currentSchedules: schedules,
-            id: id,
-            modifyAllDays: modifyAllDays,
-            initialDay: initialDay,
+    private var schedulesMutationContext: AppStateSchedulesMutationService.Context {
+        AppStateSchedulesMutationService.Context(
+            schedules: schedules,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys
         )
-        guard result.didMutateSchedules else { return }
+    }
 
-        suppressedImportedCalendarEventKeys = result.suppressedImportedCalendarEventKeys
-        if result.didPersistSuppressedImportedKeys {
+    private func applySchedulesMutationUpdate(_ update: AppStateSchedulesMutationService.Update) {
+        suppressedImportedCalendarEventKeys = update.suppressedImportedCalendarEventKeys
+        if update.shouldPersistSuppressedKeys {
             settingsStore.setSuppressedImportedCalendarEventKeys(suppressedImportedCalendarEventKeys)
         }
-        schedules = result.schedules
+        schedules = update.schedules
+    }
+
+    func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
+        guard let update = AppStateSchedulesMutationService.deleteSchedule(
+            logicFacade: logicFacade,
+            context: schedulesMutationContext,
+            id: id,
+            modifyAllDays: modifyAllDays,
+            initialDay: initialDay
+        ) else { return }
+        applySchedulesMutationUpdate(update)
     }
 
     func saveSchedule(
@@ -31,8 +40,10 @@ extension AppState {
         modifyAllDays: Bool,
         initialDay: Int?
     ) {
-        schedules = logicFacade.saveSchedule(
-            currentSchedules: schedules,
+        applySchedulesMutationUpdate(
+            AppStateSchedulesMutationService.saveSchedule(
+                logicFacade: logicFacade,
+                context: schedulesMutationContext,
             name: name,
             days: days,
             date: date,
@@ -44,6 +55,7 @@ extension AppState {
             existingId: existingId,
             modifyAllDays: modifyAllDays,
             initialDay: initialDay
+            )
         )
     }
 
@@ -55,14 +67,17 @@ extension AppState {
         start: Date,
         end: Date
     ) {
-        schedules = logicFacade.updateScheduleOccurrence(
-            currentSchedules: schedules,
-            id: id,
-            originalDay: originalDay,
-            targetDay: targetDay,
-            targetDate: targetDate,
-            start: start,
-            end: end
+        applySchedulesMutationUpdate(
+            AppStateSchedulesMutationService.updateScheduleOccurrence(
+                logicFacade: logicFacade,
+                context: schedulesMutationContext,
+                id: id,
+                originalDay: originalDay,
+                targetDay: targetDay,
+                targetDate: targetDate,
+                start: start,
+                end: end
+            )
         )
     }
 }

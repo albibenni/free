@@ -1,66 +1,88 @@
 import Foundation
 
 extension AppState {
+    private var rulesMutationContext: AppStateRulesMutationService.Context {
+        AppStateRulesMutationService.Context(
+            ruleSets: ruleSets,
+            activeRuleSetId: activeRuleSetId,
+            isStrictActive: isStrictActive
+        )
+    }
+
+    private func applyRulesMutationUpdate(_ update: AppStateRulesMutationService.Update) {
+        if ruleSets != update.ruleSets {
+            ruleSets = update.ruleSets
+        }
+        if activeRuleSetId != update.activeRuleSetId {
+            activeRuleSetId = update.activeRuleSetId
+        }
+    }
+
     func addRule(_ rule: String, to setId: UUID) {
-        ruleSets = logicFacade.mutateRule(
-            rule,
-            setId: setId,
-            currentRuleSets: ruleSets,
-            isStrictActive: isStrictActive,
-            mutation: .add
+        applyRulesMutationUpdate(
+            AppStateRulesMutationService.mutateRule(
+                logicFacade: logicFacade,
+                context: rulesMutationContext,
+                rule: rule,
+                setId: setId,
+                mutation: .add
+            )
         )
     }
 
     func addSpecificRule(_ rule: String, to setId: UUID) {
-        ruleSets = logicFacade.mutateRule(
-            rule,
-            setId: setId,
-            currentRuleSets: ruleSets,
-            isStrictActive: isStrictActive,
-            mutation: .addSpecific
+        applyRulesMutationUpdate(
+            AppStateRulesMutationService.mutateRule(
+                logicFacade: logicFacade,
+                context: rulesMutationContext,
+                rule: rule,
+                setId: setId,
+                mutation: .addSpecific
+            )
         )
     }
 
     func removeRule(_ rule: String, from setId: UUID) {
-        ruleSets = logicFacade.mutateRule(
-            rule,
-            setId: setId,
-            currentRuleSets: ruleSets,
-            isStrictActive: isStrictActive,
-            mutation: .remove
+        applyRulesMutationUpdate(
+            AppStateRulesMutationService.mutateRule(
+                logicFacade: logicFacade,
+                context: rulesMutationContext,
+                rule: rule,
+                setId: setId,
+                mutation: .remove
+            )
         )
     }
 
     func deleteSet(id: UUID) {
-        let result = logicFacade.deleteRuleSet(
-            id: id,
-            currentRuleSets: ruleSets,
-            currentActiveRuleSetId: activeRuleSetId,
-            isStrictActive: isStrictActive
+        applyRulesMutationUpdate(
+            AppStateRulesMutationService.deleteSet(
+                logicFacade: logicFacade,
+                context: rulesMutationContext,
+                id: id
+            )
         )
-        ruleSets = result.ruleSets
-        activeRuleSetId = result.activeRuleSetId
     }
 
     @discardableResult
     func createRuleSet(name: String, makeActive: Bool = false) -> RuleSet {
-        let result = logicFacade.createRuleSet(
+        let result = AppStateRulesMutationService.createRuleSet(
+            logicFacade: logicFacade,
+            context: rulesMutationContext,
             name: name,
-            makeActive: makeActive,
-            currentRuleSets: ruleSets,
-            currentActiveRuleSetId: activeRuleSetId
+            makeActive: makeActive
         )
-        ruleSets = result.ruleSets
-        activeRuleSetId = result.activeRuleSetId
+        applyRulesMutationUpdate(result.update)
         return result.created
     }
 
     func selectActiveRuleSet(_ id: UUID) {
-        activeRuleSetId = logicFacade.selectActiveRuleSet(
-            id,
-            currentRuleSets: ruleSets,
-            currentActiveRuleSetId: activeRuleSetId,
-            isStrictActive: isStrictActive
+        applyRulesMutationUpdate(
+            AppStateRulesMutationService.selectActiveRuleSet(
+                logicFacade: logicFacade,
+                context: rulesMutationContext,
+                id: id
+            )
         )
     }
 }
