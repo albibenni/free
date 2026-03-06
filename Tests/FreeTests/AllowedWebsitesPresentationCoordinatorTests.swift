@@ -25,6 +25,18 @@ struct AllowedWebsitesPresentationCoordinatorTests {
         #expect(AllowedWebsitesPresentationCoordinator.ruleSetListHeight(ruleSetCount: 0) == 38)
         #expect(AllowedWebsitesPresentationCoordinator.ruleSetListHeight(ruleSetCount: 2) == 76)
         #expect(AllowedWebsitesPresentationCoordinator.ruleSetListHeight(ruleSetCount: 99) == 150)
+
+        let rows = AllowedWebsitesPresentationCoordinator.ruleSetRows(
+            selectedRuleSetId: b.id,
+            ruleSets: [a, b]
+        )
+        #expect(rows.count == 2)
+        #expect(rows[0].id == a.id)
+        #expect(rows[0].title == "A")
+        #expect(rows[0].isSelected == false)
+        #expect(rows[1].id == b.id)
+        #expect(rows[1].title == "B")
+        #expect(rows[1].isSelected == true)
     }
 
     @Test("Presentation coordinator computes control state flags")

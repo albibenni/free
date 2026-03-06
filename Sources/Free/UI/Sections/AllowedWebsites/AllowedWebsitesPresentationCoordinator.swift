@@ -1,6 +1,12 @@
 import Foundation
 
 enum AllowedWebsitesPresentationCoordinator {
+    struct RuleSetRow: Equatable {
+        let id: UUID
+        let title: String
+        let isSelected: Bool
+    }
+
     struct ControlState: Equatable {
         let canEdit: Bool
         let canRemove: Bool
@@ -13,6 +19,19 @@ enum AllowedWebsitesPresentationCoordinator {
         ruleSets: [RuleSet]
     ) -> [String] {
         ruleSets.first(where: { $0.id == selectedRuleSetId })?.urls ?? []
+    }
+
+    static func ruleSetRows(
+        selectedRuleSetId: UUID?,
+        ruleSets: [RuleSet]
+    ) -> [RuleSetRow] {
+        ruleSets.map { set in
+            RuleSetRow(
+                id: set.id,
+                title: set.name,
+                isSelected: selectedRuleSetId == set.id
+            )
+        }
     }
 
     static func ruleSetListHeight(

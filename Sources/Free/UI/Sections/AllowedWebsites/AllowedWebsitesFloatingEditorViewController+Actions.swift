@@ -93,30 +93,22 @@ extension AllowedWebsitesFloatingEditorViewController {
     }
 
     func reloadRuleSetRows() {
-        let stack = ruleSetScrollView.stackView
-        for subview in stack.arrangedSubviews {
-            stack.removeArrangedSubview(subview)
-            subview.removeFromSuperview()
-        }
-        ruleSetButtons.removeAll()
-
+        let rows = AllowedWebsitesPresentationCoordinator.ruleSetRows(
+            selectedRuleSetId: selectedRuleSetId,
+            ruleSets: appState.ruleSets
+        )
         let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
-        for set in appState.ruleSets {
-            let button = makeAppKitSelectableRowButton(
-                title: set.name,
-                isSelected: selectedRuleSetId == set.id,
-                accentColor: accentColor
-            ) { [weak self] in
-                guard let self else { return }
-                guard !self.appState.isStrictActive else { return }
-                self.selectedRuleSetId = set.id
-                self.reloadRuleSetRows()
-                self.reloadRulesOnly()
-            }
-            button.isEnabled = !appState.isStrictActive
-            stack.addArrangedSubview(button)
-            button.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-            ruleSetButtons[set.id] = button
+        ruleSetButtons = AllowedWebsitesRuleSetListBuilder.rebuild(
+            in: ruleSetScrollView.stackView,
+            rows: rows,
+            accentColor: accentColor,
+            isRowSelectionEnabled: !appState.isStrictActive
+        ) { [weak self] selectedId in
+            guard let self else { return }
+            guard !self.appState.isStrictActive else { return }
+            self.selectedRuleSetId = selectedId
+            self.reloadRuleSetRows()
+            self.reloadRulesOnly()
         }
 
         ruleSetListHeightConstraint?.constant = AllowedWebsitesPresentationCoordinator.ruleSetListHeight(
