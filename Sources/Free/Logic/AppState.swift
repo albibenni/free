@@ -15,7 +15,7 @@ class AppState: ObservableObject {
 
     @Published var isBlocking = false {
         didSet {
-            handleIsBlockingDidChange()
+            AppStatePropertyEffectsService.handleIsBlockingDidChange(appState: self)
         }
     }
     @Published var isUnblockable = false
@@ -25,12 +25,12 @@ class AppState: ObservableObject {
     @Published var appearanceMode: AppearanceMode = .system
     @Published var calendarIntegrationEnabled = false {
         didSet {
-            handleCalendarIntegrationEnabledDidChange()
+            AppStatePropertyEffectsService.handleCalendarIntegrationEnabledDidChange(appState: self)
         }
     }
     @Published var calendarImportsBlockTime = false {
         didSet {
-            handleCalendarImportsBlockTimeDidChange()
+            AppStatePropertyEffectsService.handleCalendarImportsBlockTimeDidChange(appState: self)
         }
     }
     @Published var blockNewTabs = false
@@ -40,18 +40,18 @@ class AppState: ObservableObject {
     @Published var activeRuleSetId: UUID? = nil
     @Published var schedules: [Schedule] = [] {
         didSet {
-            handleSchedulesDidChange()
+            AppStatePropertyEffectsService.handleSchedulesDidChange(appState: self)
         }
     }
 
     @Published var pomodoroFocusDuration: Double = 25 {
         didSet {
-            handlePomodoroFocusDurationDidChange()
+            AppStatePropertyEffectsService.handlePomodoroFocusDurationDidChange(appState: self)
         }
     }
     @Published var pomodoroBreakDuration: Double = 5 {
         didSet {
-            handlePomodoroBreakDurationDidChange()
+            AppStatePropertyEffectsService.handlePomodoroBreakDurationDidChange(appState: self)
         }
     }
 
@@ -103,14 +103,17 @@ class AppState: ObservableObject {
         self.launchAtLoginService = dependencies.launchAtLoginService
 
         let snapshot = AppStateBootstrapService.snapshot(from: settingsStore)
-        applyBootstrapSnapshot(snapshot)
+        AppStateLifecycleService.applyBootstrapSnapshot(
+            appState: self,
+            snapshot: snapshot
+        )
         persistenceCancellables = AppStateLifecycleService.bindPersistence(
             appState: self,
             settingsStore: settingsStore
         )
 
         // Migration for older builds that persisted IsBlocking but not its source.
-        performLegacyBlockingMigrationIfNeeded()
+        AppStateLifecycleService.performLegacyBlockingMigrationIfNeeded(appState: self)
         let runtimeBindings = AppStateLifecycleService.startRuntime(
             appState: self,
             injectedMonitor: monitor,
