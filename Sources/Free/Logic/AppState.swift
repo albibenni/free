@@ -236,17 +236,23 @@ class AppState: ObservableObject {
 
     func checkSchedules() {
         synchronizeImportedCalendarSchedulesIfNeeded()
-        let shouldBeBlocking = automaticBlockingState()
-        let transition = BlockingSessionService.scheduleTransition(
-            isBlocking: isBlocking,
-            wasStartedBySchedule: wasStartedBySchedule,
-            shouldBeBlocking: shouldBeBlocking
+        let result = AppStateScheduleCheckCoordinator.evaluate(
+            currentIsBlocking: isBlocking,
+            currentWasStartedBySchedule: wasStartedBySchedule,
+            schedules: schedules,
+            manuallyPausedScheduleIds: manuallyPausedScheduleIds,
+            pomodoroStatus: pomodoroStatus,
+            calendarIntegrationEnabled: calendarIntegrationEnabled,
+            isUnblockable: isUnblockable,
+            calendarImportsBlockTime: calendarImportsBlockTime,
+            calendarEvents: calendarProvider.events
         )
-        if transition.isBlocking != isBlocking {
-            isBlocking = transition.isBlocking
+        manuallyPausedScheduleIds = result.normalizedManuallyPausedScheduleIds
+        if result.isBlocking != isBlocking {
+            isBlocking = result.isBlocking
         }
-        if transition.wasStartedBySchedule != wasStartedBySchedule {
-            setWasStartedBySchedule(transition.wasStartedBySchedule)
+        if result.wasStartedBySchedule != wasStartedBySchedule {
+            setWasStartedBySchedule(result.wasStartedBySchedule)
         }
     }
 
