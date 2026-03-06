@@ -2,6 +2,23 @@ import Combine
 import Foundation
 
 enum AppStatePersistenceCoordinator {
+    struct Bindings {
+        let isBlocking: AnyPublisher<Bool, Never>
+        let isUnblockable: AnyPublisher<Bool, Never>
+        let weekStartsOnMonday: AnyPublisher<Bool, Never>
+        let accentColorIndex: AnyPublisher<Int, Never>
+        let appearanceMode: AnyPublisher<AppearanceMode, Never>
+        let calendarIntegrationEnabled: AnyPublisher<Bool, Never>
+        let calendarImportsBlockTime: AnyPublisher<Bool, Never>
+        let blockNewTabs: AnyPublisher<Bool, Never>
+        let blockDeveloperHosts: AnyPublisher<Bool, Never>
+        let blockLocalNetworkHosts: AnyPublisher<Bool, Never>
+        let ruleSets: AnyPublisher<[RuleSet], Never>
+        let activeRuleSetId: AnyPublisher<UUID?, Never>
+        let pomodoroFocusDuration: AnyPublisher<Double, Never>
+        let pomodoroBreakDuration: AnyPublisher<Double, Never>
+    }
+
     static func persistSchedulesSynchronously(
         _ schedules: [Schedule],
         settingsStore: SettingsStore
@@ -10,77 +27,77 @@ enum AppStatePersistenceCoordinator {
     }
 
     static func bind(
-        appState: AppState,
+        bindings: Bindings,
         settingsStore: SettingsStore
     ) -> Set<AnyCancellable> {
         var cancellables = Set<AnyCancellable>()
 
-        appState.$isBlocking
+        bindings.isBlocking
             .dropFirst()
             .sink { settingsStore.setIsBlocking($0) }
             .store(in: &cancellables)
 
-        appState.$isUnblockable
+        bindings.isUnblockable
             .dropFirst()
             .sink { settingsStore.setIsUnblockable($0) }
             .store(in: &cancellables)
 
-        appState.$weekStartsOnMonday
+        bindings.weekStartsOnMonday
             .dropFirst()
             .sink { settingsStore.setWeekStartsOnMonday($0) }
             .store(in: &cancellables)
 
-        appState.$accentColorIndex
+        bindings.accentColorIndex
             .dropFirst()
             .sink { settingsStore.setAccentColorIndex($0) }
             .store(in: &cancellables)
 
-        appState.$appearanceMode
+        bindings.appearanceMode
             .dropFirst()
             .sink { settingsStore.setAppearanceModeRawValue($0.rawValue) }
             .store(in: &cancellables)
 
-        appState.$calendarIntegrationEnabled
+        bindings.calendarIntegrationEnabled
             .dropFirst()
             .sink { settingsStore.setCalendarIntegrationEnabled($0) }
             .store(in: &cancellables)
 
-        appState.$calendarImportsBlockTime
+        bindings.calendarImportsBlockTime
             .dropFirst()
             .sink { settingsStore.setCalendarImportsBlockTime($0) }
             .store(in: &cancellables)
 
-        appState.$blockNewTabs
+        bindings.blockNewTabs
             .dropFirst()
             .sink { settingsStore.setBlockNewTabs($0) }
             .store(in: &cancellables)
 
-        appState.$blockDeveloperHosts
+        bindings.blockDeveloperHosts
             .dropFirst()
             .sink { settingsStore.setBlockDeveloperHosts($0) }
             .store(in: &cancellables)
 
-        appState.$blockLocalNetworkHosts
+        bindings.blockLocalNetworkHosts
             .dropFirst()
             .sink { settingsStore.setBlockLocalNetworkHosts($0) }
             .store(in: &cancellables)
 
-        appState.$ruleSets
+        bindings.ruleSets
             .dropFirst()
             .sink { settingsStore.saveRuleSets($0) }
             .store(in: &cancellables)
 
-        appState.$activeRuleSetId
+        bindings.activeRuleSetId
             .dropFirst()
             .sink { settingsStore.setActiveRuleSetId($0) }
             .store(in: &cancellables)
 
-        appState.$pomodoroFocusDuration
+        bindings.pomodoroFocusDuration
             .dropFirst()
             .sink { settingsStore.setPomodoroFocusDuration($0) }
             .store(in: &cancellables)
 
-        appState.$pomodoroBreakDuration
+        bindings.pomodoroBreakDuration
             .dropFirst()
             .sink { settingsStore.setPomodoroBreakDuration($0) }
             .store(in: &cancellables)

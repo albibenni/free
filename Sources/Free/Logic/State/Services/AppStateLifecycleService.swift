@@ -16,11 +16,11 @@ enum AppStateLifecycleService {
     }
 
     static func bindPersistence(
-        appState: AppState,
+        bindings: AppStatePersistenceCoordinator.Bindings,
         settingsStore: SettingsStore
     ) -> Set<AnyCancellable> {
         AppStatePersistenceCoordinator.bind(
-            appState: appState,
+            bindings: bindings,
             settingsStore: settingsStore
         )
     }

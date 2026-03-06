@@ -129,7 +129,7 @@ class AppState: ObservableObject {
         applyRulesDomainState(bootstrapProjection.rules)
         applyScheduleDomainState(bootstrapProjection.schedule)
         persistenceCancellables = AppStateLifecycleService.bindPersistence(
-            appState: self,
+            bindings: persistenceBindings,
             settingsStore: settingsStore
         )
 
