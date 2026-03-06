@@ -3,7 +3,9 @@ import AppKit
 extension AllowedWebsitesFloatingEditorViewController {
     @objc
     func handleCreateRuleSet() {
-        guard !appState.isStrictActive else { return }
+        guard AllowedWebsitesRuleSetActionsCoordinator.canCreateRuleSet(
+            isStrictActive: appState.isStrictActive
+        ) else { return }
 
         let alert = NSAlert()
         alert.messageText = "New Allowed List"
@@ -16,17 +18,25 @@ extension AllowedWebsitesFloatingEditorViewController {
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return }
 
-        let newSet = appState.createRuleSet(name: input.stringValue, makeActive: false)
+        let newSet = AllowedWebsitesRuleSetActionsCoordinator.createRuleSet(
+            appState: appState,
+            name: input.stringValue
+        )
         selectedRuleSetId = newSet.id
         reloadContent()
     }
 
     @objc
     func handleDeleteRuleSet() {
-        guard !appState.isStrictActive else { return }
-        guard appState.ruleSets.count > 1 else { return }
+        guard AllowedWebsitesRuleSetActionsCoordinator.canDeleteRuleSet(
+            isStrictActive: appState.isStrictActive,
+            ruleSetCount: appState.ruleSets.count
+        ) else { return }
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
-        guard let selectedSet = appState.ruleSets.first(where: { $0.id == setId }) else { return }
+        guard let selectedSet = AllowedWebsitesRuleSetActionsCoordinator.selectedRuleSet(
+            id: setId,
+            ruleSets: appState.ruleSets
+        ) else { return }
 
         let alert = NSAlert()
         alert.messageText = "Delete \"\(selectedSet.name)\"?"
@@ -37,7 +47,10 @@ extension AllowedWebsitesFloatingEditorViewController {
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return }
 
-        appState.deleteSet(id: setId)
+        AllowedWebsitesRuleSetActionsCoordinator.deleteRuleSet(
+            appState: appState,
+            id: setId
+        )
         selectedRuleSetId = resolvedRuleSetId(nil)
         reloadContent()
     }
@@ -45,9 +58,12 @@ extension AllowedWebsitesFloatingEditorViewController {
     @objc
     func handleAddRule() {
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
-        let normalized = urlField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalized.isEmpty else { return }
-        appState.addRule(normalized, to: setId)
+        let didAdd = AllowedWebsitesRuleActionsCoordinator.addRule(
+            appState: appState,
+            setId: setId,
+            rawValue: urlField.stringValue
+        )
+        guard didAdd else { return }
         urlField.stringValue = ""
         reloadRulesOnly()
     }
@@ -64,10 +80,12 @@ extension AllowedWebsitesFloatingEditorViewController {
             indexes: rulesTableView.selectedRowIndexes,
             visibleRules: visibleRules
         )
-        guard !rulesToRemove.isEmpty else { return }
-        for rule in rulesToRemove {
-            appState.removeRule(rule, from: setId)
-        }
+        let removedCount = AllowedWebsitesRuleActionsCoordinator.removeRules(
+            appState: appState,
+            setId: setId,
+            rules: rulesToRemove
+        )
+        guard removedCount > 0 else { return }
         reloadRulesOnly()
     }
 
