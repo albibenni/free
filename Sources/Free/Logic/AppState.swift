@@ -362,64 +362,80 @@ class AppState: ObservableObject {
     }
 
     func startPomodoro() {
-        let updated = AppStatePomodoroCoordinator.startFocus(
-            from: pomodoroEngineState,
+        let transition = AppStateFocusFlowCoordinator.startPomodoro(
+            state: pomodoroEngineState,
             focusDurationMinutes: pomodoroFocusDuration,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets
         )
-        applyPomodoroEngineState(updated)
-        runTimer()
+        applyPomodoroEngineState(transition.state)
+        if transition.shouldRunTimer {
+            runTimer()
+        }
     }
     func stopPomodoro() {
         guard
-            let stopped = AppStatePomodoroCoordinator.stopIfUnlocked(
-                from: pomodoroEngineState,
+            let transition = AppStateFocusFlowCoordinator.stopPomodoroIfUnlocked(
+                state: pomodoroEngineState,
                 isLocked: isPomodoroLocked
             )
         else { return }
-        applyPomodoroEngineState(stopped)
-        timerCoordinator.replacePomodoroTimer(with: nil)
-        checkSchedules()
+        applyPomodoroEngineState(transition.state)
+        if transition.shouldStopTimer {
+            timerCoordinator.replacePomodoroTimer(with: nil)
+        }
+        if transition.shouldCheckSchedules {
+            checkSchedules()
+        }
     }
     func skipPomodoroPhase() {
-        if pomodoroStatus == .focus {
+        switch AppStateFocusFlowCoordinator.skipPhaseAction(for: pomodoroStatus) {
+        case .startBreak:
             startBreak()
-        } else if pomodoroStatus == .breakTime {
+        case .startFocus:
             startPomodoro()
+        case .none:
+            break
         }
     }
     private func startBreak() {
-        let updated = AppStatePomodoroCoordinator.startBreak(
-            from: pomodoroEngineState,
+        let transition = AppStateFocusFlowCoordinator.startBreak(
+            state: pomodoroEngineState,
             breakDurationMinutes: pomodoroBreakDuration
         )
-        applyPomodoroEngineState(updated)
-        runTimer()
+        applyPomodoroEngineState(transition.state)
+        if transition.shouldRunTimer {
+            runTimer()
+        }
     }
 
     func startPause(minutes: Double) {
         guard
-            let updated = AppStatePauseCoordinator.start(
-                from: pauseEngineState,
+            let transition = AppStateFocusFlowCoordinator.startPause(
+                state: pauseEngineState,
                 minutes: minutes,
                 isBlocking: isBlocking
             )
         else { return }
-        applyPauseEngineState(updated)
-        let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
-            guard let self = self else { return }
-            let result = AppStateRuntimeCoordinator.pauseTick(from: self.pauseEngineState)
-            self.applyPauseEngineState(result.state)
-            if result.shouldCancel {
-                self.cancelPause()
+        applyPauseEngineState(transition.state)
+        if transition.shouldStartTimer {
+            let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
+                guard let self = self else { return }
+                let result = AppStateFocusFlowCoordinator.pauseTick(state: self.pauseEngineState)
+                self.applyPauseEngineState(result.state)
+                if result.shouldCancelPause {
+                    self.cancelPause()
+                }
             }
+            timerCoordinator.replacePauseTimer(with: timer)
         }
-        timerCoordinator.replacePauseTimer(with: timer)
     }
     func cancelPause() {
-        applyPauseEngineState(AppStatePauseCoordinator.cancel(from: pauseEngineState))
-        timerCoordinator.replacePauseTimer(with: nil)
+        let transition = AppStateFocusFlowCoordinator.cancelPause(state: pauseEngineState)
+        applyPauseEngineState(transition.state)
+        if transition.shouldStopTimer {
+            timerCoordinator.replacePauseTimer(with: nil)
+        }
     }
     func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }
 
@@ -478,7 +494,7 @@ class AppState: ObservableObject {
     private func runTimer() {
         let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
-            switch AppStateRuntimeCoordinator.pomodoroTickAction(
+            switch AppStateFocusFlowCoordinator.pomodoroTickAction(
             status: self.pomodoroStatus,
             remaining: self.pomodoroRemaining
             ) {
