@@ -163,131 +163,41 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private func configurePermissionWarning() {
-        permissionWarningView.wantsLayer = true
-        permissionWarningView.layer?.backgroundColor = NSColor.systemRed.cgColor
-        permissionWarningView.layer?.cornerRadius = 12
-
-        let icon = NSImageView(image: NSImage(systemSymbolName: AppKitUISymbols.Name.warning, accessibilityDescription: nil) ?? NSImage())
-        icon.contentTintColor = .white
-
-        permissionTitleLabel.font = .systemFont(ofSize: 13, weight: .bold)
-        permissionTitleLabel.textColor = .white
-
-        grantPermissionButton.isBordered = false
-        grantPermissionButton.wantsLayer = true
-        grantPermissionButton.layer?.cornerRadius = 8
-        grantPermissionButton.layer?.backgroundColor = NSColor.white.cgColor
-        grantPermissionButton.contentTintColor = .black
-        grantPermissionButton.font = .systemFont(ofSize: 12, weight: .semibold)
-        grantPermissionButton.target = self
-        grantPermissionButton.action = #selector(grantAccessibility)
-
-        let row = NSStackView(views: [icon, permissionTitleLabel, NSView(), grantPermissionButton])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 10
-        row.edgeInsets = NSEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
-        row.translatesAutoresizingMaskIntoConstraints = false
-
-        permissionWarningView.addSubview(row)
-        NSLayoutConstraint.activate([
-            row.leadingAnchor.constraint(equalTo: permissionWarningView.leadingAnchor),
-            row.trailingAnchor.constraint(equalTo: permissionWarningView.trailingAnchor),
-            row.topAnchor.constraint(equalTo: permissionWarningView.topAnchor),
-            row.bottomAnchor.constraint(equalTo: permissionWarningView.bottomAnchor),
-        ])
+        FocusSectionLayoutBuilder.configurePermissionWarning(
+            permissionWarningView: permissionWarningView,
+            permissionTitleLabel: permissionTitleLabel,
+            grantPermissionButton: grantPermissionButton,
+            target: self,
+            grantAction: #selector(grantAccessibility)
+        )
     }
 
     private func configureHeaderCard() {
-        headerCardView.backgroundColorProvider = { NSColor.controlBackgroundColor }
-        headerCardView.layer?.cornerRadius = 12
-
-        headerIconView.imageScaling = .scaleProportionallyUpOrDown
-        headerIconView.symbolConfiguration = .init(pointSize: 30, weight: .regular)
-
-        headerTitleLabel.font = .systemFont(ofSize: 22, weight: .bold)
-        headerStatusLabel.font = .systemFont(ofSize: 13)
-        headerStatusLabel.textColor = .secondaryLabelColor
-
-        let labelStack = NSStackView(views: [headerTitleLabel, headerStatusLabel])
-        labelStack.orientation = .vertical
-        labelStack.alignment = .leading
-        labelStack.spacing = 4
-
-        let row = NSStackView(views: [headerIconView, labelStack, NSView()])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 12
-        row.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        row.translatesAutoresizingMaskIntoConstraints = false
-
-        headerCardView.addSubview(row)
-        NSLayoutConstraint.activate([
-            row.leadingAnchor.constraint(equalTo: headerCardView.leadingAnchor),
-            row.trailingAnchor.constraint(equalTo: headerCardView.trailingAnchor),
-            row.topAnchor.constraint(equalTo: headerCardView.topAnchor),
-            row.bottomAnchor.constraint(equalTo: headerCardView.bottomAnchor),
-        ])
+        FocusSectionLayoutBuilder.configureHeaderCard(
+            headerCardView: headerCardView,
+            headerIconView: headerIconView,
+            headerTitleLabel: headerTitleLabel,
+            headerStatusLabel: headerStatusLabel
+        )
     }
 
     private func configurePauseDashboard() {
-        pauseDashboardView.backgroundColorProvider = { NSColor.systemOrange.withAlphaComponent(0.1) }
-        pauseDashboardView.layer?.cornerRadius = 12
-        pauseDashboardView.borderColorProvider = { NSColor.systemOrange.withAlphaComponent(0.3) }
-        pauseDashboardView.borderWidthValue = 1
-
-        pauseTitleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
-        pauseTitleLabel.textColor = .secondaryLabelColor
-
-        pauseTimeLabel.font = .monospacedDigitSystemFont(ofSize: 40, weight: .bold)
-        pauseTimeLabel.textColor = .systemOrange
-        pauseTimeLabel.alignment = .center
-
-        pauseEndButton.bezelStyle = .rounded
-        pauseEndButton.contentTintColor = .systemGreen
-        pauseEndButton.target = self
-        pauseEndButton.action = #selector(cancelPause)
-
-        let stack = NSStackView(views: [pauseTitleLabel, pauseTimeLabel, pauseEndButton])
-        stack.orientation = .vertical
-        stack.alignment = .centerX
-        stack.spacing = 10
-        stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        pauseDashboardView.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: pauseDashboardView.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: pauseDashboardView.trailingAnchor),
-            stack.topAnchor.constraint(equalTo: pauseDashboardView.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: pauseDashboardView.bottomAnchor),
-        ])
+        FocusSectionLayoutBuilder.configurePauseDashboard(
+            pauseDashboardView: pauseDashboardView,
+            pauseTitleLabel: pauseTitleLabel,
+            pauseTimeLabel: pauseTimeLabel,
+            pauseEndButton: pauseEndButton,
+            target: self,
+            cancelAction: #selector(cancelPause)
+        )
     }
 
     private func configureOverview() {
-        overviewCardView.backgroundColorProvider = { NSColor.controlBackgroundColor }
-        overviewCardView.layer?.cornerRadius = 12
-
-        overviewTitleLabel.font = .systemFont(ofSize: 18, weight: .semibold)
-
-        overviewRowsStack.orientation = .vertical
-        overviewRowsStack.alignment = .leading
-        overviewRowsStack.spacing = 10
-
-        let stack = NSStackView(views: [overviewTitleLabel, overviewRowsStack])
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 12
-        stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        overviewCardView.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: overviewCardView.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: overviewCardView.trailingAnchor),
-            stack.topAnchor.constraint(equalTo: overviewCardView.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: overviewCardView.bottomAnchor),
-        ])
+        FocusSectionLayoutBuilder.configureOverview(
+            overviewCardView: overviewCardView,
+            overviewTitleLabel: overviewTitleLabel,
+            overviewRowsStack: overviewRowsStack
+        )
     }
 
     private func configureWidgetContainer() {
@@ -321,78 +231,25 @@ final class FocusSectionViewController: NSViewController {
 
     private func reloadOverviewRows() {
         removeAllArrangedSubviews(from: overviewRowsStack)
-
-        let activeScheduleNames = appState.schedules
-            .filter { $0.type == .focus && $0.isActive() }
-            .map(\.name)
-        let currentRuleSet = appState.ruleSets.first(where: { $0.id == appState.currentPrimaryRuleSetId })
-
-        let shouldShowAllowList = FocusSectionSupport.shouldShowAllowListPreview(
-            isBlocking: appState.isBlocking,
-            pomodoroStatus: appState.pomodoroStatus,
-            hasActiveFocusSchedule: !activeScheduleNames.isEmpty,
-            hasCurrentRuleSet: currentRuleSet != nil
-        )
-        let shouldShowPomodoro = appState.pomodoroStatus != .none
-        let shouldShowSchedules = !activeScheduleNames.isEmpty
-
-        if shouldShowSchedules {
+        let rows = FocusSectionOverviewCoordinator.rows(appState: appState)
+        for row in rows {
             overviewRowsStack.addArrangedSubview(
-                makeOverviewRow(
-                    iconName: AppKitUISymbols.Name.schedules,
-                    title: "Active Schedules",
-                    value: activeScheduleNames.joined(separator: ", ")
+                FocusSectionLayoutBuilder.makeOverviewRow(
+                    iconName: row.iconName,
+                    title: row.title,
+                    value: row.value,
+                    accentColorIndex: appState.accentColorIndex,
+                    availableWidth: scrollContainer.stackView.bounds.width
                 )
             )
         }
 
-        if shouldShowAllowList, let currentRuleSet {
-            overviewRowsStack.addArrangedSubview(
-                makeOverviewRow(
-                    iconName: AppKitUISymbols.Name.globe,
-                    title: "Allow List",
-                    value: "\(currentRuleSet.name) • \(currentRuleSet.urls.count) rules"
-                )
-            )
-        }
-
-        if shouldShowPomodoro {
-            overviewRowsStack.addArrangedSubview(
-                makeOverviewRow(
-                    iconName: AppKitUISymbols.Name.pomodoro,
-                    title: "Pomodoro",
-                    value: "\(FocusSectionSupport.pomodoroPhaseLabel(status: appState.pomodoroStatus)) • \(appState.timeString(time: appState.pomodoroRemaining))"
-                )
-            )
-        }
-
-        if !shouldShowSchedules && !shouldShowAllowList && !shouldShowPomodoro {
+        if rows.isEmpty {
             let emptyLabel = NSTextField(labelWithString: "No active schedule, allow list, or pomodoro session.")
             emptyLabel.font = .systemFont(ofSize: 13)
             emptyLabel.textColor = .secondaryLabelColor
             overviewRowsStack.addArrangedSubview(emptyLabel)
         }
-    }
-
-    private func makeOverviewRow(iconName: String, title: String, value: String) -> NSView {
-        let icon = NSImageView(image: NSImage(systemSymbolName: iconName, accessibilityDescription: nil) ?? NSImage())
-        icon.contentTintColor = FocusColor.nsColor(for: appState.accentColorIndex)
-
-        let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 13)
-        titleLabel.textColor = .secondaryLabelColor
-
-        let valueLabel = NSTextField(labelWithString: value)
-        valueLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        valueLabel.alignment = .right
-        valueLabel.lineBreakMode = .byTruncatingTail
-
-        let row = NSStackView(views: [icon, titleLabel, NSView(), valueLabel])
-        row.orientation = .horizontal
-        row.alignment = .firstBaseline
-        row.spacing = 8
-        row.widthAnchor.constraint(equalToConstant: max(scrollContainer.stackView.bounds.width, 1)).isActive = true
-        return row
     }
 
     private func reloadWidget() {
