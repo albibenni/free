@@ -363,7 +363,7 @@ class AppState: ObservableObject {
     }
 
     func startPomodoro() {
-        let updated = PomodoroEngine.startFocus(
+        let updated = AppStatePomodoroCoordinator.startFocus(
             from: pomodoroEngineState,
             focusDurationMinutes: pomodoroFocusDuration,
             activeRuleSetId: activeRuleSetId,
@@ -373,11 +373,15 @@ class AppState: ObservableObject {
         runTimer()
     }
     func stopPomodoro() {
-        if !isPomodoroLocked {
-            applyPomodoroEngineState(PomodoroEngine.stop(from: pomodoroEngineState))
-            replacePomodoroTimer(with: nil)
-            checkSchedules()
-        }
+        guard
+            let stopped = AppStatePomodoroCoordinator.stopIfUnlocked(
+                from: pomodoroEngineState,
+                isLocked: isPomodoroLocked
+            )
+        else { return }
+        applyPomodoroEngineState(stopped)
+        replacePomodoroTimer(with: nil)
+        checkSchedules()
     }
     func skipPomodoroPhase() {
         if pomodoroStatus == .focus {
@@ -387,7 +391,7 @@ class AppState: ObservableObject {
         }
     }
     private func startBreak() {
-        let updated = PomodoroEngine.startBreak(
+        let updated = AppStatePomodoroCoordinator.startBreak(
             from: pomodoroEngineState,
             breakDurationMinutes: pomodoroBreakDuration
         )
@@ -461,10 +465,16 @@ class AppState: ObservableObject {
     private func runTimer() {
         let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
-            if self.pomodoroRemaining > 0 {
+            switch AppStatePomodoroCoordinator.timerAction(
+            status: self.pomodoroStatus,
+            remaining: self.pomodoroRemaining
+            ) {
+            case .decrement:
                 self.pomodoroRemaining -= 1
-            } else {
-                if self.pomodoroStatus == .focus { self.startBreak() } else { self.startPomodoro() }
+            case .startBreak:
+                self.startBreak()
+            case .startFocus:
+                self.startPomodoro()
             }
         }
         replacePomodoroTimer(with: timer)
