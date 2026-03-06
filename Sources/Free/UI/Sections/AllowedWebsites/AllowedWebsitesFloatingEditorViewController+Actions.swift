@@ -142,15 +142,16 @@ extension AllowedWebsitesFloatingEditorViewController {
             visibleRulesCount: visibleRules.count,
             ruleSetCount: appState.ruleSets.count
         )
-        urlField.isEnabled = state.canEdit
-        addButton.isEnabled = state.canEdit
-        importOpenTabsButton.isEnabled = state.canEdit
-        removeButton.isEnabled = state.canRemove
-        createListButton.isEnabled = state.canCreateList
-        deleteListButton.isEnabled = state.canDeleteList
-        for button in ruleSetButtons.values {
-            button.isEnabled = state.canCreateList
-        }
+        AllowedWebsitesControlStateApplier.apply(
+            state,
+            urlField: urlField,
+            addButton: addButton,
+            importOpenTabsButton: importOpenTabsButton,
+            removeButton: removeButton,
+            createListButton: createListButton,
+            deleteListButton: deleteListButton,
+            ruleSetButtons: ruleSetButtons
+        )
     }
 
     func resolvedRuleSetId(_ id: UUID?) -> UUID? {
