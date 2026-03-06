@@ -2,6 +2,13 @@ import Combine
 import Foundation
 
 enum AppStatePersistenceCoordinator {
+    static func persistSchedulesSynchronously(
+        _ schedules: [Schedule],
+        settingsStore: SettingsStore
+    ) {
+        settingsStore.saveSchedules(schedules)
+    }
+
     static func bind(
         appState: AppState,
         settingsStore: SettingsStore

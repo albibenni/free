@@ -40,7 +40,10 @@ class AppState: ObservableObject {
     @Published var activeRuleSetId: UUID? = nil
     @Published var schedules: [Schedule] = [] {
         didSet {
-            settingsStore.saveSchedules(schedules)
+            AppStatePersistenceCoordinator.persistSchedulesSynchronously(
+                schedules,
+                settingsStore: settingsStore
+            )
             checkSchedules()
         }
     }
