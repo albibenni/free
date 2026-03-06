@@ -117,17 +117,20 @@ class AppState: ObservableObject {
         },
         isTesting: Bool = false
     ) {
-        self.settingsStore = SettingsStore(defaults: defaults)
-        self.logicFacade = logicFacade
-        self.calendarProvider =
-            calendar
-            ?? (isTesting ? MockCalendarManager() : RealCalendarManager(nowProvider: { Date() }))
-        self.timerCoordinator = AppStateTimerCoordinator(timerScheduler: timerScheduler)
-        self.launchAtLoginService = LaunchAtLoginService(
+        let dependencies = AppStateDependencyFactory.make(
+            defaults: defaults,
+            injectedCalendar: calendar,
+            timerScheduler: timerScheduler,
             launchAtLoginManager: launchAtLoginManager,
-            settingsStore: self.settingsStore,
-            canPromptForLaunchAtLogin: canPromptForLaunchAtLogin
+            canPromptForLaunchAtLogin: canPromptForLaunchAtLogin,
+            isTesting: isTesting
         )
+
+        self.settingsStore = dependencies.settingsStore
+        self.logicFacade = logicFacade
+        self.calendarProvider = dependencies.calendarProvider
+        self.timerCoordinator = dependencies.timerCoordinator
+        self.launchAtLoginService = dependencies.launchAtLoginService
 
         let snapshot = AppStateBootstrapService.snapshot(from: settingsStore)
         applyBootstrapSnapshot(snapshot)
