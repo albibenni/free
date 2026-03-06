@@ -16,12 +16,27 @@ final class RulesSheetViewController: NSViewController {
     private let mainTitleLabel = NSTextField(labelWithString: "")
     private let toggleSidebarButton = NSButton()
     private let contentScrollView = VerticalStackScrollContainer()
+    private let noSelectionLabel = NSTextField(labelWithString: "Select a list to edit")
+    private let rulesHeaderLabel = NSTextField(labelWithString: "Allowed in this list")
+    private let rulesEmptyLabel = NSTextField(labelWithString: "No rules yet.")
+    private let rulesRowsStack = NSStackView()
+    private let suggestionsDivider = makeAppKitDividerView(color: .separatorColor)
+    private let suggestionsButton = NSButton(
+        title: "Open Tabs Suggestions",
+        target: nil,
+        action: nil
+    )
+    private let suggestionsEmptyLabel = NSTextField(labelWithString: "")
+    private let suggestionsRowsStack = NSStackView()
     private let addRuleField = NSTextField(string: "")
     private let addRuleButton = ActionButton(title: "Add")
     private let doneButton = ActionButton(title: "Done")
     private let onDismiss: (() -> Void)?
     private var renderSignature: RulesSheetRenderSignature?
     private var reloadGeneration = 0
+    private var sidebarRowsById: [UUID: RulesSheetSidebarRowView] = [:]
+    private var ruleRowsByRule: [String: RulesSheetRuleRowView] = [:]
+    private var suggestionRowsByUrl: [String: RulesSheetSuggestionRowView] = [:]
     private var cancellables: Set<AnyCancellable> = []
 
     init(appState: AppState, onDismiss: (() -> Void)? = nil) {
@@ -189,6 +204,47 @@ final class RulesSheetViewController: NSViewController {
             contentScrollView.topAnchor.constraint(equalTo: divider.bottomAnchor),
             contentScrollView.bottomAnchor.constraint(equalTo: mainContainer.bottomAnchor),
         ])
+
+        configureContentStructure()
+    }
+
+    private func configureContentStructure() {
+        noSelectionLabel.textColor = .secondaryLabelColor
+
+        rulesHeaderLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        rulesHeaderLabel.textColor = .secondaryLabelColor
+
+        rulesEmptyLabel.textColor = .secondaryLabelColor
+
+        rulesRowsStack.orientation = .vertical
+        rulesRowsStack.alignment = .leading
+        rulesRowsStack.spacing = 8
+
+        suggestionsButton.isBordered = false
+        suggestionsButton.alignment = .left
+        suggestionsButton.contentTintColor = .labelColor
+        suggestionsButton.target = self
+        suggestionsButton.action = #selector(toggleSuggestions)
+
+        suggestionsEmptyLabel.font = .systemFont(ofSize: 12)
+        suggestionsEmptyLabel.textColor = .secondaryLabelColor
+
+        suggestionsRowsStack.orientation = .vertical
+        suggestionsRowsStack.alignment = .leading
+        suggestionsRowsStack.spacing = 8
+
+        contentScrollView.stackView.addArrangedSubview(noSelectionLabel)
+        contentScrollView.stackView.addArrangedSubview(rulesHeaderLabel)
+        contentScrollView.stackView.addArrangedSubview(rulesEmptyLabel)
+        contentScrollView.stackView.addArrangedSubview(rulesRowsStack)
+        contentScrollView.stackView.addArrangedSubview(suggestionsDivider)
+        contentScrollView.stackView.addArrangedSubview(suggestionsButton)
+        contentScrollView.stackView.addArrangedSubview(suggestionsEmptyLabel)
+        contentScrollView.stackView.addArrangedSubview(suggestionsRowsStack)
+
+        noSelectionLabel.isHidden = true
+        suggestionsEmptyLabel.isHidden = true
+        suggestionsRowsStack.isHidden = true
     }
 
     private func configureIconButton(_ button: NSButton, symbolName: String) {
@@ -277,26 +333,54 @@ final class RulesSheetViewController: NSViewController {
     }
 
     private func reloadSidebar() {
-        removeAllArrangedSubviews(from: sidebarScrollView.stackView)
-        for ruleSet in appState.ruleSets {
-            let row = RulesSheetLayoutBuilder.makeSidebarRow(
-                ruleSet: ruleSet,
-                isSelected: selectedSetId == ruleSet.id,
-                canDelete: RulesSectionSupport.shouldShowDeleteSetButton(
-                    ruleSetCount: appState.ruleSets.count,
-                    isBlocking: appState.isBlocking
-                ),
-                onSelect: #selector(selectRuleSet(_:)),
-                onDelete: #selector(deleteRuleSet(_:)),
-                target: self
-            )
-            sidebarScrollView.stackView.addArrangedSubview(row)
+        let canDelete = RulesSectionSupport.shouldShowDeleteSetButton(
+            ruleSetCount: appState.ruleSets.count,
+            isBlocking: appState.isBlocking
+        )
+        let rows = appState.ruleSets
+
+        if canReuseSidebarRows(rows: rows) {
+            for ruleSet in rows {
+                sidebarRowsById[ruleSet.id]?.configure(
+                    title: ruleSet.name,
+                    ruleSetId: ruleSet.id,
+                    isSelected: selectedSetId == ruleSet.id,
+                    canDelete: canDelete,
+                    onSelect: #selector(selectRuleSet(_:)),
+                    onDelete: #selector(deleteRuleSet(_:)),
+                    target: self
+                )
+            }
+        } else {
+            removeAllArrangedSubviews(from: sidebarScrollView.stackView)
+            sidebarRowsById.removeAll()
+            for ruleSet in rows {
+                let row = RulesSheetLayoutBuilder.makeSidebarRow(
+                    ruleSet: ruleSet,
+                    isSelected: selectedSetId == ruleSet.id,
+                    canDelete: canDelete,
+                    onSelect: #selector(selectRuleSet(_:)),
+                    onDelete: #selector(deleteRuleSet(_:)),
+                    target: self
+                )
+                sidebarScrollView.stackView.addArrangedSubview(row)
+                sidebarRowsById[ruleSet.id] = row
+            }
         }
         sidebarScrollView.needsLayout = true
     }
 
+    private func canReuseSidebarRows(rows: [RuleSet]) -> Bool {
+        guard rows.count == sidebarRowsById.count else { return false }
+        guard rows.allSatisfy({ sidebarRowsById[$0.id] != nil }) else { return false }
+        let expectedOrder = rows.map(\.id)
+        let currentOrder = sidebarScrollView.stackView.arrangedSubviews.compactMap { view in
+            (view as? RulesSheetSidebarRowView)?.ruleSetId
+        }
+        return expectedOrder == currentOrder
+    }
+
     private func reloadRuleContent() {
-        removeAllArrangedSubviews(from: contentScrollView.stackView)
         mainTitleLabel.stringValue = selectedSet?.name ?? ""
         toggleSidebarButton.image = appKitSymbolImage(
             named: RulesSectionSupport.sidebarToggleIcon(isSidebarVisible: isSidebarVisible),
@@ -306,43 +390,32 @@ final class RulesSheetViewController: NSViewController {
         )
 
         guard let selectedSet else {
-            let emptyLabel = NSTextField(labelWithString: "Select a list to edit")
-            emptyLabel.textColor = .secondaryLabelColor
-            contentScrollView.stackView.addArrangedSubview(emptyLabel)
+            noSelectionLabel.isHidden = false
+            rulesHeaderLabel.isHidden = true
+            rulesEmptyLabel.isHidden = true
+            rulesRowsStack.isHidden = true
+            suggestionsDivider.isHidden = true
+            suggestionsButton.isHidden = true
+            suggestionsEmptyLabel.isHidden = true
+            suggestionsRowsStack.isHidden = true
             return
         }
 
-        let rulesHeader = NSTextField(labelWithString: "Allowed in this list")
-        rulesHeader.font = .systemFont(ofSize: 12, weight: .semibold)
-        rulesHeader.textColor = .secondaryLabelColor
-        contentScrollView.stackView.addArrangedSubview(rulesHeader)
+        noSelectionLabel.isHidden = true
+        rulesHeaderLabel.isHidden = false
+        suggestionsDivider.isHidden = false
+        suggestionsButton.isHidden = false
 
-        if selectedSet.urls.isEmpty {
-            let emptyLabel = NSTextField(labelWithString: "No rules yet.")
-            emptyLabel.textColor = .secondaryLabelColor
-            contentScrollView.stackView.addArrangedSubview(emptyLabel)
-        } else {
-            for rule in selectedSet.urls {
-                let row = RulesSheetLayoutBuilder.makeRuleRow(
-                    rule: rule,
-                    onDelete: #selector(deleteRule(_:)),
-                    target: self
-                )
-                contentScrollView.stackView.addArrangedSubview(row)
-            }
-        }
-
-        contentScrollView.stackView.addArrangedSubview(makeAppKitDividerView(color: .separatorColor))
-
-        let suggestionsButton = NSButton(
-            title: "Open Tabs Suggestions",
-            target: self,
-            action: #selector(toggleSuggestions)
+        let rules = selectedSet.urls
+        ruleRowsByRule = RulesSheetLayoutBuilder.updateOrRebuildRuleRows(
+            in: rulesRowsStack,
+            rules: rules,
+            existingRows: ruleRowsByRule,
+            onDelete: #selector(deleteRule(_:)),
+            target: self
         )
-        suggestionsButton.isBordered = false
-        suggestionsButton.alignment = .left
-        suggestionsButton.contentTintColor = .labelColor
-        contentScrollView.stackView.addArrangedSubview(suggestionsButton)
+        rulesEmptyLabel.isHidden = !rules.isEmpty
+        rulesRowsStack.isHidden = rules.isEmpty
 
         if isSuggestionsExpanded {
             let filtered = RulesSectionSupport.filterSuggestions(
@@ -351,25 +424,26 @@ final class RulesSheetViewController: NSViewController {
             )
             let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
             if filtered.isEmpty {
-                let label = NSTextField(
-                    labelWithString: RulesSectionSupport.suggestionsEmptyText(
-                        currentOpenUrls: appState.currentOpenUrls
-                    )
+                suggestionsEmptyLabel.stringValue = RulesSectionSupport.suggestionsEmptyText(
+                    currentOpenUrls: appState.currentOpenUrls
                 )
-                label.font = .systemFont(ofSize: 12)
-                label.textColor = .secondaryLabelColor
-                contentScrollView.stackView.addArrangedSubview(label)
+                suggestionsEmptyLabel.isHidden = false
+                suggestionsRowsStack.isHidden = true
             } else {
-                for suggestion in filtered {
-                    let row = RulesSheetLayoutBuilder.makeSuggestionRow(
-                        suggestion: suggestion,
-                        accentColor: accentColor,
-                        onAdd: #selector(addSuggestion(_:)),
-                        target: self
-                    )
-                    contentScrollView.stackView.addArrangedSubview(row)
-                }
+                suggestionRowsByUrl = RulesSheetLayoutBuilder.updateOrRebuildSuggestionRows(
+                    in: suggestionsRowsStack,
+                    suggestions: filtered,
+                    accentColor: accentColor,
+                    existingRows: suggestionRowsByUrl,
+                    onAdd: #selector(addSuggestion(_:)),
+                    target: self
+                )
+                suggestionsEmptyLabel.isHidden = true
+                suggestionsRowsStack.isHidden = false
             }
+        } else {
+            suggestionsEmptyLabel.isHidden = true
+            suggestionsRowsStack.isHidden = true
         }
 
         contentScrollView.needsLayout = true
@@ -397,12 +471,15 @@ final class RulesSheetViewController: NSViewController {
     @objc
     private func selectRuleSet(_ sender: NSButton) {
         guard let raw = sender.identifier?.rawValue, let id = UUID(uuidString: raw) else { return }
-        selectedSetId = RulesSheetActionsCoordinator.selectedSetIdAfterRowTap(
+        let nextSelectedSetId = RulesSheetActionsCoordinator.selectedSetIdAfterRowTap(
             tappedId: id,
             isBlocking: appState.isBlocking,
             currentSelectedId: selectedSetId
         )
-        reloadContent()
+        guard nextSelectedSetId != selectedSetId else { return }
+        selectedSetId = nextSelectedSetId
+        reloadSidebar()
+        reloadRuleContent()
     }
 
     @objc
@@ -466,12 +543,15 @@ extension RulesSheetViewController {
     }
 
     func selectRuleSetForTesting(_ ruleSet: RuleSet) {
-        selectedSetId = RulesSheetActionsCoordinator.selectedSetIdAfterRowTap(
+        let nextSelectedSetId = RulesSheetActionsCoordinator.selectedSetIdAfterRowTap(
             tappedId: ruleSet.id,
             isBlocking: appState.isBlocking,
             currentSelectedId: selectedSetId
         )
-        reloadContent()
+        guard nextSelectedSetId != selectedSetId else { return }
+        selectedSetId = nextSelectedSetId
+        reloadSidebar()
+        reloadRuleContent()
     }
 
     func deleteRuleSetForTesting(_ ruleSet: RuleSet) {
@@ -515,5 +595,13 @@ extension RulesSheetViewController {
 
     func filteredSuggestionsForTesting(for selectedSet: RuleSet) -> [String] {
         RulesSectionSupport.filterSuggestions(appState.currentOpenUrls, existing: selectedSet)
+    }
+
+    func sidebarRowObjectIdentifierForTesting(_ id: UUID) -> ObjectIdentifier? {
+        sidebarRowsById[id].map(ObjectIdentifier.init)
+    }
+
+    func ruleRowObjectIdentifierForTesting(_ rule: String) -> ObjectIdentifier? {
+        ruleRowsByRule[rule].map(ObjectIdentifier.init)
     }
 }

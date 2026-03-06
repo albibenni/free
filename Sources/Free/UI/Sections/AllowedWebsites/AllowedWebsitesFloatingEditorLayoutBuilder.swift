@@ -74,10 +74,11 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
         components.deleteListButton.heightAnchor.constraint(equalToConstant: 20).isActive = true
         components.deleteListButton.toolTip = "Delete list"
 
-        let headerRow = NSStackView(views: [listLabel, NSView(), components.createListButton, components.deleteListButton])
-        headerRow.orientation = .horizontal
-        headerRow.alignment = .centerY
-        headerRow.spacing = 10
+        let headerRow = makeAppKitHorizontalRow(
+            views: [listLabel, NSView(), components.createListButton, components.deleteListButton],
+            alignment: .centerY,
+            spacing: 10
+        )
         headerRow.translatesAutoresizingMaskIntoConstraints = false
 
         components.urlField.placeholderString = "Add URL to allow..."
@@ -102,10 +103,11 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
         components.importOpenTabsButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         components.importOpenTabsButton.setContentHuggingPriority(.required, for: .horizontal)
 
-        let addRow = NSStackView(views: [components.urlField, components.addButton, components.importOpenTabsButton])
-        addRow.orientation = .horizontal
-        addRow.alignment = .centerY
-        addRow.spacing = 10
+        let addRow = makeAppKitHorizontalRow(
+            views: [components.urlField, components.addButton, components.importOpenTabsButton],
+            alignment: .centerY,
+            spacing: 10
+        )
         addRow.translatesAutoresizingMaskIntoConstraints = false
 
         let ruleColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("AllowedRule"))
@@ -166,10 +168,11 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
         components.removeButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         components.removeButton.setContentHuggingPriority(.required, for: .horizontal)
 
-        let footerRow = NSStackView(views: [NSView(), components.removeButton])
-        footerRow.orientation = .horizontal
-        footerRow.alignment = .centerY
-        footerRow.spacing = 10
+        let footerRow = makeAppKitHorizontalRow(
+            views: [NSView(), components.removeButton],
+            alignment: .centerY,
+            spacing: 10
+        )
         footerRow.translatesAutoresizingMaskIntoConstraints = false
 
         let divider = makeAppKitDividerView()

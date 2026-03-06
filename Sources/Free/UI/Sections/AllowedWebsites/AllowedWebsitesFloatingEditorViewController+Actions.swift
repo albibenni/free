@@ -95,11 +95,12 @@ extension AllowedWebsitesFloatingEditorViewController {
             ruleSets: appState.ruleSets
         )
         let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
-        ruleSetButtons = AllowedWebsitesRuleSetListBuilder.rebuild(
+        ruleSetButtons = AllowedWebsitesRuleSetListBuilder.updateOrRebuild(
             in: ruleSetScrollView.stackView,
             rows: rows,
             accentColor: accentColor,
-            isRowSelectionEnabled: !appState.isStrictActive
+            isRowSelectionEnabled: !appState.isStrictActive,
+            existingButtons: ruleSetButtons
         ) { [weak self] selectedId in
             guard let self else { return }
             self.selectedRuleSetId = AllowedWebsitesRuleSetActionsCoordinator.selectedRuleSetAfterRowTap(

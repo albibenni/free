@@ -95,4 +95,60 @@ struct AllowedWebsitesUIHelpersTests {
         #expect(rebuilt.count == 1)
         #expect(rebuilt[firstId]?.isEnabled == false)
     }
+
+    @Test("Rule-set list builder reuses existing rows when shape is unchanged")
+    func ruleSetListBuilderReuse() {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        let firstId = UUID()
+        let secondId = UUID()
+        let initialRows = [
+            AllowedWebsitesPresentationCoordinator.RuleSetRow(
+                id: firstId,
+                title: "First",
+                isSelected: false
+            ),
+            AllowedWebsitesPresentationCoordinator.RuleSetRow(
+                id: secondId,
+                title: "Second",
+                isSelected: true
+            ),
+        ]
+
+        let initialButtons = AllowedWebsitesRuleSetListBuilder.rebuild(
+            in: stack,
+            rows: initialRows,
+            accentColor: .systemBlue,
+            isRowSelectionEnabled: true
+        ) { _ in }
+
+        let updatedRows = [
+            AllowedWebsitesPresentationCoordinator.RuleSetRow(
+                id: firstId,
+                title: "First",
+                isSelected: true
+            ),
+            AllowedWebsitesPresentationCoordinator.RuleSetRow(
+                id: secondId,
+                title: "Second",
+                isSelected: false
+            ),
+        ]
+        let updatedButtons = AllowedWebsitesRuleSetListBuilder.updateOrRebuild(
+            in: stack,
+            rows: updatedRows,
+            accentColor: .systemRed,
+            isRowSelectionEnabled: false,
+            existingButtons: initialButtons
+        ) { _ in }
+
+        #expect(updatedButtons[firstId] === initialButtons[firstId])
+        #expect(updatedButtons[secondId] === initialButtons[secondId])
+        #expect(updatedButtons[firstId]?.isSelectedState == true)
+        #expect(updatedButtons[secondId]?.isSelectedState == false)
+        #expect(updatedButtons[firstId]?.isEnabled == false)
+        #expect(updatedButtons[secondId]?.isEnabled == false)
+        #expect(updatedButtons[firstId]?.accentColor == .systemRed)
+        #expect(updatedButtons[secondId]?.accentColor == .systemRed)
+    }
 }

@@ -214,10 +214,11 @@ final class SettingsSectionViewController: NSViewController {
             section.addArrangedSubview(appearanceModeControl)
         }
 
-        let colorsRow = NSStackView()
-        colorsRow.orientation = .horizontal
-        colorsRow.alignment = .centerY
-        colorsRow.spacing = 12
+        let colorsRow = makeAppKitHorizontalRow(
+            views: [],
+            alignment: .centerY,
+            spacing: 12
+        )
         accentButtons = FocusColor.all.enumerated().map { index, color in
             let button = NSButton(title: "", target: self, action: #selector(selectAccentColor(_:)))
             button.tag = index
@@ -237,17 +238,13 @@ final class SettingsSectionViewController: NSViewController {
 
     private func makeAboutSection() -> NSView {
         let section = makeCardSection()
-        let row = NSStackView(views: [
-            NSTextField(labelWithString: "Version"),
-            NSView(),
-            {
-                let label = NSTextField(labelWithString: "1.0.0")
-                label.textColor = .secondaryLabelColor
-                return label
-            }()
-        ])
-        row.orientation = .horizontal
-        row.alignment = .centerY
+        let versionLabel = NSTextField(labelWithString: "1.0.0")
+        versionLabel.textColor = .secondaryLabelColor
+        let row = makeAppKitHorizontalRow(
+            views: [NSTextField(labelWithString: "Version"), NSView(), versionLabel],
+            alignment: .centerY,
+            spacing: 8
+        )
         section.addArrangedSubview(row)
         return section
     }
@@ -277,19 +274,21 @@ final class SettingsSectionViewController: NSViewController {
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
 
-        let labelStack = NSStackView()
-        labelStack.orientation = .vertical
-        labelStack.alignment = .leading
-        labelStack.spacing = 4
+        let labelStack = makeAppKitVerticalStack(
+            views: [],
+            alignment: .leading,
+            spacing: 4
+        )
         labelStack.addArrangedSubview(titleLabel)
         if let descriptionLabel {
             labelStack.addArrangedSubview(descriptionLabel)
         }
 
-        let row = NSStackView(views: [labelStack, NSView(), toggle])
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 12
+        let row = makeAppKitHorizontalRow(
+            views: [labelStack, NSView(), toggle],
+            alignment: .centerY,
+            spacing: 12
+        )
         row.translatesAutoresizingMaskIntoConstraints = false
         labelStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
