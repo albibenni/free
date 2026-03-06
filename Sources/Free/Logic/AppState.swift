@@ -163,13 +163,17 @@ class AppState: ObservableObject {
         self.suppressedImportedCalendarEventKeys = snapshot.suppressedImportedCalendarEventKeys
 
         // Migration for older builds that persisted IsBlocking but not its source.
-        if let migration = AppStateLegacyBlockingMigrationCoordinator.resolve(
+        if let migration = AppStateSessionCoordinator.migrateLegacyBlockingSourceIfNeeded(
             hasPersistedWasStartedBySchedule: settingsStore.hasPersistedWasStartedBySchedule(),
-            isBlocking: isBlocking,
-            shouldBeBlockingNow: automaticBlockingState()
+            current: sessionState,
+            schedules: schedules,
+            pomodoroStatus: pomodoroStatus,
+            calendarIntegrationEnabled: calendarIntegrationEnabled,
+            isUnblockable: isUnblockable,
+            calendarImportsBlockTime: calendarImportsBlockTime,
+            calendarEvents: calendarProvider.events
         ) {
-            isBlocking = migration.isBlocking
-            setWasStartedBySchedule(migration.wasStartedBySchedule)
+            applySessionState(migration)
         }
         if let monitor = monitor {
             self.monitor = monitor
@@ -194,43 +198,26 @@ class AppState: ObservableObject {
     }
 
     func toggleBlocking() {
-        let result = BlockingSessionService.toggleBlocking(
-            isBlocking: isBlocking,
+        let updated = AppStateSessionCoordinator.toggle(
+            current: sessionState,
             isUnblockable: isUnblockable,
-            schedules: schedules,
-            manuallyPausedScheduleIds: manuallyPausedScheduleIds,
-            wasStartedBySchedule: wasStartedBySchedule
+            schedules: schedules
         )
-
-        manuallyPausedScheduleIds = result.manuallyPausedScheduleIds
-        if result.isBlocking != isBlocking {
-            isBlocking = result.isBlocking
-        }
-        if result.wasStartedBySchedule != wasStartedBySchedule {
-            setWasStartedBySchedule(result.wasStartedBySchedule)
-        }
+        applySessionState(updated)
     }
 
     func checkSchedules() {
         synchronizeImportedCalendarSchedulesIfNeeded()
-        let result = AppStateScheduleCheckCoordinator.evaluate(
-            currentIsBlocking: isBlocking,
-            currentWasStartedBySchedule: wasStartedBySchedule,
+        let updated = AppStateSessionCoordinator.check(
+            current: sessionState,
             schedules: schedules,
-            manuallyPausedScheduleIds: manuallyPausedScheduleIds,
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
             isUnblockable: isUnblockable,
             calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarProvider.events
         )
-        manuallyPausedScheduleIds = result.normalizedManuallyPausedScheduleIds
-        if result.isBlocking != isBlocking {
-            isBlocking = result.isBlocking
-        }
-        if result.wasStartedBySchedule != wasStartedBySchedule {
-            setWasStartedBySchedule(result.wasStartedBySchedule)
-        }
+        applySessionState(updated)
     }
 
     func addRule(_ rule: String, to setId: UUID) {
@@ -507,20 +494,6 @@ class AppState: ObservableObject {
         checkSchedules()
     }
 
-    private func automaticBlockingState() -> Bool {
-        let result = AppStateBlockingCoordinator.evaluateAutomaticBlocking(
-            schedules: schedules,
-            manuallyPausedScheduleIds: manuallyPausedScheduleIds,
-            pomodoroStatus: pomodoroStatus,
-            calendarIntegrationEnabled: calendarIntegrationEnabled,
-            isUnblockable: isUnblockable,
-            calendarImportsBlockTime: calendarImportsBlockTime,
-            calendarEvents: calendarProvider.events
-        )
-        manuallyPausedScheduleIds = result.normalizedManuallyPausedScheduleIds
-        return result.shouldBlock
-    }
-
     private func synchronizeImportedCalendarSchedulesIfNeeded(
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
@@ -546,6 +519,24 @@ class AppState: ObservableObject {
     private func setWasStartedBySchedule(_ value: Bool) {
         wasStartedBySchedule = value
         settingsStore.setWasStartedBySchedule(value)
+    }
+
+    private var sessionState: AppStateSessionCoordinator.SessionState {
+        AppStateSessionCoordinator.SessionState(
+            isBlocking: isBlocking,
+            wasStartedBySchedule: wasStartedBySchedule,
+            manuallyPausedScheduleIds: manuallyPausedScheduleIds
+        )
+    }
+
+    private func applySessionState(_ state: AppStateSessionCoordinator.SessionState) {
+        manuallyPausedScheduleIds = state.manuallyPausedScheduleIds
+        if state.isBlocking != isBlocking {
+            isBlocking = state.isBlocking
+        }
+        if state.wasStartedBySchedule != wasStartedBySchedule {
+            setWasStartedBySchedule(state.wasStartedBySchedule)
+        }
     }
 
     private var pauseEngineState: PauseEngine.State {
