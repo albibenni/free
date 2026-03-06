@@ -97,12 +97,14 @@
   - [x] close tab button small
   - [x] FreeAppKitShell too big, refactor
   - [x] new floating window don't follow tab 'connection'
+- [ ] pomodoro timer can be changed during focus via preset click, it shouldn't be possible
 
 - [ ] redo tests
   - [ ] coverage
 
 ## Performance check
 
+- [ ] auto remove previous calendar imports - if they are in the past week
 - [ ] cpu usage
 - [ ] ram usage
 
