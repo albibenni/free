@@ -147,4 +147,66 @@ struct SectionCoordinatorsTests {
         #expect(all.schedulesSignature == nil)
         #expect(all.allowedWebsitesSignature == nil)
     }
+
+    @Test("Focus widget reload coordinator picks reuse, keep, and rebuild operations")
+    @MainActor
+    func focusWidgetReloadCoordinator() {
+        let appState = AppState()
+        let shellState = FreeShellState()
+
+        let initialSignatures = FocusSectionWidgetReloadCoordinator.Signatures(
+            pomodoro: FocusPomodoroWidgetSignature(appState: appState),
+            schedules: FocusSchedulesWidgetSignature(appState: appState),
+            allowedWebsites: FocusAllowedWebsitesWidgetSignature(appState: appState)
+        )
+
+        let pomodoroDecision = FocusSectionWidgetReloadCoordinator.decide(
+            section: .pomodoro,
+            appState: appState,
+            shellState: shellState,
+            currentWidgetKind: .pomodoro,
+            currentSignatures: initialSignatures,
+            onPomodoroInteractionDidBegin: {},
+            onPomodoroInteractionDidEnd: {}
+        )
+        switch pomodoroDecision.operation {
+        case .reusePomodoro(let action):
+            #expect(action == .keepLayout)
+        default:
+            Issue.record("Expected pomodoro reuse decision")
+        }
+
+        let schedulesDecision = FocusSectionWidgetReloadCoordinator.decide(
+            section: .schedules,
+            appState: appState,
+            shellState: shellState,
+            currentWidgetKind: .schedules,
+            currentSignatures: initialSignatures,
+            onPomodoroInteractionDidBegin: {},
+            onPomodoroInteractionDidEnd: {}
+        )
+        switch schedulesDecision.operation {
+        case .keepExisting:
+            _ = Bool(true)
+        default:
+            Issue.record("Expected schedules keep-existing decision")
+        }
+
+        let allowedDecision = FocusSectionWidgetReloadCoordinator.decide(
+            section: .allowedWebsites,
+            appState: appState,
+            shellState: shellState,
+            currentWidgetKind: .none,
+            currentSignatures: initialSignatures,
+            onPomodoroInteractionDidBegin: {},
+            onPomodoroInteractionDidEnd: {}
+        )
+        switch allowedDecision.operation {
+        case .rebuild(let buildResult):
+            #expect(buildResult.widgetView is FocusAllowedWebsitesWidgetView)
+            #expect(allowedDecision.signatures.allowedWebsites != nil)
+        default:
+            Issue.record("Expected allowed-websites rebuild decision")
+        }
+    }
 }

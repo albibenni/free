@@ -253,17 +253,28 @@ final class FocusSectionViewController: NSViewController {
     }
 
     private func reloadWidget() {
-        if section == .pomodoro,
-           let widgetView,
-           let pomodoroWidgetView = widgetView as? FocusPomodoroWidgetView
-        {
-            let nextSignature = FocusPomodoroWidgetSignature(appState: appState)
+        let decision = FocusSectionWidgetReloadCoordinator.decide(
+            section: section,
+            appState: appState,
+            shellState: shellState,
+            currentWidgetKind: FocusSectionWidgetReloadCoordinator.widgetKind(for: widgetView),
+            currentSignatures: FocusSectionWidgetReloadCoordinator.Signatures(
+                pomodoro: pomodoroWidgetSignature,
+                schedules: schedulesWidgetSignature,
+                allowedWebsites: allowedWebsitesWidgetSignature
+            ),
+            onPomodoroInteractionDidBegin: { [weak self] in self?.beginPomodoroWidgetInteraction() },
+            onPomodoroInteractionDidEnd: { [weak self] in self?.endPomodoroWidgetInteraction() }
+        )
+
+        pomodoroWidgetSignature = decision.signatures.pomodoro
+        schedulesWidgetSignature = decision.signatures.schedules
+        allowedWebsitesWidgetSignature = decision.signatures.allowedWebsites
+
+        switch decision.operation {
+        case .reusePomodoro(let action):
+            guard let pomodoroWidgetView = widgetView as? FocusPomodoroWidgetView else { return }
             widgetContainer.isHidden = false
-            let action = FocusSectionWidgetCoordinator.pomodoroReuseAction(
-                current: pomodoroWidgetSignature,
-                next: nextSignature
-            )
-            pomodoroWidgetSignature = nextSignature
             switch action {
             case .updateSelection:
                 pomodoroWidgetView.updateRuleSetSelection()
@@ -273,67 +284,27 @@ final class FocusSectionViewController: NSViewController {
                 pomodoroWidgetView.needsLayout = true
             }
             return
-        } else if section != .pomodoro {
-            pomodoroWidgetSignature = nil
-        }
-
-        if section == .schedules,
-           widgetView is FocusSchedulesWidgetView
-        {
-            let nextSignature = FocusSchedulesWidgetSignature(appState: appState)
-            if schedulesWidgetSignature == nextSignature {
-                return
-            }
-            schedulesWidgetSignature = nextSignature
-        } else if section != .schedules {
-            schedulesWidgetSignature = nil
-        }
-
-        if section == .allowedWebsites,
-           widgetView is FocusAllowedWebsitesWidgetView
-        {
-            let nextSignature = FocusAllowedWebsitesWidgetSignature(appState: appState)
-            if allowedWebsitesWidgetSignature == nextSignature {
-                return
-            }
-            allowedWebsitesWidgetSignature = nextSignature
-        } else if section != .allowedWebsites {
-            allowedWebsitesWidgetSignature = nil
-        }
-
-        widgetView?.removeFromSuperview()
-        widgetView = nil
-        widgetContainer.isHidden = section == .all
-
-        let buildResult = FocusSectionWidgetFactory.build(
-            section: section,
-            appState: appState,
-            shellState: shellState,
-            onPomodoroInteractionDidBegin: { [weak self] in
-                self?.beginPomodoroWidgetInteraction()
-            },
-            onPomodoroInteractionDidEnd: { [weak self] in
-                self?.endPomodoroWidgetInteraction()
-            }
-        )
-
-        pomodoroWidgetSignature = buildResult.pomodoroSignature
-        schedulesWidgetSignature = buildResult.schedulesSignature
-        allowedWebsitesWidgetSignature = buildResult.allowedWebsitesSignature
-
-        guard let nextWidgetView = buildResult.widgetView else {
+        case .keepExisting:
+            widgetContainer.isHidden = section == .all
             return
-        }
+        case .rebuild(let buildResult):
+            widgetView?.removeFromSuperview()
+            widgetView = nil
+            widgetContainer.isHidden = section == .all
+            guard let nextWidgetView = buildResult.widgetView else {
+                return
+            }
 
-        nextWidgetView.translatesAutoresizingMaskIntoConstraints = false
-        widgetContainer.addSubview(nextWidgetView)
-        NSLayoutConstraint.activate([
-            nextWidgetView.leadingAnchor.constraint(equalTo: widgetContainer.leadingAnchor),
-            nextWidgetView.trailingAnchor.constraint(equalTo: widgetContainer.trailingAnchor),
-            nextWidgetView.topAnchor.constraint(equalTo: widgetContainer.topAnchor),
-            nextWidgetView.bottomAnchor.constraint(equalTo: widgetContainer.bottomAnchor),
-        ])
-        widgetView = nextWidgetView
+            nextWidgetView.translatesAutoresizingMaskIntoConstraints = false
+            widgetContainer.addSubview(nextWidgetView)
+            NSLayoutConstraint.activate([
+                nextWidgetView.leadingAnchor.constraint(equalTo: widgetContainer.leadingAnchor),
+                nextWidgetView.trailingAnchor.constraint(equalTo: widgetContainer.trailingAnchor),
+                nextWidgetView.topAnchor.constraint(equalTo: widgetContainer.topAnchor),
+                nextWidgetView.bottomAnchor.constraint(equalTo: widgetContainer.bottomAnchor),
+            ])
+            widgetView = nextWidgetView
+        }
     }
 
     @objc
