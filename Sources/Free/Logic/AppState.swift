@@ -184,7 +184,7 @@ class AppState: ObservableObject {
         let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 60) { [weak self] in
             self?.checkSchedules()
         }
-        replaceScheduleTimer(with: timer)
+        timerCoordinator.replaceScheduleTimer(with: timer)
         checkSchedules()
     }
 
@@ -392,7 +392,7 @@ class AppState: ObservableObject {
             )
         else { return }
         applyPomodoroEngineState(stopped)
-        replacePomodoroTimer(with: nil)
+        timerCoordinator.replacePomodoroTimer(with: nil)
         checkSchedules()
     }
     func skipPomodoroPhase() {
@@ -422,17 +422,17 @@ class AppState: ObservableObject {
         applyPauseEngineState(updated)
         let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
-            let ticked = AppStatePauseCoordinator.tick(from: self.pauseEngineState)
-            self.applyPauseEngineState(ticked)
-            if !ticked.isPaused {
+            let result = AppStateRuntimeCoordinator.pauseTick(from: self.pauseEngineState)
+            self.applyPauseEngineState(result.state)
+            if result.shouldCancel {
                 self.cancelPause()
             }
         }
-        replacePauseTimer(with: timer)
+        timerCoordinator.replacePauseTimer(with: timer)
     }
     func cancelPause() {
         applyPauseEngineState(AppStatePauseCoordinator.cancel(from: pauseEngineState))
-        replacePauseTimer(with: nil)
+        timerCoordinator.replacePauseTimer(with: nil)
     }
     func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }
 
@@ -491,7 +491,7 @@ class AppState: ObservableObject {
     private func runTimer() {
         let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
-            switch AppStatePomodoroCoordinator.timerAction(
+            switch AppStateRuntimeCoordinator.pomodoroTickAction(
             status: self.pomodoroStatus,
             remaining: self.pomodoroRemaining
             ) {
@@ -503,19 +503,8 @@ class AppState: ObservableObject {
                 self.startPomodoro()
             }
         }
-        replacePomodoroTimer(with: timer)
+        timerCoordinator.replacePomodoroTimer(with: timer)
         checkSchedules()
-    }
-    private func replacePauseTimer(with newTimer: (any RepeatingTimer)?) {
-        timerCoordinator.replacePauseTimer(with: newTimer)
-    }
-
-    private func replacePomodoroTimer(with newTimer: (any RepeatingTimer)?) {
-        timerCoordinator.replacePomodoroTimer(with: newTimer)
-    }
-
-    private func replaceScheduleTimer(with newTimer: (any RepeatingTimer)?) {
-        timerCoordinator.replaceScheduleTimer(with: newTimer)
     }
 
     private func automaticBlockingState() -> Bool {
@@ -596,7 +585,4 @@ class AppState: ObservableObject {
         pomodoroRuleSetId = state.ruleSetId
     }
 
-    private func invalidateAllTimers() {
-        timerCoordinator.invalidateAllTimers()
-    }
 }
