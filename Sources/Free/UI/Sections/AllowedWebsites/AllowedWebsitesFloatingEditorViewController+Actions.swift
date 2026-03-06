@@ -7,20 +7,11 @@ extension AllowedWebsitesFloatingEditorViewController {
             isStrictActive: appState.isStrictActive
         ) else { return }
 
-        let alert = NSAlert()
-        alert.messageText = "New Allowed List"
-        let input = NSTextField(string: "")
-        input.placeholderString = "List Name"
-        input.frame = CGRect(x: 0, y: 0, width: 260, height: 24)
-        alert.accessoryView = input
-        alert.addButton(withTitle: "Create")
-        alert.addButton(withTitle: "Cancel")
-        let response = alert.runModal()
-        guard response == .alertFirstButtonReturn else { return }
+        guard let name = AllowedWebsitesRuleSetAlertPresenter.promptForNewRuleSetName() else { return }
 
         let newSet = AllowedWebsitesRuleSetActionsCoordinator.createRuleSet(
             appState: appState,
-            name: input.stringValue
+            name: name
         )
         selectedRuleSetId = newSet.id
         reloadContent()
@@ -38,14 +29,7 @@ extension AllowedWebsitesFloatingEditorViewController {
             ruleSets: appState.ruleSets
         ) else { return }
 
-        let alert = NSAlert()
-        alert.messageText = "Delete \"\(selectedSet.name)\"?"
-        alert.informativeText = "This removes the list and all its allowed websites."
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
-        let response = alert.runModal()
-        guard response == .alertFirstButtonReturn else { return }
+        guard AllowedWebsitesRuleSetAlertPresenter.confirmDeleteRuleSet(named: selectedSet.name) else { return }
 
         AllowedWebsitesRuleSetActionsCoordinator.deleteRuleSet(
             appState: appState,
