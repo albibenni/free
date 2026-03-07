@@ -305,6 +305,15 @@ func configureAppKitIconButton(
     )
 }
 
+func configureAppKitDangerSymbolButton(
+    _ button: NSButton,
+    symbol: AppKitUISymbolSpec
+) {
+    button.isBordered = false
+    button.contentTintColor = .systemRed
+    button.image = appKitSymbolImage(spec: symbol, color: .systemRed)
+}
+
 func configureAppKitWindowButton(
     in window: NSWindow,
     type: NSWindow.ButtonType,

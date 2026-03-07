@@ -53,7 +53,7 @@ final class AllowedWebsitesFloatingEditorViewController:
             return visibleRules[index]
         }
         AppKitAppStateObservation.bind(
-            appState: appState,
+            publisher: AppKitAppStateObservation.allowedWebsitesPublisher(appState: appState),
             signature: { [appState] in
                 AllowedWebsitesReloadCoordinator.renderSignature(appState: appState)
             },

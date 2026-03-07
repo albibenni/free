@@ -52,7 +52,7 @@ final class SchedulesListDocumentNSView: NSView {
                 rowViews.removeValue(forKey: id)
             }
 
-            for (index, schedule) in schedules.enumerated() {
+            for schedule in schedules {
                 let rowView = rowViews[schedule.id] ?? SchedulesListRowNSView()
                 rowView.configure(
                     schedule: schedule,
@@ -66,13 +66,17 @@ final class SchedulesListDocumentNSView: NSView {
                     addSubview(rowView)
                 }
 
-                let currentAtIndex = index < subviews.count ? subviews[index] : nil
-                if currentAtIndex !== rowView {
-                    rowView.removeFromSuperview()
-                    addSubview(rowView, positioned: .above, relativeTo: currentAtIndex)
-                }
-
                 rowViews[schedule.id] = rowView
+            }
+
+            let orderedRows = schedules.compactMap { rowViews[$0.id] }
+            let hasDifferentOrder =
+                subviews.count != orderedRows.count
+                || zip(subviews, orderedRows).contains { current, expected in
+                    current !== expected
+                }
+            if hasDifferentOrder {
+                subviews = orderedRows
             }
 
             needsLayout = true

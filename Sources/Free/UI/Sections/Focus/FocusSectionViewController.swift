@@ -78,7 +78,7 @@ final class FocusSectionViewController: NSViewController {
         super.viewDidLoad()
 
         AppKitAppStateObservation.bind(
-            appState: appState,
+            publisher: AppKitAppStateObservation.focusPublisher(appState: appState),
             cancellables: &cancellables
         ) { [weak self] in
             self?.handleObservedAppStateChange()

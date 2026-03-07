@@ -98,7 +98,7 @@ final class SettingsSectionViewController: NSViewController {
         super.viewDidLoad()
 
         AppKitAppStateObservation.bind(
-            appState: appState,
+            publisher: AppKitAppStateObservation.settingsPublisher(appState: appState),
             signature: { [weak self] in
                 self?.observationSignature() ?? .fallback
             },

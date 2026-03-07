@@ -56,18 +56,11 @@ final class RulesSheetSidebarRowView: NSStackView {
                 button = existingDeleteButton
             } else {
                 button = NSButton()
-                button.isBordered = false
                 addArrangedSubview(button)
                 deleteButton = button
             }
             button.identifier = NSUserInterfaceItemIdentifier(ruleSetId.uuidString)
-            button.image = appKitSymbolImage(
-                named: AppKitUISymbols.Name.minus,
-                pointSize: 15,
-                weight: .regular,
-                color: .systemRed
-            )
-            button.contentTintColor = .systemRed
+            configureAppKitDangerSymbolButton(button, symbol: AppKitUISymbols.deleteList)
             button.target = target
             button.action = onDelete
         } else if let existingDeleteButton = deleteButton {
@@ -112,11 +105,7 @@ final class RulesSheetRuleRowView: NSStackView {
         self.rule = rule
         label.stringValue = rule
         deleteButton.identifier = NSUserInterfaceItemIdentifier(rule)
-        deleteButton.image = appKitSymbolImage(
-            spec: AppKitUISymbols.deleteRule,
-            color: .systemRed
-        )
-        deleteButton.contentTintColor = .systemRed
+        configureAppKitDangerSymbolButton(deleteButton, symbol: AppKitUISymbols.deleteRule)
         deleteButton.target = target
         deleteButton.action = onDelete
     }

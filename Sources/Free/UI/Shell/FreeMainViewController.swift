@@ -146,9 +146,7 @@ final class FreeMainViewController: NSViewController {
 
     private func bindShellState() {
         bindings.bind(
-            appStateChanges: appState.objectWillChange
-                .map { () }
-                .eraseToAnyPublisher(),
+            appStateChanges: AppKitAppStateObservation.shellAppearancePublisher(appState: appState),
             shellState: shellState,
             onSelectedSectionChanged: { [weak self] in
                 self?.updateSidebarSelection()
