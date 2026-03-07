@@ -304,6 +304,12 @@ struct UITransformationTests {
 
         let fallbackTimeOnly = WeeklyCalendarSupport.timeOnlyDate(from: Date(), calendar: calendar)
         #expect(fallbackTimeOnly.timeIntervalSinceReferenceDate >= 0)
+
+        WeeklyCalendarSupport.resetCalendarHooksForTesting()
+        let source = calendar.date(from: DateComponents(hour: 8, minute: 45))!
+        let rebuilt = WeeklyCalendarSupport.timeOnlyDate(from: source, calendar: calendar)
+        #expect(calendar.component(.hour, from: rebuilt) == 8)
+        #expect(calendar.component(.minute, from: rebuilt) == 45)
     }
 
     @Test("Rules section support import candidates cover excluded scheme and malformed fallback paths")

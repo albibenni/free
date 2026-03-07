@@ -435,6 +435,53 @@ struct SectionCoordinatorsTests {
         #expect(rebuilt === next)
         #expect(container.subviews.count == 1)
         #expect(container.subviews.first === next)
+
+        let appState = AppState(isTesting: true)
+        let pomodoroWidget = FocusPomodoroWidgetView(appState: appState)
+        container.addSubview(pomodoroWidget)
+
+        FocusSectionWidgetHostApplier.applyPomodoroReuse(
+            action: .keepLayout,
+            widgetView: pomodoroWidget,
+            widgetContainer: container
+        )
+        #expect(container.isHidden == false)
+        #expect(pomodoroWidget.needsLayout)
+
+        appState.ruleSets = [RuleSet(name: "Work", urls: ["example.com"])]
+        appState.activeRuleSetId = appState.ruleSets.first?.id
+        FocusSectionWidgetHostApplier.applyPomodoroReuse(
+            action: .updateSelection,
+            widgetView: pomodoroWidget,
+            widgetContainer: container
+        )
+        FocusSectionWidgetHostApplier.applyPomodoroReuse(
+            action: .refresh,
+            widgetView: pomodoroWidget,
+            widgetContainer: container
+        )
+
+        let beforeUnknownReuse = container.isHidden
+        FocusSectionWidgetHostApplier.applyPomodoroReuse(
+            action: .refresh,
+            widgetView: NSView(),
+            widgetContainer: container
+        )
+        #expect(container.isHidden == beforeUnknownReuse)
+
+        let noWidget = FocusSectionWidgetHostApplier.applyRebuild(
+            buildResult: .init(
+                widgetView: nil,
+                pomodoroSignature: nil,
+                schedulesSignature: nil,
+                allowedWebsitesSignature: nil
+            ),
+            currentWidgetView: next,
+            widgetContainer: container,
+            isContainerHidden: true
+        )
+        #expect(noWidget == nil)
+        #expect(container.isHidden)
     }
 
     @Test("Focus visibility coordinator maps section to overview and widget visibility")

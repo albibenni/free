@@ -29,11 +29,25 @@ test-verbose:
 	@$(SWIFT) test -v
 
 coverage:
-	@FREE_COVERAGE_MODE=1 $(SWIFT) test --enable-code-coverage --no-parallel
-	@profdata=$$(find .build -path "*/debug/codecov/default.profdata" | head -n 1); \
-	bin=$$(find .build -path "*/debug/FreePackageTests.xctest/Contents/MacOS/FreePackageTests" -not -path "*.dSYM/*" | head -n 1); \
+	@rm -rf .build/coverage-home .build/coverage-main .build/coverage-appkit .build/coverage-merged
+	@mkdir -p .build/coverage-home .build/coverage-merged
+	@HOME=$$PWD/.build/coverage-home \
+	XDG_CONFIG_HOME=$$PWD/.build/coverage-home \
+	FREE_COVERAGE_MODE=1 \
+	FREE_RUN_APPKIT_LIFECYCLE_UNDER_COVERAGE=1 \
+		$(SWIFT) test --enable-code-coverage --no-parallel \
+		--filter FreeAppTests/launchStartAndAppearanceLifecycle \
+		--scratch-path .build/coverage-appkit
+	@HOME=$$PWD/.build/coverage-home \
+	XDG_CONFIG_HOME=$$PWD/.build/coverage-home \
+	FREE_COVERAGE_MODE=1 \
+		$(SWIFT) test --enable-code-coverage --no-parallel \
+		--scratch-path .build/coverage-main
+	@appkit_prof=$$(find .build/coverage-appkit -path "*/debug/codecov/default.profdata" | head -n 1); \
+	main_prof=$$(find .build/coverage-main -path "*/debug/codecov/default.profdata" | head -n 1); \
+	bin=$$(find .build/coverage-main -path "*/debug/FreePackageTests.xctest/Contents/MacOS/FreePackageTests" -not -path "*.dSYM/*" | head -n 1); \
 	src_files=$$(find Sources -type f -name "*.swift" | sort); \
-	if [[ -z "$$profdata" || -z "$$bin" ]]; then \
+	if [[ -z "$$appkit_prof" || -z "$$main_prof" || -z "$$bin" ]]; then \
 		echo "Could not locate coverage artifacts."; \
 		exit 1; \
 	fi; \
@@ -41,7 +55,8 @@ coverage:
 		echo "Could not locate source files for coverage report."; \
 		exit 1; \
 	fi; \
-	xcrun llvm-cov report "$$bin" -instr-profile="$$profdata" $$src_files
+	xcrun llvm-profdata merge -sparse "$$main_prof" "$$appkit_prof" -o .build/coverage-merged/merged.profdata; \
+	xcrun llvm-cov report "$$bin" -instr-profile=.build/coverage-merged/merged.profdata $$src_files
 
 app:
 	@./build.sh
