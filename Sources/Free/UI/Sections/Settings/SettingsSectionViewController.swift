@@ -15,6 +15,21 @@ final class SettingsSectionViewController: NSViewController {
         let appearanceMode: AppearanceMode
         let accentColorIndex: Int
         let launchAtLoginEnabled: Bool
+
+        static let fallback = ObservationSignature(
+            isBlocking: false,
+            isUnblockable: false,
+            isStrictActive: false,
+            weekStartsOnMonday: false,
+            calendarIntegrationEnabled: false,
+            calendarImportsBlockTime: false,
+            blockNewTabs: false,
+            blockDeveloperHosts: false,
+            blockLocalNetworkHosts: false,
+            appearanceMode: .system,
+            accentColorIndex: 0,
+            launchAtLoginEnabled: false
+        )
     }
 
     private let appState: AppState
@@ -85,20 +100,7 @@ final class SettingsSectionViewController: NSViewController {
         AppKitAppStateObservation.bind(
             appState: appState,
             signature: { [weak self] in
-                self?.observationSignature() ?? ObservationSignature(
-                    isBlocking: false,
-                    isUnblockable: false,
-                    isStrictActive: false,
-                    weekStartsOnMonday: false,
-                    calendarIntegrationEnabled: false,
-                    calendarImportsBlockTime: false,
-                    blockNewTabs: false,
-                    blockDeveloperHosts: false,
-                    blockLocalNetworkHosts: false,
-                    appearanceMode: .system,
-                    accentColorIndex: 0,
-                    launchAtLoginEnabled: false
-                )
+                self?.observationSignature() ?? .fallback
             },
             cancellables: &cancellables
         ) { [weak self] _ in

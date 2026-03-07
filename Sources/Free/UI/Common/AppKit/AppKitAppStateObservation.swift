@@ -14,9 +14,7 @@ enum AppKitAppStateObservation {
             .prepend(signature())
             .removeDuplicates()
             .dropFirst()
-            .sink { updatedSignature in
-                onChange(updatedSignature)
-            }
+            .sink(receiveValue: onChange)
             .store(in: &cancellables)
     }
 

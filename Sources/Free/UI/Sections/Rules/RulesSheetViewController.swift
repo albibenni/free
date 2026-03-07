@@ -32,7 +32,6 @@ final class RulesSheetViewController: NSViewController {
     private let addRuleButton = ActionButton(title: "Add")
     private let doneButton = ActionButton(title: "Done")
     private let onDismiss: (() -> Void)?
-    private var renderSignature: RulesSheetRenderSignature?
     private var reloadGeneration = 0
     private var sidebarRowsById: [UUID: RulesSheetSidebarRowView] = [:]
     private var ruleRowsByRule: [String: RulesSheetRuleRowView] = [:]
@@ -275,11 +274,6 @@ final class RulesSheetViewController: NSViewController {
 
     private func reloadContent() {
         withAppKitSignpost("RulesSheetReloadContent") {
-            renderSignature = RulesSheetRenderSignature(
-                appState: appState,
-                isSuggestionsExpanded: isSuggestionsExpanded,
-                currentSelectedSetId: selectedSetId
-            )
             reloadGeneration += 1
             applyActionButtonStyling()
 

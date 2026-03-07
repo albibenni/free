@@ -15,7 +15,6 @@ final class AllowedWebsitesFloatingEditorViewController:
     var selectedRuleSetId: UUID?
     var visibleRules: [String] = []
     var cancellables: Set<AnyCancellable> = []
-    var renderSignature: RenderSignature?
 
     let ruleSetScrollView = VerticalStackScrollContainer(
         contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
@@ -55,21 +54,14 @@ final class AllowedWebsitesFloatingEditorViewController:
         }
         AppKitAppStateObservation.bind(
             appState: appState,
-            signature: { [weak self, appState] in
-                guard let self else {
-                    return AllowedWebsitesReloadCoordinator.renderSignature(appState: appState)
-                }
-                return self.currentRenderSignature()
+            signature: { [appState] in
+                AllowedWebsitesReloadCoordinator.renderSignature(appState: appState)
             },
             cancellables: &cancellables
         ) { [weak self] _ in
             self?.reloadContent()
         }
         reloadContent()
-    }
-
-    private func currentRenderSignature() -> RenderSignature {
-        AllowedWebsitesReloadCoordinator.renderSignature(appState: appState)
     }
 
     func focusOnRuleSet(_ id: UUID?) {

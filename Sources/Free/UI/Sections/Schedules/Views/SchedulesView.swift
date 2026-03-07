@@ -84,9 +84,8 @@ final class SchedulesSheetViewController: NSViewController {
 
         AppKitAppStateObservation.bind(
             appState: appState,
-            signature: { [weak self, appState] in
-                guard let self else { return RenderSignature(appState: appState) }
-                return RenderSignature(appState: self.appState)
+            signature: { [appState] in
+                RenderSignature(appState: appState)
             },
             cancellables: &cancellables
         ) { [weak self] nextSignature in

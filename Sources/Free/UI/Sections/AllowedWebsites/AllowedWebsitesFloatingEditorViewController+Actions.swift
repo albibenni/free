@@ -84,7 +84,6 @@ extension AllowedWebsitesFloatingEditorViewController {
                 appState: appState,
                 previousSelectedRuleSetId: selectedRuleSetId
             )
-            renderSignature = state.renderSignature
             selectedRuleSetId = state.selectedRuleSetId
             reloadRuleSetRows()
             reloadRulesOnly()
