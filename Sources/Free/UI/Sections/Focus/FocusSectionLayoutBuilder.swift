@@ -90,9 +90,8 @@ enum FocusSectionLayoutBuilder {
         pauseDashboardView: AppKitDynamicView,
         pauseTitleLabel: NSTextField,
         pauseTimeLabel: NSTextField,
-        pauseEndButton: NSButton,
-        target: AnyObject?,
-        cancelAction: Selector
+        pauseEndButton: ActionButton,
+        cancelAction: @escaping () -> Void
     ) {
         pauseDashboardView.backgroundColorProvider = { NSColor.systemOrange.withAlphaComponent(0.1) }
         pauseDashboardView.layer?.cornerRadius = 12
@@ -107,9 +106,9 @@ enum FocusSectionLayoutBuilder {
         pauseTimeLabel.alignment = .center
 
         pauseEndButton.bezelStyle = .rounded
+        pauseEndButton.isBordered = true
         pauseEndButton.contentTintColor = .systemGreen
-        pauseEndButton.target = target
-        pauseEndButton.action = cancelAction
+        pauseEndButton.onAction = cancelAction
 
         let stack = makeAppKitVerticalStack(
             views: [pauseTitleLabel, pauseTimeLabel, pauseEndButton],

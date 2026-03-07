@@ -9,5 +9,7 @@ extension FocusSectionViewController {
     @objc
     func cancelPause() {
         appState.cancelPause()
+        needsReloadAfterPomodoroInteraction = false
+        reloadContent()
     }
 }

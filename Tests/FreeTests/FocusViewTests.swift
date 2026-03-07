@@ -514,4 +514,47 @@ struct FocusViewTests {
         #expect(controller.isPauseDashboardHiddenForTesting == false)
         #expect(controller.pauseTimeTextForTesting == "02:05")
     }
+
+    @Test("End Break & Focus button cancels pause from pomodoro section")
+    @MainActor
+    func focusViewPauseEndButtonCancelsPause() {
+        let appState = isolatedAppState(name: "pauseEndButton")
+        appState.isTrusted = true
+        appState.isBlocking = true
+        appState.isPaused = true
+        appState.pauseRemaining = 180
+
+        let controller = makeController(appState: appState, section: .pomodoro)
+        let hosted = host(controller)
+        let endButton = buttons(in: hosted).first { $0.title == "End Break & Focus" }
+
+        #expect(endButton != nil)
+        endButton?.performClick(nil)
+
+        #expect(appState.isPaused == false)
+        #expect(controller.isPauseDashboardHiddenForTesting == true)
+    }
+
+    @Test("End Break & Focus button works after starting quick break in pomodoro section")
+    @MainActor
+    func focusViewPauseEndButtonAfterQuickBreakStart() {
+        let appState = isolatedAppState(name: "pauseEndAfterQuickBreak")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .pomodoro)
+        let hosted = host(controller)
+
+        appState.startPause(minutes: 5)
+        controller.simulateObservedAppStateChangeForTesting()
+        hosted.layoutSubtreeIfNeeded()
+
+        #expect(controller.isPauseDashboardHiddenForTesting == false)
+        let endButton = buttons(in: hosted).first { $0.title == "End Break & Focus" }
+        #expect(endButton != nil)
+
+        endButton?.performClick(nil)
+        #expect(appState.isPaused == false)
+        #expect(controller.isPauseDashboardHiddenForTesting == true)
+    }
 }

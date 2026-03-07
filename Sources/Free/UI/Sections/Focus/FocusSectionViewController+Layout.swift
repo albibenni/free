@@ -26,8 +26,9 @@ extension FocusSectionViewController {
             pauseTitleLabel: pauseTitleLabel,
             pauseTimeLabel: pauseTimeLabel,
             pauseEndButton: pauseEndButton,
-            target: self,
-            cancelAction: #selector(cancelPause)
+            cancelAction: { [weak self] in
+                self?.cancelPause()
+            }
         )
     }
 

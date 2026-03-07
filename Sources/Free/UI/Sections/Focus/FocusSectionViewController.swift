@@ -20,7 +20,7 @@ final class FocusSectionViewController: NSViewController {
     let pauseDashboardView = AppKitDynamicView()
     let pauseTitleLabel = NSTextField(labelWithString: "On Break")
     let pauseTimeLabel = NSTextField(labelWithString: "")
-    let pauseEndButton = NSButton(title: "End Break & Focus", target: nil, action: nil)
+    let pauseEndButton = ActionButton(title: "End Break & Focus")
     let overviewCardView = AppKitDynamicView()
     let overviewTitleLabel = NSTextField(labelWithString: "Live Overview")
     let overviewRowsStack = NSStackView()
