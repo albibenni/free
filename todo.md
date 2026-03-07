@@ -39,6 +39,9 @@
 - [ ] allow with toggle search engines searches
 - [x] add git steps
   - [x] build and tests
+- [ ] breaks allowed or not base on settings toggle
+  - [ ] pomodoro setting for it
+  - [ ] calendar setting for it
 
 ### Allowed list
 
@@ -98,7 +101,7 @@
   - [x] FreeAppKitShell too big, refactor
   - [x] new floating window don't follow tab 'connection'
 - [ ] pomodoro timer can be changed during focus via preset click, it shouldn't be possible
-- [ ] end break and focus button don't work - the one in pomodoro widget
+- [x] end break and focus button don't work - the one in pomodoro widget
 
 - [ ] redo tests
   - [ ] coverage
