@@ -91,6 +91,7 @@ enum FocusSectionLayoutBuilder {
         pauseTitleLabel: NSTextField,
         pauseTimeLabel: NSTextField,
         pauseEndButton: ActionButton,
+        horizontalOffset: CGFloat,
         cancelAction: @escaping () -> Void
     ) {
         pauseDashboardView.backgroundColorProvider = { NSColor.systemOrange.withAlphaComponent(0.1) }
@@ -120,8 +121,9 @@ enum FocusSectionLayoutBuilder {
 
         pauseDashboardView.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: pauseDashboardView.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: pauseDashboardView.trailingAnchor),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: pauseDashboardView.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: pauseDashboardView.trailingAnchor, constant: -16),
+            stack.centerXAnchor.constraint(equalTo: pauseDashboardView.centerXAnchor, constant: horizontalOffset),
             stack.topAnchor.constraint(equalTo: pauseDashboardView.topAnchor),
             stack.bottomAnchor.constraint(equalTo: pauseDashboardView.bottomAnchor),
         ])

@@ -26,6 +26,7 @@ extension FocusSectionViewController {
             pauseTitleLabel: pauseTitleLabel,
             pauseTimeLabel: pauseTimeLabel,
             pauseEndButton: pauseEndButton,
+            horizontalOffset: section == .pomodoro ? 56 : 0,
             cancelAction: { [weak self] in
                 self?.cancelPause()
             }
