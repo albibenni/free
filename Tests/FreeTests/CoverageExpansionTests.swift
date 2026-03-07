@@ -135,6 +135,50 @@ struct CoverageExpansionTests {
         #expect(appState.schedules == originalSchedules)
     }
 
+    @Test("Calendar sync mutation service resync returns rebuilt schedule update")
+    func calendarSyncMutationServiceResyncUpdatePath() {
+        let now = Date()
+        let existing = Schedule(
+            name: "Manual",
+            days: [2],
+            startTime: now,
+            endTime: now.addingTimeInterval(1200),
+            type: .focus
+        )
+        let event = ExternalEvent(
+            id: "resync-event",
+            title: "Imported Focus",
+            startDate: now.addingTimeInterval(300),
+            endDate: now.addingTimeInterval(1800)
+        )
+        let ruleSet = RuleSet(name: "Default", urls: ["example.com"])
+
+        let context = AppStateCalendarSyncMutationService.Context(
+            schedule: AppScheduleDomainState(
+                schedules: [existing],
+                calendarIntegrationEnabled: true,
+                calendarImportsBlockTime: true,
+                isSynchronizingImportedSchedules: false,
+                suppressedImportedCalendarEventKeys: []
+            ),
+            rules: AppRulesDomainState(
+                ruleSets: [ruleSet],
+                activeRuleSetId: ruleSet.id
+            ),
+            events: [event]
+        )
+
+        let update = AppStateCalendarSyncMutationService.resync(
+            logicFacade: .live,
+            context: context,
+            preservedImportedByKey: [:]
+        )
+
+        #expect(update != nil)
+        #expect(update?.schedule.isSynchronizingImportedSchedules == false)
+        #expect(update?.schedule.schedules.contains(where: { $0.importedCalendarEventKey == event.id }) == true)
+    }
+
     @MainActor
     @Test("AppKit observation bind deduplicates signatures and publishes section changes")
     func appKitObservationBindsAndPublishers() {

@@ -241,4 +241,12 @@ extension FreeMainViewController {
         shellState.showRules = showRules
         shellState.showSchedules = showSchedules
     }
+
+    func invokeSidebarToggleHandlerForTesting() {
+        sidebarView.onToggleSidebar?()
+    }
+
+    func invokeSidebarSelectHandlerForTesting(_ section: MainContentSection) {
+        sidebarView.onSelectSection?(section)
+    }
 }

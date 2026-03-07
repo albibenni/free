@@ -333,6 +333,10 @@ final class SchedulesSheetViewController: NSViewController {
 }
 
 extension SchedulesSheetViewController {
+    var appKitConfigurationForTesting: SchedulesAppKitConfiguration {
+        makeAppKitConfiguration()
+    }
+
     var viewModeForTesting: Int { viewMode }
     var weekOffsetForTesting: Int { weekOffset }
     var editorContextForTesting: ScheduleEditorContext? { editorContext }

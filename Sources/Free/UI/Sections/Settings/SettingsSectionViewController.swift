@@ -493,4 +493,56 @@ extension SettingsSectionViewController {
         launchAtLoginSwitch.state = enabled ? .on : .off
         toggleLaunchAtLogin()
     }
+
+    func setStrictModeForTesting(_ enabled: Bool) {
+        strictToggle.state = enabled ? .on : .off
+        toggleStrictMode()
+        reloadSettings()
+    }
+
+    func setWeekStartsMondayForTesting(_ enabled: Bool) {
+        weekStartsMondaySwitch.state = enabled ? .on : .off
+        toggleWeekStartsMonday()
+        reloadSettings()
+    }
+
+    func setCalendarIntegrationForTesting(_ enabled: Bool) {
+        calendarIntegrationSwitch.state = enabled ? .on : .off
+        toggleCalendarIntegration()
+        reloadSettings()
+    }
+
+    func setCalendarImportsForTesting(_ enabled: Bool) {
+        calendarImportsSwitch.state = enabled ? .on : .off
+        toggleCalendarImports()
+        reloadSettings()
+    }
+
+    func resyncImportedSchedulesForTesting() {
+        resyncImportedSchedules()
+    }
+
+    func setBlockNewTabsForTesting(_ enabled: Bool) {
+        blockNewTabsSwitch.state = enabled ? .on : .off
+        toggleBlockNewTabs()
+        reloadSettings()
+    }
+
+    func setBlockDeveloperHostsForTesting(_ enabled: Bool) {
+        blockDeveloperHostsSwitch.state = enabled ? .on : .off
+        toggleBlockDeveloperHosts()
+        reloadSettings()
+    }
+
+    func setBlockLocalNetworkHostsForTesting(_ enabled: Bool) {
+        blockLocalNetworkHostsSwitch.state = enabled ? .on : .off
+        toggleBlockLocalNetworkHosts()
+        reloadSettings()
+    }
+
+    func selectAppearanceModeForTesting(_ mode: AppearanceMode) {
+        appearanceModeControl?.onSelection?(mode)
+        appearanceModeControl?.selectedValue = mode
+        reloadSettings()
+    }
 }
