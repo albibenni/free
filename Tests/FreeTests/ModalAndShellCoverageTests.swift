@@ -424,6 +424,36 @@ struct ModalAndShellCoverageTests {
     }
 
     @MainActor
+    @Test("Import presenter static defaults and observation-driven reload execute")
+    func allowedWebsitesImportDefaultsAndObservationReload() {
+        // Execute static default closure initializers before any reset.
+        _ = AllowedWebsitesFloatingEditorViewController.presentImportCandidates([], "Default")
+        AllowedWebsitesFloatingEditorViewController.presentEmptyImportState([])
+
+        let appState = isolatedAppState(name: "allowedWebsitesImportDefaultsAndObservationReload")
+        let initial = RuleSet(name: "Initial", urls: [])
+        appState.ruleSets = [initial]
+        appState.activeRuleSetId = initial.id
+
+        let controller = AllowedWebsitesFloatingEditorViewController(
+            appState: appState,
+            initialRuleSetId: initial.id
+        )
+        controller.loadViewIfNeeded()
+        controller.viewDidLoad()
+
+        controller.selectedRuleSetId = UUID()
+        appState.ruleSets = [initial, RuleSet(name: "Second", urls: [])]
+
+        let limit = Date().addingTimeInterval(0.5)
+        while Date() < limit {
+            RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.01))
+        }
+
+        #expect(controller.selectedRuleSetId == initial.id)
+    }
+
+    @MainActor
     @Test("Free sheet container wires done action and hosted content")
     func freeSheetContainer() {
         let hosted = NSViewController()
@@ -469,6 +499,13 @@ struct ModalAndShellCoverageTests {
             floatingClosed += 1
         }
         floating.present(for: parent)
+        if let window = floating.window {
+            window.setFrame(
+                NSRect(origin: window.frame.origin, size: NSSize(width: 700, height: 500)),
+                display: false
+            )
+            floating.restoreDesiredContentSize()
+        }
         floating.restoreDesiredContentSize()
         floating.dismiss()
         #expect(floatingClosed == 1)
@@ -487,14 +524,6 @@ struct ModalAndShellCoverageTests {
 
         sheet.windowWillClose(Notification(name: NSWindow.willCloseNotification))
         #expect(sheetClosed == 2)
-
-        if let window = floating.window {
-            window.setFrame(
-                NSRect(origin: window.frame.origin, size: NSSize(width: 700, height: 500)),
-                display: false
-            )
-            floating.restoreDesiredContentSize()
-        }
     }
 
     @MainActor
@@ -522,6 +551,15 @@ struct ModalAndShellCoverageTests {
             _ = NSApp.sendAction(action, to: quitItem.target, from: quitItem)
         }
         #expect(didQuit)
+
+        if let statusItem: NSStatusItem = mirrorValue(named: "statusItem", in: controller) {
+            NSStatusBar.system.removeStatusItem(statusItem)
+            controller.update(
+                statusText: "Focus Mode: Inactive",
+                isQuitDisabled: false,
+                iconColor: .labelColor
+            )
+        }
     }
 
     @MainActor
