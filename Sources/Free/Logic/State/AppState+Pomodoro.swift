@@ -72,6 +72,7 @@ extension AppState {
     private func runPomodoroTimer() {
         let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
+            guard !self.isPaused else { return }
             switch AppStatePomodoroMutationService.tickAction(
                 logicFacade: self.logicFacade,
                 context: self.pomodoroMutationContext

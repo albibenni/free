@@ -100,7 +100,7 @@
   - [x] close tab button small
   - [x] FreeAppKitShell too big, refactor
   - [x] new floating window don't follow tab 'connection'
-- [ ] pomodoro timer can be changed during focus via preset click, it shouldn't be possible
+- [x] pomodoro timer can be changed during focus via preset click, it shouldn't be possible
 - [x] end break and focus button don't work - the one in pomodoro widget
 
 - [ ] redo tests

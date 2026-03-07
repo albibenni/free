@@ -179,6 +179,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     }
 
     private func updateIdleControls() {
+        presetButtons.forEach { $0.button.isEnabled = true }
         focusDialView?.setDurationMinutes(appState.pomodoroFocusDuration)
         breakDialView?.setDurationMinutes(appState.pomodoroBreakDuration)
 
@@ -203,6 +204,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     }
 
     private func updateActiveControls() {
+        presetButtons.forEach { $0.button.isEnabled = false }
         let isFocus = appState.pomodoroStatus == .focus
         phaseLabel?.stringValue = isFocus ? "FOCUSING" : "BREAKING"
 
@@ -439,9 +441,11 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 selectedColor: accentColor,
                 width: 50
             ) { [weak appState] in
-                appState?.pomodoroFocusDuration = focus
-                appState?.pomodoroBreakDuration = breakTime
+                guard let appState, appState.pomodoroStatus == .none else { return }
+                appState.pomodoroFocusDuration = focus
+                appState.pomodoroBreakDuration = breakTime
             }
+            button.isEnabled = appState.pomodoroStatus == .none
             presetButtons.append((focus: focus, breakTime: breakTime, button: button))
             buttons.addArrangedSubview(button)
         }

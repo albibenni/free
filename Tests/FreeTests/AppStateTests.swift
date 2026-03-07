@@ -1623,6 +1623,29 @@ struct AppStateTests {
         #expect(appState.isPaused == true)
     }
 
+    @Test("Quick break pauses active pomodoro countdown and resumes after break ends")
+    func quickBreakPausesPomodoroTimer() {
+        let scheduler = MockRepeatingTimerScheduler()
+        let appState = isolatedAppState(name: "quickBreakPausesPomodoroTimer", timerScheduler: scheduler)
+        appState.isBlocking = true
+
+        appState.startPomodoro()
+        #expect(appState.pomodoroStatus == .focus)
+
+        let pomodoroTimerIndex = scheduler.handlers.count - 1
+        appState.pomodoroRemaining = 100
+
+        appState.startPause(minutes: 5)
+        #expect(appState.isPaused)
+        scheduler.fire(at: pomodoroTimerIndex)
+        #expect(appState.pomodoroRemaining == 100)
+
+        appState.cancelPause()
+        #expect(!appState.isPaused)
+        scheduler.fire(at: pomodoroTimerIndex)
+        #expect(appState.pomodoroRemaining == 99)
+    }
+
     @Test("todaySchedules badge count logic")
     func todaySchedulesBadgeCount() {
         let appState = isolatedAppState(name: "todaySchedulesBadgeCount")
