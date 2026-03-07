@@ -151,4 +151,42 @@ struct FreeAppKitShellTests {
         controller.invokeSidebarSelectHandlerForTesting(.settings)
         #expect(controller.selectedSectionForTesting == .settings)
     }
+
+    @Test("FreeMainViewController window-hosted flows cover sheet toggles and launch prompt path")
+    func mainViewControllerWindowHostedFlowsCoverage() {
+        let appState = isolatedAppState(name: "windowHostedFlows")
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+        controller.loadViewIfNeeded()
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentViewController = controller
+        window.makeKeyAndOrderFront(nil)
+        defer {
+            window.orderOut(nil)
+        }
+
+        // Cover present + dismiss paths for both rules and schedules sheets.
+        controller.setPresentedWindowStatesForTesting(showRules: true, showSchedules: false)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        controller.setPresentedWindowStatesForTesting(showRules: false, showSchedules: false)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+
+        controller.setPresentedWindowStatesForTesting(showRules: false, showSchedules: true)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        controller.setPresentedWindowStatesForTesting(showRules: false, showSchedules: false)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+
+        // Cover guarded launch prompt path when window exists.
+        controller.presentLaunchAtLoginPromptIfNeeded()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+    }
 }
