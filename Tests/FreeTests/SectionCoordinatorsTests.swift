@@ -282,7 +282,7 @@ struct SectionCoordinatorsTests {
             schedules: nil,
             allowedWebsites: FocusAllowedWebsitesWidgetSignature(appState: changedAppState)
         )
-        changedAppState.isBlocking.toggle()
+        changedAppState.ruleSets.append(RuleSet(name: "Extra", urls: []))
         let allowedMismatchDecision = FocusSectionWidgetReloadCoordinator.decide(
             section: .allowedWebsites,
             appState: changedAppState,
