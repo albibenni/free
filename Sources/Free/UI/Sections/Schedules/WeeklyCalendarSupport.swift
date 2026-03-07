@@ -1,0 +1,138 @@
+import CoreGraphics
+import Foundation
+
+enum WeeklyCalendarSupport {
+    struct DragSelection {
+        let day: Int
+        let startHour: CGFloat
+        var endHour: CGFloat
+    }
+
+    struct DragPreviewMetrics {
+        let columnWidth: CGFloat
+        let startHour: CGFloat
+        let endHour: CGFloat
+        let yOffset: CGFloat
+        let height: CGFloat
+        let columnIndex: Int
+    }
+
+    struct SchedulePlacement: Identifiable {
+        let id: String
+        let day: Int
+        let startDate: Date
+        let endDate: Date
+    }
+
+    struct PositionedSchedule: Identifiable {
+        let id: String
+        let schedule: Schedule
+        let placement: SchedulePlacement
+        let laneIndex: Int
+        let laneCount: Int
+    }
+
+    enum ScheduleInteractionMode {
+        case move
+        case resizeStart
+        case resizeEnd
+    }
+
+    struct ScheduleUpdate {
+        let targetDay: Int
+        let targetDate: Date?
+        let start: Date
+        let end: Date
+    }
+
+    static func getDayOrder(weekStartsOnMonday: Bool) -> [Int] {
+        weekStartsOnMonday ? [2, 3, 4, 5, 6, 7, 1] : [1, 2, 3, 4, 5, 6, 7]
+    }
+
+    static func getWeekDates(
+        at date: Date = Date(),
+        weekStartsOnMonday: Bool,
+        offset: Int = 0
+    ) -> [Date] {
+        WeekDateCalculator.getWeekDates(
+            at: date,
+            weekStartsOnMonday: weekStartsOnMonday,
+            offset: offset
+        )
+    }
+
+    static func normalizedInterval(
+        for placement: SchedulePlacement,
+        calendar: Calendar
+    ) -> (start: Date, end: Date) {
+        let interval = normalizedInterval(
+            startDate: placement.startDate,
+            endDate: placement.endDate,
+            calendar: calendar
+        )
+        return (interval.start, interval.end)
+    }
+
+    static func normalizedInterval(
+        startDate: Date,
+        endDate: Date,
+        calendar: Calendar
+    ) -> DateInterval {
+        let anchor = calendar.startOfDay(for: Date(timeIntervalSinceReferenceDate: 0))
+        let startComponents = calendar.dateComponents([.hour, .minute], from: startDate)
+        let endComponents = calendar.dateComponents([.hour, .minute], from: endDate)
+        let start =
+            calendar.date(
+                bySettingHour: startComponents.hour ?? 0,
+                minute: startComponents.minute ?? 0,
+                second: 0,
+                of: anchor
+            ) ?? anchor
+        var end =
+            calendar.date(
+                bySettingHour: endComponents.hour ?? 0,
+                minute: endComponents.minute ?? 0,
+                second: 0,
+                of: anchor
+            ) ?? anchor
+        if end <= start {
+            end = calendar.date(byAdding: .day, value: 1, to: end) ?? end
+        }
+        return DateInterval(start: start, end: end)
+    }
+
+    static func timeOnlyDate(from date: Date, calendar: Calendar) -> Date {
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        return calendar.date(
+            from: DateComponents(hour: components.hour, minute: components.minute)
+        ) ?? date
+    }
+
+    static func concurrentLaneCount(
+        for target: SchedulePlacement,
+        among placements: [SchedulePlacement],
+        calendar: Calendar
+    ) -> Int {
+        let targetInterval = normalizedInterval(for: target, calendar: calendar)
+        let candidateStarts = placements.map {
+            normalizedInterval(for: $0, calendar: calendar).start
+        }
+        let candidateEnds = placements.map {
+            normalizedInterval(for: $0, calendar: calendar).end
+        }
+        let checkpoints = Set(candidateStarts + candidateEnds)
+            .filter { $0 >= targetInterval.start && $0 < targetInterval.end }
+
+        var maxConcurrent = 1
+        for checkpoint in checkpoints {
+            let concurrent = placements.reduce(into: 0) { count, placement in
+                let interval = normalizedInterval(for: placement, calendar: calendar)
+                if interval.start <= checkpoint && checkpoint < interval.end {
+                    count += 1
+                }
+            }
+            maxConcurrent = max(maxConcurrent, concurrent)
+        }
+        return maxConcurrent
+    }
+}

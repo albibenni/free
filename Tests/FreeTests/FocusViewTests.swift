@@ -149,7 +149,7 @@ struct FocusViewTests {
 
         let appState = isolatedAppState(name: "cancelPauseAction")
         appState.isPaused = true
-        let cancelPause = FocusSectionSupport.makeCancelPauseAction(appState: appState)
+        let cancelPause = FocusSectionSupport.makeCancelPauseAction(cancelPause: { appState.cancelPause() })
         cancelPause()
         #expect(appState.isPaused == false)
     }
@@ -351,6 +351,54 @@ struct FocusViewTests {
         #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
     }
 
+    @Test("Focus section switching preserves widget reuse behavior when returning to pomodoro")
+    @MainActor
+    func focusViewSectionSwitchingKeepsPomodoroReuse() {
+        let appState = isolatedAppState(name: "sectionSwitchingPomodoroReuse")
+        appState.isTrusted = true
+        appState.isBlocking = true
+        appState.ruleSets = [
+            RuleSet(name: "Default", urls: ["example.com"]),
+            RuleSet(name: "Study", urls: ["example.org"]),
+        ]
+        appState.activeRuleSetId = appState.ruleSets.first?.id
+        appState.schedules = [
+            Schedule(
+                name: "Study Block",
+                days: [Calendar.current.component(.weekday, from: Date())],
+                startTime: Date().addingTimeInterval(-300),
+                endTime: Date().addingTimeInterval(1200),
+                colorIndex: 1,
+                type: .focus
+            )
+        ]
+
+        let controller = makeController(appState: appState, section: .pomodoro)
+        _ = host(controller)
+
+        let initialPomodoroId = controller.widgetViewIdentifierForTesting
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusPomodoroWidgetView")
+        #expect(initialPomodoroId != nil)
+
+        controller.section = .schedules
+        controller.view.layoutSubtreeIfNeeded()
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusSchedulesWidgetView")
+
+        controller.section = .pomodoro
+        controller.view.layoutSubtreeIfNeeded()
+        let returnedPomodoroId = controller.widgetViewIdentifierForTesting
+        let returnedRefreshGeneration = controller.pomodoroWidgetRefreshGenerationForTesting
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusPomodoroWidgetView")
+        #expect(returnedPomodoroId != nil)
+        #expect(returnedPomodoroId != initialPomodoroId)
+        #expect(returnedRefreshGeneration != nil)
+
+        appState.activeRuleSetId = appState.ruleSets.last?.id
+        controller.simulateObservedAppStateChangeForTesting()
+        #expect(controller.widgetViewIdentifierForTesting == returnedPomodoroId)
+        #expect(controller.pomodoroWidgetRefreshGenerationForTesting == returnedRefreshGeneration)
+    }
+
     @Test("Focus section schedules widget stays mounted for unrelated app-state changes")
     @MainActor
     func focusViewKeepsSchedulesWidgetForUnrelatedStateChanges() {
@@ -465,5 +513,48 @@ struct FocusViewTests {
         #expect(hosted.fittingSize.width >= 0)
         #expect(controller.isPauseDashboardHiddenForTesting == false)
         #expect(controller.pauseTimeTextForTesting == "02:05")
+    }
+
+    @Test("End Break & Focus button cancels pause from pomodoro section")
+    @MainActor
+    func focusViewPauseEndButtonCancelsPause() {
+        let appState = isolatedAppState(name: "pauseEndButton")
+        appState.isTrusted = true
+        appState.isBlocking = true
+        appState.isPaused = true
+        appState.pauseRemaining = 180
+
+        let controller = makeController(appState: appState, section: .pomodoro)
+        let hosted = host(controller)
+        let endButton = buttons(in: hosted).first { $0.title == "End Break & Focus" }
+
+        #expect(endButton != nil)
+        endButton?.performClick(nil)
+
+        #expect(appState.isPaused == false)
+        #expect(controller.isPauseDashboardHiddenForTesting == true)
+    }
+
+    @Test("End Break & Focus button works after starting quick break in pomodoro section")
+    @MainActor
+    func focusViewPauseEndButtonAfterQuickBreakStart() {
+        let appState = isolatedAppState(name: "pauseEndAfterQuickBreak")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .pomodoro)
+        let hosted = host(controller)
+
+        appState.startPause(minutes: 5)
+        controller.simulateObservedAppStateChangeForTesting()
+        hosted.layoutSubtreeIfNeeded()
+
+        #expect(controller.isPauseDashboardHiddenForTesting == false)
+        let endButton = buttons(in: hosted).first { $0.title == "End Break & Focus" }
+        #expect(endButton != nil)
+
+        endButton?.performClick(nil)
+        #expect(appState.isPaused == false)
+        #expect(controller.isPauseDashboardHiddenForTesting == true)
     }
 }

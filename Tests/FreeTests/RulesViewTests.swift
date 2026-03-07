@@ -223,6 +223,82 @@ struct RulesViewTests {
         #expect(controller.reloadGenerationForTesting == initialReloadGeneration)
     }
 
+    @Test("Rules sheet controller reuses sidebar row views when selection changes")
+    @MainActor
+    func rulesSheetControllerReusesSidebarRowsOnSelection() throws {
+        let appState = isolatedAppState(name: "sidebarReuseOnSelection")
+        let setA = RuleSet(name: "Set A", urls: ["a.com"])
+        let setB = RuleSet(name: "Set B", urls: ["b.com"])
+        appState.ruleSets = [setA, setB]
+        appState.activeRuleSetId = setA.id
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
+
+        let initialReloadGeneration = controller.reloadGenerationForTesting
+        let setARowId = try #require(controller.sidebarRowObjectIdentifierForTesting(setA.id))
+        let setBRowId = try #require(controller.sidebarRowObjectIdentifierForTesting(setB.id))
+
+        controller.selectRuleSetForTesting(setB)
+
+        #expect(controller.reloadGenerationForTesting == initialReloadGeneration)
+        #expect(controller.sidebarRowObjectIdentifierForTesting(setA.id) == setARowId)
+        #expect(controller.sidebarRowObjectIdentifierForTesting(setB.id) == setBRowId)
+        #expect(controller.selectedSetIdForTesting == setB.id)
+    }
+
+    @Test("Rules sheet controller reuses existing rule row views for unchanged rules")
+    @MainActor
+    func rulesSheetControllerReusesRuleRows() throws {
+        let appState = isolatedAppState(name: "ruleRowsReuse")
+        let set = RuleSet(name: "Set", urls: ["a.com"])
+        appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
+
+        let initialRowId = try #require(controller.ruleRowObjectIdentifierForTesting("a.com"))
+
+        controller.addRuleForTesting("b.com", setId: set.id)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+
+        #expect(controller.ruleRowObjectIdentifierForTesting("a.com") == initialRowId)
+        #expect(controller.ruleRowObjectIdentifierForTesting("b.com") != nil)
+    }
+
+    @Test("Rules sheet controller reuses suggestion rows across accent updates and expand toggles")
+    @MainActor
+    func rulesSheetControllerReusesSuggestionRows() throws {
+        let appState = isolatedAppState(name: "suggestionsReuse")
+        let set = RuleSet(name: "Set", urls: ["already.com"])
+        appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
+
+        appState.currentOpenUrls = ["https://newsite.com"]
+        controller.setSuggestionsExpandedForTesting(true)
+        let initialSuggestionRowId = try #require(
+            controller.suggestionRowObjectIdentifierForTesting("https://newsite.com")
+        )
+
+        appState.accentColorIndex = 3
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        #expect(
+            controller.suggestionRowObjectIdentifierForTesting("https://newsite.com")
+                == initialSuggestionRowId
+        )
+
+        controller.setSuggestionsExpandedForTesting(false)
+        controller.setSuggestionsExpandedForTesting(true)
+        #expect(
+            controller.suggestionRowObjectIdentifierForTesting("https://newsite.com")
+                == initialSuggestionRowId
+        )
+    }
+
     @Test("Rules sheet controller renders non-empty suggestions and no-selected-list fallback")
     @MainActor
     func rulesSheetControllerRenderSuggestionsAndFallback() {

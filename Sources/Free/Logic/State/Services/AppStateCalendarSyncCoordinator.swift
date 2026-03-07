@@ -1,0 +1,48 @@
+import Foundation
+
+struct AppStateCalendarSyncCoordinator {
+    static func rebuildForResync(
+        calendarIntegrationEnabled: Bool,
+        currentSchedules: [Schedule],
+        events: [ExternalEvent],
+        calendarImportsBlockTime: Bool,
+        suppressedImportedCalendarEventKeys: Set<String>,
+        activeRuleSetId: UUID?,
+        ruleSets: [RuleSet],
+        preservedImportedByKey: [String: Schedule]
+    ) -> [Schedule]? {
+        guard calendarIntegrationEnabled else { return nil }
+        return AppStateScheduleCoordinator.rebuildIfNeeded(
+            currentSchedules: currentSchedules,
+            events: events,
+            shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+            suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
+            activeRuleSetId: activeRuleSetId,
+            ruleSets: ruleSets,
+            preservedImportedByKey: preservedImportedByKey
+        )
+    }
+
+    static func rebuildForScheduleCheck(
+        isSynchronizingImportedSchedules: Bool,
+        currentSchedules: [Schedule],
+        events: [ExternalEvent],
+        calendarIntegrationEnabled: Bool,
+        calendarImportsBlockTime: Bool,
+        suppressedImportedCalendarEventKeys: Set<String>,
+        activeRuleSetId: UUID?,
+        ruleSets: [RuleSet],
+        preservedImportedByKey: [String: Schedule]
+    ) -> [Schedule]? {
+        guard !isSynchronizingImportedSchedules else { return nil }
+        return AppStateScheduleCoordinator.rebuildIfNeeded(
+            currentSchedules: currentSchedules,
+            events: events,
+            shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+            suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
+            activeRuleSetId: activeRuleSetId,
+            ruleSets: ruleSets,
+            preservedImportedByKey: preservedImportedByKey
+        )
+    }
+}

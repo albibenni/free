@@ -51,7 +51,19 @@ struct BrowserMonitorTests {
         startTimer: Bool = false
     ) -> BrowserMonitor {
         BrowserMonitor(
-            appState: appState,
+            stateSnapshotProvider: {
+                BrowserMonitor.StateSnapshot(
+                    isBlocking: appState.isBlocking,
+                    isPaused: appState.isPaused,
+                    blockNewTabs: appState.blockNewTabs,
+                    blockDeveloperHosts: appState.blockDeveloperHosts,
+                    blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
+                    allowedRules: appState.allowedRules
+                )
+            },
+            setTrustedState: { trusted in
+                appState.isTrusted = trusted
+            },
             server: nil,
             automator: mock,
             supportedBrowsers: supportedBrowsers,
@@ -80,7 +92,19 @@ struct BrowserMonitorTests {
         let mock = MockBrowserAutomator()
 
         _ = BrowserMonitor(
-            appState: appState,
+            stateSnapshotProvider: {
+                BrowserMonitor.StateSnapshot(
+                    isBlocking: appState.isBlocking,
+                    isPaused: appState.isPaused,
+                    blockNewTabs: appState.blockNewTabs,
+                    blockDeveloperHosts: appState.blockDeveloperHosts,
+                    blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
+                    allowedRules: appState.allowedRules
+                )
+            },
+            setTrustedState: { trusted in
+                appState.isTrusted = trusted
+            },
             server: nil,
             automator: mock,
             startTimer: false
@@ -419,7 +443,19 @@ struct BrowserMonitorTests {
         let mock = MockBrowserAutomator()
         mock.activeUrl = nil
         let monitor = BrowserMonitor(
-            appState: appState,
+            stateSnapshotProvider: {
+                BrowserMonitor.StateSnapshot(
+                    isBlocking: appState.isBlocking,
+                    isPaused: appState.isPaused,
+                    blockNewTabs: appState.blockNewTabs,
+                    blockDeveloperHosts: appState.blockDeveloperHosts,
+                    blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
+                    allowedRules: appState.allowedRules
+                )
+            },
+            setTrustedState: { trusted in
+                appState.isTrusted = trusted
+            },
             server: nil,
             automator: mock,
             supportedBrowsers: [frontBundleId],

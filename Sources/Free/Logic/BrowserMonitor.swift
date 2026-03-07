@@ -9,9 +9,19 @@ protocol BrowserAutomator {
 }
 
 class BrowserMonitor {
+    struct StateSnapshot {
+        let isBlocking: Bool
+        let isPaused: Bool
+        let blockNewTabs: Bool
+        let blockDeveloperHosts: Bool
+        let blockLocalNetworkHosts: Bool
+        let allowedRules: [String]
+    }
+
     private var timer: (any RepeatingTimer)?
     private let timerLock = NSLock()
-    private weak var appState: AppState?
+    private let stateSnapshotProvider: () -> StateSnapshot?
+    private let setTrustedState: (Bool) -> Void
     private let server: LocalServer?
     private let automator: BrowserAutomator
     private let timerScheduler: any RepeatingTimerScheduling
@@ -47,7 +57,8 @@ class BrowserMonitor {
     ]
 
     init(
-        appState: AppState,
+        stateSnapshotProvider: @escaping () -> StateSnapshot?,
+        setTrustedState: @escaping (Bool) -> Void,
         server: LocalServer? = LocalServer(),
         automator: BrowserAutomator = DefaultBrowserAutomator(),
         supportedBrowsers: Set<String> = BrowserMonitor.defaultBrowsers,
@@ -58,7 +69,8 @@ class BrowserMonitor {
         timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
         startTimer: Bool = true
     ) {
-        self.appState = appState
+        self.stateSnapshotProvider = stateSnapshotProvider
+        self.setTrustedState = setTrustedState
         self.server = server
         self.automator = automator
         self.timerScheduler = timerScheduler
@@ -81,7 +93,7 @@ class BrowserMonitor {
     func checkPermissions(prompt: Bool = false) {
         let trusted = automator.checkPermissions(prompt: prompt)
         DispatchQueue.main.async { [weak self] in
-            self?.appState?.isTrusted = trusted
+            self?.setTrustedState(trusted)
         }
     }
 
@@ -98,10 +110,14 @@ class BrowserMonitor {
     }
 
     func checkActiveTab() {
-        guard let appState = appState, appState.isBlocking, !appState.isPaused,
+        guard
+            let snapshot = stateSnapshotProvider(),
+            snapshot.isBlocking,
+            !snapshot.isPaused,
               let frontApp = frontmostAppProvider(),
               let bundleId = bundleIdProvider(frontApp),
-              supportedBrowsers.contains(bundleId) else { return }
+            supportedBrowsers.contains(bundleId)
+        else { return }
 
         let now = nowProvider()
         if let lastRedirect = lastRedirectTime[bundleId], now.timeIntervalSince(lastRedirect) < 2.0 { return }
@@ -110,27 +126,27 @@ class BrowserMonitor {
             if currentURL.contains("localhost:10000") { return }
 
             if Self.isNewTabLike(currentURL) {
-                guard appState.blockNewTabs else { return }
+                guard snapshot.blockNewTabs else { return }
                 lastRedirectTime[bundleId] = now
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
                 return
             }
 
             if Self.isDeveloperLocalUrl(currentURL) {
-                guard appState.blockDeveloperHosts else { return }
+                guard snapshot.blockDeveloperHosts else { return }
                 lastRedirectTime[bundleId] = now
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
                 return
             }
 
             if Self.isPrivateNetworkUrl(currentURL) {
-                guard appState.blockLocalNetworkHosts else { return }
+                guard snapshot.blockLocalNetworkHosts else { return }
                 lastRedirectTime[bundleId] = now
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
                 return
             }
 
-            if !RuleMatcher.isAllowed(currentURL, rules: appState.allowedRules) {
+            if !RuleMatcher.isAllowed(currentURL, rules: snapshot.allowedRules) {
                 lastRedirectTime[bundleId] = now
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
             }
