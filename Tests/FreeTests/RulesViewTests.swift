@@ -324,4 +324,102 @@ struct RulesViewTests {
         texts = visibleText(in: emptyHosted)
         #expect(texts.contains("Select a list to edit"))
     }
+
+    @Test("Rules sheet objc actions cover add/select/delete/suggestion/done branches")
+    @MainActor
+    func rulesSheetControllerObjcActionsCoverage() throws {
+        defer { RulesSheetAlertPresenter.resetForTesting() }
+
+        let appState = isolatedAppState(name: "objcActionsCoverage")
+        let setA = RuleSet(name: "Set A", urls: ["a.com"])
+        let setB = RuleSet(name: "Set B", urls: ["b.com"])
+        appState.ruleSets = [setA, setB]
+        appState.activeRuleSetId = setA.id
+
+        var doneCount = 0
+        let controller = RulesSheetViewController(appState: appState) {
+            doneCount += 1
+        }
+        _ = host(controller)
+
+        // addRuleSet: create path
+        RulesSheetAlertPresenter.makeAlert = { NSAlert() }
+        RulesSheetAlertPresenter.runModal = { alert in
+            (alert.accessoryView as? NSTextField)?.stringValue = "Set C"
+            return .alertFirstButtonReturn
+        }
+        controller.addRuleSet()
+        #expect(appState.ruleSets.contains(where: { $0.name == "Set C" }))
+
+        // addRuleSet: cancel path
+        let setCountAfterCreate = appState.ruleSets.count
+        RulesSheetAlertPresenter.runModal = { _ in .alertSecondButtonReturn }
+        controller.addRuleSet()
+        #expect(appState.ruleSets.count == setCountAfterCreate)
+
+        // selectRuleSet: guard and success branches
+        controller.selectRuleSet(NSButton())
+        #expect(controller.selectedSetIdForTesting != nil)
+        let selectButton = NSButton()
+        selectButton.identifier = NSUserInterfaceItemIdentifier(setB.id.uuidString)
+        controller.selectRuleSet(selectButton)
+        #expect(controller.selectedSetIdForTesting == setB.id)
+
+        // deleteRuleSet: guard and success branches
+        controller.deleteRuleSet(NSButton())
+        #expect(appState.ruleSets.contains(where: { $0.id == setA.id }))
+        let deleteButton = NSButton()
+        deleteButton.identifier = NSUserInterfaceItemIdentifier(setA.id.uuidString)
+        controller.deleteRuleSet(deleteButton)
+        #expect(appState.ruleSets.contains(where: { $0.id == setA.id }) == false)
+
+        // addRule: selected + guard (no selected set)
+        controller.selectedSetId = setB.id
+        controller.addRuleField.stringValue = "added-from-action.com"
+        controller.addRule()
+        #expect(
+            appState.ruleSets.first(where: { $0.id == setB.id })?
+                .containsRule("added-from-action.com") == true
+        )
+        #expect(controller.addRuleField.stringValue.isEmpty)
+        controller.selectedSetId = UUID()
+        controller.addRuleField.stringValue = "guard-should-not-add.com"
+        controller.addRule()
+        #expect(
+            appState.ruleSets.first(where: { $0.id == setB.id })?
+                .containsRule("guard-should-not-add.com") == false
+        )
+
+        // deleteRule: guard and success branches
+        controller.deleteRule(NSButton())
+        controller.selectedSetId = setB.id
+        let deleteRuleButton = NSButton()
+        deleteRuleButton.identifier = NSUserInterfaceItemIdentifier("b.com")
+        controller.deleteRule(deleteRuleButton)
+        #expect(
+            appState.ruleSets.first(where: { $0.id == setB.id })?
+                .containsRule("b.com") == false
+        )
+
+        // toggleSuggestions: both states
+        let previousExpanded = controller.isSuggestionsExpandedForTesting
+        controller.toggleSuggestions()
+        #expect(controller.isSuggestionsExpandedForTesting != previousExpanded)
+        controller.toggleSuggestions()
+        #expect(controller.isSuggestionsExpandedForTesting == previousExpanded)
+
+        // addSuggestion: guard and success branches
+        controller.addSuggestion(NSButton())
+        let suggestionButton = NSButton()
+        suggestionButton.identifier = NSUserInterfaceItemIdentifier("suggested.com")
+        controller.selectedSetId = setB.id
+        controller.addSuggestion(suggestionButton)
+        #expect(
+            appState.ruleSets.first(where: { $0.id == setB.id })?
+                .containsRule("suggested.com") == true
+        )
+
+        controller.handleDone()
+        #expect(doneCount == 1)
+    }
 }

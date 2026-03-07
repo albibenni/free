@@ -1,21 +1,63 @@
 import AppKit
 
+protocol RulesSheetPresenting: AnyObject {
+    func present(for parentWindow: NSWindow, selectedRuleSetId: UUID?)
+    func dismiss()
+}
+
+extension AllowedWebsitesSheetController: RulesSheetPresenting {}
+
+protocol SchedulesSheetPresenting: AnyObject {
+    var window: NSWindow? { get }
+    func present(for parentWindow: NSWindow)
+    func dismiss()
+}
+
+extension FreeSheetWindowController: SchedulesSheetPresenting {}
+
 final class MainSheetPresenter {
+    typealias RulesSheetFactory = (_ onClose: @escaping () -> Void) -> any RulesSheetPresenting
+    typealias SchedulesSheetFactory = (_ onClose: @escaping () -> Void) -> any SchedulesSheetPresenting
+
     private let appState: AppState
     private let onRulesDismissed: () -> Void
     private let onSchedulesDismissed: () -> Void
+    private let makeRulesSheetController: RulesSheetFactory
+    private let makeSchedulesSheetController: SchedulesSheetFactory
 
-    private var rulesSheetController: AllowedWebsitesSheetController?
-    private var schedulesSheetController: FreeSheetWindowController?
+    private var rulesSheetController: (any RulesSheetPresenting)?
+    private var schedulesSheetController: (any SchedulesSheetPresenting)?
 
     init(
         appState: AppState,
         onRulesDismissed: @escaping () -> Void,
-        onSchedulesDismissed: @escaping () -> Void
+        onSchedulesDismissed: @escaping () -> Void,
+        makeRulesSheetController: RulesSheetFactory? = nil,
+        makeSchedulesSheetController: SchedulesSheetFactory? = nil
     ) {
         self.appState = appState
         self.onRulesDismissed = onRulesDismissed
         self.onSchedulesDismissed = onSchedulesDismissed
+        self.makeRulesSheetController = makeRulesSheetController
+            ?? { [appState] onClose in
+                AllowedWebsitesSheetController(
+                    appState: appState,
+                    onClose: onClose
+                )
+            }
+        self.makeSchedulesSheetController = makeSchedulesSheetController
+            ?? { [appState] onClose in
+                let schedulesController = SchedulesSheetViewController(appState: appState) {
+                    onClose()
+                }
+                return FreeSheetWindowController(
+                    contentViewController: schedulesController,
+                    contentSize: CGSize(width: 750, height: 700),
+                    presentsAsSheet: false,
+                    showsNativeCloseButton: true,
+                    onClose: onClose
+                )
+            }
     }
 
     func presentRules(from parentWindow: NSWindow?) {
@@ -28,9 +70,7 @@ final class MainSheetPresenter {
             return
         }
 
-        let controller = AllowedWebsitesSheetController(
-            appState: appState
-        ) { [weak self] in
+        let controller = makeRulesSheetController { [weak self] in
             self?.rulesSheetController = nil
             self?.onRulesDismissed()
         }
@@ -60,15 +100,7 @@ final class MainSheetPresenter {
             return
         }
 
-        let schedulesController = SchedulesSheetViewController(appState: appState) { [weak self] in
-            self?.onSchedulesDismissed()
-        }
-        let controller = FreeSheetWindowController(
-            contentViewController: schedulesController,
-            contentSize: CGSize(width: 750, height: 700),
-            presentsAsSheet: false,
-            showsNativeCloseButton: true
-        ) { [weak self] in
+        let controller = makeSchedulesSheetController { [weak self] in
             self?.schedulesSheetController = nil
             self?.onSchedulesDismissed()
         }

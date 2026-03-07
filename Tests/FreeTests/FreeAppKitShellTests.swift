@@ -3,6 +3,7 @@ import Testing
 
 @testable import FreeLogic
 
+@Suite(.serialized)
 @MainActor
 struct FreeAppKitShellTests {
     private func isolatedAppState(name: String) -> AppState {

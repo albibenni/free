@@ -3,7 +3,7 @@ import AppKit
 extension FocusSectionViewController {
     @objc
     func grantAccessibility() {
-        FocusSectionSupport.makeGrantAccessibilityAction()()
+        grantAccessibilityActionFactory()()
     }
 
     @objc

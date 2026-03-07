@@ -29,7 +29,7 @@ test-verbose:
 	@$(SWIFT) test -v
 
 coverage:
-	@$(SWIFT) test --enable-code-coverage
+	@FREE_COVERAGE_MODE=1 $(SWIFT) test --enable-code-coverage --no-parallel
 	@profdata=$$(find .build -path "*/debug/codecov/default.profdata" | head -n 1); \
 	bin=$$(find .build -path "*/debug/FreePackageTests.xctest/Contents/MacOS/FreePackageTests" -not -path "*.dSYM/*" | head -n 1); \
 	src_files=$$(find Sources -type f -name "*.swift" | sort); \

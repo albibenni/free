@@ -102,7 +102,7 @@ class AppState: ObservableObject {
         canPromptForLaunchAtLogin: @escaping () -> Bool = {
             ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
         },
-        isTesting: Bool = false
+        isTesting: Bool = ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] == "1"
     ) {
         let dependencies = AppStateDependencyFactory.make(
             defaults: defaults,

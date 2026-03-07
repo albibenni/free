@@ -47,6 +47,24 @@ protocol AppDelegateProcessRunning: AnyObject {
 extension Process: AppDelegateProcessRunning {}
 
 struct DefaultAppDelegateSystem: AppDelegateSystem {
+    private enum ModalDefault {
+        static func run(_ alert: any AppDelegateAlertPresenting) -> NSApplication.ModalResponse {
+            if isRunningInTestProcess(), alert is NSAlert {
+                return .alertSecondButtonReturn
+            }
+            return alert.runModal()
+        }
+
+        private static func isRunningInTestProcess() -> Bool {
+            let environment = ProcessInfo.processInfo.environment
+            if environment["XCTestConfigurationFilePath"] != nil { return true }
+            if environment["XCTestBundlePath"] != nil { return true }
+            if environment["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES"] != nil { return true }
+            if environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil { return true }
+            return NSClassFromString("XCTestCase") != nil
+        }
+    }
+
     struct Runtime {
         var bundlePathProvider: () -> String
         var bundleNameProvider: () -> String
@@ -102,7 +120,7 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
             "I can move myself to the Applications folder for you. This helps ensure I have the right permissions to block distractions."
         alert.addButton(withTitle: "Move to Applications")
         alert.addButton(withTitle: "Do Not Move")
-        return alert.runModal() == .alertFirstButtonReturn
+        return ModalDefault.run(alert) == .alertFirstButtonReturn
     }
 
     func confirmQuitWhileBlocking() -> Bool {
@@ -113,7 +131,7 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Close App")
         alert.addButton(withTitle: "Cancel")
-        return alert.runModal() == .alertFirstButtonReturn
+        return ModalDefault.run(alert) == .alertFirstButtonReturn
     }
 
     func fileExists(atPath: String) -> Bool {
@@ -144,7 +162,7 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
         let alert = runtime.makeAlert()
         alert.messageText = "Could not move app"
         alert.informativeText = message
-        _ = alert.runModal()
+        _ = ModalDefault.run(alert)
     }
 
     func showBlockingAlert() {
@@ -153,6 +171,6 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
         alert.informativeText = "Disable Unblockable Mode in Settings before quitting the app."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK")
-        _ = alert.runModal()
+        _ = ModalDefault.run(alert)
     }
 }

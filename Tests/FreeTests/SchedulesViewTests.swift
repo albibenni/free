@@ -24,8 +24,26 @@ struct SchedulesViewTests {
         return hosted
     }
 
+    @MainActor
+    private func hostView(_ view: NSView, size: CGSize = CGSize(width: 900, height: 760)) -> NSView {
+        view.frame = NSRect(origin: .zero, size: size)
+        view.layoutSubtreeIfNeeded()
+        view.displayIfNeeded()
+        return view
+    }
+
     private func allSubviews(in view: NSView) -> [NSView] {
         [view] + view.subviews.flatMap { allSubviews(in: $0) }
+    }
+
+    private func firstSubview<T: NSView>(of type: T.Type, in view: NSView) -> T? {
+        if let typed = view as? T { return typed }
+        for child in view.subviews {
+            if let found: T = firstSubview(of: type, in: child) {
+                return found
+            }
+        }
+        return nil
     }
 
     private func sampleSchedule(name: String) -> Schedule {
@@ -36,6 +54,32 @@ struct SchedulesViewTests {
             endTime: Date().addingTimeInterval(3600),
             colorIndex: 1,
             type: .focus
+        )
+    }
+
+    private func sampleCalendarConfiguration(day: Int = 2) -> WeeklyCalendarSurfaceConfiguration {
+        let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let weekBounds = WeeklyCalendarSupport.weekBounds(for: weekRange)
+        return WeeklyCalendarSurfaceConfiguration(
+            dayOrder: WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false),
+            weekRange: weekRange,
+            weekStart: weekBounds.0,
+            weekEnd: weekBounds.1,
+            positionedSchedules: WeeklyCalendarSupport.positionedSchedules(
+                schedules: [sampleSchedule(name: "Calendar Config")],
+                weekRange: weekRange
+            ),
+            externalEvents: [],
+            showsExternalEvents: false,
+            hourHeight: 80,
+            dayHeaderHeight: 40,
+            timeLabelWidth: 60,
+            timeColumnGutter: 12,
+            accentColor: .systemBlue,
+            onQuickAdd: { _, _ in },
+            onCreateSelection: { _, _, _ in },
+            onOpenSchedule: { _, _ in },
+            onUpdateSchedule: { _, _, _, _, _, _ in }
         )
     }
 
@@ -271,5 +315,200 @@ struct SchedulesViewTests {
 
         #expect(controller.listRowObjectIdentifierForTesting(scheduleId: first.id) == initialRowId)
         #expect(controller.listRowObjectIdentifierForTesting(scheduleId: second.id) != nil)
+    }
+
+    @Test("Schedules list row view handles draw, select, delete, and toggle callbacks")
+    @MainActor
+    func schedulesListRowViewInteractionCoverage() {
+        let row = SchedulesListRowNSView(frame: NSRect(x: 0, y: 0, width: 420, height: 72))
+        row.showsSeparator = false
+        row.layoutSubtreeIfNeeded()
+
+        // Guard path when schedule is not configured.
+        if let emptyMouseUp = NSEvent.mouseEvent(
+            with: .leftMouseUp,
+            location: NSPoint(x: 5, y: 5),
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            eventNumber: 0,
+            clickCount: 1,
+            pressure: 1
+        ) {
+            row.mouseUp(with: emptyMouseUp)
+        }
+
+        let base = sampleSchedule(name: "Row Test")
+        var selectedId: UUID?
+        var deletedId: UUID?
+        var toggled: (UUID, Bool)?
+        row.configure(
+            schedule: base,
+            accentColorIndex: 2,
+            onSelectSchedule: { selectedId = $0.id },
+            onDeleteSchedule: { deletedId = $0 },
+            onToggleScheduleEnabled: { toggled = ($0, $1) }
+        )
+        row.layoutSubtreeIfNeeded()
+
+        if let mouseUp = NSEvent.mouseEvent(
+            with: .leftMouseUp,
+            location: NSPoint(x: 20, y: 20),
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            eventNumber: 1,
+            clickCount: 1,
+            pressure: 1
+        ) {
+            row.mouseUp(with: mouseUp)
+        }
+        #expect(selectedId == base.id)
+
+        let deleteButton = firstSubview(of: NSButton.self, in: row)
+        #expect(deleteButton != nil)
+        deleteButton?.performClick(nil)
+        #expect(deletedId == base.id)
+
+        let toggle = firstSubview(of: NSSwitch.self, in: row)
+        #expect(toggle != nil)
+        toggle?.state = .off
+        toggle?.performClick(nil)
+        #expect(toggled?.0 == base.id)
+        #expect(toggled != nil)
+
+        let image = NSImage(size: row.bounds.size)
+        image.lockFocus()
+        row.draw(row.bounds)
+        image.unlockFocus()
+
+        var imported = base
+        imported.importedCalendarEventKey = "event-1"
+        imported.type = .unfocus
+        row.showsSeparator = true
+        row.configure(
+            schedule: imported,
+            accentColorIndex: 1,
+            onSelectSchedule: { _ in },
+            onDeleteSchedule: { _ in },
+            onToggleScheduleEnabled: { _, _ in }
+        )
+        row.layoutSubtreeIfNeeded()
+
+        image.lockFocus()
+        row.draw(row.bounds)
+        image.unlockFocus()
+    }
+
+    @Test("Schedules container routes toolbar actions and window attachment callback")
+    @MainActor
+    func schedulesContainerActionsAndWindowAttachment() {
+        let appState = isolatedAppState(name: "containerActions")
+        let container = SchedulesContainerNSView(frame: NSRect(x: 0, y: 0, width: 900, height: 760))
+        _ = hostView(container)
+
+        var changedModes: [Int] = []
+        var addCount = 0
+        var prevCount = 0
+        var currentCount = 0
+        var nextCount = 0
+        var attachedWindows = 0
+        container.onWindowAttached = { _ in attachedWindows += 1 }
+        container.configure(
+            with: SchedulesAppKitConfiguration(
+                viewMode: 1,
+                monthTitle: "March 2026",
+                schedules: [sampleSchedule(name: "One")],
+                accentColor: .systemGreen,
+                accentColorIndex: appState.accentColorIndex,
+                appState: appState,
+                editorContext: nil,
+                calendarViewConfiguration: sampleCalendarConfiguration(),
+                onChangeViewMode: { changedModes.append($0) },
+                onSelectSchedule: { _ in },
+                onDeleteSchedule: { _ in },
+                onToggleScheduleEnabled: { _, _ in },
+                onAddSchedule: { addCount += 1 },
+                onDismissEditor: {},
+                onDismiss: {},
+                onPreviousWeek: { prevCount += 1 },
+                onCurrentWeek: { currentCount += 1 },
+                onNextWeek: { nextCount += 1 }
+            )
+        )
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 760),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = NSView(frame: window.frame)
+        window.contentView?.addSubview(container)
+        container.viewDidMoveToWindow()
+
+        container.changeViewModeForTesting()
+        container.addScheduleForTesting()
+        container.goToPreviousWeekForTesting()
+        container.goToCurrentWeekForTesting()
+        container.goToNextWeekForTesting()
+
+        #expect(changedModes == [1])
+        #expect(addCount == 1)
+        #expect(prevCount == 1)
+        #expect(currentCount == 1)
+        #expect(nextCount == 1)
+        #expect(attachedWindows > 0)
+    }
+
+    @Test("Schedules controller testing hooks cover editor and lightweight refresh paths")
+    @MainActor
+    func schedulesControllerHookCoverage() {
+        let appState = isolatedAppState(name: "controllerHooks")
+        var schedule = sampleSchedule(name: "Hook")
+        schedule.days = [2]
+        appState.schedules = [schedule]
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: {},
+            initialViewMode: 1
+        )
+        _ = host(controller)
+        let initialGeneration = controller.refreshGenerationForTesting
+
+        controller.quickAddForTesting(day: 2, hour: 11)
+        #expect(controller.editorContextForTesting?.day == 2)
+
+        controller.openSelectionEditorForTesting(day: 2, startHour: 11.1, endHour: 12.2)
+        #expect(controller.editorContextForTesting?.day == 2)
+
+        controller.openScheduleEditorForTesting(day: 2, schedule: schedule)
+        #expect(controller.editorContextForTesting?.schedule?.id == schedule.id)
+
+        controller.setScheduleEnabledForTesting(scheduleId: schedule.id, isEnabled: false)
+        #expect(appState.schedules.first?.isEnabled == false)
+        controller.setScheduleEnabledForTesting(scheduleId: UUID(), isEnabled: true)
+
+        controller.refreshConfigurationForTesting(force: false)
+        #expect(controller.refreshGenerationForTesting >= initialGeneration + 4)
+
+        let generationAfterNoForce = controller.refreshGenerationForTesting
+        appState.appearanceMode = .dark
+        controller.refreshConfigurationForTesting(force: false)
+        #expect(controller.refreshGenerationForTesting > generationAfterNoForce)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 760),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = NSView(frame: window.frame)
+        window.contentView?.addSubview(controller.view)
+        controller.updateWindowTitleForTesting()
+        #expect(!window.title.isEmpty)
     }
 }

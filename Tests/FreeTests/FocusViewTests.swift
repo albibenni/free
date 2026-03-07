@@ -154,6 +154,22 @@ struct FocusViewTests {
         #expect(appState.isPaused == false)
     }
 
+    @Test("Focus section grant accessibility action delegates through controller factory")
+    @MainActor
+    func focusGrantAccessibilityAction() {
+        let appState = isolatedAppState(name: "grantAccessibility")
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+
+        var didInvoke = false
+        controller.grantAccessibilityActionFactory = {
+            { didInvoke = true }
+        }
+
+        controller.grantAccessibility()
+        #expect(didInvoke)
+    }
+
     @Test("Focus section shows live overview instead of full widgets")
     @MainActor
     func focusViewLiveOverviewRender() {

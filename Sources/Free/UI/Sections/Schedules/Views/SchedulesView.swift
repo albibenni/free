@@ -380,6 +380,30 @@ extension SchedulesSheetViewController {
 
     var refreshGenerationForTesting: Int { refreshGeneration }
 
+    func setScheduleEnabledForTesting(scheduleId: UUID, isEnabled: Bool) {
+        setScheduleEnabled(scheduleId: scheduleId, isEnabled: isEnabled)
+    }
+
+    func quickAddForTesting(day: Int, hour: Int) {
+        quickAdd(day: day, hour: hour)
+    }
+
+    func openSelectionEditorForTesting(day: Int, startHour: CGFloat, endHour: CGFloat) {
+        openSelectionEditor(day: day, startHour: startHour, endHour: endHour)
+    }
+
+    func openScheduleEditorForTesting(day: Int, schedule: Schedule) {
+        openScheduleEditor(day: day, schedule: schedule)
+    }
+
+    func refreshConfigurationForTesting(force: Bool) {
+        refreshConfiguration(force: force)
+    }
+
+    func updateWindowTitleForTesting() {
+        updateWindowTitle()
+    }
+
     func listRowObjectIdentifierForTesting(scheduleId: UUID) -> ObjectIdentifier? {
         schedulesContainerView.listRowObjectIdentifierForTesting(scheduleId: scheduleId)
     }

@@ -33,6 +33,8 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     private var progressDialView: PomodoroProgressDialView?
     private var activeRuleSetBadgeLabel: NSTextField?
     private var skipButton: ActionButton?
+    var customBreakPromptSimulation: (() -> (NSApplication.ModalResponse, String))?
+    var stopChallengePromptSimulation: (() -> (NSApplication.ModalResponse, String))?
     private(set) var refreshGeneration = 0
 
     init(
@@ -586,6 +588,13 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             self.appState.startPause(minutes: minutes)
         }
 
+        if let simulation = customBreakPromptSimulation {
+            let result = simulation()
+            field.stringValue = result.1
+            present(result.0)
+            return
+        }
+
         if let window {
             alert.beginSheetModal(for: window, completionHandler: present)
         } else {
@@ -608,6 +617,13 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             guard response == .alertFirstButtonReturn else { return }
             guard let self else { return }
             _ = self.appState.stopPomodoroWithChallenge(phrase: field.stringValue)
+        }
+
+        if let simulation = stopChallengePromptSimulation {
+            let result = simulation()
+            field.stringValue = result.1
+            present(result.0)
+            return
         }
 
         if let window {
