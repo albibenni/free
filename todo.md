@@ -39,17 +39,20 @@
 - [ ] allow with toggle search engines searches
 - [x] add git steps
   - [x] build and tests
+- [ ] breaks allowed or not base on settings toggle
+  - [ ] pomodoro setting for it
+  - [ ] calendar setting for it
 
 ### Allowed list
 
-- [ ] allow multiple selection to delete
+- [x] allow multiple selection to delete
 - [x] check current open websites
   - [x] add button to add for each listed website of the open
-- [ ] create new list
+- [x] create new list
 
 ### Calendar
 
-- [ ] allow modification on calendar imports
+- [x] allow modification on calendar imports
   - [x] it shouldn't allow delete
   - [x] it should be allow edit only of allowed list and break/focus
   - [x] multiple scheduled at the same time
@@ -97,11 +100,18 @@
   - [x] close tab button small
   - [x] FreeAppKitShell too big, refactor
   - [x] new floating window don't follow tab 'connection'
+- [x] pomodoro timer can be changed during focus via preset click, it shouldn't be possible
+- [x] end break and focus button don't work - the one in pomodoro widget
 
 - [ ] redo tests
   - [ ] coverage
 
 ## Performance check
 
+- [ ] auto remove previous calendar imports - if they are in the past week
 - [ ] cpu usage
 - [ ] ram usage
+
+## Simplify issues
+
+- [ ] any in LaunchAtLoginService.swift

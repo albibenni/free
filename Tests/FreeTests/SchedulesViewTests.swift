@@ -190,6 +190,38 @@ struct SchedulesViewTests {
         #expect(buttons.contains(where: { !$0.isHidden && $0.title == "Done" }) == false)
     }
 
+    @Test("Schedules sheet controller supports switching between calendar and list via segmented control")
+    @MainActor
+    func schedulesViewToggleSwitchesModes() {
+        let appState = isolatedAppState(name: "toggleModes")
+        appState.schedules = [sampleSchedule(name: "A")]
+
+        let hosted = host(
+            SchedulesSheetViewController(
+                appState: appState,
+                onDismiss: {},
+                initialViewMode: 1
+            ),
+            size: CGSize(width: 900, height: 760)
+        )
+        let subviews = allSubviews(in: hosted)
+        guard let segmented = subviews
+            .compactMap({ $0 as? NSSegmentedControl })
+            .first(where: { !$0.isHidden && $0.segmentCount == 2 })
+        else {
+            Issue.record("Expected list/calendar segmented control in toolbar")
+            return
+        }
+
+        segmented.setSelected(true, forSegment: 0)
+        if let action = segmented.action {
+            NSApp.sendAction(action, to: segmented.target, from: segmented)
+        }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+
+        #expect(segmented.selectedSegment == 0)
+    }
+
     @Test("Schedules sheet controller supports a preset editor context")
     @MainActor
     func schedulesViewPresetEditorSheetRender() {
@@ -213,5 +245,31 @@ struct SchedulesViewTests {
         let hosted = host(controller, size: CGSize(width: 900, height: 800))
         #expect(hosted.fittingSize.width >= 0)
         #expect(controller.editorContextForTesting?.schedule?.id == schedule.id)
+    }
+
+    @Test("Schedules list view reuses existing row view identity for unchanged schedules")
+    @MainActor
+    func schedulesListRowReuseIdentity() throws {
+        let appState = isolatedAppState(name: "listRowReuseIdentity")
+        let first = sampleSchedule(name: "First")
+        appState.schedules = [first]
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: {},
+            initialViewMode: 0
+        )
+        _ = host(controller)
+
+        let initialRowId = try #require(
+            controller.listRowObjectIdentifierForTesting(scheduleId: first.id)
+        )
+
+        let second = sampleSchedule(name: "Second")
+        appState.schedules.append(second)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+
+        #expect(controller.listRowObjectIdentifierForTesting(scheduleId: first.id) == initialRowId)
+        #expect(controller.listRowObjectIdentifierForTesting(scheduleId: second.id) != nil)
     }
 }

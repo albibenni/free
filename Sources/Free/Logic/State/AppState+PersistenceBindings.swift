@@ -1,0 +1,23 @@
+import Combine
+import Foundation
+
+extension AppState {
+    var persistenceBindings: AppStatePersistenceCoordinator.Bindings {
+        AppStatePersistenceCoordinator.Bindings(
+            isBlocking: $isBlocking.eraseToAnyPublisher(),
+            isUnblockable: $isUnblockable.eraseToAnyPublisher(),
+            weekStartsOnMonday: $weekStartsOnMonday.eraseToAnyPublisher(),
+            accentColorIndex: $accentColorIndex.eraseToAnyPublisher(),
+            appearanceMode: $appearanceMode.eraseToAnyPublisher(),
+            calendarIntegrationEnabled: $calendarIntegrationEnabled.eraseToAnyPublisher(),
+            calendarImportsBlockTime: $calendarImportsBlockTime.eraseToAnyPublisher(),
+            blockNewTabs: $blockNewTabs.eraseToAnyPublisher(),
+            blockDeveloperHosts: $blockDeveloperHosts.eraseToAnyPublisher(),
+            blockLocalNetworkHosts: $blockLocalNetworkHosts.eraseToAnyPublisher(),
+            ruleSets: $ruleSets.eraseToAnyPublisher(),
+            activeRuleSetId: $activeRuleSetId.eraseToAnyPublisher(),
+            pomodoroFocusDuration: $pomodoroFocusDuration.eraseToAnyPublisher(),
+            pomodoroBreakDuration: $pomodoroBreakDuration.eraseToAnyPublisher()
+        )
+    }
+}

@@ -247,4 +247,23 @@ struct PomodoroWidgetTests {
         stopButton?.performClick(nil)
         #expect(appState.pomodoroStatus == .none)
     }
+
+    @Test("FocusPomodoroWidgetView ignores preset clicks while session is active")
+    @MainActor
+    func pomodoroWidgetPresetsDisabledWhileActive() {
+        let appState = isolatedAppState(name: "presetsDisabledWhileActive")
+        appState.pomodoroFocusDuration = 25
+        appState.pomodoroBreakDuration = 5
+        appState.startPomodoro()
+
+        let activeHosted = host(FocusPomodoroWidgetView(appState: appState))
+        let presetButton = buttons(in: activeHosted).first { $0.title == "45/15" }
+
+        #expect(presetButton != nil)
+        #expect(presetButton?.isEnabled == false)
+
+        presetButton?.performClick(nil)
+        #expect(appState.pomodoroFocusDuration == 25)
+        #expect(appState.pomodoroBreakDuration == 5)
+    }
 }
