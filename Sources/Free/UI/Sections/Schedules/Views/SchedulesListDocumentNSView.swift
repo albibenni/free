@@ -23,7 +23,7 @@ final class SchedulesListDocumentNSView: NSView {
         self.onDeleteSchedule = onDeleteSchedule
         self.onToggleScheduleEnabled = onToggleScheduleEnabled
 
-        rebuildRows()
+        reconcileRows()
     }
 
     func layoutRows(width: CGFloat) {
@@ -41,23 +41,49 @@ final class SchedulesListDocumentNSView: NSView {
         frame = CGRect(x: 0, y: 0, width: contentWidth, height: max(y, 1))
     }
 
-    private func rebuildRows() {
-        rowViews.values.forEach { $0.removeFromSuperview() }
-        rowViews.removeAll()
+    private func reconcileRows() {
+        withAppKitSignpost("SchedulesListReconcileRows") {
+            let desiredIds = Set(schedules.map(\.id))
 
-        for schedule in schedules {
-            let rowView = SchedulesListRowNSView()
-            rowView.configure(
-                schedule: schedule,
-                accentColorIndex: accentColorIndex,
-                onSelectSchedule: onSelectSchedule,
-                onDeleteSchedule: onDeleteSchedule,
-                onToggleScheduleEnabled: onToggleScheduleEnabled
-            )
-            addSubview(rowView)
-            rowViews[schedule.id] = rowView
+            let idsToRemove = rowViews.keys.filter { !desiredIds.contains($0) }
+            for id in idsToRemove {
+                guard let rowView = rowViews[id] else { continue }
+                rowView.removeFromSuperview()
+                rowViews.removeValue(forKey: id)
+            }
+
+            for (index, schedule) in schedules.enumerated() {
+                let rowView = rowViews[schedule.id] ?? SchedulesListRowNSView()
+                rowView.configure(
+                    schedule: schedule,
+                    accentColorIndex: accentColorIndex,
+                    onSelectSchedule: onSelectSchedule,
+                    onDeleteSchedule: onDeleteSchedule,
+                    onToggleScheduleEnabled: onToggleScheduleEnabled
+                )
+
+                if rowView.superview !== self {
+                    addSubview(rowView)
+                }
+
+                let currentAtIndex = index < subviews.count ? subviews[index] : nil
+                if currentAtIndex !== rowView {
+                    rowView.removeFromSuperview()
+                    addSubview(rowView, positioned: .above, relativeTo: currentAtIndex)
+                }
+
+                rowViews[schedule.id] = rowView
+            }
+
+            while subviews.count > schedules.count {
+                guard let extra = subviews.first(where: { view in
+                    guard let row = view as? SchedulesListRowNSView else { return true }
+                    return !rowViews.values.contains(where: { $0 === row })
+                }) else { break }
+                extra.removeFromSuperview()
+            }
+
+            needsLayout = true
         }
-
-        needsLayout = true
     }
 }

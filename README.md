@@ -63,6 +63,22 @@ swift test
 ```
 The suite runs 100+ tests in under 1 second.
 
+### Profiling UI Performance (Instruments)
+Use Instruments to inspect AppKit update cost via the built-in signposts.
+
+1. Build and run the app in Debug.
+2. Open Xcode -> `Product` -> `Profile` and choose the `Points of Interest` template.
+3. In Instruments, filter signposts by category `AppKitPerformance`.
+4. Exercise heavy UI paths (Rules, Allowed Websites, Schedules list).
+5. Inspect these signposts:
+   - `RulesSheetReloadContent`
+   - `RulesSheetReloadRuleContent`
+   - `AllowedWebsitesReloadContent`
+   - `AllowedWebsitesReloadRulesOnly`
+   - `SchedulesListReconcileRows`
+
+These spans should remain short and stable when doing simple interactions (selection changes, toggle expand/collapse, accent updates).
+
 ## 🚦 Usage
 
 1.  **Install from DMG:** Open the disk image and drag `Free.app` to your `/Applications` folder.

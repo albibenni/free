@@ -267,6 +267,38 @@ struct RulesViewTests {
         #expect(controller.ruleRowObjectIdentifierForTesting("b.com") != nil)
     }
 
+    @Test("Rules sheet controller reuses suggestion rows across accent updates and expand toggles")
+    @MainActor
+    func rulesSheetControllerReusesSuggestionRows() throws {
+        let appState = isolatedAppState(name: "suggestionsReuse")
+        let set = RuleSet(name: "Set", urls: ["already.com"])
+        appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
+
+        appState.currentOpenUrls = ["https://newsite.com"]
+        controller.setSuggestionsExpandedForTesting(true)
+        let initialSuggestionRowId = try #require(
+            controller.suggestionRowObjectIdentifierForTesting("https://newsite.com")
+        )
+
+        appState.accentColorIndex = 3
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        #expect(
+            controller.suggestionRowObjectIdentifierForTesting("https://newsite.com")
+                == initialSuggestionRowId
+        )
+
+        controller.setSuggestionsExpandedForTesting(false)
+        controller.setSuggestionsExpandedForTesting(true)
+        #expect(
+            controller.suggestionRowObjectIdentifierForTesting("https://newsite.com")
+                == initialSuggestionRowId
+        )
+    }
+
     @Test("Rules sheet controller renders non-empty suggestions and no-selected-list fallback")
     @MainActor
     func rulesSheetControllerRenderSuggestionsAndFallback() {

@@ -79,14 +79,16 @@ extension AllowedWebsitesFloatingEditorViewController {
     }
 
     func reloadContent() {
-        let state = AllowedWebsitesReloadCoordinator.reloadState(
-            appState: appState,
-            previousSelectedRuleSetId: selectedRuleSetId
-        )
-        renderSignature = state.renderSignature
-        selectedRuleSetId = state.selectedRuleSetId
-        reloadRuleSetRows()
-        reloadRulesOnly()
+        withAppKitSignpost("AllowedWebsitesReloadContent") {
+            let state = AllowedWebsitesReloadCoordinator.reloadState(
+                appState: appState,
+                previousSelectedRuleSetId: selectedRuleSetId
+            )
+            renderSignature = state.renderSignature
+            selectedRuleSetId = state.selectedRuleSetId
+            reloadRuleSetRows()
+            reloadRulesOnly()
+        }
     }
 
     func reloadRuleSetRows() {
@@ -118,21 +120,23 @@ extension AllowedWebsitesFloatingEditorViewController {
     }
 
     func reloadRulesOnly() {
-        let contentState = AllowedWebsitesPresentationCoordinator.rulesContentState(
-            selectedRuleSetId: selectedRuleSetId,
-            ruleSets: appState.ruleSets,
-            previousVisibleRules: visibleRules,
-            previousSelection: rulesTableView.selectedRowIndexes
-        )
-        visibleRules = contentState.visibleRules
-        rulesTableView.reloadData()
-        if !contentState.preservedSelection.isEmpty {
-            rulesTableView.selectRowIndexes(contentState.preservedSelection, byExtendingSelection: false)
-        }
+        withAppKitSignpost("AllowedWebsitesReloadRulesOnly") {
+            let contentState = AllowedWebsitesPresentationCoordinator.rulesContentState(
+                selectedRuleSetId: selectedRuleSetId,
+                ruleSets: appState.ruleSets,
+                previousVisibleRules: visibleRules,
+                previousSelection: rulesTableView.selectedRowIndexes
+            )
+            visibleRules = contentState.visibleRules
+            rulesTableView.reloadData()
+            if !contentState.preservedSelection.isEmpty {
+                rulesTableView.selectRowIndexes(contentState.preservedSelection, byExtendingSelection: false)
+            }
 
-        emptyLabel.isHidden = !contentState.showsEmptyState
-        updateControlStates()
-        applyButtonStyling()
+            emptyLabel.isHidden = !contentState.showsEmptyState
+            updateControlStates()
+            applyButtonStyling()
+        }
     }
 
     func updateControlStates() {

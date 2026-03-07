@@ -103,7 +103,8 @@ final class RulesSheetViewController: NSViewController {
     private func handleObservedAppStateChange() {
         let nextSignature = RulesSheetRenderSignature(
             appState: appState,
-            isSuggestionsExpanded: isSuggestionsExpanded
+            isSuggestionsExpanded: isSuggestionsExpanded,
+            currentSelectedSetId: selectedSetId
         )
         guard renderSignature != nextSignature else { return }
         reloadContent()
@@ -265,21 +266,24 @@ final class RulesSheetViewController: NSViewController {
     }
 
     private func reloadContent() {
-        renderSignature = RulesSheetRenderSignature(
-            appState: appState,
-            isSuggestionsExpanded: isSuggestionsExpanded
-        )
-        reloadGeneration += 1
-        applyActionButtonStyling()
+        withAppKitSignpost("RulesSheetReloadContent") {
+            renderSignature = RulesSheetRenderSignature(
+                appState: appState,
+                isSuggestionsExpanded: isSuggestionsExpanded,
+                currentSelectedSetId: selectedSetId
+            )
+            reloadGeneration += 1
+            applyActionButtonStyling()
 
-        selectedSetId = RulesSheetActionsCoordinator.fallbackSelectedSetId(
-            currentSelectedId: selectedSetId,
-            currentPrimaryRuleSetId: appState.currentPrimaryRuleSetId,
-            ruleSets: appState.ruleSets
-        )
+            selectedSetId = RulesSheetActionsCoordinator.fallbackSelectedSetId(
+                currentSelectedId: selectedSetId,
+                currentPrimaryRuleSetId: appState.currentPrimaryRuleSetId,
+                ruleSets: appState.ruleSets
+            )
 
-        reloadSidebar()
-        reloadRuleContent()
+            reloadSidebar()
+            reloadRuleContent()
+        }
     }
 
     private func applyActionButtonStyling() {
@@ -381,72 +385,74 @@ final class RulesSheetViewController: NSViewController {
     }
 
     private func reloadRuleContent() {
-        mainTitleLabel.stringValue = selectedSet?.name ?? ""
-        toggleSidebarButton.image = appKitSymbolImage(
-            named: RulesSectionSupport.sidebarToggleIcon(isSidebarVisible: isSidebarVisible),
-            pointSize: 11,
-            weight: .semibold,
-            color: .secondaryLabelColor
-        )
-
-        guard let selectedSet else {
-            noSelectionLabel.isHidden = false
-            rulesHeaderLabel.isHidden = true
-            rulesEmptyLabel.isHidden = true
-            rulesRowsStack.isHidden = true
-            suggestionsDivider.isHidden = true
-            suggestionsButton.isHidden = true
-            suggestionsEmptyLabel.isHidden = true
-            suggestionsRowsStack.isHidden = true
-            return
-        }
-
-        noSelectionLabel.isHidden = true
-        rulesHeaderLabel.isHidden = false
-        suggestionsDivider.isHidden = false
-        suggestionsButton.isHidden = false
-
-        let rules = selectedSet.urls
-        ruleRowsByRule = RulesSheetLayoutBuilder.updateOrRebuildRuleRows(
-            in: rulesRowsStack,
-            rules: rules,
-            existingRows: ruleRowsByRule,
-            onDelete: #selector(deleteRule(_:)),
-            target: self
-        )
-        rulesEmptyLabel.isHidden = !rules.isEmpty
-        rulesRowsStack.isHidden = rules.isEmpty
-
-        if isSuggestionsExpanded {
-            let filtered = RulesSectionSupport.filterSuggestions(
-                appState.currentOpenUrls,
-                existing: selectedSet
+        withAppKitSignpost("RulesSheetReloadRuleContent") {
+            mainTitleLabel.stringValue = selectedSet?.name ?? ""
+            toggleSidebarButton.image = appKitSymbolImage(
+                named: RulesSectionSupport.sidebarToggleIcon(isSidebarVisible: isSidebarVisible),
+                pointSize: 11,
+                weight: .semibold,
+                color: .secondaryLabelColor
             )
-            let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
-            if filtered.isEmpty {
-                suggestionsEmptyLabel.stringValue = RulesSectionSupport.suggestionsEmptyText(
-                    currentOpenUrls: appState.currentOpenUrls
-                )
-                suggestionsEmptyLabel.isHidden = false
-                suggestionsRowsStack.isHidden = true
-            } else {
-                suggestionRowsByUrl = RulesSheetLayoutBuilder.updateOrRebuildSuggestionRows(
-                    in: suggestionsRowsStack,
-                    suggestions: filtered,
-                    accentColor: accentColor,
-                    existingRows: suggestionRowsByUrl,
-                    onAdd: #selector(addSuggestion(_:)),
-                    target: self
-                )
-                suggestionsEmptyLabel.isHidden = true
-                suggestionsRowsStack.isHidden = false
-            }
-        } else {
-            suggestionsEmptyLabel.isHidden = true
-            suggestionsRowsStack.isHidden = true
-        }
 
-        contentScrollView.needsLayout = true
+            guard let selectedSet else {
+                noSelectionLabel.isHidden = false
+                rulesHeaderLabel.isHidden = true
+                rulesEmptyLabel.isHidden = true
+                rulesRowsStack.isHidden = true
+                suggestionsDivider.isHidden = true
+                suggestionsButton.isHidden = true
+                suggestionsEmptyLabel.isHidden = true
+                suggestionsRowsStack.isHidden = true
+                return
+            }
+
+            noSelectionLabel.isHidden = true
+            rulesHeaderLabel.isHidden = false
+            suggestionsDivider.isHidden = false
+            suggestionsButton.isHidden = false
+
+            let rules = selectedSet.urls
+            ruleRowsByRule = RulesSheetLayoutBuilder.updateOrRebuildRuleRows(
+                in: rulesRowsStack,
+                rules: rules,
+                existingRows: ruleRowsByRule,
+                onDelete: #selector(deleteRule(_:)),
+                target: self
+            )
+            rulesEmptyLabel.isHidden = !rules.isEmpty
+            rulesRowsStack.isHidden = rules.isEmpty
+
+            if isSuggestionsExpanded {
+                let filtered = RulesSectionSupport.filterSuggestions(
+                    appState.currentOpenUrls,
+                    existing: selectedSet
+                )
+                let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+                if filtered.isEmpty {
+                    suggestionsEmptyLabel.stringValue = RulesSectionSupport.suggestionsEmptyText(
+                        currentOpenUrls: appState.currentOpenUrls
+                    )
+                    suggestionsEmptyLabel.isHidden = false
+                    suggestionsRowsStack.isHidden = true
+                } else {
+                    suggestionRowsByUrl = RulesSheetLayoutBuilder.updateOrRebuildSuggestionRows(
+                        in: suggestionsRowsStack,
+                        suggestions: filtered,
+                        accentColor: accentColor,
+                        existingRows: suggestionRowsByUrl,
+                        onAdd: #selector(addSuggestion(_:)),
+                        target: self
+                    )
+                    suggestionsEmptyLabel.isHidden = true
+                    suggestionsRowsStack.isHidden = false
+                }
+            } else {
+                suggestionsEmptyLabel.isHidden = true
+                suggestionsRowsStack.isHidden = true
+            }
+
+            contentScrollView.needsLayout = true
+        }
     }
 
     private func updateSidebarVisibility() {
@@ -603,5 +609,9 @@ extension RulesSheetViewController {
 
     func ruleRowObjectIdentifierForTesting(_ rule: String) -> ObjectIdentifier? {
         ruleRowsByRule[rule].map(ObjectIdentifier.init)
+    }
+
+    func suggestionRowObjectIdentifierForTesting(_ url: String) -> ObjectIdentifier? {
+        suggestionRowsByUrl[url].map(ObjectIdentifier.init)
     }
 }
