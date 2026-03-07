@@ -528,7 +528,10 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         let controls = NSStackView()
         controls.orientation = .horizontal
         controls.alignment = .centerY
-        controls.spacing = 20
+        controls.spacing = 10
+        controls.translatesAutoresizingMaskIntoConstraints = false
+        controls.setContentHuggingPriority(.required, for: .horizontal)
+        controls.widthAnchor.constraint(equalToConstant: 64).isActive = true
 
         let minimumValue = 5.0
         let currentDuration: () -> Double = { [weak self] in
@@ -562,6 +565,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
 
         column.addArrangedSubview(titleLabel)
         column.addArrangedSubview(dial)
+        column.setCustomSpacing(6, after: dial)
         column.addArrangedSubview(controls)
         return column
     }
