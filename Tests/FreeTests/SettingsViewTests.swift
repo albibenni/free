@@ -241,4 +241,39 @@ struct SettingsViewTests {
         #expect(controller.shouldShowStrictDisableButtonForTesting)
         #expect(texts.contains("Disable..."))
     }
+
+    @Test("Settings controller testing hooks exercise toggle and selection action handlers")
+    @MainActor
+    func settingsControllerToggleActionCoverage() {
+        let appState = isolatedAppState(name: "toggleActionCoverage")
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setStrictModeForTesting(true)
+        #expect(appState.isUnblockable)
+
+        controller.setWeekStartsMondayForTesting(true)
+        #expect(appState.weekStartsOnMonday)
+
+        controller.setCalendarIntegrationForTesting(true)
+        #expect(appState.calendarIntegrationEnabled)
+
+        controller.setCalendarImportsForTesting(true)
+        #expect(appState.calendarImportsBlockTime)
+
+        controller.setBlockNewTabsForTesting(true)
+        #expect(appState.blockNewTabs)
+
+        controller.setBlockDeveloperHostsForTesting(true)
+        #expect(appState.blockDeveloperHosts)
+
+        controller.setBlockLocalNetworkHostsForTesting(true)
+        #expect(appState.blockLocalNetworkHosts)
+
+        controller.selectAppearanceModeForTesting(.dark)
+        #expect(appState.appearanceMode == .dark)
+
+        // Invocation coverage path only; behavior is validated in calendar sync tests.
+        controller.resyncImportedSchedulesForTesting()
+    }
 }

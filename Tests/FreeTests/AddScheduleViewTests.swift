@@ -359,4 +359,39 @@ struct AddScheduleViewTests {
         #expect(!appState.schedules.contains(where: { $0.id == schedule.id }))
         #expect(closeCount == 1)
     }
+
+    @Test("ScheduleEditorViewController control handlers update editor state")
+    @MainActor
+    func addScheduleViewControlHandlers() {
+        let appState = isolatedAppState(name: "controlHandlers")
+        let firstSet = RuleSet(name: "One", urls: [])
+        let secondSet = RuleSet(name: "Two", urls: [])
+        appState.ruleSets = [firstSet, secondSet]
+
+        let controller = makeController(appState: appState)
+        _ = host(controller)
+
+        controller.setNameForTesting("Edited Name")
+        #expect(controller.nameForTesting == "Edited Name")
+
+        controller.selectRuleSetIndexForTesting(2)
+        #expect(controller.ruleSetIdForTesting == secondSet.id)
+
+        let newStart = Date().addingTimeInterval(1200)
+        let newEnd = newStart.addingTimeInterval(1800)
+        controller.changeStartTimeForTesting(newStart)
+        controller.changeEndTimeForTesting(newEnd)
+        #expect(controller.startTimeForTesting == newStart)
+        #expect(controller.endTimeForTesting == newEnd)
+
+        let originalDays = controller.daysForTesting
+        controller.toggleRecurringForTesting(true)
+        controller.toggleRecurringDayForTesting(2)
+        #expect(controller.daysForTesting != originalDays)
+
+        controller.toggleRecurringForTesting(false)
+        let daysBeforeNoopToggle = controller.daysForTesting
+        controller.toggleRecurringDayForTesting(3)
+        #expect(controller.daysForTesting == daysBeforeNoopToggle)
+    }
 }

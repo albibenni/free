@@ -875,6 +875,23 @@ struct WeeklyCalendarViewTests {
         #expect(!WeeklyCalendarSupport.monthYearString(for: now, calendar: calendar).isEmpty)
     }
 
+    @Test("WeeklyCalendar support normalized interval handles overnight end-time rollover")
+    func weeklyCalendarNormalizedIntervalOvernightRollover() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let start = calendar.date(bySettingHour: 23, minute: 30, second: 0, of: base) ?? base
+        let end = calendar.date(bySettingHour: 0, minute: 15, second: 0, of: base) ?? base
+
+        let interval = WeeklyCalendarSupport.normalizedInterval(
+            startDate: start,
+            endDate: end,
+            calendar: calendar
+        )
+        #expect(interval.end > interval.start)
+        #expect(abs(interval.end.timeIntervalSince(interval.start) - (45 * 60)) < 1)
+    }
+
     @Test("WeeklyCalendar support schedule drag and resize update helpers produce snapped results")
     func weeklyCalendarScheduleUpdateHelpers() {
         let calendar = Calendar.current

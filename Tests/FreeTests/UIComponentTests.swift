@@ -350,6 +350,41 @@ struct UIComponentTests {
         #expect(toggle.state == .off)
         #expect(actionCount == 2)
 
+        let mouseOutside = NSEvent.mouseEvent(
+            with: .leftMouseUp,
+            location: NSPoint(x: 500, y: 500),
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            eventNumber: 0,
+            clickCount: 1,
+            pressure: 1
+        )
+        #expect(mouseOutside != nil)
+        if let mouseOutside {
+            toggle.mouseUp(with: mouseOutside)
+        }
+        #expect(actionCount == 2)
+
+        let nonToggleKey = NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "a",
+            charactersIgnoringModifiers: "a",
+            isARepeat: false,
+            keyCode: 0
+        )
+        #expect(nonToggleKey != nil)
+        if let nonToggleKey {
+            toggle.keyDown(with: nonToggleKey)
+        }
+        #expect(toggle.state == .off)
+
         toggle.isEnabled = false
         #expect(toggle.acceptsFirstResponder == false)
         if let keyEvent {
@@ -492,5 +527,57 @@ struct UIComponentTests {
         #expect(toggleButton != nil)
         toggleButton?.performClick(nil)
         #expect(didToggle)
+    }
+
+    @MainActor
+    @Test("Main section metadata and router cover all enum cases")
+    func mainSectionMetadataAndRouterCoverage() {
+        let suite = "UIComponentTests.mainSectionMetadataAndRouterCoverage"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let appState = AppState(defaults: defaults, isTesting: true)
+        let shellState = FreeShellState()
+
+        let focusController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .all
+        )
+        let schedulesController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .schedules
+        )
+        let pomodoroController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .pomodoro
+        )
+        let allowedWebsitesController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .allowedWebsites
+        )
+        let settingsController = SettingsSectionViewController(appState: appState)
+        let router = MainSectionRouter(
+            focusOverviewController: focusController,
+            schedulesOverviewController: schedulesController,
+            pomodoroSectionController: pomodoroController,
+            allowedWebsitesSectionController: allowedWebsitesController,
+            settingsSectionController: settingsController
+        )
+
+        #expect(MainContentSection.focus.icon == AppKitUISymbols.Name.focus)
+        #expect(MainContentSection.schedules.icon == AppKitUISymbols.Name.schedules)
+        #expect(MainContentSection.pomodoro.icon == AppKitUISymbols.Name.pomodoro)
+        #expect(MainContentSection.allowedWebsites.icon == AppKitUISymbols.Name.allowedWebsites)
+        #expect(MainContentSection.settings.icon == AppKitUISymbols.Name.settings)
+        #expect(MainContentSection.settings.id == MainContentSection.settings.rawValue)
+
+        #expect(router.controller(for: .focus) === focusController)
+        #expect(router.controller(for: .schedules) === schedulesController)
+        #expect(router.controller(for: .pomodoro) === pomodoroController)
+        #expect(router.controller(for: .allowedWebsites) === allowedWebsitesController)
+        #expect(router.controller(for: .settings) === settingsController)
     }
 }

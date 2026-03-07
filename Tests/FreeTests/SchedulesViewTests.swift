@@ -291,6 +291,62 @@ struct SchedulesViewTests {
         #expect(controller.editorContextForTesting?.schedule?.id == schedule.id)
     }
 
+    @Test("Schedules sheet AppKit configuration callbacks route to controller actions")
+    @MainActor
+    func schedulesViewConfigurationCallbacks() {
+        let appState = isolatedAppState(name: "configurationCallbacks")
+        var dismissCount = 0
+        let schedule = sampleSchedule(name: "Callback")
+        appState.schedules = [schedule]
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: { dismissCount += 1 },
+            initialViewMode: 1
+        )
+        _ = host(controller)
+
+        var config = controller.appKitConfigurationForTesting
+        config.onChangeViewMode(0)
+        #expect(controller.viewModeForTesting == 0)
+
+        config = controller.appKitConfigurationForTesting
+        config.onSelectSchedule(schedule)
+        #expect(controller.editorContextForTesting?.schedule?.id == schedule.id)
+
+        config.onDismissEditor()
+        #expect(controller.editorContextForTesting == nil)
+
+        config.calendarViewConfiguration.onQuickAdd(2, 10)
+        #expect(controller.editorContextForTesting?.day == 2)
+
+        config.calendarViewConfiguration.onCreateSelection(3, 9.25, 10.75)
+        #expect(controller.editorContextForTesting?.day == 3)
+
+        config.calendarViewConfiguration.onOpenSchedule(2, schedule)
+        #expect(controller.editorContextForTesting?.schedule?.id == schedule.id)
+
+        config.onToggleScheduleEnabled(schedule.id, false)
+        #expect(appState.schedules.first?.isEnabled == false)
+
+        config.onDeleteSchedule(UUID())
+        #expect(appState.schedules.count == 1)
+
+        config.onAddSchedule()
+        #expect(controller.editorContextForTesting != nil)
+
+        let weekBefore = controller.weekOffsetForTesting
+        config.onPreviousWeek()
+        #expect(controller.weekOffsetForTesting == weekBefore - 1)
+        config.onCurrentWeek()
+        #expect(controller.weekOffsetForTesting == 0)
+        config.onNextWeek()
+        #expect(controller.weekOffsetForTesting == 1)
+
+        config.onDismiss?()
+        #expect(dismissCount == 1)
+    }
+
     @Test("Schedules list view reuses existing row view identity for unchanged schedules")
     @MainActor
     func schedulesListRowReuseIdentity() throws {
