@@ -87,3 +87,9 @@ final class SchedulesListDocumentNSView: NSView {
         }
     }
 }
+
+extension SchedulesListDocumentNSView {
+    func rowObjectIdentifierForTesting(scheduleId: UUID) -> ObjectIdentifier? {
+        rowViews[scheduleId].map(ObjectIdentifier.init)
+    }
+}

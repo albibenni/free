@@ -367,4 +367,8 @@ extension SchedulesSheetViewController {
     }
 
     var refreshGenerationForTesting: Int { refreshGeneration }
+
+    func listRowObjectIdentifierForTesting(scheduleId: UUID) -> ObjectIdentifier? {
+        schedulesContainerView.listRowObjectIdentifierForTesting(scheduleId: scheduleId)
+    }
 }

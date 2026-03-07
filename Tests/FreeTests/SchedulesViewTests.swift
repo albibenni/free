@@ -246,4 +246,30 @@ struct SchedulesViewTests {
         #expect(hosted.fittingSize.width >= 0)
         #expect(controller.editorContextForTesting?.schedule?.id == schedule.id)
     }
+
+    @Test("Schedules list view reuses existing row view identity for unchanged schedules")
+    @MainActor
+    func schedulesListRowReuseIdentity() throws {
+        let appState = isolatedAppState(name: "listRowReuseIdentity")
+        let first = sampleSchedule(name: "First")
+        appState.schedules = [first]
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: {},
+            initialViewMode: 0
+        )
+        _ = host(controller)
+
+        let initialRowId = try #require(
+            controller.listRowObjectIdentifierForTesting(scheduleId: first.id)
+        )
+
+        let second = sampleSchedule(name: "Second")
+        appState.schedules.append(second)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+
+        #expect(controller.listRowObjectIdentifierForTesting(scheduleId: first.id) == initialRowId)
+        #expect(controller.listRowObjectIdentifierForTesting(scheduleId: second.id) != nil)
+    }
 }

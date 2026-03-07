@@ -379,3 +379,9 @@ final class SchedulesContainerNSView: NSView {
         configuration?.onNextWeek()
     }
 }
+
+extension SchedulesContainerNSView {
+    func listRowObjectIdentifierForTesting(scheduleId: UUID) -> ObjectIdentifier? {
+        listDocumentView.rowObjectIdentifierForTesting(scheduleId: scheduleId)
+    }
+}
