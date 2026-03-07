@@ -38,6 +38,7 @@ private final class FakeLocalServerConnection: LocalServerConnection {
     }
 }
 
+@Suite(.serialized)
 struct LocalServerTests {
     @Test("LocalServer.start skips default test port in test runtime")
     func startSkipsDefaultPortInTests() {

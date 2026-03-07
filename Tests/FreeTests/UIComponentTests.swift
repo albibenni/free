@@ -4,6 +4,7 @@ import Testing
 
 @testable import FreeLogic
 
+@Suite(.serialized)
 struct UIComponentTests {
     private func rgbaComponents(_ cgColor: CGColor?) -> (CGFloat, CGFloat, CGFloat, CGFloat)? {
         guard let cgColor,
@@ -30,6 +31,18 @@ struct UIComponentTests {
         for subview in view.subviews {
             if let button = findButton(with: identifier, in: subview) {
                 return button
+            }
+        }
+        return nil
+    }
+
+    private func firstStackView(in view: NSView) -> NSStackView? {
+        if let stack = view as? NSStackView {
+            return stack
+        }
+        for subview in view.subviews {
+            if let stack = firstStackView(in: subview) {
+                return stack
             }
         }
         return nil
@@ -119,6 +132,28 @@ struct UIComponentTests {
         #expect(minusButton.isEnabled == false)
     }
 
+    @Test("AppKit symbol helper returns nil for unknown symbols")
+    func appKitSymbolHelperUnknownSymbol() {
+        let unknown = appKitSymbolImage(
+            named: "definitely.not.a.real.symbol",
+            pointSize: 14,
+            weight: .regular,
+            color: nil
+        )
+        #expect(unknown == nil)
+    }
+
+    @Test("AppKit symbol helper supports nil tint color")
+    func appKitSymbolHelperNilTintColor() {
+        let image = appKitSymbolImage(
+            named: "chevron.left",
+            pointSize: 12,
+            weight: .regular,
+            color: nil
+        )
+        #expect(image != nil)
+    }
+
     @Test("Shared AppKit icon button helper applies image inset when supported")
     func sharedAppKitIconButtonInset() {
         let button = IconInsetButton()
@@ -135,6 +170,52 @@ struct UIComponentTests {
 
         #expect(button.image != nil)
         #expect(button.imageInset == 2)
+    }
+
+    @MainActor
+    @Test("AppKit button primitives cover action, gradient, and inset-cell geometry")
+    func appKitButtonPrimitivesCoverage() {
+        let actionButton = ActionButton(title: "Run")
+        var didTap = false
+        actionButton.onAction = { didTap = true }
+        actionButton.setGradientBackground(
+            colors: [.systemBlue.withAlphaComponent(0.3), .systemBlue.withAlphaComponent(0.15)],
+            borderColor: .systemBlue,
+            borderWidth: 2
+        )
+        actionButton.frame = NSRect(x: 0, y: 0, width: 120, height: 32)
+        actionButton.layoutSubtreeIfNeeded()
+        actionButton.viewDidChangeEffectiveAppearance()
+        actionButton.performClick(nil)
+        #expect(didTap)
+        #expect(actionButton.layer?.borderWidth == 2)
+
+        let leadingCell = LeadingInsetButtonCell(textCell: "Row")
+        leadingCell.leadingInset = 10
+        leadingCell.imageSlotWidth = 20
+        leadingCell.titleAdditionalInset = 6
+        _ = leadingCell.imageRect(forBounds: NSRect(x: 0, y: 0, width: 180, height: 28))
+        let titleRect = leadingCell.titleRect(forBounds: NSRect(x: 0, y: 0, width: 180, height: 28))
+        #expect(titleRect.origin.x == 36)
+        #expect(titleRect.width == 144)
+
+        let iconCell = IconInsetButtonCell(textCell: "")
+        iconCell.imageInset = 3
+        _ = iconCell.imageRect(forBounds: NSRect(x: 0, y: 0, width: 24, height: 24))
+
+        let iconButton = IconInsetButton(frame: NSRect(x: 0, y: 0, width: 24, height: 24))
+        iconButton.imageInset = 4
+        #expect(iconButton.imageInset == 4)
+        IconInsetButton.cellClass = NSButtonCell.self
+
+        let leadingButton = LeadingInsetActionButton(title: "Lead")
+        leadingButton.leadingInset = 12
+        leadingButton.titleAdditionalInset = 7
+        leadingButton.imageSlotWidth = 18
+        #expect(leadingButton.leadingInset == 12)
+        #expect(leadingButton.titleAdditionalInset == 7)
+        #expect(leadingButton.imageSlotWidth == 18)
+        LeadingInsetActionButton.cellClass = NSButtonCell.self
     }
 
     @Test("Shared AppKit pill and selectable-row helpers configure common controls")
@@ -181,6 +262,100 @@ struct UIComponentTests {
         #expect(control.intrinsicContentSize.width > 80)
         #expect(control.intrinsicContentSize.width < 220)
         #expect(control.intrinsicContentSize.height == 26)
+    }
+
+    @MainActor
+    @Test("Selection button group routes click selection callback and appearance refresh")
+    func sharedAppKitSelectionButtonGroupActions() {
+        let control = AppKitSelectionButtonGroup(
+            options: [
+                AppKitSelectionButtonOption(title: "One", value: 1),
+                AppKitSelectionButtonOption(title: "Two", value: 2),
+            ],
+            selectedValue: 1,
+            accentColor: .systemBlue
+        )
+
+        var selectedValues: [Int] = []
+        control.onSelection = { selectedValues.append($0) }
+
+        let stack = firstStackView(in: control)
+        #expect(stack != nil)
+        let buttons = stack?.arrangedSubviews.compactMap { $0 as? NSButton } ?? []
+        #expect(buttons.count == 2)
+
+        buttons.last?.performClick(nil)
+        #expect(control.selectedValue == 2)
+        #expect(selectedValues == [2])
+
+        control.viewDidChangeEffectiveAppearance()
+        #expect(control.selectedButtonTintColor != nil)
+    }
+
+    @MainActor
+    @Test("AppKit toggle switch covers layout, key, and mouse interactions")
+    func appKitToggleSwitchInteractions() {
+        let toggle = AppKitToggleSwitch(frame: NSRect(x: 0, y: 0, width: 52, height: 28))
+        toggle.accentColor = .systemGreen
+        #expect(toggle.intrinsicContentSize == NSSize(width: 52, height: 28))
+        #expect(toggle.acceptsFirstResponder)
+
+        var actionCount = 0
+        final class ToggleTarget: NSObject {
+            var onToggle: (() -> Void)?
+            @objc func didToggle() { onToggle?() }
+        }
+        let target = ToggleTarget()
+        target.onToggle = { actionCount += 1 }
+        toggle.target = target
+        toggle.action = #selector(ToggleTarget.didToggle)
+
+        toggle.layoutSubtreeIfNeeded()
+        toggle.viewDidChangeEffectiveAppearance()
+
+        let keyEvent = NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: " ",
+            charactersIgnoringModifiers: " ",
+            isARepeat: false,
+            keyCode: 49
+        )
+        #expect(keyEvent != nil)
+        if let keyEvent {
+            toggle.keyDown(with: keyEvent)
+        }
+        #expect(toggle.state == .on)
+        #expect(actionCount == 1)
+
+        let mouseInside = NSEvent.mouseEvent(
+            with: .leftMouseUp,
+            location: NSPoint(x: 10, y: 10),
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            eventNumber: 0,
+            clickCount: 1,
+            pressure: 1
+        )
+        #expect(mouseInside != nil)
+        if let mouseInside {
+            toggle.mouseUp(with: mouseInside)
+        }
+        #expect(toggle.state == .off)
+        #expect(actionCount == 2)
+
+        toggle.isEnabled = false
+        #expect(toggle.acceptsFirstResponder == false)
+        if let keyEvent {
+            toggle.keyDown(with: keyEvent)
+        }
+        #expect(toggle.state == .off)
     }
 
     @Test("Shared AppKit stack helpers build consistent row and column layouts")
@@ -232,6 +407,18 @@ struct UIComponentTests {
         #expect(darkComponents != nil)
         #expect(lightComponents?.0 != darkComponents?.0)
         #expect(lightComponents?.3 == darkComponents?.3)
+    }
+
+    @Test("Dynamic AppKit color helpers resolve without appearance context")
+    func dynamicAppKitProviderResolutionWithoutAppearance() {
+        let fixedColor = resolvedAppKitCGColor(NSColor.systemRed, appearance: nil)
+        #expect(NSColor(cgColor: fixedColor) != nil)
+
+        let providedColor = resolvedAppKitCGColor({ NSColor.systemBlue }, appearance: nil)
+        #expect(providedColor != nil)
+
+        let missingColor = resolvedAppKitCGColor({ nil }, appearance: nil)
+        #expect(missingColor == nil)
     }
 
     @Test("Main sidebar selection callback routes to expected section controller")

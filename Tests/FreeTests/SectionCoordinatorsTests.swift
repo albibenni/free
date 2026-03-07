@@ -4,6 +4,7 @@ import Testing
 
 @testable import FreeLogic
 
+@Suite(.serialized)
 struct SectionCoordinatorsTests {
     @Test("Focus interaction coordinator gates deferred and flush reloads")
     func focusInteractionReloadCoordinator() {
@@ -63,7 +64,7 @@ struct SectionCoordinatorsTests {
 
     @Test("Focus widget coordinator classifies pomodoro widget reuse actions")
     func focusWidgetCoordinator() {
-        let state = AppState()
+        let state = AppState(isTesting: true)
         let base = FocusPomodoroWidgetSignature(appState: state)
 
         state.activeRuleSetId = UUID()
@@ -97,7 +98,7 @@ struct SectionCoordinatorsTests {
     @Test("Focus widget factory builds section-specific widget payloads")
     @MainActor
     func focusWidgetFactory() {
-        let appState = AppState()
+        let appState = AppState(isTesting: true)
         let shellState = FreeShellState()
 
         let pomodoro = FocusSectionWidgetFactory.build(
@@ -152,7 +153,7 @@ struct SectionCoordinatorsTests {
     @Test("Focus widget reload coordinator picks reuse, keep, and rebuild operations")
     @MainActor
     func focusWidgetReloadCoordinator() {
-        let appState = AppState()
+        let appState = AppState(isTesting: true)
         let shellState = FreeShellState()
 
         let initialSignatures = FocusSectionWidgetReloadCoordinator.Signatures(
@@ -242,7 +243,7 @@ struct SectionCoordinatorsTests {
     @Test("Focus shared-state coordinator computes header status and visibility flags")
     @MainActor
     func focusSharedStateCoordinator() {
-        let appState = AppState()
+        let appState = AppState(isTesting: true)
         appState.isTrusted = false
         appState.isBlocking = true
         appState.isPaused = true

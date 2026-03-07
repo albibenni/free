@@ -266,4 +266,232 @@ struct PomodoroWidgetTests {
         #expect(appState.pomodoroFocusDuration == 25)
         #expect(appState.pomodoroBreakDuration == 5)
     }
+
+    @Test("FocusPomodoroWidgetView refresh handles mode transitions and active updates")
+    @MainActor
+    func pomodoroWidgetRefreshTransitions() {
+        let appState = isolatedAppState(name: "refreshTransitions")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
+        appState.ruleSets = [work, personal]
+        appState.activeRuleSetId = work.id
+
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        let hosted = host(widget)
+        #expect(widget.refreshGeneration > 0)
+        #expect(visibleText(in: hosted).contains("Start Focus Session"))
+
+        appState.startPomodoro()
+        appState.pomodoroRemaining = 60 * 20
+        widget.refreshForStateChange()
+        #expect(visibleText(in: hosted).contains("FOCUSING"))
+        #expect(subviews(ofType: PomodoroProgressDialView.self, in: hosted).count == 1)
+
+        appState.pomodoroStatus = .breakTime
+        appState.pomodoroRemaining = 60 * 3
+        widget.refreshForStateChange()
+        #expect(visibleText(in: hosted).contains("BREAKING"))
+
+        let beforeRebuildGeneration = widget.refreshGeneration
+        appState.ruleSets.append(sampleRuleSet(name: "Third", url: "https://third.example"))
+        widget.refreshForStateChange()
+        #expect(widget.refreshGeneration > beforeRebuildGeneration)
+    }
+
+    @Test("FocusPomodoroWidgetView dial adjustment symbols change durations")
+    @MainActor
+    func pomodoroWidgetDialAdjustmentButtons() {
+        let appState = isolatedAppState(name: "dialAdjustButtons")
+        appState.pomodoroStatus = .none
+        appState.pomodoroFocusDuration = 25
+        appState.pomodoroBreakDuration = 10
+
+        let hosted = host(FocusPomodoroWidgetView(appState: appState), size: CGSize(width: 900, height: 900))
+        let symbolButtons = subviews(ofType: AppKitSymbolControlButton.self, in: hosted)
+        #expect(symbolButtons.count >= 4)
+
+        let focusBefore = appState.pomodoroFocusDuration
+        let breakBefore = appState.pomodoroBreakDuration
+        let plusButton = symbolButtons.first(where: { $0.symbolNameForTesting.contains("plus") })
+        #expect(plusButton != nil)
+        plusButton?.performClick(nil)
+
+        #expect(appState.pomodoroFocusDuration != focusBefore || appState.pomodoroBreakDuration != breakBefore)
+        #expect(appState.pomodoroFocusDuration >= 5)
+        #expect(appState.pomodoroBreakDuration >= 5)
+    }
+
+    @Test("Pomodoro dial views cover draw and mouse interaction paths")
+    @MainActor
+    func pomodoroDialViewsInteractionCoverage() throws {
+        var committedMinutes: [Double] = []
+        var beginCount = 0
+        var endCount = 0
+
+        let durationDial = PomodoroDurationDialView(
+            title: "FOCUS",
+            durationMinutes: 25,
+            maxMinutes: 120,
+            iconName: AppKitUISymbols.Name.focus,
+            color: .systemGreen,
+            onInteractionDidBegin: { beginCount += 1 },
+            onInteractionDidEnd: { endCount += 1 },
+            onCommit: { committedMinutes.append($0) }
+        )
+        durationDial.frame = NSRect(x: 0, y: 0, width: 240, height: 240)
+        durationDial.layoutSubtreeIfNeeded()
+        #expect(durationDial.intrinsicContentSize == NSSize(width: 240, height: 240))
+
+        let durationImage = NSImage(size: durationDial.bounds.size)
+        durationImage.lockFocus()
+        durationDial.draw(durationDial.bounds)
+        durationImage.unlockFocus()
+        durationDial.resetCursorRects()
+
+        let dragWithoutDown = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDragged,
+                location: NSPoint(x: 180, y: 120),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        durationDial.mouseDragged(with: dragWithoutDown)
+        #expect(committedMinutes.isEmpty)
+
+        let down = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDown,
+                location: NSPoint(x: 220, y: 120),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 1,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let drag = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDragged,
+                location: NSPoint(x: 120, y: 220),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 2,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let up = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseUp,
+                location: NSPoint(x: 120, y: 220),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 3,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        durationDial.mouseDown(with: down)
+        durationDial.mouseDragged(with: drag)
+        durationDial.mouseUp(with: up)
+
+        #expect(beginCount == 1)
+        #expect(endCount == 1)
+        #expect(committedMinutes.count == 1)
+
+        durationDial.applyLocationForTesting(CGPoint(x: 200, y: 120), commit: false)
+        let countAfterNoCommit = committedMinutes.count
+        durationDial.applyLocationForTesting(CGPoint(x: 200, y: 120), commit: true)
+        #expect(committedMinutes.count == countAfterNoCommit + 1)
+
+        durationDial.setDurationMinutes(35)
+        #expect(durationDial.durationMinutesForTesting == 35)
+
+        let progressDial = PomodoroProgressDialView(
+            progress: 1.6,
+            iconName: AppKitUISymbols.Name.breakCup,
+            color: .systemOrange,
+            centerText: "12:00"
+        )
+        progressDial.frame = NSRect(x: 0, y: 0, width: 240, height: 240)
+        progressDial.layoutSubtreeIfNeeded()
+        #expect(progressDial.intrinsicContentSize == NSSize(width: 240, height: 240))
+
+        let progressImage = NSImage(size: progressDial.bounds.size)
+        progressImage.lockFocus()
+        progressDial.draw(progressDial.bounds)
+        progressImage.unlockFocus()
+
+        progressDial.update(
+            progress: -0.5,
+            iconName: AppKitUISymbols.Name.focus,
+            color: .systemBlue,
+            centerText: "00:30"
+        )
+        progressImage.lockFocus()
+        progressDial.draw(progressDial.bounds)
+        progressImage.unlockFocus()
+
+        progressDial.frame = .zero
+        progressDial.draw(.zero)
+    }
+
+    @Test("FocusPomodoroWidgetView custom break and strict stop prompts use simulation hooks")
+    @MainActor
+    func pomodoroWidgetPromptSimulations() {
+        let breakState = isolatedAppState(name: "promptCustomBreak")
+        breakState.isBlocking = true
+        breakState.isUnblockable = false
+
+        let breakWidget = FocusPomodoroWidgetView(appState: breakState)
+        breakWidget.customBreakPromptSimulation = { (.alertFirstButtonReturn, "7") }
+        let breakHosted = host(breakWidget)
+        let customButton = buttons(in: breakHosted).first { $0.title == "Cust" }
+        #expect(customButton != nil)
+        customButton?.performClick(nil)
+        #expect(breakState.isPaused)
+        #expect(breakState.pauseRemaining == 7 * 60)
+
+        let lockedState = isolatedAppState(name: "promptStrictStop")
+        lockedState.startPomodoro()
+        lockedState.isBlocking = true
+        lockedState.isUnblockable = true
+        lockedState.pomodoroStartedAt = Date().addingTimeInterval(-20)
+        let stopWidget = FocusPomodoroWidgetView(appState: lockedState)
+        stopWidget.stopChallengePromptSimulation = {
+            (.alertFirstButtonReturn, "wrong phrase")
+        }
+        let stopHosted = host(stopWidget)
+        let stopButton = buttons(in: stopHosted).first { $0.title == "Stop" }
+        #expect(stopButton != nil)
+        stopButton?.performClick(nil)
+        #expect(lockedState.pomodoroStatus != .none)
+
+        stopWidget.stopChallengePromptSimulation = {
+            (.alertFirstButtonReturn, AppState.challengePhrase)
+        }
+        stopButton?.performClick(nil)
+        #expect(lockedState.pomodoroStatus == .none)
+
+        let cancelBreakState = isolatedAppState(name: "promptCancelBreak")
+        cancelBreakState.isBlocking = true
+        cancelBreakState.isUnblockable = false
+        let cancelBreakWidget = FocusPomodoroWidgetView(appState: cancelBreakState)
+        cancelBreakWidget.customBreakPromptSimulation = { (.alertSecondButtonReturn, "") }
+        let cancelBreakHosted = host(cancelBreakWidget)
+        buttons(in: cancelBreakHosted).first { $0.title == "Cust" }?.performClick(nil)
+        #expect(cancelBreakState.isPaused == false)
+    }
 }

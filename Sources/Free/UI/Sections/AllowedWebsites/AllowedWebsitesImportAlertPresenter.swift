@@ -2,6 +2,39 @@ import AppKit
 import Foundation
 
 enum AllowedWebsitesImportAlertPresenter {
+    typealias AlertFactory = () -> NSAlert
+    typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+
+    static var makeAlert: AlertFactory = defaultMakeAlert
+    static var runModal: AlertRunner = defaultRunModal
+
+    static func resetForTesting() {
+        makeAlert = defaultMakeAlert
+        runModal = defaultRunModal
+    }
+
+    private static func defaultMakeAlert() -> NSAlert {
+        NSAlert()
+    }
+
+    private static func defaultRunModal(_ alert: NSAlert) -> NSApplication.ModalResponse {
+        if isRunningInTestProcess() {
+            return .alertSecondButtonReturn
+        }
+        return alert.runModal()
+    }
+
+    private static func isRunningInTestProcess() -> Bool {
+        let environment = ProcessInfo.processInfo.environment
+        if environment["XCTestConfigurationFilePath"] != nil { return true }
+        if environment["XCTestBundlePath"] != nil { return true }
+        if environment["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES"] != nil { return true }
+        if environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil {
+            return true
+        }
+        return NSClassFromString("XCTestCase") != nil
+    }
+
     private final class SelectAllCoordinator: NSObject {
         private let checkboxes: [NSButton]
 
@@ -19,13 +52,13 @@ enum AllowedWebsitesImportAlertPresenter {
     }
 
     static func presentEmptyState(currentOpenUrls: [String]) {
-        let alert = NSAlert()
+        let alert = makeAlert()
         alert.messageText = "Import Open Tabs"
         alert.informativeText = RulesSectionSupport.suggestionsEmptyText(
             currentOpenUrls: currentOpenUrls
         )
         alert.addButton(withTitle: "OK")
-        alert.runModal()
+        _ = runModal(alert)
     }
 
     static func presentCandidateSelection(
@@ -33,14 +66,14 @@ enum AllowedWebsitesImportAlertPresenter {
         selectedSetName: String
     ) -> [String]? {
         let checkboxes = makeCandidateCheckboxes(candidates: candidates)
-        let alert = NSAlert()
+        let alert = makeAlert()
         alert.messageText = "Import Open Tabs"
         alert.informativeText = "Detected \(candidates.count) websites for \"\(selectedSetName)\"."
         alert.accessoryView = makeAccessoryView(checkboxes: checkboxes)
         alert.addButton(withTitle: "Add Selected")
         alert.addButton(withTitle: "Cancel")
 
-        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        guard runModal(alert) == .alertFirstButtonReturn else { return nil }
         return AllowedWebsitesImportCoordinator.selectedRulesToImport(
             candidates: candidates,
             checkboxStates: checkboxes.map(\.state)

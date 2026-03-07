@@ -33,6 +33,9 @@ final class FocusSectionViewController: NSViewController {
     var pomodoroWidgetSignature: FocusPomodoroWidgetSignature?
     var schedulesWidgetSignature: FocusSchedulesWidgetSignature?
     var allowedWebsitesWidgetSignature: FocusAllowedWebsitesWidgetSignature?
+    var grantAccessibilityActionFactory: () -> () -> Void = {
+        FocusSectionSupport.makeGrantAccessibilityAction()
+    }
 
     init(appState: AppState, shellState: FreeShellState, section: FocusContentSection) {
         self.appState = appState

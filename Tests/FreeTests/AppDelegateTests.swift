@@ -85,6 +85,7 @@ private final class MockAppDelegateSystem: AppDelegateSystem {
     }
 }
 
+@Suite(.serialized)
 struct AppDelegateTests {
 
     private func setupIsolatedDelegate(
