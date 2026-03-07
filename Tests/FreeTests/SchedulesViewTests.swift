@@ -394,6 +394,8 @@ struct SchedulesViewTests {
         ) {
             row.mouseUp(with: emptyMouseUp)
         }
+        firstSubview(of: NSButton.self, in: row)?.performClick(nil)
+        firstSubview(of: NSSwitch.self, in: row)?.performClick(nil)
 
         let base = sampleSchedule(name: "Row Test")
         var selectedId: UUID?
@@ -453,6 +455,13 @@ struct SchedulesViewTests {
         )
         row.layoutSubtreeIfNeeded()
 
+        image.lockFocus()
+        row.draw(row.bounds)
+        image.unlockFocus()
+
+        // Small-width guard paths for badge/tag rendering.
+        row.frame = NSRect(x: 0, y: 0, width: 20, height: 72)
+        row.layoutSubtreeIfNeeded()
         image.lockFocus()
         row.draw(row.bounds)
         image.unlockFocus()

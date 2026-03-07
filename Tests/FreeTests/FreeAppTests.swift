@@ -151,6 +151,7 @@ struct FreeAppTests {
         app.launch(application: NSApplication.shared)
         #expect(NSApplication.shared.delegate === appDelegate)
         #expect(appDelegate.onApplicationDidFinishLaunching != nil)
+        appDelegate.onApplicationDidFinishLaunching?()
 
         app.startInterface(application: NSApplication.shared)
         #expect(app.mainWindowController != nil)
@@ -186,5 +187,12 @@ struct FreeAppTests {
         app.applyMacOSAppearance(.system)
         #expect(NSApp.appearance == nil)
 
+        appState.isBlocking.toggle()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        appState.appearanceMode = .light
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        appState.appearanceMode = .dark
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
     }
+
 }
