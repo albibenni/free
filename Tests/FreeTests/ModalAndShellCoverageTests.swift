@@ -87,6 +87,54 @@ struct ModalAndShellCoverageTests {
         _ = AllowedWebsitesImportAlertPresenter.makeAlert()
         _ = AllowedWebsitesImportAlertPresenter.runModal(NSAlert())
 
+        var usedAllowedNativeRunner = false
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = { ["XCTestConfigurationFilePath": "1"] }
+        AllowedWebsitesRuleSetAlertPresenter.classLookup = { _ in nil }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = { ["XCTestBundlePath": "1"] }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = {
+            ["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES": "1"]
+        }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = { ["__XCODE_BUILT_PRODUCTS_DIR_PATHS": "1"] }
+        AllowedWebsitesRuleSetAlertPresenter.classLookup = { _ in nil }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = { [:] }
+        AllowedWebsitesRuleSetAlertPresenter.classLookup = { _ in nil }
+        AllowedWebsitesRuleSetAlertPresenter.runNativeModal = { _ in
+            usedAllowedNativeRunner = true
+            return .alertFirstButtonReturn
+        }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertFirstButtonReturn)
+        #expect(usedAllowedNativeRunner)
+        AllowedWebsitesRuleSetAlertPresenter.classLookup = { _ in NSObject.self }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+
+        var usedRulesNativeRunner = false
+        RulesSheetAlertPresenter.environmentProvider = { ["XCTestConfigurationFilePath": "1"] }
+        RulesSheetAlertPresenter.classLookup = { _ in nil }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        RulesSheetAlertPresenter.environmentProvider = { ["XCTestBundlePath": "1"] }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        RulesSheetAlertPresenter.environmentProvider = {
+            ["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES": "1"]
+        }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        RulesSheetAlertPresenter.environmentProvider = { ["__XCODE_BUILT_PRODUCTS_DIR_PATHS": "1"] }
+        RulesSheetAlertPresenter.classLookup = { _ in nil }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        RulesSheetAlertPresenter.environmentProvider = { [:] }
+        RulesSheetAlertPresenter.classLookup = { _ in nil }
+        RulesSheetAlertPresenter.runNativeModal = { _ in
+            usedRulesNativeRunner = true
+            return .alertFirstButtonReturn
+        }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertFirstButtonReturn)
+        #expect(usedRulesNativeRunner)
+        RulesSheetAlertPresenter.classLookup = { _ in NSObject.self }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+
         AllowedWebsitesRuleSetAlertPresenter.makeAlert = { NSAlert() }
         AllowedWebsitesRuleSetAlertPresenter.runModal = { alert in
             (alert.accessoryView as? NSTextField)?.stringValue = "Work"
@@ -505,6 +553,11 @@ struct ModalAndShellCoverageTests {
                 display: false
             )
             floating.restoreDesiredContentSize()
+            window.setFrame(
+                NSRect(origin: window.frame.origin, size: NSSize(width: 760, height: 560)),
+                display: false
+            )
+            floating.reconcileWindowFrameForTesting()
         }
         floating.restoreDesiredContentSize()
         floating.dismiss()
@@ -560,6 +613,14 @@ struct ModalAndShellCoverageTests {
                 iconColor: .labelColor
             )
         }
+
+        // Cover guard path when a status button cannot be resolved.
+        controller.setStatusButtonProviderForTesting { nil }
+        controller.update(
+            statusText: "Focus Mode: Inactive",
+            isQuitDisabled: false,
+            iconColor: .labelColor
+        )
     }
 
     @MainActor

@@ -228,3 +228,11 @@ final class MainSidebarView: AppKitDynamicView {
         onSelectSection?(section)
     }
 }
+
+extension MainSidebarView {
+    func invokeSidebarButtonForTesting(identifierRawValue: String) {
+        let button = NSButton()
+        button.identifier = NSUserInterfaceItemIdentifier(identifierRawValue)
+        handleSidebarButton(button)
+    }
+}

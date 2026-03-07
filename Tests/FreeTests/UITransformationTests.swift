@@ -229,4 +229,117 @@ struct UITransformationTests {
 
         #expect(rect?.size.height == 1400)
     }
+
+    @Test("WeeklyCalendar support models and lane calculation cover initializer-heavy branches")
+    func weeklyCalendarSupportModelCoverage() {
+        let calendar = Calendar.current
+        let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
+        let end = calendar.date(from: DateComponents(hour: 10, minute: 0))!
+        let schedule = Schedule(
+            name: "Focus",
+            days: [2],
+            startTime: start,
+            endTime: end
+        )
+
+        let dragSelection = WeeklyCalendarSupport.DragSelection(day: 2, startHour: 9.0, endHour: 10.0)
+        #expect(dragSelection.day == 2)
+
+        let metrics = WeeklyCalendarSupport.DragPreviewMetrics(
+            columnWidth: 100,
+            startHour: 9,
+            endHour: 10,
+            yOffset: 0,
+            height: 80,
+            columnIndex: 1
+        )
+        #expect(metrics.columnIndex == 1)
+
+        let placement = WeeklyCalendarSupport.SchedulePlacement(
+            id: "placement",
+            day: 2,
+            startDate: start,
+            endDate: end
+        )
+        let positioned = WeeklyCalendarSupport.PositionedSchedule(
+            id: "pos",
+            schedule: schedule,
+            placement: placement,
+            laneIndex: 0,
+            laneCount: 1
+        )
+        #expect(positioned.laneCount == 1)
+
+        let update = WeeklyCalendarSupport.ScheduleUpdate(
+            targetDay: 3,
+            targetDate: Date(),
+            start: start,
+            end: end
+        )
+        #expect(update.targetDay == 3)
+
+        let moveMode: WeeklyCalendarSupport.ScheduleInteractionMode = .move
+        let resizeStartMode: WeeklyCalendarSupport.ScheduleInteractionMode = .resizeStart
+        let resizeEndMode: WeeklyCalendarSupport.ScheduleInteractionMode = .resizeEnd
+        #expect(moveMode != resizeStartMode)
+        #expect(resizeEndMode != resizeStartMode)
+
+        let laneCount = WeeklyCalendarSupport.concurrentLaneCount(
+            for: placement,
+            among: [placement],
+            calendar: calendar
+        )
+        #expect(laneCount == 1)
+
+        WeeklyCalendarSupport.calendarHourSetter = { _, _, _, _ in nil }
+        WeeklyCalendarSupport.calendarDateBuilder = { _, _ in nil }
+        defer { WeeklyCalendarSupport.resetCalendarHooksForTesting() }
+
+        let fallbackInterval = WeeklyCalendarSupport.normalizedInterval(
+            startDate: start,
+            endDate: end,
+            calendar: calendar
+        )
+        #expect(fallbackInterval.start == calendar.startOfDay(for: Date(timeIntervalSinceReferenceDate: 0)))
+
+        let fallbackTimeOnly = WeeklyCalendarSupport.timeOnlyDate(from: Date(), calendar: calendar)
+        #expect(fallbackTimeOnly.timeIntervalSinceReferenceDate >= 0)
+    }
+
+    @Test("Rules section support import candidates cover excluded scheme and malformed fallback paths")
+    func rulesImportCandidatesCoverage() {
+        let existing = RuleSet(
+            name: "Existing",
+            urls: ["youtube.com/watch?v=abc"]
+        )
+        let inputs = [
+            "chrome://newtab",
+            "https://example.com/with path",
+            "https:///only/path",
+            "youtube.com/watch?v=abc",
+            "youtube.com/watch?v=abc",
+            "https://www.apple.com",
+        ]
+
+        let candidates = RulesSectionSupport.importableWebsiteCandidates(from: inputs, existing: existing)
+        #expect(candidates.count == 4)
+        #expect(candidates.contains { $0.rule.contains("example.com/with path") && !$0.isAlreadyAllowed })
+        #expect(candidates.contains { $0.rule.contains("only/path") && !$0.isAlreadyAllowed })
+        #expect(candidates.contains { $0.rule.contains("apple.com") && !$0.isAlreadyAllowed })
+        #expect(candidates.contains { $0.rule.contains("youtube.com/watch?v=abc") && $0.isAlreadyAllowed })
+
+        let noExistingCandidates = RulesSectionSupport.importableWebsiteCandidates(
+            from: ["example.org/page"],
+            existing: nil
+        )
+        #expect(noExistingCandidates.count == 1)
+        #expect(noExistingCandidates.first?.isAlreadyAllowed == false)
+
+        #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 1, isBlocking: false) == false)
+        #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: false))
+        #expect(RulesSectionSupport.sidebarToggleIcon(isSidebarVisible: true) == AppKitUISymbols.Name.chevronLeft)
+        #expect(
+            RulesSectionSupport.sidebarToggleIcon(isSidebarVisible: false) == AppKitUISymbols.Name.chevronRight
+        )
+    }
 }

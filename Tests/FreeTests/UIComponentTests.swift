@@ -241,6 +241,30 @@ struct UIComponentTests {
         #expect(rowButton.subviews.contains { $0 is NSStackView })
     }
 
+    @Test("Schedule editor support views cover arranged-subview removal and safe collection lookup")
+    func scheduleEditorSupportViewsCoverage() {
+        let section = EditorSectionView(title: "Section")
+        #expect(section.contentStack.arrangedSubviews.count == 1)
+
+        let first = NSTextField(labelWithString: "First")
+        let second = NSTextField(labelWithString: "Second")
+        section.contentStack.addArrangedSubview(first)
+        section.contentStack.addArrangedSubview(second)
+        #expect(section.contentStack.arrangedSubviews.count == 3)
+
+        removeArrangedSubviews(from: section.contentStack)
+        #expect(section.contentStack.arrangedSubviews.isEmpty)
+        #expect(first.superview == nil)
+        #expect(second.superview == nil)
+
+        let untitled = EditorSectionView(title: "")
+        #expect(untitled.contentStack.arrangedSubviews.isEmpty)
+
+        let values = [10, 20]
+        #expect(values[safe: 0] == 10)
+        #expect(values[safe: 99] == nil)
+    }
+
     @Test("Shared AppKit selection button group applies accent to selected value")
     func sharedAppKitSelectionButtonGroup() {
         let control = AppKitSelectionButtonGroup(
@@ -527,6 +551,10 @@ struct UIComponentTests {
         #expect(toggleButton != nil)
         toggleButton?.performClick(nil)
         #expect(didToggle)
+
+        // Cover unresolved sidebar identifier guard path.
+        sidebar.invokeSidebarButtonForTesting(identifierRawValue: "does.not.exist")
+        #expect(selectedSection == .pomodoro)
     }
 
     @MainActor

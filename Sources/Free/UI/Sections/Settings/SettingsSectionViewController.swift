@@ -2,6 +2,17 @@ import AppKit
 import Combine
 
 final class SettingsSectionViewController: NSViewController {
+    typealias AlertFactory = () -> NSAlert
+    typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+
+    static var makeStrictModeAlert: AlertFactory = { NSAlert() }
+    static var runStrictModeAlert: AlertRunner = { alert in
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return .alertSecondButtonReturn
+        }
+        return alert.runModal()
+    }
+
     private struct ObservationSignature: Equatable {
         let isBlocking: Bool
         let isUnblockable: Bool
@@ -407,7 +418,7 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func disableStrictMode() {
-        let alert = NSAlert()
+        let alert = Self.makeStrictModeAlert()
         alert.messageText = "Emergency Unlock"
         alert.informativeText = "Type the phrase exactly to disable Unblockable Mode:\n\n\"\(AppState.challengePhrase)\""
         let input = NSTextField(string: "")
@@ -416,7 +427,7 @@ final class SettingsSectionViewController: NSViewController {
         alert.accessoryView = input
         alert.addButton(withTitle: "Unlock")
         alert.addButton(withTitle: "Cancel")
-        let response = alert.runModal()
+        let response = Self.runStrictModeAlert(alert)
         if response == .alertFirstButtonReturn {
             _ = appState.disableUnblockableWithChallenge(phrase: input.stringValue)
         }
@@ -543,6 +554,21 @@ extension SettingsSectionViewController {
     func selectAppearanceModeForTesting(_ mode: AppearanceMode) {
         appearanceModeControl?.onSelection?(mode)
         appearanceModeControl?.selectedValue = mode
+        reloadSettings()
+    }
+
+    static func resetStrictModeAlertHooksForTesting() {
+        makeStrictModeAlert = { NSAlert() }
+        runStrictModeAlert = { alert in
+            if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+                return .alertSecondButtonReturn
+            }
+            return alert.runModal()
+        }
+    }
+
+    func invokeDisableStrictModeModalForTesting() {
+        disableStrictMode()
         reloadSettings()
     }
 }

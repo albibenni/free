@@ -276,4 +276,41 @@ struct SettingsViewTests {
         // Invocation coverage path only; behavior is validated in calendar sync tests.
         controller.resyncImportedSchedulesForTesting()
     }
+
+    @Test("Settings controller strict-mode modal action supports unlock/cancel branches via alert hooks")
+    @MainActor
+    func settingsControllerStrictModeModalCoverage() {
+        let appState = isolatedAppState(name: "strictModeModalCoverage")
+        appState.isBlocking = true
+        appState.isUnblockable = true
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        SettingsSectionViewController.makeStrictModeAlert = { NSAlert() }
+        SettingsSectionViewController.runStrictModeAlert = { alert in
+            (alert.accessoryView as? NSTextField)?.stringValue = AppState.challengePhrase
+            return .alertFirstButtonReturn
+        }
+        controller.invokeDisableStrictModeModalForTesting()
+        #expect(appState.isUnblockable == false)
+
+        appState.isUnblockable = true
+        SettingsSectionViewController.runStrictModeAlert = { _ in .alertSecondButtonReturn }
+        controller.invokeDisableStrictModeModalForTesting()
+        #expect(appState.isUnblockable)
+    }
+
+    @Test("Settings observation callback reloads after app-state changes")
+    @MainActor
+    func settingsControllerObservationReloadCoverage() {
+        let appState = isolatedAppState(name: "observationReloadCoverage")
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        appState.accentColorIndex = 3
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        #expect(controller.appearanceSelectionColorForTesting == FocusColor.nsColor(for: 3))
+    }
 }
