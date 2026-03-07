@@ -4,6 +4,7 @@ import Testing
 
 @testable import FreeLogic
 
+@Suite(.serialized)
 struct UIComponentTests {
     private func rgbaComponents(_ cgColor: CGColor?) -> (CGFloat, CGFloat, CGFloat, CGFloat)? {
         guard let cgColor,
@@ -205,6 +206,7 @@ struct UIComponentTests {
         let iconButton = IconInsetButton(frame: NSRect(x: 0, y: 0, width: 24, height: 24))
         iconButton.imageInset = 4
         #expect(iconButton.imageInset == 4)
+        IconInsetButton.cellClass = NSButtonCell.self
 
         let leadingButton = LeadingInsetActionButton(title: "Lead")
         leadingButton.leadingInset = 12
@@ -213,6 +215,7 @@ struct UIComponentTests {
         #expect(leadingButton.leadingInset == 12)
         #expect(leadingButton.titleAdditionalInset == 7)
         #expect(leadingButton.imageSlotWidth == 18)
+        LeadingInsetActionButton.cellClass = NSButtonCell.self
     }
 
     @Test("Shared AppKit pill and selectable-row helpers configure common controls")

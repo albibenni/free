@@ -12,6 +12,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func checkLocation() {
+        if Self.isRunningInTestProcess(), system is DefaultAppDelegateSystem { return }
         let bundlePath = system.bundlePath
         if isInApplications(path: bundlePath) || system.processName.contains("Test") {
             return
@@ -29,6 +30,16 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
 
     public func isInApplications(path: String) -> Bool {
         return path.hasPrefix("/Applications") || path.hasPrefix("/System/Applications")
+    }
+
+    private static func isRunningInTestProcess(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> Bool {
+        if environment["XCTestConfigurationFilePath"] != nil { return true }
+        if environment["XCTestBundlePath"] != nil { return true }
+        if environment["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES"] != nil { return true }
+        if environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil { return true }
+        return NSClassFromString("XCTestCase") != nil
     }
 
     private func moveToApplications(currentPath: String, destinationPath: String) {

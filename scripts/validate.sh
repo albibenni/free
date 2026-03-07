@@ -23,12 +23,12 @@ fi
 
 # 2. Run unit tests
 echo "🧪 Running unit tests..."
-if IS_TESTING=1 swift test; then
+if IS_TESTING=1 FREE_COVERAGE_MODE=1 swift test --no-parallel; then
     echo -e "  ✅ Tests passed"
 else
     echo -e "  ❌ ${RED}Tests failed!${NC}"
     # Run again without quiet to show why it failed
-    IS_TESTING=1 swift test
+    IS_TESTING=1 FREE_COVERAGE_MODE=1 swift test --no-parallel
     exit 1
 fi
 

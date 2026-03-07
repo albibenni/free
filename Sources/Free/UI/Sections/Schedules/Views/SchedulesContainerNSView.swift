@@ -384,4 +384,24 @@ extension SchedulesContainerNSView {
     func listRowObjectIdentifierForTesting(scheduleId: UUID) -> ObjectIdentifier? {
         listDocumentView.rowObjectIdentifierForTesting(scheduleId: scheduleId)
     }
+
+    func addScheduleForTesting() {
+        addSchedule()
+    }
+
+    func changeViewModeForTesting() {
+        changeViewMode()
+    }
+
+    func goToPreviousWeekForTesting() {
+        goToPreviousWeek()
+    }
+
+    func goToCurrentWeekForTesting() {
+        goToCurrentWeek()
+    }
+
+    func goToNextWeekForTesting() {
+        goToNextWeek()
+    }
 }
