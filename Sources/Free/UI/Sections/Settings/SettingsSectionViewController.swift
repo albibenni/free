@@ -2,6 +2,21 @@ import AppKit
 import Combine
 
 final class SettingsSectionViewController: NSViewController {
+    private struct ObservationSignature: Equatable {
+        let isBlocking: Bool
+        let isUnblockable: Bool
+        let isStrictActive: Bool
+        let weekStartsOnMonday: Bool
+        let calendarIntegrationEnabled: Bool
+        let calendarImportsBlockTime: Bool
+        let blockNewTabs: Bool
+        let blockDeveloperHosts: Bool
+        let blockLocalNetworkHosts: Bool
+        let appearanceMode: AppearanceMode
+        let accentColorIndex: Int
+        let launchAtLoginEnabled: Bool
+    }
+
     private let appState: AppState
     private let scrollContainer = VerticalStackScrollContainer()
     private var cancellables: Set<AnyCancellable> = []
@@ -69,12 +84,45 @@ final class SettingsSectionViewController: NSViewController {
 
         AppKitAppStateObservation.bind(
             appState: appState,
+            signature: { [weak self] in
+                self?.observationSignature() ?? ObservationSignature(
+                    isBlocking: false,
+                    isUnblockable: false,
+                    isStrictActive: false,
+                    weekStartsOnMonday: false,
+                    calendarIntegrationEnabled: false,
+                    calendarImportsBlockTime: false,
+                    blockNewTabs: false,
+                    blockDeveloperHosts: false,
+                    blockLocalNetworkHosts: false,
+                    appearanceMode: .system,
+                    accentColorIndex: 0,
+                    launchAtLoginEnabled: false
+                )
+            },
             cancellables: &cancellables
-        ) { [weak self] in
+        ) { [weak self] _ in
             self?.reloadSettings()
         }
 
         reloadSettings()
+    }
+
+    private func observationSignature() -> ObservationSignature {
+        ObservationSignature(
+            isBlocking: appState.isBlocking,
+            isUnblockable: appState.isUnblockable,
+            isStrictActive: appState.isStrictActive,
+            weekStartsOnMonday: appState.weekStartsOnMonday,
+            calendarIntegrationEnabled: appState.calendarIntegrationEnabled,
+            calendarImportsBlockTime: appState.calendarImportsBlockTime,
+            blockNewTabs: appState.blockNewTabs,
+            blockDeveloperHosts: appState.blockDeveloperHosts,
+            blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
+            appearanceMode: appState.appearanceMode,
+            accentColorIndex: appState.accentColorIndex,
+            launchAtLoginEnabled: appState.launchAtLoginStatus()
+        )
     }
 
     private func makeSectionTitle(_ text: String) -> NSView {

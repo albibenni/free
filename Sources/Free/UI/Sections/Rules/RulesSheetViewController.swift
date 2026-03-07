@@ -91,23 +91,31 @@ final class RulesSheetViewController: NSViewController {
         super.viewDidLoad()
         AppKitAppStateObservation.bind(
             appState: appState,
+            signature: { [weak self, appState] in
+                guard let self else {
+                    return RulesSheetRenderSignature(
+                        appState: appState,
+                        isSuggestionsExpanded: false,
+                        currentSelectedSetId: nil
+                    )
+                }
+                return self.currentRenderSignature()
+            },
             cancellables: &cancellables
-        ) { [weak self] in
-            self?.handleObservedAppStateChange()
+        ) { [weak self] _ in
+            self?.reloadContent()
         }
 
         appState.refreshCurrentOpenUrls()
         reloadContent()
     }
 
-    private func handleObservedAppStateChange() {
-        let nextSignature = RulesSheetRenderSignature(
+    private func currentRenderSignature() -> RulesSheetRenderSignature {
+        RulesSheetRenderSignature(
             appState: appState,
             isSuggestionsExpanded: isSuggestionsExpanded,
             currentSelectedSetId: selectedSetId
         )
-        guard renderSignature != nextSignature else { return }
-        reloadContent()
     }
 
     private func configureSidebar() {
@@ -295,45 +303,8 @@ final class RulesSheetViewController: NSViewController {
             backgroundColor: NSColor.labelColor.withAlphaComponent(0.06),
             cornerRadius: 11
         )
-        addRuleButton.image = nil
-        addRuleButton.title = "Add"
-        addRuleButton.isBordered = false
-        addRuleButton.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
-        addRuleButton.setGradientBackground(
-            colors: [
-                accentColor.withAlphaComponent(0.14),
-                accentColor.withAlphaComponent(0.08),
-            ],
-            borderColor: accentColor.withAlphaComponent(0.28)
-        )
-        addRuleButton.attributedTitle = NSAttributedString(
-            string: "Add",
-            attributes: [
-                .font: AppKitUIConstants.Typography.regular,
-                .foregroundColor: accentColor,
-            ]
-        )
-        addRuleButton.contentTintColor = accentColor
-
-        doneButton.image = nil
-        doneButton.title = "Done"
-        doneButton.isBordered = false
-        doneButton.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
-        doneButton.setGradientBackground(
-            colors: [
-                NSColor.labelColor.withAlphaComponent(0.10),
-                NSColor.labelColor.withAlphaComponent(0.05),
-            ],
-            borderColor: NSColor.separatorColor.withAlphaComponent(0.35)
-        )
-        doneButton.attributedTitle = NSAttributedString(
-            string: "Done",
-            attributes: [
-                .font: AppKitUIConstants.Typography.regular,
-                .foregroundColor: NSColor.labelColor,
-            ]
-        )
-        doneButton.contentTintColor = .labelColor
+        applyAppKitSecondaryButtonStyle(addRuleButton, title: "Add", color: accentColor)
+        applyAppKitNeutralButtonStyle(doneButton, title: "Done")
     }
 
     private func reloadSidebar() {

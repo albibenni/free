@@ -166,23 +166,7 @@ final class RulesSheetSuggestionRowView: NSStackView {
     ) {
         self.suggestion = suggestion
         label.stringValue = suggestion
-        addButton.isBordered = false
-        addButton.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
-        addButton.setGradientBackground(
-            colors: [
-                accentColor.withAlphaComponent(0.14),
-                accentColor.withAlphaComponent(0.08),
-            ],
-            borderColor: accentColor.withAlphaComponent(0.28)
-        )
-        addButton.attributedTitle = NSAttributedString(
-            string: "Add",
-            attributes: [
-                .font: AppKitUIConstants.Typography.regular,
-                .foregroundColor: accentColor,
-            ]
-        )
-        addButton.contentTintColor = accentColor
+        applyAppKitSecondaryButtonStyle(addButton, title: "Add", color: accentColor)
         addButton.identifier = NSUserInterfaceItemIdentifier(suggestion)
         addButton.target = target
         addButton.action = onAdd

@@ -76,7 +76,7 @@ final class SchedulesSheetViewController: NSViewController {
             self?.updateWindowTitle()
         }
         view = schedulesContainerView
-        applyConfiguration()
+        applyConfiguration(signature: nil)
     }
 
     override func viewDidLoad() {
@@ -84,19 +84,19 @@ final class SchedulesSheetViewController: NSViewController {
 
         AppKitAppStateObservation.bind(
             appState: appState,
+            signature: { [weak self, appState] in
+                guard let self else { return RenderSignature(appState: appState) }
+                return RenderSignature(appState: self.appState)
+            },
             cancellables: &cancellables
-        ) { [weak self] in
-            self?.handleObservedAppStateChange()
+        ) { [weak self] nextSignature in
+            self?.applyConfiguration(signature: nextSignature)
         }
     }
 
     override func viewDidAppear() {
         super.viewDidAppear()
         updateWindowTitle()
-    }
-
-    private func handleObservedAppStateChange() {
-        refreshConfiguration(force: false)
     }
 
     private var dayOrder: [Int] {
@@ -123,12 +123,14 @@ final class SchedulesSheetViewController: NSViewController {
         if !force {
             let nextSignature = RenderSignature(appState: appState)
             guard renderSignature != nextSignature else { return }
+            applyConfiguration(signature: nextSignature)
+            return
         }
-        applyConfiguration()
+        applyConfiguration(signature: nil)
     }
 
-    private func applyConfiguration() {
-        renderSignature = RenderSignature(appState: appState)
+    private func applyConfiguration(signature: RenderSignature?) {
+        renderSignature = signature ?? RenderSignature(appState: appState)
         refreshGeneration += 1
         schedulesContainerView.configure(with: makeAppKitConfiguration())
         updateWindowTitle()

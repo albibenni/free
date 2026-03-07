@@ -55,19 +55,21 @@ final class AllowedWebsitesFloatingEditorViewController:
         }
         AppKitAppStateObservation.bind(
             appState: appState,
+            signature: { [weak self, appState] in
+                guard let self else {
+                    return AllowedWebsitesReloadCoordinator.renderSignature(appState: appState)
+                }
+                return self.currentRenderSignature()
+            },
             cancellables: &cancellables
-        ) { [weak self] in
-            self?.handleObservedAppStateChange()
+        ) { [weak self] _ in
+            self?.reloadContent()
         }
         reloadContent()
     }
 
-    private func handleObservedAppStateChange() {
-        let nextSignature = AllowedWebsitesReloadCoordinator.renderSignature(
-            appState: appState
-        )
-        guard renderSignature != nextSignature else { return }
-        reloadContent()
+    private func currentRenderSignature() -> RenderSignature {
+        AllowedWebsitesReloadCoordinator.renderSignature(appState: appState)
     }
 
     func focusOnRuleSet(_ id: UUID?) {

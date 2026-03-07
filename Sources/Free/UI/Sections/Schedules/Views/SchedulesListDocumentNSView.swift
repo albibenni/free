@@ -75,14 +75,6 @@ final class SchedulesListDocumentNSView: NSView {
                 rowViews[schedule.id] = rowView
             }
 
-            while subviews.count > schedules.count {
-                guard let extra = subviews.first(where: { view in
-                    guard let row = view as? SchedulesListRowNSView else { return true }
-                    return !rowViews.values.contains(where: { $0 === row })
-                }) else { break }
-                extra.removeFromSuperview()
-            }
-
             needsLayout = true
         }
     }

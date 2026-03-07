@@ -351,6 +351,17 @@ func makeAppKitPrimaryButton(title: String, color: NSColor) -> ActionButton {
 
 func makeAppKitSecondaryButton(title: String, color: NSColor) -> ActionButton {
     let button = ActionButton(title: title)
+    applyAppKitSecondaryButtonStyle(button, title: title, color: color)
+    return button
+}
+
+func applyAppKitSecondaryButtonStyle(
+    _ button: ActionButton,
+    title: String,
+    color: NSColor
+) {
+    button.image = nil
+    button.title = title
     button.isBordered = false
     button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
     button.setGradientBackground(
@@ -367,7 +378,32 @@ func makeAppKitSecondaryButton(title: String, color: NSColor) -> ActionButton {
             .foregroundColor: color,
         ]
     )
-    return button
+    button.contentTintColor = color
+}
+
+func applyAppKitNeutralButtonStyle(
+    _ button: ActionButton,
+    title: String
+) {
+    button.image = nil
+    button.title = title
+    button.isBordered = false
+    button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
+    button.setGradientBackground(
+        colors: [
+            NSColor.labelColor.withAlphaComponent(0.10),
+            NSColor.labelColor.withAlphaComponent(0.05),
+        ],
+        borderColor: NSColor.separatorColor.withAlphaComponent(0.35)
+    )
+    button.attributedTitle = NSAttributedString(
+        string: title,
+        attributes: [
+            .font: AppKitUIConstants.Typography.regular,
+            .foregroundColor: NSColor.labelColor,
+        ]
+    )
+    button.contentTintColor = .labelColor
 }
 
 func makeAppKitPillButton(
