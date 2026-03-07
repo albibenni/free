@@ -7,6 +7,19 @@ import Testing
 
 @Suite(.serialized)
 struct CoverageExpansionTests {
+    private final class ImportFlowAutomator: BrowserAutomator {
+        let urls: [String]
+
+        init(urls: [String]) {
+            self.urls = urls
+        }
+
+        func getActiveUrl(for app: NSRunningApplication) -> String? { nil }
+        func redirect(app: NSRunningApplication, to url: String) {}
+        func getAllOpenUrls(browsers: [String]) -> [String] { urls }
+        func checkPermissions(prompt: Bool) -> Bool { true }
+    }
+
     private func isolatedAppState(name: String) -> AppState {
         let suite = "CoverageExpansionTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -170,6 +183,17 @@ struct CoverageExpansionTests {
         appState.weekStartsOnMonday.toggle()
         flushMainRunLoop()
         #expect(schedulesEvents >= 1)
+        let schedulesEventsBeforeCalendar = schedulesEvents
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "calendar-schedule-publisher",
+                title: "Event",
+                startDate: Date(),
+                endDate: Date().addingTimeInterval(600)
+            )
+        ]
+        flushMainRunLoop()
+        #expect(schedulesEvents > schedulesEventsBeforeCalendar)
 
         var rulesEvents = 0
         AppKitAppStateObservation
@@ -197,6 +221,17 @@ struct CoverageExpansionTests {
         appState.pomodoroStatus = .focus
         flushMainRunLoop()
         #expect(focusEvents >= 1)
+        let focusEventsBeforeCalendar = focusEvents
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "calendar-focus-publisher",
+                title: "Event 2",
+                startDate: Date(),
+                endDate: Date().addingTimeInterval(900)
+            )
+        ]
+        flushMainRunLoop()
+        #expect(focusEvents > focusEventsBeforeCalendar)
 
         var shellEvents = 0
         AppKitAppStateObservation
@@ -206,6 +241,38 @@ struct CoverageExpansionTests {
         appState.accentColorIndex += 1
         flushMainRunLoop()
         #expect(shellEvents >= 1)
+
+        var appStateSignatureEvents: [Bool] = []
+        AppKitAppStateObservation.bind(
+            appState: appState,
+            signature: { [appState] in appState.isBlocking },
+            cancellables: &cancellables
+        ) { value in
+            appStateSignatureEvents.append(value)
+        }
+        appState.isBlocking.toggle()
+        flushMainRunLoop()
+        #expect(appStateSignatureEvents.last == appState.isBlocking)
+
+        var appStateVoidEvents = 0
+        AppKitAppStateObservation.bind(
+            appState: appState,
+            cancellables: &cancellables
+        ) {
+            appStateVoidEvents += 1
+        }
+        appState.accentColorIndex += 1
+        flushMainRunLoop()
+        #expect(appStateVoidEvents >= 1)
+
+        var rawAppStatePublisherEvents = 0
+        AppKitAppStateObservation
+            .appStatePublisher(appState: appState)
+            .sink { rawAppStatePublisherEvents += 1 }
+            .store(in: &cancellables)
+        appState.weekStartsOnMonday.toggle()
+        flushMainRunLoop()
+        #expect(rawAppStatePublisherEvents >= 1)
     }
 
     @MainActor
@@ -291,6 +358,87 @@ struct CoverageExpansionTests {
         #expect(controller.addButton.attributedTitle.string == "Add")
         #expect(controller.importOpenTabsButton.attributedTitle.string == "Import Open Tabs")
         #expect(controller.removeButton.attributedTitle.string == "Remove Selected")
+    }
+
+    @MainActor
+    @Test("Allowed websites import presenters expose default alert-backed closures")
+    func allowedWebsitesImportPresenterDefaults() {
+        AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting()
+        let emptyPresenter = AllowedWebsitesFloatingEditorViewController.presentEmptyImportState
+        let candidatesPresenter = AllowedWebsitesFloatingEditorViewController.presentImportCandidates
+        #expect(type(of: emptyPresenter) == AllowedWebsitesFloatingEditorViewController.EmptyImportStatePresenter.self)
+        #expect(type(of: candidatesPresenter) == AllowedWebsitesFloatingEditorViewController.ImportCandidatesPresenter.self)
+
+        emptyPresenter([])
+        let selection = candidatesPresenter([], "Default")
+        #expect(selection == nil)
+    }
+
+    @MainActor
+    @Test("Allowed websites import flow covers guard/cancel/success branches")
+    func allowedWebsitesImportFlowBranches() {
+        let suite = "CoverageExpansionTests.allowedWebsitesImportFlowBranches"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let monitor = BrowserMonitor(
+            stateSnapshotProvider: { nil },
+            setTrustedState: { _ in },
+            server: nil,
+            automator: ImportFlowAutomator(urls: ["https://example.com/path"]),
+            startTimer: false
+        )
+        let appState = AppState(
+            defaults: defaults,
+            monitor: monitor,
+            calendar: MockCalendarManager(),
+            isTesting: true
+        )
+        let set = RuleSet(name: "Default", urls: [])
+        appState.ruleSets = []
+        appState.activeRuleSetId = nil
+
+        let controller = AllowedWebsitesFloatingEditorViewController(
+            appState: appState,
+            initialRuleSetId: nil
+        )
+        controller.loadViewIfNeeded()
+
+        var emptyCalls = 0
+        var candidateCalls = 0
+        AllowedWebsitesFloatingEditorViewController.presentEmptyImportState = { _ in
+            emptyCalls += 1
+        }
+        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in
+            candidateCalls += 1
+            return nil
+        }
+        defer { AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting() }
+
+        controller.selectedRuleSetId = nil
+        controller.handleImportOpenTabs()
+        #expect(emptyCalls == 0)
+        #expect(candidateCalls == 0)
+
+        controller.selectedRuleSetId = set.id
+        controller.handleImportOpenTabs()
+        #expect(emptyCalls == 0)
+        #expect(candidateCalls == 0)
+
+        appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+        controller.selectedRuleSetId = set.id
+        controller.handleImportOpenTabs()
+        #expect(candidateCalls == 1)
+        #expect(appState.ruleSets.first?.urls.isEmpty == true)
+
+        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in
+            candidateCalls += 1
+            return ["example.com"]
+        }
+        controller.handleImportOpenTabs()
+        #expect(candidateCalls == 2)
+        #expect(appState.ruleSets.first?.urls.contains("example.com") == true)
     }
 
     @MainActor

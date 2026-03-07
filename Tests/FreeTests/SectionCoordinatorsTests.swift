@@ -212,6 +212,94 @@ struct SectionCoordinatorsTests {
         }
     }
 
+    @Test("Focus widget reload coordinator covers widget-kind fallback and allowed-websites keep-existing path")
+    @MainActor
+    func focusWidgetReloadCoordinatorAdditionalBranches() {
+        let appState = AppState(isTesting: true)
+        appState.ruleSets = [RuleSet(name: "Default", urls: ["example.com"])]
+        appState.activeRuleSetId = appState.ruleSets.first?.id
+        let shellState = FreeShellState()
+
+        #expect(FocusSectionWidgetReloadCoordinator.widgetKind(for: nil) == .none)
+        #expect(FocusSectionWidgetReloadCoordinator.widgetKind(for: NSView()) == .other)
+        #expect(
+            FocusSectionWidgetReloadCoordinator.widgetKind(
+                for: FocusAllowedWebsitesWidgetView(appState: appState, shellState: shellState)
+            ) == .allowedWebsites
+        )
+
+        let signatures = FocusSectionWidgetReloadCoordinator.Signatures(
+            pomodoro: nil,
+            schedules: FocusSchedulesWidgetSignature(appState: appState),
+            allowedWebsites: FocusAllowedWebsitesWidgetSignature(appState: appState)
+        )
+        let decision = FocusSectionWidgetReloadCoordinator.decide(
+            section: .allowedWebsites,
+            appState: appState,
+            shellState: shellState,
+            currentWidgetKind: .allowedWebsites,
+            currentSignatures: signatures,
+            onPomodoroInteractionDidBegin: {},
+            onPomodoroInteractionDidEnd: {}
+        )
+
+        switch decision.operation {
+        case .keepExisting:
+            #expect(decision.signatures.schedules == nil)
+            #expect(decision.signatures.allowedWebsites != nil)
+        default:
+            Issue.record("Expected allowed-websites keep-existing decision")
+        }
+
+        let changedAppState = AppState(isTesting: true)
+        changedAppState.ruleSets = [RuleSet(name: "Default", urls: ["example.com"])]
+        changedAppState.activeRuleSetId = changedAppState.ruleSets.first?.id
+        let baseSignatures = FocusSectionWidgetReloadCoordinator.Signatures(
+            pomodoro: nil,
+            schedules: FocusSchedulesWidgetSignature(appState: changedAppState),
+            allowedWebsites: FocusAllowedWebsitesWidgetSignature(appState: changedAppState)
+        )
+
+        changedAppState.accentColorIndex += 1
+        let schedulesMismatchDecision = FocusSectionWidgetReloadCoordinator.decide(
+            section: .schedules,
+            appState: changedAppState,
+            shellState: shellState,
+            currentWidgetKind: .schedules,
+            currentSignatures: baseSignatures,
+            onPomodoroInteractionDidBegin: {},
+            onPomodoroInteractionDidEnd: {}
+        )
+        switch schedulesMismatchDecision.operation {
+        case .rebuild(let build):
+            #expect(build.widgetView is FocusSchedulesWidgetView)
+        default:
+            Issue.record("Expected schedules mismatch to trigger rebuild")
+        }
+
+        let allowedBaseSignatures = FocusSectionWidgetReloadCoordinator.Signatures(
+            pomodoro: nil,
+            schedules: nil,
+            allowedWebsites: FocusAllowedWebsitesWidgetSignature(appState: changedAppState)
+        )
+        changedAppState.ruleSets.append(RuleSet(name: "Extra", urls: []))
+        let allowedMismatchDecision = FocusSectionWidgetReloadCoordinator.decide(
+            section: .allowedWebsites,
+            appState: changedAppState,
+            shellState: shellState,
+            currentWidgetKind: .allowedWebsites,
+            currentSignatures: allowedBaseSignatures,
+            onPomodoroInteractionDidBegin: {},
+            onPomodoroInteractionDidEnd: {}
+        )
+        switch allowedMismatchDecision.operation {
+        case .rebuild(let build):
+            #expect(build.widgetView is FocusAllowedWebsitesWidgetView)
+        default:
+            Issue.record("Expected allowed-websites mismatch to trigger rebuild")
+        }
+    }
+
     @Test("Focus observed-change coordinator routes defer, widget update, and full reload")
     func focusObservedChangeCoordinator() {
         #expect(

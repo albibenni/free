@@ -4,11 +4,27 @@ extension AllowedWebsitesFloatingEditorViewController {
     typealias EmptyImportStatePresenter = ([String]) -> Void
     typealias ImportCandidatesPresenter = ([AllowedWebsitesImportCoordinator.Candidate], String) -> [String]?
 
-    static var presentEmptyImportState: EmptyImportStatePresenter = { currentOpenUrls in
+    private static var customPresentEmptyImportState: EmptyImportStatePresenter?
+    private static var customPresentImportCandidates: ImportCandidatesPresenter?
+
+    static var presentEmptyImportState: EmptyImportStatePresenter {
+        get { customPresentEmptyImportState ?? defaultPresentEmptyImportState }
+        set { customPresentEmptyImportState = newValue }
+    }
+
+    static var presentImportCandidates: ImportCandidatesPresenter {
+        get { customPresentImportCandidates ?? defaultPresentImportCandidates }
+        set { customPresentImportCandidates = newValue }
+    }
+
+    private static func defaultPresentEmptyImportState(currentOpenUrls: [String]) {
         AllowedWebsitesImportAlertPresenter.presentEmptyState(currentOpenUrls: currentOpenUrls)
     }
 
-    static var presentImportCandidates: ImportCandidatesPresenter = { candidates, selectedSetName in
+    private static func defaultPresentImportCandidates(
+        candidates: [AllowedWebsitesImportCoordinator.Candidate],
+        selectedSetName: String
+    ) -> [String]? {
         AllowedWebsitesImportAlertPresenter.presentCandidateSelection(
             candidates: candidates,
             selectedSetName: selectedSetName
@@ -16,15 +32,8 @@ extension AllowedWebsitesFloatingEditorViewController {
     }
 
     static func resetImportPresentersForTesting() {
-        presentEmptyImportState = { currentOpenUrls in
-            AllowedWebsitesImportAlertPresenter.presentEmptyState(currentOpenUrls: currentOpenUrls)
-        }
-        presentImportCandidates = { candidates, selectedSetName in
-            AllowedWebsitesImportAlertPresenter.presentCandidateSelection(
-                candidates: candidates,
-                selectedSetName: selectedSetName
-            )
-        }
+        customPresentEmptyImportState = nil
+        customPresentImportCandidates = nil
     }
 
     @objc
