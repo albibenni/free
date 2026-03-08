@@ -6,6 +6,11 @@ import Testing
 
 @Suite(.serialized)
 struct RulesViewTests {
+    private final class ActionTarget: NSObject {
+        @objc
+        func noop(_: Any?) {}
+    }
+
     private func isolatedAppState(name: String) -> AppState {
         let suite = "RulesViewTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -421,5 +426,84 @@ struct RulesViewTests {
 
         controller.handleDone()
         #expect(doneCount == 1)
+    }
+
+    @Test("Rules layout builder covers sidebar delete teardown and row reorder/trim branches")
+    @MainActor
+    func rulesLayoutBuilderReorderAndTrimCoverage() {
+        let target = ActionTarget()
+        let onSelect = #selector(ActionTarget.noop(_:))
+        let onDelete = #selector(ActionTarget.noop(_:))
+        let onAdd = #selector(ActionTarget.noop(_:))
+
+        let setA = RuleSet(name: "A", urls: ["a.com"])
+        let sidebarRow = RulesSheetLayoutBuilder.makeSidebarRow(
+            ruleSet: setA,
+            isSelected: true,
+            canDelete: true,
+            onSelect: onSelect,
+            onDelete: onDelete,
+            target: target
+        )
+        #expect(sidebarRow.arrangedSubviews.count == 3)
+        sidebarRow.configure(
+            title: setA.name,
+            ruleSetId: setA.id,
+            isSelected: false,
+            canDelete: false,
+            onSelect: onSelect,
+            onDelete: onDelete,
+            target: target
+        )
+        #expect(sidebarRow.arrangedSubviews.count == 2)
+
+        let rulesStack = NSStackView()
+        let ruleA = RulesSheetLayoutBuilder.makeRuleRow(rule: "a.com", onDelete: onDelete, target: target)
+        let ruleB = RulesSheetLayoutBuilder.makeRuleRow(rule: "b.com", onDelete: onDelete, target: target)
+        rulesStack.addArrangedSubview(ruleB)
+        rulesStack.addArrangedSubview(ruleA)
+        rulesStack.addArrangedSubview(NSView())
+
+        let reorderedRuleRows = RulesSheetLayoutBuilder.updateOrRebuildRuleRows(
+            in: rulesStack,
+            rules: ["a.com", "b.com"],
+            existingRows: ["a.com": ruleA, "b.com": ruleB],
+            onDelete: onDelete,
+            target: target
+        )
+        #expect(reorderedRuleRows.count == 2)
+        #expect(rulesStack.arrangedSubviews.count == 2)
+        #expect((rulesStack.arrangedSubviews[0] as? RulesSheetRuleRowView)?.rule == "a.com")
+        #expect((rulesStack.arrangedSubviews[1] as? RulesSheetRuleRowView)?.rule == "b.com")
+
+        let suggestionStack = NSStackView()
+        let suggestionA = RulesSheetLayoutBuilder.makeSuggestionRow(
+            suggestion: "https://a.com",
+            accentColor: .systemBlue,
+            onAdd: onAdd,
+            target: target
+        )
+        let suggestionB = RulesSheetLayoutBuilder.makeSuggestionRow(
+            suggestion: "https://b.com",
+            accentColor: .systemBlue,
+            onAdd: onAdd,
+            target: target
+        )
+        suggestionStack.addArrangedSubview(suggestionB)
+        suggestionStack.addArrangedSubview(suggestionA)
+        suggestionStack.addArrangedSubview(NSView())
+
+        let reorderedSuggestionRows = RulesSheetLayoutBuilder.updateOrRebuildSuggestionRows(
+            in: suggestionStack,
+            suggestions: ["https://a.com", "https://b.com"],
+            accentColor: .systemGreen,
+            existingRows: ["https://a.com": suggestionA, "https://b.com": suggestionB],
+            onAdd: onAdd,
+            target: target
+        )
+        #expect(reorderedSuggestionRows.count == 2)
+        #expect(suggestionStack.arrangedSubviews.count == 2)
+        #expect((suggestionStack.arrangedSubviews[0] as? RulesSheetSuggestionRowView)?.suggestion == "https://a.com")
+        #expect((suggestionStack.arrangedSubviews[1] as? RulesSheetSuggestionRowView)?.suggestion == "https://b.com")
     }
 }

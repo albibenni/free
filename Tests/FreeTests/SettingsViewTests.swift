@@ -313,4 +313,21 @@ struct SettingsViewTests {
         RunLoop.main.run(until: Date().addingTimeInterval(0.02))
         #expect(controller.appearanceSelectionColorForTesting == FocusColor.nsColor(for: 3))
     }
+
+    @Test("Settings strict-mode alert default hooks return cancel response in test environment")
+    @MainActor
+    func settingsStrictModeDefaultAlertHooks() {
+        defer {
+            unsetenv("XCTestConfigurationFilePath")
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        }
+
+        _ = setenv("XCTestConfigurationFilePath", "1", 1)
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        let alert = SettingsSectionViewController.makeStrictModeAlert()
+        #expect(
+            SettingsSectionViewController.runStrictModeAlert(alert)
+                == .alertSecondButtonReturn
+        )
+    }
 }

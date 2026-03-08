@@ -35,6 +35,17 @@ struct AddScheduleViewTests {
         return all
     }
 
+    private func actionButtons(in view: NSView) -> [ActionButton] {
+        var all: [ActionButton] = []
+        if let button = view as? ActionButton {
+            all.append(button)
+        }
+        for child in view.subviews {
+            all.append(contentsOf: actionButtons(in: child))
+        }
+        return all
+    }
+
     private func visibleText(in view: NSView) -> [String] {
         guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
 
@@ -393,5 +404,85 @@ struct AddScheduleViewTests {
         let daysBeforeNoopToggle = controller.daysForTesting
         controller.toggleRecurringDayForTesting(3)
         #expect(controller.daysForTesting == daysBeforeNoopToggle)
+    }
+
+    @Test("Schedule editor UI interactions trigger selection closures and button actions")
+    @MainActor
+    func addScheduleViewInteractiveClosureCoverage() {
+        let appState = isolatedAppState(name: "interactiveClosureCoverage")
+        appState.ruleSets = [
+            RuleSet(name: "One", urls: ["one.com"]),
+            RuleSet(name: "Two", urls: ["two.com"]),
+        ]
+        let schedule = Schedule(
+            name: "Recurring Focus",
+            days: [2, 3, 4],
+            startTime: Date(),
+            endTime: Date().addingTimeInterval(3600),
+            colorIndex: 0,
+            type: .focus
+        )
+        appState.schedules = [schedule]
+
+        var closeCount = 0
+        let controller = makeController(
+            appState: appState,
+            context: ScheduleEditorContext(
+                day: 2,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                schedule: schedule
+            ),
+            onClose: { closeCount += 1 }
+        )
+        let hosted = host(controller)
+        let initialGeneration = controller.formReloadGenerationForTesting
+
+        let breakButton = buttons(in: hosted).first { $0.title == "Break" }
+        #expect(breakButton != nil)
+        breakButton?.performClick(nil)
+        #expect(controller.formReloadGenerationForTesting > initialGeneration)
+        #expect(visibleText(in: hosted).contains("Not used for breaks"))
+
+        let onlyDayTitle = "Only \(ScheduleEditorSupport.dayName(for: 2))"
+        let onlyDayButton = buttons(in: hosted).first { $0.title == onlyDayTitle }
+        #expect(onlyDayButton != nil)
+        onlyDayButton?.performClick(nil)
+        #expect(visibleText(in: hosted).contains(ScheduleEditorSupport.dayName(for: 2)))
+
+        let colorButton = actionButtons(in: hosted).first(where: { button in
+            button.title.isEmpty && abs((button.layer?.cornerRadius ?? 0) - 15) < 0.1
+        })
+        #expect(colorButton != nil)
+        colorButton?.performClick(nil)
+        #expect(controller.formReloadGenerationForTesting > initialGeneration)
+
+        let saveButton = buttons(in: hosted).first { $0.title == "Save Changes" }
+        #expect(saveButton != nil)
+        let beforeSaveCount = appState.schedules.count
+        saveButton?.performClick(nil)
+        #expect(appState.schedules.count >= beforeSaveCount)
+        #expect(closeCount == 1)
+
+        let deleteState = isolatedAppState(name: "interactiveClosureCoverageDelete")
+        deleteState.ruleSets = appState.ruleSets
+        deleteState.schedules = [schedule]
+        closeCount = 0
+        let deletingController = makeController(
+            appState: deleteState,
+            context: ScheduleEditorContext(
+                day: 2,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                schedule: schedule
+            ),
+            onClose: { closeCount += 1 }
+        )
+        let deletingView = host(deletingController)
+        let deleteButton = buttons(in: deletingView).first { $0.title == "Delete Schedule" }
+        #expect(deleteButton != nil)
+        deleteButton?.performClick(nil)
+        #expect(deleteState.schedules.isEmpty)
+        #expect(closeCount == 1)
     }
 }

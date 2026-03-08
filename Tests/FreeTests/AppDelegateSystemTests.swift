@@ -293,4 +293,23 @@ struct AppDelegateSystemTests {
         #expect(capturedAlert.buttonTitles == ["OK"])
         #expect(capturedAlert.runModalCalls == 1)
     }
+
+    @MainActor
+    @Test("NSAlert-backed modal default returns cancel in test process without running modal UI")
+    func nsAlertModalDefaultTestProcessPath() {
+        let runtime = DefaultAppDelegateSystem.Runtime(
+            bundlePathProvider: { "/tmp/Free.app" },
+            bundleNameProvider: { "Free.app" },
+            processNameProvider: { "Free" },
+            activateForAlert: {},
+            makeAlert: { NSAlert() },
+            fileManager: MockFileManager(),
+            makeProcess: { MockProcessRunner() },
+            terminate: {}
+        )
+        let system = DefaultAppDelegateSystem(runtime: runtime)
+
+        #expect(system.confirmMoveToApplications() == false)
+        #expect(system.confirmQuitWhileBlocking() == false)
+    }
 }
