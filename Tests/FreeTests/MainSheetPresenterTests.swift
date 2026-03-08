@@ -167,4 +167,35 @@ struct MainSheetPresenterTests {
         schedulesCloseHandler?()
         #expect(schedulesDismissedCount == 1)
     }
+
+    @MainActor
+    @Test("MainSheetPresenter default schedules factory closes through embedded schedules controller callback")
+    func defaultSchedulesFactoryClosureCoverage() {
+        let appState = isolatedAppState(name: "defaultSchedulesFactoryClosureCoverage")
+        var schedulesDismissedCount = 0
+        let presenter = MainSheetPresenter(
+            appState: appState,
+            onRulesDismissed: {},
+            onSchedulesDismissed: { schedulesDismissedCount += 1 }
+        )
+
+        let parent = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        presenter.presentSchedules(from: parent)
+
+        guard
+            let wrapper = presenter.schedulesSheetControllerForTesting as? FreeSheetWindowController,
+            let schedulesController = wrapper.window?.contentViewController as? SchedulesSheetViewController
+        else {
+            Issue.record("Expected default schedules wrapper/content controller")
+            return
+        }
+
+        schedulesController.invokeDismissForTesting()
+        #expect(schedulesDismissedCount == 1)
+    }
 }

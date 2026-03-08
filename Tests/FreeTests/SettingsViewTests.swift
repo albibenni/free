@@ -40,6 +40,12 @@ private final class SettingsMockLaunchAtLoginManager: LaunchAtLoginManaging {
 
 @Suite(.serialized)
 struct SettingsViewTests {
+    private final class TestModalAlert: NSAlert {
+        override func runModal() -> NSApplication.ModalResponse {
+            .alertFirstButtonReturn
+        }
+    }
+
     private func isolatedAppState(name: String) -> AppState {
         let suite = "SettingsViewTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -116,6 +122,28 @@ struct SettingsViewTests {
         return values
     }
 
+    @Test("Settings strict-mode initial default hooks execute native modal path with NSAlert override")
+    @MainActor
+    func settingsStrictModeInitialDefaultHooksCoverage() {
+        defer {
+            _ = setenv("XCTestConfigurationFilePath", "1", 1)
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        }
+
+        unsetenv("XCTestConfigurationFilePath")
+        _ = SettingsSectionViewController.makeStrictModeAlert()
+        #expect(
+            SettingsSectionViewController.runStrictModeAlert(TestModalAlert())
+                == .alertFirstButtonReturn
+        )
+
+        _ = setenv("XCTestConfigurationFilePath", "1", 1)
+        #expect(
+            SettingsSectionViewController.runStrictModeAlert(TestModalAlert())
+                == .alertSecondButtonReturn
+        )
+    }
+
     @Test("Settings controller action helpers cover strict-mode challenge and accent selection")
     @MainActor
     func settingsControllerActionHelpers() {
@@ -161,6 +189,10 @@ struct SettingsViewTests {
         #expect(appState.launchAtLoginStatus() == true)
         #expect(launchManager.disableCallCount == 1)
         #expect(controller.launchAtLoginEnabledForTesting)
+
+        launchManager.isEnabledValue = false
+        controller.setLaunchAtLoginForTesting(false)
+        #expect(controller.launchAtLoginEnabledForTesting == false)
     }
 
     @Test("Settings controller strict-disable visibility helper covers false branch")
@@ -251,29 +283,114 @@ struct SettingsViewTests {
 
         controller.setStrictModeForTesting(true)
         #expect(appState.isUnblockable)
+        controller.setStrictModeForTesting(false)
+        #expect(appState.isUnblockable == false)
 
         controller.setWeekStartsMondayForTesting(true)
         #expect(appState.weekStartsOnMonday)
+        controller.setWeekStartsMondayForTesting(false)
+        #expect(appState.weekStartsOnMonday == false)
 
         controller.setCalendarIntegrationForTesting(true)
         #expect(appState.calendarIntegrationEnabled)
+        controller.setCalendarIntegrationForTesting(false)
+        #expect(appState.calendarIntegrationEnabled == false)
 
         controller.setCalendarImportsForTesting(true)
         #expect(appState.calendarImportsBlockTime)
+        controller.setCalendarImportsForTesting(false)
+        #expect(appState.calendarImportsBlockTime == false)
 
         controller.setBlockNewTabsForTesting(true)
         #expect(appState.blockNewTabs)
+        controller.setBlockNewTabsForTesting(false)
+        #expect(appState.blockNewTabs == false)
 
         controller.setBlockDeveloperHostsForTesting(true)
         #expect(appState.blockDeveloperHosts)
+        controller.setBlockDeveloperHostsForTesting(false)
+        #expect(appState.blockDeveloperHosts == false)
 
         controller.setBlockLocalNetworkHostsForTesting(true)
         #expect(appState.blockLocalNetworkHosts)
+        controller.setBlockLocalNetworkHostsForTesting(false)
+        #expect(appState.blockLocalNetworkHosts == false)
 
         controller.selectAppearanceModeForTesting(.dark)
         #expect(appState.appearanceMode == .dark)
 
         // Invocation coverage path only; behavior is validated in calendar sync tests.
         controller.resyncImportedSchedulesForTesting()
+    }
+
+    @Test("Settings controller strict-mode modal action supports unlock/cancel branches via alert hooks")
+    @MainActor
+    func settingsControllerStrictModeModalCoverage() {
+        let appState = isolatedAppState(name: "strictModeModalCoverage")
+        appState.isBlocking = true
+        appState.isUnblockable = true
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        SettingsSectionViewController.makeStrictModeAlert = { NSAlert() }
+        SettingsSectionViewController.runStrictModeAlert = { alert in
+            (alert.accessoryView as? NSTextField)?.stringValue = AppState.challengePhrase
+            return .alertFirstButtonReturn
+        }
+        controller.invokeDisableStrictModeModalForTesting()
+        #expect(appState.isUnblockable == false)
+
+        appState.isUnblockable = true
+        SettingsSectionViewController.runStrictModeAlert = { _ in .alertSecondButtonReturn }
+        controller.invokeDisableStrictModeModalForTesting()
+        #expect(appState.isUnblockable)
+    }
+
+    @Test("Settings observation callback reloads after app-state changes")
+    @MainActor
+    func settingsControllerObservationReloadCoverage() {
+        let appState = isolatedAppState(name: "observationReloadCoverage")
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        appState.accentColorIndex = 3
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        #expect(controller.appearanceSelectionColorForTesting == FocusColor.nsColor(for: 3))
+    }
+
+    @Test("Settings strict-mode alert default hooks return cancel response in test environment")
+    @MainActor
+    func settingsStrictModeDefaultAlertHooks() {
+        defer {
+            unsetenv("XCTestConfigurationFilePath")
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        }
+
+        _ = setenv("XCTestConfigurationFilePath", "1", 1)
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        let alert = SettingsSectionViewController.makeStrictModeAlert()
+        #expect(
+            SettingsSectionViewController.runStrictModeAlert(alert)
+                == .alertSecondButtonReturn
+        )
+    }
+
+    @Test("Settings strict-mode default hook falls back to NSAlert.runModal when XCTest env var is missing")
+    @MainActor
+    func settingsStrictModeDefaultAlertHooksRunModalPath() {
+        defer {
+            _ = setenv("XCTestConfigurationFilePath", "1", 1)
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        }
+
+        unsetenv("XCTestConfigurationFilePath")
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        let alert = TestModalAlert()
+        #expect(
+            SettingsSectionViewController.runStrictModeAlert(alert)
+                == .alertFirstButtonReturn
+        )
     }
 }

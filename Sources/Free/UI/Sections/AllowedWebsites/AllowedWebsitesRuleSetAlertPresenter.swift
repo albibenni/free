@@ -4,35 +4,55 @@ import Foundation
 enum AllowedWebsitesRuleSetAlertPresenter {
     typealias AlertFactory = () -> NSAlert
     typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+    typealias EnvironmentProvider = () -> [String: String]
+    typealias ClassLookup = (String) -> AnyClass?
 
     static var makeAlert: AlertFactory = defaultMakeAlert
     static var runModal: AlertRunner = defaultRunModal
+    static var runNativeModal: AlertRunner = defaultRunNativeModal
+    static var environmentProvider: EnvironmentProvider = defaultEnvironmentProvider
+    static var classLookup: ClassLookup = defaultClassLookup
 
     static func resetForTesting() {
         makeAlert = defaultMakeAlert
         runModal = defaultRunModal
+        runNativeModal = defaultRunNativeModal
+        environmentProvider = defaultEnvironmentProvider
+        classLookup = defaultClassLookup
     }
 
     private static func defaultMakeAlert() -> NSAlert {
         NSAlert()
     }
 
+    private static func defaultRunNativeModal(_ alert: NSAlert) -> NSApplication.ModalResponse {
+        alert.runModal()
+    }
+
+    private static func defaultEnvironmentProvider() -> [String: String] {
+        ProcessInfo.processInfo.environment
+    }
+
+    private static func defaultClassLookup(_ name: String) -> AnyClass? {
+        NSClassFromString(name)
+    }
+
     private static func defaultRunModal(_ alert: NSAlert) -> NSApplication.ModalResponse {
         if isRunningInTestProcess() {
             return .alertSecondButtonReturn
         }
-        return alert.runModal()
+        return runNativeModal(alert)
     }
 
     private static func isRunningInTestProcess() -> Bool {
-        let environment = ProcessInfo.processInfo.environment
+        let environment = environmentProvider()
         if environment["XCTestConfigurationFilePath"] != nil { return true }
         if environment["XCTestBundlePath"] != nil { return true }
         if environment["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES"] != nil { return true }
         if environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil {
             return true
         }
-        return NSClassFromString("XCTestCase") != nil
+        return classLookup("XCTestCase") != nil
     }
 
     static func promptForNewRuleSetName() -> String? {

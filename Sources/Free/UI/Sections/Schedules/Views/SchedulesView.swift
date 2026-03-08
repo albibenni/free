@@ -411,4 +411,8 @@ extension SchedulesSheetViewController {
     func listRowObjectIdentifierForTesting(scheduleId: UUID) -> ObjectIdentifier? {
         schedulesContainerView.listRowObjectIdentifierForTesting(scheduleId: scheduleId)
     }
+
+    func invokeDismissForTesting() {
+        onDismiss()
+    }
 }

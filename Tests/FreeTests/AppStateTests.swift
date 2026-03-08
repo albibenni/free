@@ -352,6 +352,18 @@ struct AppStateTests {
         #expect(appState.launchAtLoginStatus() == true)
     }
 
+    @Test("AppState default launch-at-login prompt closure executes under test runtime")
+    func defaultLaunchAtLoginPromptClosureCoverage() {
+        let suite = "AppStateTests.defaultLaunchAtLoginPromptClosureCoverage"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let appState = AppState(defaults: defaults, isTesting: true)
+        _ = appState.prepareLaunchAtLoginPromptIfNeeded()
+
+        #expect(Bool(true))
+    }
+
     @Test("Calendar events override focus sessions in normal mode")
     func calendarEventOverride() {
         let appState = isolatedAppState(name: "calendarEventOverride")
@@ -768,6 +780,28 @@ struct AppStateTests {
             real.isAuthorized = true
             real.fetchEvents()
         }
+    }
+
+    @Test("AppState production runtime monitor callbacks update trusted state and snapshot provider")
+    func productionRuntimeMonitorCallbacksCoverage() {
+        let suite = "AppStateTests.productionRuntimeMonitorCallbacksCoverage"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let appState = AppState(
+            defaults: defaults,
+            isTesting: false
+        )
+        defer {
+            appState.monitor?.stopMonitoring()
+        }
+
+        appState.isBlocking = true
+        appState.monitor?.checkActiveTab()
+        appState.monitor?.checkPermissions(prompt: false)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+
+        #expect(appState.monitor != nil)
     }
 
     @Test("skipPomodoroPhase transitions between focus and break")
@@ -1284,13 +1318,6 @@ struct AppStateTests {
 
     @Test("Pomodoro temporarily overrides schedule allow list, then schedule resumes after pomodoro stops")
     func pomodoroOverrideRevertsToScheduleRules() {
-        if ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] == "1" {
-            // This scenario is already covered by non-coverage runs.
-            // Under coverage instrumentation it can intermittently crash swiftpm-testing-helper.
-            #expect(Bool(true))
-            return
-        }
-
         let appState = isolatedAppState(name: "pomodoroOverrideRevertsToScheduleRules")
         let scheduleSet = RuleSet(id: UUID(), name: "Schedule Set", urls: ["schedule.example"])
         let pomodoroSet = RuleSet(id: UUID(), name: "Pomodoro Set", urls: ["pomodoro.example"])

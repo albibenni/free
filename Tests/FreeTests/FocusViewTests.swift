@@ -170,6 +170,42 @@ struct FocusViewTests {
         #expect(didInvoke)
     }
 
+    @Test("Focus section cancelPause action clears pause state and keeps reload flags consistent")
+    @MainActor
+    func focusCancelPauseAction() {
+        let appState = isolatedAppState(name: "cancelPauseControllerAction")
+        appState.isBlocking = true
+        appState.isPaused = true
+        appState.pauseRemaining = 120
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+
+        controller.needsReloadAfterPomodoroInteraction = true
+        controller.cancelPause()
+
+        #expect(appState.isPaused == false)
+        #expect(controller.hasDeferredPomodoroReloadForTesting == false)
+    }
+
+    @Test("Focus section end interaction guard does not flush when depth is zero")
+    @MainActor
+    func focusEndInteractionGuardAtZeroDepth() {
+        let appState = isolatedAppState(name: "endInteractionGuard")
+        let controller = makeController(appState: appState, section: .pomodoro)
+        _ = host(controller)
+
+        controller.needsReloadAfterPomodoroInteraction = true
+        controller.endPomodoroWidgetInteractionForTesting()
+
+        #expect(controller.hasDeferredPomodoroReloadForTesting)
+
+        controller.beginPomodoroWidgetInteractionForTesting()
+        controller.endPomodoroWidgetInteractionForTesting()
+
+        #expect(controller.hasDeferredPomodoroReloadForTesting == false)
+    }
+
     @Test("Focus section shows live overview instead of full widgets")
     @MainActor
     func focusViewLiveOverviewRender() {
@@ -316,6 +352,43 @@ struct FocusViewTests {
         #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
         #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
         #expect(controller.headerStatusTextForTesting.contains("test"))
+    }
+
+    @Test("Focus layout builder overview row clamps width to minimum when available width is non-positive")
+    @MainActor
+    func focusLayoutBuilderOverviewRowWidthClamp() {
+        let clamped = FocusSectionLayoutBuilder.makeOverviewRow(
+            iconName: AppKitUISymbols.Name.focus,
+            title: "Title",
+            value: "Value",
+            accentColorIndex: 0,
+            availableWidth: 0
+        )
+        let widthConstraint = clamped.constraints.first(where: {
+            $0.firstAttribute == .width && $0.relation == .equal
+        })
+        #expect(widthConstraint?.constant == 1)
+
+        let regular = FocusSectionLayoutBuilder.makeOverviewRow(
+            iconName: AppKitUISymbols.Name.focus,
+            title: "Title",
+            value: "Value",
+            accentColorIndex: 0,
+            availableWidth: 220
+        )
+        let regularWidthConstraint = regular.constraints.first(where: {
+            $0.firstAttribute == .width && $0.relation == .equal
+        })
+        #expect(regularWidthConstraint?.constant == 220)
+
+        let fallbackIconRow = FocusSectionLayoutBuilder.makeOverviewRow(
+            iconName: "definitely.not.a.symbol",
+            title: "Fallback",
+            value: "Value",
+            accentColorIndex: 1,
+            availableWidth: 160
+        )
+        #expect(fallbackIconRow.subviews.isEmpty == false)
     }
 
     @Test("Focus section keeps pomodoro widget stable when applying a preset")
@@ -572,5 +645,52 @@ struct FocusViewTests {
         endButton?.performClick(nil)
         #expect(appState.isPaused == false)
         #expect(controller.isPauseDashboardHiddenForTesting == true)
+    }
+
+    @Test("Focus schedules widget reload keeps existing view when signature is unchanged")
+    @MainActor
+    func focusSchedulesWidgetKeepExistingReload() {
+        let appState = isolatedAppState(name: "schedulesKeepExistingReload")
+        let now = Date()
+        let weekday = Calendar.current.component(.weekday, from: now)
+        appState.schedules = [
+            Schedule(
+                name: "Deep Work",
+                days: [weekday],
+                startTime: now.addingTimeInterval(-1800),
+                endTime: now.addingTimeInterval(1800),
+                isEnabled: true,
+                type: .focus
+            )
+        ]
+
+        let controller = makeController(appState: appState, section: .schedules)
+        _ = host(controller)
+        let initialIdentifier = controller.widgetViewIdentifierForTesting
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusSchedulesWidgetView")
+
+        controller.reloadWidget()
+
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusSchedulesWidgetView")
+        #expect(controller.widgetViewIdentifierForTesting == initialIdentifier)
+    }
+
+    @Test("Focus allowed websites widget reload keeps existing view when signature is unchanged")
+    @MainActor
+    func focusAllowedWebsitesWidgetKeepExistingReload() {
+        let appState = isolatedAppState(name: "allowedWebsitesKeepExistingReload")
+        let set = RuleSet(name: "Default", urls: ["swift.org"])
+        appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+
+        let controller = makeController(appState: appState, section: .allowedWebsites)
+        _ = host(controller)
+        let initialIdentifier = controller.widgetViewIdentifierForTesting
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusAllowedWebsitesWidgetView")
+
+        controller.reloadWidget()
+
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusAllowedWebsitesWidgetView")
+        #expect(controller.widgetViewIdentifierForTesting == initialIdentifier)
     }
 }

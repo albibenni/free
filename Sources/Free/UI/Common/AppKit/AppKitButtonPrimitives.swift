@@ -34,12 +34,18 @@ class ActionButton: NSButton {
     override func layout() {
         super.layout()
         backgroundGradientLayer.frame = bounds
-        backgroundGradientLayer.cornerRadius = layer?.cornerRadius ?? 0
+        if let layer {
+            backgroundGradientLayer.cornerRadius = layer.cornerRadius
+        } else {
+            backgroundGradientLayer.cornerRadius = 0
+        }
     }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
-        if gradientColors != nil || gradientBorderColor != nil {
+        let hasGradientColors = gradientColors != nil
+        let hasGradientBorderColor = gradientBorderColor != nil
+        if hasGradientColors || hasGradientBorderColor {
             applyStoredGradient()
         }
     }
@@ -106,7 +112,12 @@ final class IconInsetButton: NSButton {
     }
 
     var imageInset: CGFloat {
-        get { (cell as? IconInsetButtonCell)?.imageInset ?? 0 }
+        get {
+            if let insetCell = cell as? IconInsetButtonCell {
+                return insetCell.imageInset
+            }
+            return 0
+        }
         set { (cell as? IconInsetButtonCell)?.imageInset = newValue }
     }
 }
@@ -118,17 +129,32 @@ class LeadingInsetActionButton: ActionButton {
     }
 
     var leadingInset: CGFloat {
-        get { (cell as? LeadingInsetButtonCell)?.leadingInset ?? 0 }
+        get {
+            if let insetCell = cell as? LeadingInsetButtonCell {
+                return insetCell.leadingInset
+            }
+            return 0
+        }
         set { (cell as? LeadingInsetButtonCell)?.leadingInset = newValue }
     }
 
     var titleAdditionalInset: CGFloat {
-        get { (cell as? LeadingInsetButtonCell)?.titleAdditionalInset ?? 0 }
+        get {
+            if let insetCell = cell as? LeadingInsetButtonCell {
+                return insetCell.titleAdditionalInset
+            }
+            return 0
+        }
         set { (cell as? LeadingInsetButtonCell)?.titleAdditionalInset = newValue }
     }
 
     var imageSlotWidth: CGFloat {
-        get { (cell as? LeadingInsetButtonCell)?.imageSlotWidth ?? 0 }
+        get {
+            if let insetCell = cell as? LeadingInsetButtonCell {
+                return insetCell.imageSlotWidth
+            }
+            return 0
+        }
         set { (cell as? LeadingInsetButtonCell)?.imageSlotWidth = newValue }
     }
 }

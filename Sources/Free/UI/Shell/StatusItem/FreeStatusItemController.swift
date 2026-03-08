@@ -6,9 +6,11 @@ final class FreeStatusItemController: NSObject {
     private let statusLabelItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let quitItem = NSMenuItem(title: "Quit", action: nil, keyEquivalent: "q")
     private let onQuit: () -> Void
+    private var statusButtonProvider: () -> NSStatusBarButton?
 
     init(onQuit: @escaping () -> Void) {
         self.onQuit = onQuit
+        statusButtonProvider = { [statusItem] in statusItem.button }
         super.init()
 
         statusLabelItem.isEnabled = false
@@ -25,7 +27,7 @@ final class FreeStatusItemController: NSObject {
         statusLabelItem.title = statusText
         quitItem.isEnabled = !isQuitDisabled
 
-        guard let button = statusItem.button else { return }
+        guard let button = statusButtonProvider() else { return }
         let image = appKitSymbolImage(spec: AppKitUISymbols.menuBar)
         image?.isTemplate = false
         button.image = image
@@ -35,5 +37,11 @@ final class FreeStatusItemController: NSObject {
     @objc
     private func handleQuit() {
         onQuit()
+    }
+}
+
+extension FreeStatusItemController {
+    func setStatusButtonProviderForTesting(_ provider: @escaping () -> NSStatusBarButton?) {
+        statusButtonProvider = provider
     }
 }

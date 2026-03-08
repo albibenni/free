@@ -6,11 +6,30 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct FreeAppKitShellTests {
+    private final class LaunchPromptManager: LaunchAtLoginManaging {
+        var isEnabled: Bool = false
+        func enable() throws { isEnabled = true }
+        func disable() throws { isEnabled = false }
+    }
+
     private func isolatedAppState(name: String) -> AppState {
         let suite = "FreeAppKitShellTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
         return AppState(defaults: defaults, isTesting: true)
+    }
+
+    private func isolatedAppStateWithLaunchPrompt(name: String) -> AppState {
+        let suite = "FreeAppKitShellTests.\(name)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let launchManager = LaunchPromptManager()
+        return AppState(
+            defaults: defaults,
+            launchAtLoginManager: launchManager,
+            canPromptForLaunchAtLogin: { true },
+            isTesting: true
+        )
     }
 
     @Test("VerticalStackScrollContainer uses flipped document coordinates")
@@ -133,6 +152,77 @@ struct FreeAppKitShellTests {
         #expect(controller.selectedSectionForTesting == .focus)
     }
 
+    @Test("FreeMainViewController launch-at-login prompt presents sheet path when window and prompt eligibility exist")
+    func mainViewControllerLaunchAtLoginPromptWithWindow() {
+        let appState = isolatedAppStateWithLaunchPrompt(name: "launchPromptWithWindow")
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+        controller.loadViewIfNeeded()
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 640),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentViewController = controller
+        window.makeKeyAndOrderFront(nil)
+        defer { window.orderOut(nil) }
+
+        controller.presentLaunchAtLoginPromptIfNeeded()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        #expect(controller.selectedSectionForTesting == .focus)
+    }
+
+    @Test("FreeMainViewController launch-at-login prompt callback invokes response handler")
+    func mainViewControllerLaunchAtLoginPromptCallbackCoverage() {
+        defer { FreeMainViewController.resetLaunchAtLoginAlertPresenterForTesting() }
+
+        let appState = isolatedAppStateWithLaunchPrompt(name: "launchPromptCallbackCoverage")
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+        controller.loadViewIfNeeded()
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 640),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentViewController = controller
+        window.makeKeyAndOrderFront(nil)
+        defer { window.orderOut(nil) }
+
+        var presented = false
+        FreeMainViewController.presentLaunchAtLoginAlert = { _, _, completion in
+            presented = true
+            completion(.alertFirstButtonReturn)
+        }
+
+        controller.presentLaunchAtLoginPromptIfNeeded()
+        #expect(presented)
+        #expect(appState.launchAtLoginStatus())
+
+        FreeMainViewController.resetLaunchAtLoginAlertPresenterForTesting()
+        let smokeWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 320, height: 200),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        var completionCalled = false
+        FreeMainViewController.presentLaunchAtLoginAlert(NSAlert(), smokeWindow) { _ in
+            completionCalled = true
+        }
+        #expect(completionCalled == false)
+    }
+
     @Test("FreeMainViewController testing hooks cover sidebar callback paths and nil-selection fallback")
     func mainViewControllerTestingHooksCoverage() {
         let appState = isolatedAppState(name: "testingHooksCoverage")
@@ -150,6 +240,24 @@ struct FreeAppKitShellTests {
 
         controller.invokeSidebarSelectHandlerForTesting(.settings)
         #expect(controller.selectedSectionForTesting == .settings)
+    }
+
+    @Test("FreeMainViewController launch-at-login response handler toggles only on enable response")
+    func mainViewControllerLaunchAtLoginResponseHandlerCoverage() {
+        let appState = isolatedAppState(name: "launchPromptResponseHandler")
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+        controller.loadViewIfNeeded()
+
+        let before = appState.launchAtLoginStatus()
+        controller.handleLaunchAtLoginPromptResponseForTesting(.alertSecondButtonReturn)
+        #expect(appState.launchAtLoginStatus() == before)
+
+        controller.handleLaunchAtLoginPromptResponseForTesting(.alertFirstButtonReturn)
+        #expect(appState.launchAtLoginStatus())
     }
 
     @Test("FreeMainViewController window-hosted flows cover sheet toggles and launch prompt path")

@@ -35,6 +35,28 @@ struct AddScheduleViewTests {
         return all
     }
 
+    private func actionButtons(in view: NSView) -> [ActionButton] {
+        var all: [ActionButton] = []
+        if let button = view as? ActionButton {
+            all.append(button)
+        }
+        for child in view.subviews {
+            all.append(contentsOf: actionButtons(in: child))
+        }
+        return all
+    }
+
+    private func popups(in view: NSView) -> [NSPopUpButton] {
+        var all: [NSPopUpButton] = []
+        if let popup = view as? NSPopUpButton {
+            all.append(popup)
+        }
+        for child in view.subviews {
+            all.append(contentsOf: popups(in: child))
+        }
+        return all
+    }
+
     private func visibleText(in view: NSView) -> [String] {
         guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
 
@@ -393,5 +415,135 @@ struct AddScheduleViewTests {
         let daysBeforeNoopToggle = controller.daysForTesting
         controller.toggleRecurringDayForTesting(3)
         #expect(controller.daysForTesting == daysBeforeNoopToggle)
+    }
+
+    @Test("Schedule editor UI interactions trigger selection closures and button actions")
+    @MainActor
+    func addScheduleViewInteractiveClosureCoverage() {
+        let appState = isolatedAppState(name: "interactiveClosureCoverage")
+        appState.ruleSets = [
+            RuleSet(name: "One", urls: ["one.com"]),
+            RuleSet(name: "Two", urls: ["two.com"]),
+        ]
+        let schedule = Schedule(
+            name: "Recurring Focus",
+            days: [2, 3, 4],
+            startTime: Date(),
+            endTime: Date().addingTimeInterval(3600),
+            colorIndex: 0,
+            type: .focus
+        )
+        appState.schedules = [schedule]
+
+        var closeCount = 0
+        let controller = makeController(
+            appState: appState,
+            context: ScheduleEditorContext(
+                day: 2,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                schedule: schedule
+            ),
+            onClose: { closeCount += 1 }
+        )
+        let hosted = host(controller)
+        let initialGeneration = controller.formReloadGenerationForTesting
+
+        let breakButton = buttons(in: hosted).first { $0.title == "Break" }
+        #expect(breakButton != nil)
+        breakButton?.performClick(nil)
+        #expect(controller.formReloadGenerationForTesting > initialGeneration)
+        #expect(visibleText(in: hosted).contains("Not used for breaks"))
+
+        let onlyDayTitle = "Only \(ScheduleEditorSupport.dayName(for: 2))"
+        let onlyDayButton = buttons(in: hosted).first { $0.title == onlyDayTitle }
+        #expect(onlyDayButton != nil)
+        onlyDayButton?.performClick(nil)
+        #expect(visibleText(in: hosted).contains(ScheduleEditorSupport.dayName(for: 2)))
+
+        let colorButton = actionButtons(in: hosted).first(where: { button in
+            button.title.isEmpty && abs((button.layer?.cornerRadius ?? 0) - 15) < 0.1
+        })
+        #expect(colorButton != nil)
+        colorButton?.performClick(nil)
+        #expect(controller.formReloadGenerationForTesting > initialGeneration)
+
+        let saveButton = buttons(in: hosted).first { $0.title == "Save Changes" }
+        #expect(saveButton != nil)
+        let beforeSaveCount = appState.schedules.count
+        saveButton?.performClick(nil)
+        #expect(appState.schedules.count >= beforeSaveCount)
+        #expect(closeCount == 1)
+
+        let deleteState = isolatedAppState(name: "interactiveClosureCoverageDelete")
+        deleteState.ruleSets = appState.ruleSets
+        deleteState.schedules = [schedule]
+        closeCount = 0
+        let deletingController = makeController(
+            appState: deleteState,
+            context: ScheduleEditorContext(
+                day: 2,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                schedule: schedule
+            ),
+            onClose: { closeCount += 1 }
+        )
+        let deletingView = host(deletingController)
+        let deleteButton = buttons(in: deletingView).first { $0.title == "Delete Schedule" }
+        #expect(deleteButton != nil)
+        deleteButton?.performClick(nil)
+        #expect(deleteState.schedules.isEmpty)
+        #expect(closeCount == 1)
+    }
+
+    @Test("Schedule editor allowed-list popup falls back to None when current rule-set is missing")
+    @MainActor
+    func addScheduleViewAllowedListPopupFallbackCoverage() {
+        let appState = isolatedAppState(name: "allowedListFallback")
+        appState.ruleSets = [RuleSet(name: "Known", urls: ["known.com"])]
+
+        let schedule = Schedule(
+            name: "Focus with missing list",
+            days: [2],
+            startTime: Date(),
+            endTime: Date().addingTimeInterval(1800),
+            type: .focus,
+            ruleSetId: UUID()
+        )
+
+        let controller = makeController(
+            appState: appState,
+            context: ScheduleEditorContext(
+                day: 2,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                schedule: schedule
+            )
+        )
+        let hosted = host(controller)
+        #expect(hosted.fittingSize.width >= 0)
+        let allowedListPopup = popups(in: hosted).first { popup in
+            popup.itemArray.contains(where: { $0.title == "None" }) &&
+                popup.itemArray.contains(where: { $0.title == "Known" })
+        }
+        #expect(allowedListPopup != nil)
+        #expect(allowedListPopup?.selectedItem?.title == "None")
+    }
+
+    @Test("Schedule editor recurring day button actions trigger toggle closures")
+    @MainActor
+    func addScheduleViewRecurringDayButtonClosureCoverage() {
+        let appState = isolatedAppState(name: "recurringDayButtonClosures")
+        let controller = makeController(appState: appState)
+        let hosted = host(controller)
+        controller.setRecurringForTesting(true)
+
+        let daySymbols = Set(["S", "M", "T", "W", "F"])
+        let beforeDays = controller.daysForTesting
+        let dayButton = buttons(in: hosted).first { daySymbols.contains($0.title) }
+        #expect(dayButton != nil)
+        dayButton?.performClick(nil)
+        #expect(controller.daysForTesting != beforeDays)
     }
 }

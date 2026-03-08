@@ -56,12 +56,7 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
         }
 
         private static func isRunningInTestProcess() -> Bool {
-            let environment = ProcessInfo.processInfo.environment
-            if environment["XCTestConfigurationFilePath"] != nil { return true }
-            if environment["XCTestBundlePath"] != nil { return true }
-            if environment["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES"] != nil { return true }
-            if environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil { return true }
-            return NSClassFromString("XCTestCase") != nil
+            DefaultAppDelegateSystem.isRunningInTestProcess()
         }
     }
 
@@ -100,6 +95,17 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
     }
 
     private let runtime: Runtime
+
+    static func isRunningInTestProcess(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        classLookup: (String) -> AnyClass? = NSClassFromString
+    ) -> Bool {
+        if environment["XCTestConfigurationFilePath"] != nil { return true }
+        if environment["XCTestBundlePath"] != nil { return true }
+        if environment["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES"] != nil { return true }
+        if environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil { return true }
+        return classLookup("XCTestCase") != nil
+    }
 
     init(runtime: Runtime = .live) {
         self.runtime = runtime

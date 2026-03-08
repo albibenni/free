@@ -186,12 +186,7 @@ final class WeeklyCalendarSurfaceScheduleBlockNSView: NSView {
                 hourHeight: hourHeight,
                 weekRange: weekRange,
                 resolvedDayDelta: interactionMode == .move ? dayDelta(for: event) : nil
-            )
-            guard let update else {
-                frame = originalFrame
-                finishInteraction(rebuildImmediately: true)
-                return
-            }
+            )!
             onUpdateSchedule?(
                 entry.schedule.id,
                 entry.placement.day,

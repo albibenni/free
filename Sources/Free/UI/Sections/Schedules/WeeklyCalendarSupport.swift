@@ -2,6 +2,26 @@ import CoreGraphics
 import Foundation
 
 enum WeeklyCalendarSupport {
+    typealias CalendarHourSetter = (Calendar, Int, Int, Date) -> Date?
+    typealias CalendarDateBuilder = (Calendar, DateComponents) -> Date?
+
+    static var calendarHourSetter: CalendarHourSetter = { calendar, hour, minute, anchor in
+        calendar.date(bySettingHour: hour, minute: minute, second: 0, of: anchor)
+    }
+
+    static var calendarDateBuilder: CalendarDateBuilder = { calendar, components in
+        calendar.date(from: components)
+    }
+
+    static func resetCalendarHooksForTesting() {
+        calendarHourSetter = { calendar, hour, minute, anchor in
+            calendar.date(bySettingHour: hour, minute: minute, second: 0, of: anchor)
+        }
+        calendarDateBuilder = { calendar, components in
+            calendar.date(from: components)
+        }
+    }
+
     struct DragSelection {
         let day: Int
         let startHour: CGFloat
@@ -81,31 +101,34 @@ enum WeeklyCalendarSupport {
         let anchor = calendar.startOfDay(for: Date(timeIntervalSinceReferenceDate: 0))
         let startComponents = calendar.dateComponents([.hour, .minute], from: startDate)
         let endComponents = calendar.dateComponents([.hour, .minute], from: endDate)
-        let start =
-            calendar.date(
-                bySettingHour: startComponents.hour ?? 0,
-                minute: startComponents.minute ?? 0,
-                second: 0,
-                of: anchor
-            ) ?? anchor
-        var end =
-            calendar.date(
-                bySettingHour: endComponents.hour ?? 0,
-                minute: endComponents.minute ?? 0,
-                second: 0,
-                of: anchor
-            ) ?? anchor
+        let startHour = startComponents.hour!
+        let startMinute = startComponents.minute!
+        let endHour = endComponents.hour!
+        let endMinute = endComponents.minute!
+
+        let start: Date
+        if let resolved = calendarHourSetter(calendar, startHour, startMinute, anchor) {
+            start = resolved
+        } else {
+            start = anchor
+        }
+
+        var end: Date
+        if let resolved = calendarHourSetter(calendar, endHour, endMinute, anchor) {
+            end = resolved
+        } else {
+            end = anchor
+        }
         if end <= start {
-            end = calendar.date(byAdding: .day, value: 1, to: end) ?? end
+            end = calendar.date(byAdding: .day, value: 1, to: end)!
         }
         return DateInterval(start: start, end: end)
     }
 
     static func timeOnlyDate(from date: Date, calendar: Calendar) -> Date {
         let components = calendar.dateComponents([.hour, .minute], from: date)
-        return calendar.date(
-            from: DateComponents(hour: components.hour, minute: components.minute)
-        ) ?? date
+        return calendarDateBuilder(calendar, DateComponents(hour: components.hour, minute: components.minute))
+            ?? date
     }
 
     static func concurrentLaneCount(
