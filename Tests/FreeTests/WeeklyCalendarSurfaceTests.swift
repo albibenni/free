@@ -61,6 +61,36 @@ struct WeeklyCalendarSurfaceTests {
         )
     }
 
+    @Test("Weekly calendar support hook fallbacks cover nil builder and overnight normalization")
+    func weeklyCalendarSupportHookFallbackCoverage() throws {
+        defer { WeeklyCalendarSupport.resetCalendarHooksForTesting() }
+        WeeklyCalendarSupport.calendarHourSetter = { _, _, _, _ in nil }
+        WeeklyCalendarSupport.calendarDateBuilder = { _, _ in nil }
+
+        let calendar = Calendar.current
+        let start = try #require(calendar.date(from: DateComponents(hour: 23, minute: 30)))
+        let end = try #require(calendar.date(from: DateComponents(hour: 1, minute: 15)))
+
+        let normalized = WeeklyCalendarSupport.normalizedInterval(
+            startDate: start,
+            endDate: end,
+            calendar: calendar
+        )
+        #expect(normalized.end > normalized.start)
+
+        let placement = WeeklyCalendarSupport.SchedulePlacement(
+            id: "fallback",
+            day: 2,
+            startDate: start,
+            endDate: end
+        )
+        let wrapped = WeeklyCalendarSupport.normalizedInterval(for: placement, calendar: calendar)
+        #expect(wrapped.end > wrapped.start)
+
+        let fallbackTimeOnly = WeeklyCalendarSupport.timeOnlyDate(from: start, calendar: calendar)
+        #expect(fallbackTimeOnly == start)
+    }
+
     @MainActor
     @Test("Weekly calendar schedule block supports click, drag, update, and imported draw")
     func weeklyCalendarScheduleBlockInteractionsAndDraw() throws {

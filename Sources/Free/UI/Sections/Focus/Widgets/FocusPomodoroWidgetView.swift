@@ -36,6 +36,23 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     var customBreakPromptSimulation: (() -> (NSApplication.ModalResponse, String))?
     var stopChallengePromptSimulation: (() -> (NSApplication.ModalResponse, String))?
     private(set) var refreshGeneration = 0
+    typealias AlertFactory = () -> NSAlert
+    typealias AlertModalRunner = (NSAlert) -> NSApplication.ModalResponse
+    typealias AlertSheetRunner = (NSAlert, NSWindow, @escaping (NSApplication.ModalResponse) -> Void) -> Void
+
+    static var makeAlert: AlertFactory = { NSAlert() }
+    static var runAlertModal: AlertModalRunner = { alert in alert.runModal() }
+    static var runAlertSheet: AlertSheetRunner = { alert, window, completion in
+        alert.beginSheetModal(for: window, completionHandler: completion)
+    }
+
+    static func resetPromptHooksForTesting() {
+        makeAlert = { NSAlert() }
+        runAlertModal = { alert in alert.runModal() }
+        runAlertSheet = { alert, window, completion in
+            alert.beginSheetModal(for: window, completionHandler: completion)
+        }
+    }
 
     init(
         appState: AppState,
@@ -575,7 +592,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     private func presentCustomBreakPrompt() {
         let field = NSTextField(string: "")
         field.placeholderString = "Minutes"
-        let alert = NSAlert()
+        let alert = Self.makeAlert()
         alert.messageText = "Custom Break"
         alert.informativeText = "Enter duration in minutes."
         alert.accessoryView = field
@@ -596,16 +613,16 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         }
 
         if let window {
-            alert.beginSheetModal(for: window, completionHandler: present)
+            Self.runAlertSheet(alert, window, present)
         } else {
-            present(alert.runModal())
+            present(Self.runAlertModal(alert))
         }
     }
 
     private func presentStopChallengePrompt() {
         let field = NSTextField(string: "")
         field.placeholderString = "Type the phrase exactly"
-        let alert = NSAlert()
+        let alert = Self.makeAlert()
         alert.messageText = "Emergency Unlock"
         alert.informativeText =
             "To stop a Strict Pomodoro session, type the following exactly:\n\n\"\(AppState.challengePhrase)\""
@@ -627,9 +644,9 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         }
 
         if let window {
-            alert.beginSheetModal(for: window, completionHandler: present)
+            Self.runAlertSheet(alert, window, present)
         } else {
-            present(alert.runModal())
+            present(Self.runAlertModal(alert))
         }
     }
 }
