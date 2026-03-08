@@ -573,4 +573,51 @@ struct FocusViewTests {
         #expect(appState.isPaused == false)
         #expect(controller.isPauseDashboardHiddenForTesting == true)
     }
+
+    @Test("Focus schedules widget reload keeps existing view when signature is unchanged")
+    @MainActor
+    func focusSchedulesWidgetKeepExistingReload() {
+        let appState = isolatedAppState(name: "schedulesKeepExistingReload")
+        let now = Date()
+        let weekday = Calendar.current.component(.weekday, from: now)
+        appState.schedules = [
+            Schedule(
+                name: "Deep Work",
+                days: [weekday],
+                startTime: now.addingTimeInterval(-1800),
+                endTime: now.addingTimeInterval(1800),
+                isEnabled: true,
+                type: .focus
+            )
+        ]
+
+        let controller = makeController(appState: appState, section: .schedules)
+        _ = host(controller)
+        let initialIdentifier = controller.widgetViewIdentifierForTesting
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusSchedulesWidgetView")
+
+        controller.reloadWidget()
+
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusSchedulesWidgetView")
+        #expect(controller.widgetViewIdentifierForTesting == initialIdentifier)
+    }
+
+    @Test("Focus allowed websites widget reload keeps existing view when signature is unchanged")
+    @MainActor
+    func focusAllowedWebsitesWidgetKeepExistingReload() {
+        let appState = isolatedAppState(name: "allowedWebsitesKeepExistingReload")
+        let set = RuleSet(name: "Default", urls: ["swift.org"])
+        appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+
+        let controller = makeController(appState: appState, section: .allowedWebsites)
+        _ = host(controller)
+        let initialIdentifier = controller.widgetViewIdentifierForTesting
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusAllowedWebsitesWidgetView")
+
+        controller.reloadWidget()
+
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusAllowedWebsitesWidgetView")
+        #expect(controller.widgetViewIdentifierForTesting == initialIdentifier)
+    }
 }

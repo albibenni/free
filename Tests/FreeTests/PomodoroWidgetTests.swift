@@ -22,6 +22,7 @@ struct PomodoroWidgetTests {
     }
 
 
+
     private func visibleText(in view: NSView) -> [String] {
         guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
 
