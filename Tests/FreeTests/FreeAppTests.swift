@@ -127,6 +127,18 @@ struct FreeAppTests {
                     processName: "Proc"
                 ) == "Proc"
             )
+            #expect(
+                FreeApp.applicationName(
+                    bundleInfo: ["CFBundleDisplayName": "", "CFBundleName": "Bundle Name"],
+                    processName: "Proc"
+                ) == "Bundle Name"
+            )
+            #expect(
+                FreeApp.applicationName(
+                    bundleInfo: ["CFBundleDisplayName": "", "CFBundleName": ""],
+                    processName: "Proc"
+                ) == "Proc"
+            )
         }
     }
 
@@ -167,6 +179,21 @@ struct FreeAppTests {
     }
 
     @MainActor
+    @Test("FreeApp default factories build interface objects on first start")
+    func defaultFactoriesBuildInterfaceObjects() {
+        withIsolatedAppKitState {
+            let appState = isolatedAppState(name: "defaultFactoriesBuildInterfaceObjects")
+            let app = FreeApp(appState: appState, appDelegate: AppDelegate())
+
+            app.startInterface(application: NSApplication.shared)
+
+            #expect(app.mainWindowController != nil)
+            #expect(app.statusItemController != nil)
+            #expect(NSApplication.shared.mainMenu != nil)
+        }
+    }
+
+    @MainActor
     @Test("FreeApp initializer uses default controller factories when omitted")
     func initializerDefaultFactoryArguments() {
         withIsolatedAppKitState {
@@ -185,6 +212,17 @@ struct FreeAppTests {
         withIsolatedAppKitState {
             let result = FreeApp.applicationName(bundle: .main, processInfo: .processInfo)
             #expect(result.isEmpty == false)
+        }
+    }
+
+    @MainActor
+    @Test("FreeApp falls back to process name when bundle info dictionary is nil")
+    func bundleWrapperNilInfoFallback() {
+        withIsolatedAppKitState {
+            let processInfo = ProcessInfo.processInfo
+
+            let result = FreeApp.applicationName(bundleInfo: nil, processName: processInfo.processName)
+            #expect(result == processInfo.processName)
         }
     }
 
@@ -249,6 +287,47 @@ struct FreeAppTests {
             RunLoop.main.run(until: Date().addingTimeInterval(0.05))
             appState.appearanceMode = .dark
             RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        }
+    }
+
+    @MainActor
+    @Test("FreeApp launch callback safely no-ops when app is already released")
+    func launchCallbackNoOpsAfterAppRelease() {
+        withIsolatedAppKitState {
+            let appState = isolatedAppState(name: "launchCallbackNoOpsAfterAppRelease")
+            let appDelegate = AppDelegate()
+            var app: FreeApp? = FreeApp(appState: appState, appDelegate: appDelegate)
+
+            app?.launch(application: NSApplication.shared)
+            let callback = appDelegate.onApplicationDidFinishLaunching
+            #expect(callback != nil)
+
+            app = nil
+            callback?()
+
+            #expect(NSApplication.shared.delegate === appDelegate)
+        }
+    }
+
+    @MainActor
+    @Test("FreeApp quitAction delegates through runtime terminator")
+    func quitActionDelegatesToRuntime() {
+        withIsolatedAppKitState {
+            let originalTerminator = FreeAppRuntimeStorage.terminator
+            defer { FreeAppRuntimeStorage.terminator = originalTerminator }
+
+            var capturedApplication: NSApplication?
+            var capturedSender: Any?
+            FreeAppRuntimeStorage.terminator = { app, sender in
+                capturedApplication = app
+                capturedSender = sender
+            }
+
+            let action = FreeApp.quitAction()
+            action()
+
+            #expect(capturedApplication === NSApplication.shared)
+            #expect(capturedSender == nil)
         }
     }
 

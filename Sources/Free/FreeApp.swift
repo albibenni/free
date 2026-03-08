@@ -70,9 +70,14 @@ final class FreeApp {
         processInfo: ProcessInfo = .processInfo
     ) -> String {
         applicationName(
-            bundleInfo: bundle.infoDictionary ?? [:],
+            bundleInfo: bundle.infoDictionary,
             processName: processInfo.processName
         )
+    }
+
+    static func applicationName(bundleInfo: [String: Any]?, processName: String) -> String {
+        guard let bundleInfo else { return processName }
+        return applicationName(bundleInfo: bundleInfo, processName: processName)
     }
 
     static func applicationName(bundleInfo: [String: Any], processName: String) -> String {
