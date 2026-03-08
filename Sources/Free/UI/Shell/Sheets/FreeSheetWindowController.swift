@@ -161,4 +161,8 @@ extension FreeSheetWindowController {
         )
         reconcileWindowFrameIfNeeded(window, targetFrameRect: target)
     }
+
+    func setClosingProgrammaticallyForTesting(_ value: Bool) {
+        isClosingProgrammatically = value
+    }
 }

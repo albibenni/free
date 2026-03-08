@@ -1150,6 +1150,62 @@ struct WeeklyCalendarViewTests {
         #expect(splitRect?.minX == 50)
     }
 
+    @Test("WeeklyCalendar support positioned-schedule sorting covers tie-break and lane-reuse branches")
+    func weeklyCalendarPositionedScheduleSortAndLaneBranches() {
+        let calendar = Calendar.current
+        let baseDay = calendar.startOfDay(for: Date())
+        let start9 = calendar.date(byAdding: .hour, value: 9, to: baseDay)!
+        let end10 = calendar.date(byAdding: .hour, value: 10, to: baseDay)!
+        let end11 = calendar.date(byAdding: .hour, value: 11, to: baseDay)!
+        let start12 = calendar.date(byAdding: .hour, value: 12, to: baseDay)!
+        let end13 = calendar.date(byAdding: .hour, value: 13, to: baseDay)!
+        let weekday = calendar.component(.weekday, from: baseDay)
+
+        let template = Schedule(
+            name: "TieBreak",
+            days: [weekday],
+            startTime: start9,
+            endTime: end10
+        )
+
+        let placements: [(schedule: Schedule, placement: WeeklyCalendarSupport.SchedulePlacement)] = [
+            (
+                schedule: template,
+                placement: .init(id: "b", day: weekday, startDate: start9, endDate: end11)
+            ),
+            (
+                schedule: template,
+                placement: .init(id: "a", day: weekday, startDate: start9, endDate: end11)
+            ),
+            (
+                schedule: template,
+                placement: .init(id: "c", day: weekday, startDate: start9, endDate: end10)
+            ),
+            (
+                schedule: template,
+                placement: .init(id: "d", day: weekday, startDate: start12, endDate: end13)
+            ),
+            (
+                schedule: template,
+                placement: .init(id: "z", day: weekday, startDate: start9, endDate: end11)
+            ),
+            (
+                schedule: template,
+                placement: .init(id: "z", day: weekday, startDate: start9, endDate: end11)
+            ),
+        ]
+
+        let positioned = WeeklyCalendarSupport.positionedSchedules(from: placements, calendar: calendar)
+        #expect(positioned.count == 6)
+        #expect(positioned.map(\.id).contains("a"))
+        #expect(positioned.map(\.id).contains("b"))
+        #expect(positioned.map(\.id).contains("c"))
+        #expect(positioned.map(\.id).contains("d"))
+
+        // Later non-overlapping schedule should reuse lane 0.
+        #expect(positioned.first(where: { $0.id == "d" })?.laneIndex == 0)
+    }
+
     @Test("WeeklyCalendar AppKit surface lays out header, scroller, and schedule blocks")
     @MainActor
     func weeklyCalendarSurfaceLayout() {

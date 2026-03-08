@@ -107,11 +107,25 @@ final class SettingsSectionViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        let appState = self.appState
 
         AppKitAppStateObservation.bind(
             publisher: AppKitAppStateObservation.settingsPublisher(appState: appState),
-            signature: { [weak self] in
-                self?.observationSignature() ?? .fallback
+            signature: {
+                ObservationSignature(
+                    isBlocking: appState.isBlocking,
+                    isUnblockable: appState.isUnblockable,
+                    isStrictActive: appState.isStrictActive,
+                    weekStartsOnMonday: appState.weekStartsOnMonday,
+                    calendarIntegrationEnabled: appState.calendarIntegrationEnabled,
+                    calendarImportsBlockTime: appState.calendarImportsBlockTime,
+                    blockNewTabs: appState.blockNewTabs,
+                    blockDeveloperHosts: appState.blockDeveloperHosts,
+                    blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
+                    appearanceMode: appState.appearanceMode,
+                    accentColorIndex: appState.accentColorIndex,
+                    launchAtLoginEnabled: appState.launchAtLoginStatus()
+                )
             },
             cancellables: &cancellables
         ) { [weak self] _ in
@@ -119,23 +133,6 @@ final class SettingsSectionViewController: NSViewController {
         }
 
         reloadSettings()
-    }
-
-    private func observationSignature() -> ObservationSignature {
-        ObservationSignature(
-            isBlocking: appState.isBlocking,
-            isUnblockable: appState.isUnblockable,
-            isStrictActive: appState.isStrictActive,
-            weekStartsOnMonday: appState.weekStartsOnMonday,
-            calendarIntegrationEnabled: appState.calendarIntegrationEnabled,
-            calendarImportsBlockTime: appState.calendarImportsBlockTime,
-            blockNewTabs: appState.blockNewTabs,
-            blockDeveloperHosts: appState.blockDeveloperHosts,
-            blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
-            appearanceMode: appState.appearanceMode,
-            accentColorIndex: appState.accentColorIndex,
-            launchAtLoginEnabled: appState.launchAtLoginStatus()
-        )
     }
 
     private func makeSectionTitle(_ text: String) -> NSView {

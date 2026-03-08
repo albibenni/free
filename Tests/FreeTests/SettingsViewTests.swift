@@ -189,6 +189,10 @@ struct SettingsViewTests {
         #expect(appState.launchAtLoginStatus() == true)
         #expect(launchManager.disableCallCount == 1)
         #expect(controller.launchAtLoginEnabledForTesting)
+
+        launchManager.isEnabledValue = false
+        controller.setLaunchAtLoginForTesting(false)
+        #expect(controller.launchAtLoginEnabledForTesting == false)
     }
 
     @Test("Settings controller strict-disable visibility helper covers false branch")
@@ -279,24 +283,38 @@ struct SettingsViewTests {
 
         controller.setStrictModeForTesting(true)
         #expect(appState.isUnblockable)
+        controller.setStrictModeForTesting(false)
+        #expect(appState.isUnblockable == false)
 
         controller.setWeekStartsMondayForTesting(true)
         #expect(appState.weekStartsOnMonday)
+        controller.setWeekStartsMondayForTesting(false)
+        #expect(appState.weekStartsOnMonday == false)
 
         controller.setCalendarIntegrationForTesting(true)
         #expect(appState.calendarIntegrationEnabled)
+        controller.setCalendarIntegrationForTesting(false)
+        #expect(appState.calendarIntegrationEnabled == false)
 
         controller.setCalendarImportsForTesting(true)
         #expect(appState.calendarImportsBlockTime)
+        controller.setCalendarImportsForTesting(false)
+        #expect(appState.calendarImportsBlockTime == false)
 
         controller.setBlockNewTabsForTesting(true)
         #expect(appState.blockNewTabs)
+        controller.setBlockNewTabsForTesting(false)
+        #expect(appState.blockNewTabs == false)
 
         controller.setBlockDeveloperHostsForTesting(true)
         #expect(appState.blockDeveloperHosts)
+        controller.setBlockDeveloperHostsForTesting(false)
+        #expect(appState.blockDeveloperHosts == false)
 
         controller.setBlockLocalNetworkHostsForTesting(true)
         #expect(appState.blockLocalNetworkHosts)
+        controller.setBlockLocalNetworkHostsForTesting(false)
+        #expect(appState.blockLocalNetworkHosts == false)
 
         controller.selectAppearanceModeForTesting(.dark)
         #expect(appState.appearanceMode == .dark)

@@ -177,6 +177,52 @@ struct FreeAppKitShellTests {
         #expect(controller.selectedSectionForTesting == .focus)
     }
 
+    @Test("FreeMainViewController launch-at-login prompt callback invokes response handler")
+    func mainViewControllerLaunchAtLoginPromptCallbackCoverage() {
+        defer { FreeMainViewController.resetLaunchAtLoginAlertPresenterForTesting() }
+
+        let appState = isolatedAppStateWithLaunchPrompt(name: "launchPromptCallbackCoverage")
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+        controller.loadViewIfNeeded()
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 640),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentViewController = controller
+        window.makeKeyAndOrderFront(nil)
+        defer { window.orderOut(nil) }
+
+        var presented = false
+        FreeMainViewController.presentLaunchAtLoginAlert = { _, _, completion in
+            presented = true
+            completion(.alertFirstButtonReturn)
+        }
+
+        controller.presentLaunchAtLoginPromptIfNeeded()
+        #expect(presented)
+        #expect(appState.launchAtLoginStatus())
+
+        FreeMainViewController.resetLaunchAtLoginAlertPresenterForTesting()
+        let smokeWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 320, height: 200),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        var completionCalled = false
+        FreeMainViewController.presentLaunchAtLoginAlert(NSAlert(), smokeWindow) { _ in
+            completionCalled = true
+        }
+        #expect(completionCalled == false)
+    }
+
     @Test("FreeMainViewController testing hooks cover sidebar callback paths and nil-selection fallback")
     func mainViewControllerTestingHooksCoverage() {
         let appState = isolatedAppState(name: "testingHooksCoverage")

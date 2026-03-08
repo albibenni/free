@@ -607,6 +607,110 @@ struct ModalAndShellCoverageTests {
     }
 
     @MainActor
+    @Test("Free sheet window controller covers no-op and already-attached branches")
+    func freeSheetWindowControllerBranchCoverage() {
+        let parent = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 520),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+
+        // Cover floating dismiss path when not parented.
+        var floatingClosed = 0
+        let floating = FreeSheetWindowController(
+            contentViewController: NSViewController(),
+            contentSize: CGSize(width: 360, height: 260),
+            presentsAsSheet: false,
+            showsNativeCloseButton: false
+        ) {
+            floatingClosed += 1
+        }
+
+        floating.dismiss()
+        #expect(floatingClosed == 1)
+
+        guard let floatingWindow = floating.window else {
+            Issue.record("Expected floating window")
+            return
+        }
+
+        // First present attaches and centers.
+        floating.present(for: parent)
+        #expect(floatingWindow.parent === parent)
+
+        // Second present should cover already-visible / already-parented branches.
+        floating.present(for: parent)
+        #expect(floatingWindow.parent === parent)
+
+        // Exercise reconcile() branch where width already matches but height differs.
+        let targetFrame = floatingWindow.frameRect(
+            forContentRect: NSRect(origin: .zero, size: CGSize(width: 360, height: 260))
+        )
+        floatingWindow.setFrame(
+            NSRect(
+                origin: floatingWindow.frame.origin,
+                size: NSSize(width: targetFrame.width, height: targetFrame.height + 12)
+            ),
+            display: false
+        )
+        floating.reconcileWindowFrameForTesting()
+        #expect(abs(floatingWindow.frame.height - targetFrame.height) <= 0.5)
+
+        floating.dismiss()
+        #expect(floatingClosed == 2)
+
+        // Cover sheet dismiss path when no sheet parent exists.
+        var sheetClosed = 0
+        let sheet = FreeSheetWindowController(
+            contentViewController: NSViewController(),
+            contentSize: CGSize(width: 360, height: 260),
+            presentsAsSheet: true
+        ) {
+            sheetClosed += 1
+        }
+        sheet.dismiss()
+        #expect(sheetClosed == 1)
+    }
+
+    @MainActor
+    @Test("Free sheet window controller guard-return branches are covered")
+    func freeSheetWindowControllerGuardBranches() {
+        let parent = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+
+        var closeCount = 0
+        let controller = FreeSheetWindowController(
+            contentViewController: NSViewController(),
+            contentSize: CGSize(width: 320, height: 240),
+            presentsAsSheet: false
+        ) {
+            closeCount += 1
+        }
+
+        // Force nil-window guard paths.
+        controller.window = nil
+        controller.present(for: parent)
+        controller.restoreDesiredContentSize()
+        controller.dismiss()
+        controller.reconcileWindowFrameForTesting()
+        #expect(closeCount == 0)
+
+        // Cover programmatic-close guard in windowWillClose.
+        controller.setClosingProgrammaticallyForTesting(true)
+        controller.windowWillClose(Notification(name: NSWindow.willCloseNotification))
+        #expect(closeCount == 0)
+
+        controller.setClosingProgrammaticallyForTesting(false)
+        controller.windowWillClose(Notification(name: NSWindow.willCloseNotification))
+        #expect(closeCount == 1)
+    }
+
+    @MainActor
     @Test("Status item controller updates menu state and executes quit callback")
     func freeStatusItemController() {
         var didQuit = false
