@@ -154,6 +154,15 @@ struct UIComponentTests {
         #expect(image != nil)
     }
 
+    @Test("AppKit symbol helper supports symbol spec overload")
+    func appKitSymbolHelperSpecOverload() {
+        let image = appKitSymbolImage(
+            spec: AppKitUISymbols.navChevron,
+            color: .labelColor
+        )
+        #expect(image != nil)
+    }
+
     @Test("Shared AppKit icon button helper applies image inset when supported")
     func sharedAppKitIconButtonInset() {
         let button = IconInsetButton()

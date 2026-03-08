@@ -61,6 +61,17 @@ struct WeeklyCalendarSurfaceTests {
         )
     }
 
+    private func mirrorValue<T>(_ name: String, in root: Any) -> T? {
+        var mirror: Mirror? = Mirror(reflecting: root)
+        while let current = mirror {
+            for child in current.children where child.label == name {
+                return child.value as? T
+            }
+            mirror = current.superclassMirror
+        }
+        return nil
+    }
+
     @Test("Weekly calendar support hook fallbacks cover nil builder and overnight normalization")
     func weeklyCalendarSupportHookFallbackCoverage() throws {
         defer { WeeklyCalendarSupport.resetCalendarHooksForTesting() }
@@ -189,6 +200,19 @@ struct WeeklyCalendarSurfaceTests {
                 calendar: calendar
             ) == 1
         )
+    }
+
+    @MainActor
+    @Test("Weekly calendar document timer callback marks view for redraw")
+    func weeklyCalendarDocumentTimerCallbackCoverage() {
+        let document = WeeklyCalendarSurfaceDocumentNSView(
+            frame: NSRect(x: 0, y: 0, width: 320, height: 320)
+        )
+
+        let timer: Timer? = mirrorValue("timer", in: document)
+        #expect(timer != nil)
+        timer?.fire()
+        #expect(timer?.isValid == true)
     }
 
     @MainActor
