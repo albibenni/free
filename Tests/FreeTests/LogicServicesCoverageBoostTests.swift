@@ -400,4 +400,192 @@ struct LogicServicesCoverageBoostTests {
         #expect(schedules[0].name == "Existing")
         #expect(schedules[0].days == [2, 3])
     }
+
+    @Test("RuleSetService removeRule removes matching existing rule entry")
+    func ruleSetServiceRemoveRuleExistingEntry() {
+        var ruleSets = [RuleSet(name: "Main", urls: ["keep.com", "drop.com"])]
+        let setId = ruleSets[0].id
+
+        RuleSetService.removeRule("drop.com", from: setId, in: &ruleSets)
+
+        #expect(ruleSets[0].urls.contains("drop.com") == false)
+        #expect(ruleSets[0].urls.contains("keep.com"))
+    }
+
+    @Test("ScheduleEngine update occurrence removes malformed empty-days source schedule")
+    func scheduleEngineUpdateOccurrenceRemovesEmptySourceDays() {
+        let start = Date()
+        let end = start.addingTimeInterval(600)
+        let malformed = Schedule(
+            name: "Malformed",
+            days: [],
+            date: nil,
+            startTime: start,
+            endTime: end,
+            type: .focus
+        )
+        var schedules = [malformed]
+
+        ScheduleEngine.updateScheduleOccurrence(
+            in: &schedules,
+            id: malformed.id,
+            originalDay: 2,
+            targetDay: 4,
+            targetDate: nil,
+            start: start.addingTimeInterval(60),
+            end: end.addingTimeInterval(60)
+        )
+
+        #expect(schedules.count == 1)
+        #expect(schedules[0].id != malformed.id)
+        #expect(schedules[0].days == [4])
+    }
+
+    @Test("RuleSetService activeScheduleRuleSetIds ignores active break schedules")
+    func ruleSetServiceActiveIdsIgnoresBreakSchedules() {
+        let now = Date()
+        let weekday = Calendar.current.component(.weekday, from: now)
+        let focusId = UUID()
+
+        let activeBreak = Schedule(
+            name: "Break",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-60),
+            endTime: now.addingTimeInterval(60),
+            isEnabled: true,
+            type: .unfocus,
+            ruleSetId: UUID()
+        )
+        let activeFocus = Schedule(
+            name: "Focus",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-60),
+            endTime: now.addingTimeInterval(60),
+            isEnabled: true,
+            type: .focus,
+            ruleSetId: focusId
+        )
+
+        let ids = RuleSetService.activeScheduleRuleSetIds(from: [activeBreak, activeFocus])
+        #expect(ids == [focusId])
+    }
+
+    @Test("ScheduleEngine updateScheduleOccurrence searches through non-matching IDs")
+    func scheduleEngineUpdateOccurrenceFirstIndexClosureCoverage() {
+        let start = Date()
+        let end = start.addingTimeInterval(600)
+
+        let first = Schedule(
+            name: "First",
+            days: [2],
+            startTime: start,
+            endTime: end,
+            type: .focus
+        )
+        let second = Schedule(
+            name: "Second",
+            days: [2],
+            startTime: start,
+            endTime: end,
+            type: .focus
+        )
+        var schedules = [first, second]
+
+        ScheduleEngine.updateScheduleOccurrence(
+            in: &schedules,
+            id: second.id,
+            originalDay: 2,
+            targetDay: 3,
+            targetDate: nil,
+            start: start.addingTimeInterval(60),
+            end: end.addingTimeInterval(60)
+        )
+
+        #expect(schedules.first(where: { $0.id == second.id })?.days == [3])
+    }
+
+    @Test("ScheduleEngine deleteSchedule searches through non-matching IDs")
+    func scheduleEngineDeleteScheduleFirstIndexClosureCoverage() {
+        let start = Date()
+        let end = start.addingTimeInterval(600)
+
+        let first = Schedule(
+            name: "First",
+            days: [2],
+            startTime: start,
+            endTime: end,
+            type: .focus
+        )
+        let second = Schedule(
+            name: "Second",
+            days: [3],
+            startTime: start,
+            endTime: end,
+            type: .focus
+        )
+        var schedules = [first, second]
+
+        let removed = ScheduleEngine.deleteSchedule(
+            in: &schedules,
+            id: second.id,
+            modifyAllDays: true,
+            initialDay: nil
+        )
+
+        #expect(removed?.id == second.id)
+        #expect(schedules.count == 1)
+        #expect(schedules[0].id == first.id)
+    }
+
+    @Test("ScheduleEngine updateScheduleOccurrence returns early when ID is missing")
+    func scheduleEngineUpdateOccurrenceMissingIdCoverage() {
+        let start = Date()
+        let end = start.addingTimeInterval(600)
+        let schedule = Schedule(
+            name: "Only",
+            days: [2],
+            startTime: start,
+            endTime: end,
+            type: .focus
+        )
+        var schedules = [schedule]
+
+        ScheduleEngine.updateScheduleOccurrence(
+            in: &schedules,
+            id: UUID(),
+            originalDay: 2,
+            targetDay: 3,
+            targetDate: nil,
+            start: start.addingTimeInterval(60),
+            end: end.addingTimeInterval(60)
+        )
+
+        #expect(schedules.count == 1)
+        #expect(schedules[0].id == schedule.id)
+    }
+
+    @Test("ScheduleEngine deleteSchedule returns nil when ID is missing")
+    func scheduleEngineDeleteScheduleMissingIdCoverage() {
+        let start = Date()
+        let end = start.addingTimeInterval(600)
+        let schedule = Schedule(
+            name: "Only",
+            days: [2],
+            startTime: start,
+            endTime: end,
+            type: .focus
+        )
+        var schedules = [schedule]
+
+        let removed = ScheduleEngine.deleteSchedule(
+            in: &schedules,
+            id: UUID(),
+            modifyAllDays: true,
+            initialDay: nil
+        )
+
+        #expect(removed == nil)
+        #expect(schedules.count == 1)
+        #expect(schedules[0].id == schedule.id)
+    }
 }
