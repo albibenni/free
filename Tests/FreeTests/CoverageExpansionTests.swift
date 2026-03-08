@@ -514,6 +514,12 @@ struct CoverageExpansionTests {
         sheet.dismiss()
         #expect(closeCount == 1)
 
+        // Cover nil-window guard branches in present/dismiss.
+        sheet.window = nil
+        sheet.present(for: parent, selectedRuleSetId: nil)
+        sheet.dismiss()
+        #expect(closeCount == 1)
+
         sheet.windowWillClose(Notification(name: NSWindow.willCloseNotification))
         #expect(closeCount == 2)
     }

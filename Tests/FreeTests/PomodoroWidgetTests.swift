@@ -581,4 +581,57 @@ struct PomodoroWidgetTests {
         #expect(strictState.pomodoroStatus == .none)
     }
 
+    @Test("FocusPomodoroWidgetView prompt branches cover custom-sheet and strict-modal paths")
+    @MainActor
+    func pomodoroWidgetPromptBranchCoverage() {
+        defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
+
+        let customState = isolatedAppState(name: "promptBranchCustomSheet")
+        customState.isBlocking = true
+        customState.isUnblockable = false
+        let customWidget = FocusPomodoroWidgetView(appState: customState)
+        let customWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 960, height: 760),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        customWindow.contentView = customWidget
+        customWidget.frame = customWindow.contentView?.bounds ?? .zero
+        customWidget.layoutSubtreeIfNeeded()
+
+        FocusPomodoroWidgetView.makeAlert = { NSAlert() }
+        var customSheetCalls = 0
+        FocusPomodoroWidgetView.runAlertSheet = { alert, _, completion in
+            customSheetCalls += 1
+            (alert.accessoryView as? NSTextField)?.stringValue = "4"
+            completion(.alertFirstButtonReturn)
+        }
+        FocusPomodoroWidgetView.runAlertModal = { _ in
+            Issue.record("Expected sheet path for custom break when widget has a window")
+            return .alertSecondButtonReturn
+        }
+        buttons(in: customWidget).first { $0.title == "Cust" }?.performClick(nil)
+        #expect(customSheetCalls == 1)
+        #expect(customState.isPaused)
+
+        let strictState = isolatedAppState(name: "promptBranchStrictModal")
+        strictState.startPomodoro()
+        strictState.isBlocking = true
+        strictState.isUnblockable = true
+        strictState.pomodoroStartedAt = Date().addingTimeInterval(-20)
+        let strictWidget = FocusPomodoroWidgetView(appState: strictState)
+        _ = host(strictWidget)
+
+        FocusPomodoroWidgetView.runAlertSheet = { _, _, _ in
+            Issue.record("Expected modal path for strict stop when widget has no window")
+        }
+        FocusPomodoroWidgetView.runAlertModal = { alert in
+            (alert.accessoryView as? NSTextField)?.stringValue = AppState.challengePhrase
+            return .alertFirstButtonReturn
+        }
+        buttons(in: strictWidget).first { $0.title == "Stop" }?.performClick(nil)
+        #expect(strictState.pomodoroStatus == .none)
+    }
+
 }

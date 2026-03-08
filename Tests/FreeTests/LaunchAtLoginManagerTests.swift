@@ -97,10 +97,8 @@ struct LaunchAtLoginManagerTests {
     @Test("DefaultLaunchAtLoginManager live runtime can be constructed safely")
     func liveRuntimeClosuresInvocable() {
         let runtime = DefaultLaunchAtLoginManager.Runtime.live
-        if ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] != "1" {
-            // Avoid mutating login items in automated tests.
-            _ = runtime.status()
-        }
+        // Safe read-only call; register/unregister remain intentionally uncalled.
+        _ = runtime.status()
 
         #expect(Bool(true))
     }

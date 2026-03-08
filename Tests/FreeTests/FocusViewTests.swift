@@ -170,6 +170,42 @@ struct FocusViewTests {
         #expect(didInvoke)
     }
 
+    @Test("Focus section cancelPause action clears pause state and keeps reload flags consistent")
+    @MainActor
+    func focusCancelPauseAction() {
+        let appState = isolatedAppState(name: "cancelPauseControllerAction")
+        appState.isBlocking = true
+        appState.isPaused = true
+        appState.pauseRemaining = 120
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+
+        controller.needsReloadAfterPomodoroInteraction = true
+        controller.cancelPause()
+
+        #expect(appState.isPaused == false)
+        #expect(controller.hasDeferredPomodoroReloadForTesting == false)
+    }
+
+    @Test("Focus section end interaction guard does not flush when depth is zero")
+    @MainActor
+    func focusEndInteractionGuardAtZeroDepth() {
+        let appState = isolatedAppState(name: "endInteractionGuard")
+        let controller = makeController(appState: appState, section: .pomodoro)
+        _ = host(controller)
+
+        controller.needsReloadAfterPomodoroInteraction = true
+        controller.endPomodoroWidgetInteractionForTesting()
+
+        #expect(controller.hasDeferredPomodoroReloadForTesting)
+
+        controller.beginPomodoroWidgetInteractionForTesting()
+        controller.endPomodoroWidgetInteractionForTesting()
+
+        #expect(controller.hasDeferredPomodoroReloadForTesting == false)
+    }
+
     @Test("Focus section shows live overview instead of full widgets")
     @MainActor
     func focusViewLiveOverviewRender() {
@@ -316,6 +352,34 @@ struct FocusViewTests {
         #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
         #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
         #expect(controller.headerStatusTextForTesting.contains("test"))
+    }
+
+    @Test("Focus layout builder overview row clamps width to minimum when available width is non-positive")
+    @MainActor
+    func focusLayoutBuilderOverviewRowWidthClamp() {
+        let clamped = FocusSectionLayoutBuilder.makeOverviewRow(
+            iconName: AppKitUISymbols.Name.focus,
+            title: "Title",
+            value: "Value",
+            accentColorIndex: 0,
+            availableWidth: 0
+        )
+        let widthConstraint = clamped.constraints.first(where: {
+            $0.firstAttribute == .width && $0.relation == .equal
+        })
+        #expect(widthConstraint?.constant == 1)
+
+        let regular = FocusSectionLayoutBuilder.makeOverviewRow(
+            iconName: AppKitUISymbols.Name.focus,
+            title: "Title",
+            value: "Value",
+            accentColorIndex: 0,
+            availableWidth: 220
+        )
+        let regularWidthConstraint = regular.constraints.first(where: {
+            $0.firstAttribute == .width && $0.relation == .equal
+        })
+        #expect(regularWidthConstraint?.constant == 220)
     }
 
     @Test("Focus section keeps pomodoro widget stable when applying a preset")

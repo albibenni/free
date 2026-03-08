@@ -64,10 +64,16 @@ struct WeeklyCalendarSurfaceTests {
     @Test("Weekly calendar support hook fallbacks cover nil builder and overnight normalization")
     func weeklyCalendarSupportHookFallbackCoverage() throws {
         defer { WeeklyCalendarSupport.resetCalendarHooksForTesting() }
+        let calendar = Calendar.current
+        let defaultTimeOnly = WeeklyCalendarSupport.calendarDateBuilder(
+            calendar,
+            DateComponents(hour: 8, minute: 45)
+        )
+        #expect(defaultTimeOnly != nil)
+
         WeeklyCalendarSupport.calendarHourSetter = { _, _, _, _ in nil }
         WeeklyCalendarSupport.calendarDateBuilder = { _, _ in nil }
 
-        let calendar = Calendar.current
         let start = try #require(calendar.date(from: DateComponents(hour: 23, minute: 30)))
         let end = try #require(calendar.date(from: DateComponents(hour: 1, minute: 15)))
 
@@ -89,6 +95,79 @@ struct WeeklyCalendarSurfaceTests {
 
         let fallbackTimeOnly = WeeklyCalendarSupport.timeOnlyDate(from: start, calendar: calendar)
         #expect(fallbackTimeOnly == start)
+    }
+
+    @Test("Weekly calendar support schedule helpers cover visibility, labels, and style metadata")
+    func weeklyCalendarSupportScheduleHelpersCoverage() throws {
+        let calendar = Calendar.current
+        let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let bounds = WeeklyCalendarSupport.weekBounds(for: weekRange, calendar: calendar)
+        let inWeekDate = try #require(weekRange.first)
+        let outOfWeekDate = try #require(calendar.date(byAdding: .day, value: 10, to: inWeekDate))
+
+        let recurring = makeSchedule(name: "Recurring", day: 2)
+        var imported = recurring
+        imported.importedCalendarEventKey = "evt"
+        var oneOffInWeek = recurring
+        oneOffInWeek.date = inWeekDate
+        var oneOffOutOfWeek = recurring
+        oneOffOutOfWeek.date = outOfWeekDate
+
+        #expect(WeeklyCalendarSupport.canDirectlyManipulate(recurring))
+        #expect(WeeklyCalendarSupport.canDirectlyManipulate(imported) == false)
+        #expect(WeeklyCalendarSupport.dayName(for: 1).isEmpty == false)
+        #expect(WeeklyCalendarSupport.timeString(hour: 9).isEmpty == false)
+        #expect(WeeklyCalendarSupport.formattedTime(recurring.startTime, calendar: calendar).isEmpty == false)
+        #expect(WeeklyCalendarSupport.monthYearString(for: inWeekDate, calendar: calendar).isEmpty == false)
+
+        let events = [
+            ExternalEvent(
+                id: "in",
+                title: "In",
+                startDate: inWeekDate.addingTimeInterval(3600),
+                endDate: inWeekDate.addingTimeInterval(7200)
+            ),
+            ExternalEvent(
+                id: "out",
+                title: "Out",
+                startDate: outOfWeekDate,
+                endDate: outOfWeekDate.addingTimeInterval(3600)
+            ),
+        ]
+        let visible = WeeklyCalendarSupport.visibleCalendarEvents(events, weekStart: bounds.0, weekEnd: bounds.1)
+        #expect(visible.map(\.id) == ["in"])
+
+        #expect(WeeklyCalendarSupport.shouldDisplaySchedule(oneOffInWeek, weekStart: bounds.0, weekEnd: bounds.1))
+        #expect(WeeklyCalendarSupport.shouldDisplaySchedule(oneOffOutOfWeek, weekStart: bounds.0, weekEnd: bounds.1) == false)
+        #expect(WeeklyCalendarSupport.shouldDisplaySchedule(recurring, weekStart: bounds.0, weekEnd: bounds.1))
+
+        let placementsInWeek = WeeklyCalendarSupport.schedulePlacements(
+            for: oneOffInWeek,
+            weekRange: weekRange,
+            calendar: calendar
+        )
+        let placementsOutOfWeek = WeeklyCalendarSupport.schedulePlacements(
+            for: oneOffOutOfWeek,
+            weekRange: weekRange,
+            calendar: calendar
+        )
+        #expect(placementsInWeek.count == 1)
+        #expect(placementsOutOfWeek.isEmpty)
+
+        let positioned = WeeklyCalendarSupport.positionedSchedules(
+            schedules: [recurring, oneOffInWeek, oneOffOutOfWeek],
+            weekRange: weekRange,
+            calendar: calendar
+        )
+        #expect(positioned.isEmpty == false)
+
+        #expect(WeeklyCalendarSupport.blockFillOpacity(isImported: false) == 0.8)
+        #expect(WeeklyCalendarSupport.blockFillOpacity(isImported: true) == 0.5)
+        #expect(WeeklyCalendarSupport.blockBorderOpacity(isImported: false) == 0.95)
+        #expect(WeeklyCalendarSupport.blockBorderOpacity(isImported: true) == 0.72)
+        #expect(WeeklyCalendarSupport.primarySymbolName(for: recurring) == AppKitUISymbols.Name.target)
+        #expect(WeeklyCalendarSupport.importedSymbolName(for: recurring) == nil)
+        #expect(WeeklyCalendarSupport.importedSymbolName(for: imported) == AppKitUISymbols.Name.importedCalendar)
     }
 
     @MainActor
