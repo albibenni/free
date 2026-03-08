@@ -29,25 +29,27 @@ test-verbose:
 	@$(SWIFT) test -v
 
 coverage:
-	@rm -rf .build/coverage-home .build/coverage-main .build/coverage-appkit .build/coverage-merged
+	@rm -rf .build/coverage-home .build/coverage-main .build/coverage-merged
 	@mkdir -p .build/coverage-home .build/coverage-merged
 	@HOME=$$PWD/.build/coverage-home \
 	XDG_CONFIG_HOME=$$PWD/.build/coverage-home \
 	FREE_COVERAGE_MODE=1 \
 	FREE_RUN_APPKIT_LIFECYCLE_UNDER_COVERAGE=1 \
+	LLVM_PROFILE_FILE=$$PWD/.build/coverage-main/appkit-%p.profraw \
 		$(SWIFT) test --enable-code-coverage --no-parallel \
 		--filter FreeAppTests/launchStartAndAppearanceLifecycle \
-		--scratch-path .build/coverage-appkit
+		--scratch-path .build/coverage-main
 	@HOME=$$PWD/.build/coverage-home \
 	XDG_CONFIG_HOME=$$PWD/.build/coverage-home \
 	FREE_COVERAGE_MODE=1 \
+	LLVM_PROFILE_FILE=$$PWD/.build/coverage-main/main-%p.profraw \
 		$(SWIFT) test --enable-code-coverage --no-parallel \
+		--skip-build \
 		--scratch-path .build/coverage-main
-	@appkit_prof=$$(find .build/coverage-appkit -path "*/debug/codecov/default.profdata" | head -n 1); \
-	main_prof=$$(find .build/coverage-main -path "*/debug/codecov/default.profdata" | head -n 1); \
+	@profraw_count=$$(find .build/coverage-main -name "*.profraw" | wc -l | tr -d ' '); \
 	bin=$$(find .build/coverage-main -path "*/debug/FreePackageTests.xctest/Contents/MacOS/FreePackageTests" -not -path "*.dSYM/*" | head -n 1); \
 	src_files=$$(find Sources -type f -name "*.swift" | sort); \
-	if [[ -z "$$appkit_prof" || -z "$$main_prof" || -z "$$bin" ]]; then \
+	if [[ "$$profraw_count" == "0" || -z "$$bin" ]]; then \
 		echo "Could not locate coverage artifacts."; \
 		exit 1; \
 	fi; \
@@ -55,7 +57,8 @@ coverage:
 		echo "Could not locate source files for coverage report."; \
 		exit 1; \
 	fi; \
-	xcrun llvm-profdata merge -sparse "$$main_prof" "$$appkit_prof" -o .build/coverage-merged/merged.profdata; \
+	find .build/coverage-main -name "*.profraw" -print0 \
+		| xargs -0 xcrun llvm-profdata merge -sparse -o .build/coverage-merged/merged.profdata; \
 	xcrun llvm-cov report "$$bin" -instr-profile=.build/coverage-merged/merged.profdata $$src_files
 
 app:
