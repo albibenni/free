@@ -847,6 +847,15 @@ struct WeeklyCalendarViewTests {
                 originalColumnIndex: 0
             ) == 0
         )
+        #expect(
+            WeeklyCalendarSupport.dayDelta(
+                cursorX: 159,
+                calendarAreaX: 60,
+                columnWidth: 0,
+                dayCount: 7,
+                originalColumnIndex: 0
+            ) == 0
+        )
         #expect(WeeklyCalendarSupport.shiftedWeekday(1, by: -1) == 7)
 
         let previewLabels = WeeklyCalendarSupport.selectionPreviewLabels(startHour: 9.1, endHour: 10.2)
@@ -1021,6 +1030,7 @@ struct WeeklyCalendarViewTests {
             ) == .resizeEnd
         )
         #expect(WeeklyCalendarSupport.effectiveResizeHandleHeight(boundsHeight: 120, preferredHeight: 18) == 6)
+        #expect(WeeklyCalendarSupport.effectiveResizeHandleHeight(boundsHeight: 0, preferredHeight: 18) == 0)
     }
 
     @Test("WeeklyCalendar support calendar-event and schedule visibility helpers")

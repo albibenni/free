@@ -101,14 +101,26 @@ enum WeeklyCalendarSupport {
         let anchor = calendar.startOfDay(for: Date(timeIntervalSinceReferenceDate: 0))
         let startComponents = calendar.dateComponents([.hour, .minute], from: startDate)
         let endComponents = calendar.dateComponents([.hour, .minute], from: endDate)
-        let start =
-            calendarHourSetter(calendar, startComponents.hour ?? 0, startComponents.minute ?? 0, anchor)
-            ?? anchor
-        var end =
-            calendarHourSetter(calendar, endComponents.hour ?? 0, endComponents.minute ?? 0, anchor)
-            ?? anchor
+        let startHour = startComponents.hour!
+        let startMinute = startComponents.minute!
+        let endHour = endComponents.hour!
+        let endMinute = endComponents.minute!
+
+        let start: Date
+        if let resolved = calendarHourSetter(calendar, startHour, startMinute, anchor) {
+            start = resolved
+        } else {
+            start = anchor
+        }
+
+        var end: Date
+        if let resolved = calendarHourSetter(calendar, endHour, endMinute, anchor) {
+            end = resolved
+        } else {
+            end = anchor
+        }
         if end <= start {
-            end = calendar.date(byAdding: .day, value: 1, to: end) ?? end
+            end = calendar.date(byAdding: .day, value: 1, to: end)!
         }
         return DateInterval(start: start, end: end)
     }

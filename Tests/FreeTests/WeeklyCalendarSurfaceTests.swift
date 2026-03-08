@@ -76,6 +76,9 @@ struct WeeklyCalendarSurfaceTests {
     func weeklyCalendarSupportHookFallbackCoverage() throws {
         defer { WeeklyCalendarSupport.resetCalendarHooksForTesting() }
         let calendar = Calendar.current
+        let anchor = calendar.startOfDay(for: Date())
+        let defaultHourSet = WeeklyCalendarSupport.calendarHourSetter(calendar, 8, 45, anchor)
+        #expect(defaultHourSet != nil)
         let defaultTimeOnly = WeeklyCalendarSupport.calendarDateBuilder(
             calendar,
             DateComponents(hour: 8, minute: 45)
@@ -368,6 +371,64 @@ struct WeeklyCalendarSurfaceTests {
 
         #expect(importedOpened)
         #expect(opened == nil)
+    }
+
+    @MainActor
+    @Test("Weekly calendar schedule block guard branches handle unconfigured state")
+    func weeklyCalendarScheduleBlockUnconfiguredGuards() throws {
+        let block = WeeklyCalendarSurfaceScheduleBlockNSView()
+        block.frame = NSRect(x: 0, y: 0, width: 120, height: 80)
+
+        let image = NSImage(size: block.bounds.size)
+        image.lockFocus()
+        block.draw(block.bounds)
+        image.unlockFocus()
+        block.resetCursorRects()
+
+        let down = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDown,
+                location: NSPoint(x: 10, y: 10),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let drag = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDragged,
+                location: NSPoint(x: 16, y: 12),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 1,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let up = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseUp,
+                location: NSPoint(x: 16, y: 12),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 2,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+
+        block.mouseDown(with: down)
+        block.mouseDragged(with: drag)
+        block.mouseUp(with: up)
+        #expect(block.frame.width == 120)
     }
 
     @MainActor
