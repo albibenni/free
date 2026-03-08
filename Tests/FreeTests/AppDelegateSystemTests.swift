@@ -312,4 +312,44 @@ struct AppDelegateSystemTests {
         #expect(system.confirmMoveToApplications() == false)
         #expect(system.confirmQuitWhileBlocking() == false)
     }
+
+    @Test("test-process helper checks all environment keys and class lookup fallback")
+    func isRunningInTestProcessHelperCoverage() {
+        #expect(
+            DefaultAppDelegateSystem.isRunningInTestProcess(
+                environment: ["XCTestConfigurationFilePath": "1"],
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            DefaultAppDelegateSystem.isRunningInTestProcess(
+                environment: ["XCTestBundlePath": "1"],
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            DefaultAppDelegateSystem.isRunningInTestProcess(
+                environment: ["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES": "1"],
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            DefaultAppDelegateSystem.isRunningInTestProcess(
+                environment: ["__XCODE_BUILT_PRODUCTS_DIR_PATHS": "1"],
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            DefaultAppDelegateSystem.isRunningInTestProcess(
+                environment: [:],
+                classLookup: { _ in nil }
+            ) == false
+        )
+        #expect(
+            DefaultAppDelegateSystem.isRunningInTestProcess(
+                environment: [:],
+                classLookup: { _ in NSObject.self }
+            )
+        )
+    }
 }
