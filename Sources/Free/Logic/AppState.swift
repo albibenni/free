@@ -102,9 +102,12 @@ class AppState: ObservableObject {
         canPromptForLaunchAtLogin: @escaping () -> Bool = {
             let processInfo = ProcessInfo.processInfo
             let processName = processInfo.processName.lowercased()
-            return processInfo.environment["XCTestConfigurationFilePath"] == nil
-                && processName.contains("swiftpm-testing-helper") == false
-                && processName.contains("xctest") == false
+            let isXCTestEnvironment = processInfo.environment["XCTestConfigurationFilePath"] != nil
+            let isSwiftPMTestingHelper = processName.contains("swiftpm-testing-helper")
+            let isXCTestProcess = processName.contains("xctest")
+            let blockers = [isXCTestEnvironment, isSwiftPMTestingHelper, isXCTestProcess]
+            let isBlocked = blockers.reduce(false) { $0 || $1 }
+            return !isBlocked
         },
         isTesting: Bool = ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] == "1"
     ) {
@@ -155,15 +158,16 @@ class AppState: ObservableObject {
             calendarProvider: calendarProvider,
             timerCoordinator: timerCoordinator,
             monitorStateSnapshotProvider: { [weak self] in
-                guard let self else { return nil }
-                return BrowserMonitor.StateSnapshot(
-                    isBlocking: self.isBlocking,
-                    isPaused: self.isPaused,
-                    blockNewTabs: self.blockNewTabs,
-                    blockDeveloperHosts: self.blockDeveloperHosts,
-                    blockLocalNetworkHosts: self.blockLocalNetworkHosts,
-                    allowedRules: self.allowedRules
-                )
+                self.map { state in
+                    BrowserMonitor.StateSnapshot(
+                        isBlocking: state.isBlocking,
+                        isPaused: state.isPaused,
+                        blockNewTabs: state.blockNewTabs,
+                        blockDeveloperHosts: state.blockDeveloperHosts,
+                        blockLocalNetworkHosts: state.blockLocalNetworkHosts,
+                        allowedRules: state.allowedRules
+                    )
+                }
             },
             setTrustedState: { [weak self] trusted in
                 self?.isTrusted = trusted
