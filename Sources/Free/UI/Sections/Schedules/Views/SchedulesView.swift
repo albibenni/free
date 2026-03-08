@@ -77,9 +77,8 @@ final class SchedulesSheetViewController: NSViewController {
         super.init(nibName: nil, bundle: nil)
     }
 
-    @available(*, unavailable)
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        nil
     }
 
     override func loadView() {
@@ -95,8 +94,8 @@ final class SchedulesSheetViewController: NSViewController {
 
         AppKitAppStateObservation.bind(
             publisher: AppKitAppStateObservation.schedulesPublisher(appState: appState),
-            signature: { [weak self, appState] in
-                RenderSignature(appState: appState, viewMode: self?.viewMode ?? 1)
+            signature: { [unowned self, appState] in
+                RenderSignature(appState: appState, viewMode: self.viewMode)
             },
             cancellables: &cancellables
         ) { [weak self] nextSignature in
@@ -375,6 +374,13 @@ extension SchedulesSheetViewController {
         for id in idsToDelete {
             appState.deleteSchedule(id: id, modifyAllDays: true, initialDay: nil)
         }
+    }
+
+    func removableScheduleIDForTesting(at offset: Int) -> UUID? {
+        guard appState.schedules.indices.contains(offset) else { return nil }
+        let schedule = appState.schedules[offset]
+        guard schedule.importedCalendarEventKey == nil else { return nil }
+        return schedule.id
     }
 
     func selectScheduleForTesting(_ schedule: Schedule) {

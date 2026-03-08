@@ -257,7 +257,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private func makeEditScopeSection() -> NSView {
         let section = makeSectionContainer(title: "EDIT SCOPE")
-        let onlyDayTitle = "Only \(ScheduleEditorSupport.dayName(for: initialDay ?? 1))"
+        let onlyDayTitle = "Only \(ScheduleEditorSupport.dayName(for: initialDay!))"
         let control = AppKitSelectionButtonGroup(
             options: [
                 AppKitSelectionButtonOption(title: "All Days", value: true),
@@ -349,8 +349,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
             let button = ScheduleEditorLayoutBuilder.makeRecurringDayButton(
                 symbol: ScheduleEditorSupport.daySymbol(at: day)
             ) { [weak self] in
-                guard let self else { return }
-                self.toggleRecurringDay(day)
+                self?.toggleRecurringDay(day)
             }
             recurringDayButtons[day] = button
             row.addArrangedSubview(button)
@@ -600,6 +599,10 @@ extension ScheduleEditorViewController {
 
     func toggleRecurringDayForTesting(_ day: Int) {
         toggleRecurringDay(day)
+    }
+
+    func controlTextDidChangeForTesting(object: Any?) {
+        controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: object))
     }
 
     var nameForTesting: String { name }

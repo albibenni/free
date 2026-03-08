@@ -25,9 +25,8 @@ final class WeeklyCalendarSurfaceDocumentNSView: NSView {
         }
     }
 
-    @available(*, unavailable)
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        nil
     }
 
     deinit {
@@ -271,7 +270,7 @@ final class WeeklyCalendarSurfaceDocumentNSView: NSView {
             path.fill()
 
             NSColor.secondaryLabelColor.withAlphaComponent(0.4).setStroke()
-            let dashed = path.copy() as? NSBezierPath ?? path
+            let dashed = path.copy() as! NSBezierPath
             dashed.setLineDash([4, 4], count: 2, phase: 0)
             dashed.stroke()
 
@@ -391,4 +390,8 @@ final class WeeklyCalendarSurfaceDocumentNSView: NSView {
     }
 
     var scheduleBlockCountForTesting: Int { scheduleBlockViews.count }
+
+    func scheduleInteractionDidEndForTesting(rebuildImmediately: Bool) {
+        scheduleInteractionDidEnd(rebuildImmediately: rebuildImmediately)
+    }
 }

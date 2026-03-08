@@ -182,6 +182,10 @@ struct SettingsViewTests {
         #expect(appState.launchAtLoginStatus() == true)
         #expect(launchManager.enableCallCount == 1)
         #expect(controller.launchAtLoginEnabledForTesting)
+        // Cover reloadSettings() launch-at-login true branch.
+        let enabledController = SettingsSectionViewController(appState: appState)
+        _ = host(enabledController)
+        #expect(enabledController.launchAtLoginEnabledForTesting)
 
         launchManager.disableError = SettingsLaunchAtLoginTestError.disableFailed
         launchManager.isEnabledValue = true
