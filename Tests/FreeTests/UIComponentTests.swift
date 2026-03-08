@@ -184,6 +184,12 @@ struct UIComponentTests {
     @MainActor
     @Test("AppKit button primitives cover action, gradient, and inset-cell geometry")
     func appKitButtonPrimitivesCoverage() {
+        let plainButton = ActionButton(title: "Plain")
+        plainButton.wantsLayer = false
+        plainButton.frame = NSRect(x: 0, y: 0, width: 100, height: 24)
+        plainButton.layoutSubtreeIfNeeded()
+        plainButton.viewDidChangeEffectiveAppearance()
+
         let actionButton = ActionButton(title: "Run")
         var didTap = false
         actionButton.onAction = { didTap = true }
@@ -215,7 +221,9 @@ struct UIComponentTests {
         let iconButton = IconInsetButton(frame: NSRect(x: 0, y: 0, width: 24, height: 24))
         iconButton.imageInset = 4
         #expect(iconButton.imageInset == 4)
-        IconInsetButton.cellClass = NSButtonCell.self
+        IconInsetButton.cellClass = IconInsetButtonCell.self
+        iconButton.cell = NSButtonCell(textCell: "")
+        #expect(iconButton.imageInset == 0)
 
         let leadingButton = LeadingInsetActionButton(title: "Lead")
         leadingButton.leadingInset = 12
@@ -224,7 +232,11 @@ struct UIComponentTests {
         #expect(leadingButton.leadingInset == 12)
         #expect(leadingButton.titleAdditionalInset == 7)
         #expect(leadingButton.imageSlotWidth == 18)
-        LeadingInsetActionButton.cellClass = NSButtonCell.self
+        LeadingInsetActionButton.cellClass = LeadingInsetButtonCell.self
+        leadingButton.cell = NSButtonCell(textCell: "")
+        #expect(leadingButton.leadingInset == 0)
+        #expect(leadingButton.titleAdditionalInset == 0)
+        #expect(leadingButton.imageSlotWidth == 0)
     }
 
     @Test("Shared AppKit pill and selectable-row helpers configure common controls")
@@ -248,6 +260,86 @@ struct UIComponentTests {
         #expect(rowButton.displayedTitleForTesting == "Default")
         #expect(rowButton.isSelectedState)
         #expect(rowButton.subviews.contains { $0 is NSStackView })
+    }
+
+    @MainActor
+    @Test("AppKit button style helpers cover didSet, appearance refresh, and utility builders")
+    func appKitButtonStylesCoverage() {
+        let selectable = AppKitSelectableRowButton(
+            title: "Row",
+            isSelected: false,
+            accentColor: .systemBlue,
+            trailingSelectedSymbol: nil
+        )
+        selectable.applySelectionState(true)
+        selectable.accentColor = .systemPink
+        selectable.viewDidChangeEffectiveAppearance()
+        #expect(selectable.displayedTitleForTesting == "Row")
+
+        let pill = AppKitPillButton(
+            title: "Pill",
+            isSelected: false,
+            selectedColor: .systemOrange
+        )
+        pill.applySelectionState(true)
+        pill.selectedColor = .systemGreen
+        pill.viewDidChangeEffectiveAppearance()
+        #expect(pill.attributedTitle.string == "Pill")
+
+        let symbol = AppKitSymbolControlButton(
+            symbolName: "chevron.left",
+            pointSize: 12,
+            weight: .regular,
+            color: .secondaryLabelColor
+        )
+        symbol.symbolColor = .systemPurple
+        symbol.viewDidChangeEffectiveAppearance()
+        #expect(symbol.symbolNameForTesting == "chevron.left")
+
+        let dangerButton = NSButton()
+        configureAppKitDangerSymbolButton(dangerButton, symbol: AppKitUISymbols.closeEditor)
+        #expect(dangerButton.contentTintColor == .systemRed)
+        #expect(dangerButton.image != nil)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        configureAppKitWindowButton(in: window, type: .closeButton, targetSize: nil)
+        configureAppKitWindowButton(
+            in: window,
+            type: .closeButton,
+            controlSize: .small,
+            targetSize: 18,
+            xOffset: 1,
+            yOffset: -1
+        )
+        let borderless = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 140),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        configureAppKitWindowButton(in: borderless, type: .closeButton, targetSize: 16)
+
+        let primary = makeAppKitPrimaryButton(title: "Primary", color: .systemBlue)
+        #expect(primary.attributedTitle.string == "Primary")
+        #expect(primary.contentTintColor == .systemBlue)
+
+        let secondary = makeAppKitSecondaryButton(title: "Secondary", color: .systemTeal)
+        #expect(secondary.attributedTitle.string == "Secondary")
+        applyAppKitSecondaryButtonStyle(secondary, title: "Updated", color: .systemIndigo)
+        #expect(secondary.attributedTitle.string == "Updated")
+
+        applyAppKitNeutralButtonStyle(secondary, title: "Neutral")
+        #expect(secondary.attributedTitle.string == "Neutral")
+        #expect(secondary.contentTintColor == .labelColor)
+
+        let divider = makeAppKitDividerView()
+        #expect(divider is AppKitDynamicView)
+        #expect(divider.constraints.contains { $0.constant == 1 })
     }
 
     @Test("Schedule editor support views cover arranged-subview removal and safe collection lookup")
