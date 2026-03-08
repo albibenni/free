@@ -722,4 +722,63 @@ struct WeeklyCalendarSurfaceTests {
         block.mouseUp(with: blockUp)
         #expect(document.scheduleBlockCountForTesting == 0)
     }
+
+    @MainActor
+    @Test("Weekly calendar document skips entries with unmapped days in schedule and external-event rendering")
+    func weeklyCalendarDocumentUnmappedDayBranches() {
+        let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let weekBounds = WeeklyCalendarSupport.weekBounds(for: weekRange)
+        let schedule = makeSchedule(name: "Unmapped", day: 2)
+        let placement = WeeklyCalendarSupport.SchedulePlacement(
+            id: "unmapped-placement",
+            day: 2,
+            startDate: makeDate(hour: 8),
+            endDate: makeDate(hour: 9)
+        )
+        let positioned = [
+            WeeklyCalendarSupport.PositionedSchedule(
+                id: "unmapped-placement",
+                schedule: schedule,
+                placement: placement,
+                laneIndex: 0,
+                laneCount: 1
+            )
+        ]
+
+        let eventDate =
+            Calendar.current.nextDate(
+                after: Date(),
+                matching: DateComponents(hour: 9, minute: 0, weekday: 2),
+                matchingPolicy: .nextTimePreservingSmallerComponents
+            ) ?? Date()
+        let event = ExternalEvent(
+            id: "unmapped-event",
+            title: "Out",
+            startDate: eventDate,
+            endDate: eventDate.addingTimeInterval(1800)
+        )
+
+        let document = WeeklyCalendarSurfaceDocumentNSView(
+            frame: NSRect(x: 0, y: 0, width: 900, height: 24 * 80)
+        )
+        document.configure(
+            with: makeConfiguration(
+                dayOrder: [1],  // excludes schedule day/event weekday
+                weekRange: weekRange,
+                weekStart: weekBounds.0,
+                weekEnd: weekBounds.1,
+                positionedSchedules: positioned,
+                externalEvents: [event],
+                showsExternalEvents: true
+            )
+        )
+        document.layoutSubtreeIfNeeded()
+
+        let image = NSImage(size: document.bounds.size)
+        image.lockFocus()
+        document.draw(document.bounds)
+        image.unlockFocus()
+
+        #expect(document.scheduleBlockCountForTesting == 0)
+    }
 }

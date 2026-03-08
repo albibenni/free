@@ -520,12 +520,72 @@ struct SchedulesViewTests {
         container.goToCurrentWeekForTesting()
         container.goToNextWeekForTesting()
 
+        var dismissEditorCount = 0
+        let editorContext = ScheduleEditorContext(
+            day: 2,
+            startTime: sampleSchedule(name: "Edit Seed").startTime,
+            endTime: sampleSchedule(name: "Edit Seed").endTime,
+            schedule: nil,
+            weekOffset: 0
+        )
+        let editorConfig = SchedulesAppKitConfiguration(
+            viewMode: 1,
+            monthTitle: "March 2026",
+            schedules: [sampleSchedule(name: "Editor Host")],
+            accentColor: .systemGreen,
+            accentColorIndex: appState.accentColorIndex,
+            appState: appState,
+            editorContext: editorContext,
+            calendarViewConfiguration: sampleCalendarConfiguration(),
+            onChangeViewMode: { _ in },
+            onSelectSchedule: { _ in },
+            onDeleteSchedule: { _ in },
+            onToggleScheduleEnabled: { _, _ in },
+            onAddSchedule: {},
+            onDismissEditor: { dismissEditorCount += 1 },
+            onDismiss: {},
+            onPreviousWeek: {},
+            onCurrentWeek: {},
+            onNextWeek: {}
+        )
+        container.configure(with: editorConfig)
+        // Reconfigure with same context while sheet is active (reuse/guard path).
+        container.configure(with: editorConfig)
+
+        if let editor = window.attachedSheet?.contentViewController as? ScheduleEditorViewController {
+            editor.dismissForTesting()
+        }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+
+        let noEditorConfig = SchedulesAppKitConfiguration(
+            viewMode: 1,
+            monthTitle: "March 2026",
+            schedules: [sampleSchedule(name: "Editor Host")],
+            accentColor: .systemGreen,
+            accentColorIndex: appState.accentColorIndex,
+            appState: appState,
+            editorContext: nil,
+            calendarViewConfiguration: sampleCalendarConfiguration(),
+            onChangeViewMode: { _ in },
+            onSelectSchedule: { _ in },
+            onDeleteSchedule: { _ in },
+            onToggleScheduleEnabled: { _, _ in },
+            onAddSchedule: {},
+            onDismissEditor: { dismissEditorCount += 1 },
+            onDismiss: {},
+            onPreviousWeek: {},
+            onCurrentWeek: {},
+            onNextWeek: {}
+        )
+        container.configure(with: noEditorConfig)
+
         #expect(changedModes == [1])
         #expect(addCount == 1)
         #expect(prevCount == 1)
         #expect(currentCount == 1)
         #expect(nextCount == 1)
         #expect(attachedWindows > 0)
+        #expect(dismissEditorCount >= 1)
     }
 
     @Test("Schedules controller testing hooks cover editor and lightweight refresh paths")
