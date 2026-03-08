@@ -46,6 +46,17 @@ struct AddScheduleViewTests {
         return all
     }
 
+    private func popups(in view: NSView) -> [NSPopUpButton] {
+        var all: [NSPopUpButton] = []
+        if let popup = view as? NSPopUpButton {
+            all.append(popup)
+        }
+        for child in view.subviews {
+            all.append(contentsOf: popups(in: child))
+        }
+        return all
+    }
+
     private func visibleText(in view: NSView) -> [String] {
         guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
 
@@ -484,5 +495,55 @@ struct AddScheduleViewTests {
         deleteButton?.performClick(nil)
         #expect(deleteState.schedules.isEmpty)
         #expect(closeCount == 1)
+    }
+
+    @Test("Schedule editor allowed-list popup falls back to None when current rule-set is missing")
+    @MainActor
+    func addScheduleViewAllowedListPopupFallbackCoverage() {
+        let appState = isolatedAppState(name: "allowedListFallback")
+        appState.ruleSets = [RuleSet(name: "Known", urls: ["known.com"])]
+
+        let schedule = Schedule(
+            name: "Focus with missing list",
+            days: [2],
+            startTime: Date(),
+            endTime: Date().addingTimeInterval(1800),
+            type: .focus,
+            ruleSetId: UUID()
+        )
+
+        let controller = makeController(
+            appState: appState,
+            context: ScheduleEditorContext(
+                day: 2,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                schedule: schedule
+            )
+        )
+        let hosted = host(controller)
+        #expect(hosted.fittingSize.width >= 0)
+        let allowedListPopup = popups(in: hosted).first { popup in
+            popup.itemArray.contains(where: { $0.title == "None" }) &&
+                popup.itemArray.contains(where: { $0.title == "Known" })
+        }
+        #expect(allowedListPopup != nil)
+        #expect(allowedListPopup?.selectedItem?.title == "None")
+    }
+
+    @Test("Schedule editor recurring day button actions trigger toggle closures")
+    @MainActor
+    func addScheduleViewRecurringDayButtonClosureCoverage() {
+        let appState = isolatedAppState(name: "recurringDayButtonClosures")
+        let controller = makeController(appState: appState)
+        let hosted = host(controller)
+        controller.setRecurringForTesting(true)
+
+        let daySymbols = Set(["S", "M", "T", "W", "F"])
+        let beforeDays = controller.daysForTesting
+        let dayButton = buttons(in: hosted).first { daySymbols.contains($0.title) }
+        #expect(dayButton != nil)
+        dayButton?.performClick(nil)
+        #expect(controller.daysForTesting != beforeDays)
     }
 }

@@ -107,9 +107,13 @@ final class FreeMainViewController: NSViewController {
         alert.addButton(withTitle: "Enable")
         alert.addButton(withTitle: "Not Now")
         alert.beginSheetModal(for: window) { [weak self] response in
-            guard response == .alertFirstButtonReturn else { return }
-            _ = self?.appState.enableLaunchAtLogin()
+            self?.handleLaunchAtLoginPromptResponse(response)
         }
+    }
+
+    private func handleLaunchAtLoginPromptResponse(_ response: NSApplication.ModalResponse) {
+        guard response == .alertFirstButtonReturn else { return }
+        _ = appState.enableLaunchAtLogin()
     }
 
     private func configureLayout() {
@@ -248,5 +252,9 @@ extension FreeMainViewController {
 
     func invokeSidebarSelectHandlerForTesting(_ section: MainContentSection) {
         sidebarView.onSelectSection?(section)
+    }
+
+    func handleLaunchAtLoginPromptResponseForTesting(_ response: NSApplication.ModalResponse) {
+        handleLaunchAtLoginPromptResponse(response)
     }
 }

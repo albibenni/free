@@ -40,6 +40,12 @@ private final class SettingsMockLaunchAtLoginManager: LaunchAtLoginManaging {
 
 @Suite(.serialized)
 struct SettingsViewTests {
+    private final class TestModalAlert: NSAlert {
+        override func runModal() -> NSApplication.ModalResponse {
+            .alertFirstButtonReturn
+        }
+    }
+
     private func isolatedAppState(name: String) -> AppState {
         let suite = "SettingsViewTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -328,6 +334,23 @@ struct SettingsViewTests {
         #expect(
             SettingsSectionViewController.runStrictModeAlert(alert)
                 == .alertSecondButtonReturn
+        )
+    }
+
+    @Test("Settings strict-mode default hook falls back to NSAlert.runModal when XCTest env var is missing")
+    @MainActor
+    func settingsStrictModeDefaultAlertHooksRunModalPath() {
+        defer {
+            _ = setenv("XCTestConfigurationFilePath", "1", 1)
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        }
+
+        unsetenv("XCTestConfigurationFilePath")
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        let alert = TestModalAlert()
+        #expect(
+            SettingsSectionViewController.runStrictModeAlert(alert)
+                == .alertFirstButtonReturn
         )
     }
 }

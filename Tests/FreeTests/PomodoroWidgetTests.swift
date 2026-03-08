@@ -21,6 +21,7 @@ struct PomodoroWidgetTests {
         return view
     }
 
+
     private func visibleText(in view: NSView) -> [String] {
         guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
 
@@ -494,4 +495,28 @@ struct PomodoroWidgetTests {
         buttons(in: cancelBreakHosted).first { $0.title == "Cust" }?.performClick(nil)
         #expect(cancelBreakState.isPaused == false)
     }
+
+    @Test("FocusPomodoroWidgetView refresh rebuilds active badge when rule-set visibility changes")
+    @MainActor
+    func pomodoroWidgetActiveBadgeRebuildBranches() {
+        let appState = isolatedAppState(name: "activeBadgeRebuildBranches")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        appState.ruleSets = [work]
+        appState.activeRuleSetId = work.id
+        appState.startPomodoro()
+
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        let hosted = host(widget)
+        #expect(visibleText(in: hosted).contains("Work"))
+
+        appState.ruleSets = []
+        widget.refreshForStateChange()
+        #expect(!visibleText(in: hosted).contains("Work"))
+
+        appState.ruleSets = [work]
+        appState.activeRuleSetId = work.id
+        widget.refreshForStateChange()
+        #expect(visibleText(in: hosted).contains("Work"))
+    }
+
 }

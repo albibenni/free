@@ -288,6 +288,18 @@ struct UIComponentTests {
         #expect(control.intrinsicContentSize.height == 26)
     }
 
+    @Test("Selection button group handles empty options with stable intrinsic size")
+    func sharedAppKitSelectionButtonGroupEmptyOptions() {
+        let control = AppKitSelectionButtonGroup(
+            options: [AppKitSelectionButtonOption<String>](),
+            selectedValue: "",
+            accentColor: .systemBlue
+        )
+
+        #expect(control.intrinsicContentSize.width == 2)
+        #expect(control.intrinsicContentSize.height == 26)
+    }
+
     @MainActor
     @Test("Selection button group routes click selection callback and appearance refresh")
     func sharedAppKitSelectionButtonGroupActions() {
@@ -415,6 +427,19 @@ struct UIComponentTests {
             toggle.keyDown(with: keyEvent)
         }
         #expect(toggle.state == .off)
+
+        if let mouseInside {
+            toggle.mouseUp(with: mouseInside)
+        }
+        #expect(actionCount == 2)
+    }
+
+    @Test("AppKit card stack view refreshes appearance colors on appearance changes")
+    func appKitCardStackViewAppearanceRefresh() {
+        let cardStack = AppKitCardStackView(frame: NSRect(x: 0, y: 0, width: 100, height: 60))
+        #expect(cardStack.layer?.backgroundColor != nil)
+        cardStack.viewDidChangeEffectiveAppearance()
+        #expect(cardStack.layer?.backgroundColor != nil)
     }
 
     @Test("Shared AppKit stack helpers build consistent row and column layouts")

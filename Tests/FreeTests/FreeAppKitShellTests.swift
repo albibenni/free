@@ -152,6 +152,24 @@ struct FreeAppKitShellTests {
         #expect(controller.selectedSectionForTesting == .settings)
     }
 
+    @Test("FreeMainViewController launch-at-login response handler toggles only on enable response")
+    func mainViewControllerLaunchAtLoginResponseHandlerCoverage() {
+        let appState = isolatedAppState(name: "launchPromptResponseHandler")
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+        controller.loadViewIfNeeded()
+
+        let before = appState.launchAtLoginStatus()
+        controller.handleLaunchAtLoginPromptResponseForTesting(.alertSecondButtonReturn)
+        #expect(appState.launchAtLoginStatus() == before)
+
+        controller.handleLaunchAtLoginPromptResponseForTesting(.alertFirstButtonReturn)
+        #expect(appState.launchAtLoginStatus())
+    }
+
     @Test("FreeMainViewController window-hosted flows cover sheet toggles and launch prompt path")
     func mainViewControllerWindowHostedFlowsCoverage() {
         let appState = isolatedAppState(name: "windowHostedFlows")
