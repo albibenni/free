@@ -1284,13 +1284,6 @@ struct AppStateTests {
 
     @Test("Pomodoro temporarily overrides schedule allow list, then schedule resumes after pomodoro stops")
     func pomodoroOverrideRevertsToScheduleRules() {
-        if ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] == "1" {
-            // This scenario is already covered by non-coverage runs.
-            // Under coverage instrumentation it can intermittently crash swiftpm-testing-helper.
-            #expect(Bool(true))
-            return
-        }
-
         let appState = isolatedAppState(name: "pomodoroOverrideRevertsToScheduleRules")
         let scheduleSet = RuleSet(id: UUID(), name: "Schedule Set", urls: ["schedule.example"])
         let pomodoroSet = RuleSet(id: UUID(), name: "Pomodoro Set", urls: ["pomodoro.example"])

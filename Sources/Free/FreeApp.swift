@@ -7,6 +7,7 @@ final class FreeApp {
 
     private let makeMainViewController: (AppState) -> FreeMainViewController
     private let makeStatusItemController: (@escaping () -> Void) -> FreeStatusItemController
+    private let presentMainWindow: (FreeMainWindowController, FreeMainViewController) -> Void
 
     private(set) var mainWindowController: FreeMainWindowController?
     private(set) var statusItemController: FreeStatusItemController?
@@ -22,12 +23,19 @@ final class FreeApp {
         },
         makeStatusItemController: @escaping (@escaping () -> Void) -> FreeStatusItemController = {
             FreeStatusItemController(onQuit: $0)
+        },
+        presentMainWindow: @escaping (FreeMainWindowController, FreeMainViewController) -> Void = {
+            windowController, rootViewController in
+            windowController.showWindow(nil)
+            windowController.window?.makeKeyAndOrderFront(nil)
+            rootViewController.presentLaunchAtLoginPromptIfNeeded()
         }
     ) {
         self.appState = appState
         self.appDelegate = appDelegate
         self.makeMainViewController = makeMainViewController
         self.makeStatusItemController = makeStatusItemController
+        self.presentMainWindow = presentMainWindow
     }
 
     var menuStatusText: String {
@@ -187,9 +195,7 @@ final class FreeApp {
             let rootViewController = makeMainViewController(appState)
             let windowController = FreeMainWindowController(rootViewController: rootViewController)
             mainWindowController = windowController
-            windowController.showWindow(nil)
-            windowController.window?.makeKeyAndOrderFront(nil)
-            rootViewController.presentLaunchAtLoginPromptIfNeeded()
+            presentMainWindow(windowController, rootViewController)
         }
 
         if statusItemController == nil {

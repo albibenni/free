@@ -100,7 +100,11 @@ class AppState: ObservableObject {
         logicFacade: AppStateLogicFacade = .live,
         launchAtLoginManager: any LaunchAtLoginManaging = DefaultLaunchAtLoginManager(),
         canPromptForLaunchAtLogin: @escaping () -> Bool = {
-            ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
+            let processInfo = ProcessInfo.processInfo
+            let processName = processInfo.processName.lowercased()
+            return processInfo.environment["XCTestConfigurationFilePath"] == nil
+                && processName.contains("swiftpm-testing-helper") == false
+                && processName.contains("xctest") == false
         },
         isTesting: Bool = ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] == "1"
     ) {
