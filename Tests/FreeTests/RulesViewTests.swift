@@ -505,5 +505,86 @@ struct RulesViewTests {
         #expect(suggestionStack.arrangedSubviews.count == 2)
         #expect((suggestionStack.arrangedSubviews[0] as? RulesSheetSuggestionRowView)?.suggestion == "https://a.com")
         #expect((suggestionStack.arrangedSubviews[1] as? RulesSheetSuggestionRowView)?.suggestion == "https://b.com")
+
+        // Cover insert-and-continue branches when existing rows are detached.
+        let detachedRulesStack = NSStackView()
+        let detachedRuleRow = RulesSheetLayoutBuilder.makeRuleRow(rule: "detached.com", onDelete: onDelete, target: target)
+        let detachedRules = RulesSheetLayoutBuilder.updateOrRebuildRuleRows(
+            in: detachedRulesStack,
+            rules: ["detached.com"],
+            existingRows: ["detached.com": detachedRuleRow],
+            onDelete: onDelete,
+            target: target
+        )
+        #expect(detachedRulesStack.arrangedSubviews.count == 1)
+        #expect((detachedRulesStack.arrangedSubviews.first as? RulesSheetRuleRowView)?.rule == "detached.com")
+        #expect(detachedRules["detached.com"] === detachedRuleRow)
+
+        let detachedSuggestionsStack = NSStackView()
+        let detachedSuggestionRow = RulesSheetLayoutBuilder.makeSuggestionRow(
+            suggestion: "https://detached.com",
+            accentColor: .systemBlue,
+            onAdd: onAdd,
+            target: target
+        )
+        let detachedSuggestions = RulesSheetLayoutBuilder.updateOrRebuildSuggestionRows(
+            in: detachedSuggestionsStack,
+            suggestions: ["https://detached.com"],
+            accentColor: .systemGreen,
+            existingRows: ["https://detached.com": detachedSuggestionRow],
+            onAdd: onAdd,
+            target: target
+        )
+        #expect(detachedSuggestionsStack.arrangedSubviews.count == 1)
+        #expect((detachedSuggestionsStack.arrangedSubviews.first as? RulesSheetSuggestionRowView)?.suggestion == "https://detached.com")
+        #expect(detachedSuggestions["https://detached.com"] === detachedSuggestionRow)
+
+        // Cover currentAtIndex nil branch when row still has superview but is not arranged.
+        let nonArrangedRuleStack = NSStackView()
+        let nonArrangedRuleRow = RulesSheetLayoutBuilder.makeRuleRow(rule: "edge.com", onDelete: onDelete, target: target)
+        nonArrangedRuleStack.addArrangedSubview(nonArrangedRuleRow)
+        nonArrangedRuleStack.removeArrangedSubview(nonArrangedRuleRow)
+        let edgeRules = RulesSheetLayoutBuilder.updateOrRebuildRuleRows(
+            in: nonArrangedRuleStack,
+            rules: ["edge.com"],
+            existingRows: ["edge.com": nonArrangedRuleRow],
+            onDelete: onDelete,
+            target: target
+        )
+        #expect((nonArrangedRuleStack.arrangedSubviews.first as? RulesSheetRuleRowView)?.rule == "edge.com")
+        #expect(edgeRules["edge.com"] === nonArrangedRuleRow)
+
+        let nonArrangedSuggestionStack = NSStackView()
+        let nonArrangedSuggestionRow = RulesSheetLayoutBuilder.makeSuggestionRow(
+            suggestion: "https://edge.com",
+            accentColor: .systemBlue,
+            onAdd: onAdd,
+            target: target
+        )
+        nonArrangedSuggestionStack.addArrangedSubview(nonArrangedSuggestionRow)
+        nonArrangedSuggestionStack.removeArrangedSubview(nonArrangedSuggestionRow)
+        let edgeSuggestions = RulesSheetLayoutBuilder.updateOrRebuildSuggestionRows(
+            in: nonArrangedSuggestionStack,
+            suggestions: ["https://edge.com"],
+            accentColor: .systemGreen,
+            existingRows: ["https://edge.com": nonArrangedSuggestionRow],
+            onAdd: onAdd,
+            target: target
+        )
+        #expect((nonArrangedSuggestionStack.arrangedSubviews.first as? RulesSheetSuggestionRowView)?.suggestion == "https://edge.com")
+        #expect(edgeSuggestions["https://edge.com"] === nonArrangedSuggestionRow)
+    }
+
+    @Test("Rules layout row NSCoder init paths return nil")
+    @MainActor
+    func rulesLayoutRowCoderInitCoverage() throws {
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        archiver.finishEncoding()
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        defer { unarchiver.finishDecoding() }
+
+        #expect(RulesSheetSidebarRowView(coder: unarchiver) == nil)
+        #expect(RulesSheetRuleRowView(coder: unarchiver) == nil)
+        #expect(RulesSheetSuggestionRowView(coder: unarchiver) == nil)
     }
 }

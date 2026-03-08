@@ -23,9 +23,8 @@ final class RulesSheetSidebarRowView: NSStackView {
         addArrangedSubview(spacer)
     }
 
-    @available(*, unavailable)
-    required init(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    required init?(coder: NSCoder) {
+        nil
     }
 
     func configure(
@@ -92,9 +91,8 @@ final class RulesSheetRuleRowView: NSStackView {
         addArrangedSubview(deleteButton)
     }
 
-    @available(*, unavailable)
-    required init(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    required init?(coder: NSCoder) {
+        nil
     }
 
     func configure(
@@ -128,7 +126,7 @@ final class RulesSheetSuggestionRowView: NSStackView {
         icon.image = NSImage(
             systemSymbolName: AppKitUISymbols.Name.plusCircle,
             accessibilityDescription: nil
-        ) ?? NSImage()
+        )
         icon.contentTintColor = .systemGreen
         addArrangedSubview(icon)
 
@@ -142,9 +140,8 @@ final class RulesSheetSuggestionRowView: NSStackView {
         addArrangedSubview(addButton)
     }
 
-    @available(*, unavailable)
-    required init(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    required init?(coder: NSCoder) {
+        nil
     }
 
     func configure(
@@ -235,20 +232,22 @@ enum RulesSheetLayoutBuilder {
         }
 
         for (index, rule) in rules.enumerated() {
-            guard let row = nextRows[rule] else { continue }
+            let row = nextRows[rule]!
             if row.superview !== stack {
                 stack.insertArrangedSubview(row, at: index)
                 continue
             }
             let currentAtIndex = index < stack.arrangedSubviews.count ? stack.arrangedSubviews[index] : nil
-            guard currentAtIndex !== row else { continue }
-            stack.removeArrangedSubview(row)
-            row.removeFromSuperview()
+            if currentAtIndex === row { continue }
+            if stack.arrangedSubviews.contains(where: { $0 === row }) {
+                stack.removeArrangedSubview(row)
+                row.removeFromSuperview()
+            }
             stack.insertArrangedSubview(row, at: index)
         }
 
         while stack.arrangedSubviews.count > rules.count {
-            guard let last = stack.arrangedSubviews.last else { break }
+            let last = stack.arrangedSubviews.last!
             stack.removeArrangedSubview(last)
             last.removeFromSuperview()
         }
@@ -288,20 +287,22 @@ enum RulesSheetLayoutBuilder {
         }
 
         for (index, suggestion) in suggestions.enumerated() {
-            guard let row = nextRows[suggestion] else { continue }
+            let row = nextRows[suggestion]!
             if row.superview !== stack {
                 stack.insertArrangedSubview(row, at: index)
                 continue
             }
             let currentAtIndex = index < stack.arrangedSubviews.count ? stack.arrangedSubviews[index] : nil
-            guard currentAtIndex !== row else { continue }
-            stack.removeArrangedSubview(row)
-            row.removeFromSuperview()
+            if currentAtIndex === row { continue }
+            if stack.arrangedSubviews.contains(where: { $0 === row }) {
+                stack.removeArrangedSubview(row)
+                row.removeFromSuperview()
+            }
             stack.insertArrangedSubview(row, at: index)
         }
 
         while stack.arrangedSubviews.count > suggestions.count {
-            guard let last = stack.arrangedSubviews.last else { break }
+            let last = stack.arrangedSubviews.last!
             stack.removeArrangedSubview(last)
             last.removeFromSuperview()
         }
