@@ -96,7 +96,10 @@ struct LaunchAtLoginManagerTests {
 
     @Test("DefaultLaunchAtLoginManager live runtime can be constructed safely")
     func liveRuntimeClosuresInvocable() {
-        _ = DefaultLaunchAtLoginManager.Runtime.live
+        let runtime = DefaultLaunchAtLoginManager.Runtime.live
+        _ = runtime.status()
+        _ = try? runtime.register()
+        _ = try? runtime.unregister()
         #expect(Bool(true))
     }
 }
