@@ -246,6 +246,32 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
+    @Test("floating editor row tap callback safely no-ops after controller deallocation")
+    func rowTapCallbackWeakSelfNoOpAfterDeallocation() {
+        let appState = makeAppState(name: "rowTapCallbackWeakSelfNoOpAfterDeallocation")
+        let beforeActive = appState.activeRuleSetId
+
+        var retainedRowButton: AppKitSelectableRowButton?
+        weak var weakController: AllowedWebsitesFloatingEditorViewController?
+
+        do {
+            var controller: AllowedWebsitesFloatingEditorViewController? =
+                AllowedWebsitesFloatingEditorViewController(
+                    appState: appState,
+                    initialRuleSetId: appState.ruleSets.first?.id
+                )
+            controller?.loadViewIfNeeded()
+            retainedRowButton = controller?.ruleSetButtons.values.first
+            weakController = controller
+            controller = nil
+        }
+
+        #expect(weakController == nil)
+        retainedRowButton?.performClick(nil)
+        #expect(appState.activeRuleSetId == beforeActive)
+    }
+
+    @MainActor
     @Test("import alert presenter covers empty-state and candidate-selection paths")
     func importAlertPresenterBranches() {
         defer { AllowedWebsitesImportAlertPresenter.resetForTesting() }

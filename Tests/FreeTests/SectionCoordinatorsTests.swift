@@ -67,6 +67,13 @@ struct SectionCoordinatorsTests {
         let state = AppState(isTesting: true)
         let base = FocusPomodoroWidgetSignature(appState: state)
 
+        #expect(
+            FocusSectionWidgetCoordinator.pomodoroReuseAction(
+                current: nil,
+                next: base
+            ) == .refresh
+        )
+
         state.activeRuleSetId = UUID()
         let selectionShift = FocusPomodoroWidgetSignature(appState: state)
 

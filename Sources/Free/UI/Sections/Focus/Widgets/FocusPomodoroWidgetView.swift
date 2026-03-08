@@ -650,3 +650,13 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         }
     }
 }
+
+extension FocusPomodoroWidgetView {
+    func clearActiveRuleSetBadgeForTesting() {
+        activeRuleSetBadgeLabel = nil
+    }
+
+    func forceUpdateActiveControlsForTesting() {
+        updateActiveControls()
+    }
+}

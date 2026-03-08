@@ -122,6 +122,28 @@ struct SettingsViewTests {
         return values
     }
 
+    @Test("Settings strict-mode initial default hooks execute native modal path with NSAlert override")
+    @MainActor
+    func settingsStrictModeInitialDefaultHooksCoverage() {
+        defer {
+            _ = setenv("XCTestConfigurationFilePath", "1", 1)
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        }
+
+        unsetenv("XCTestConfigurationFilePath")
+        _ = SettingsSectionViewController.makeStrictModeAlert()
+        #expect(
+            SettingsSectionViewController.runStrictModeAlert(TestModalAlert())
+                == .alertFirstButtonReturn
+        )
+
+        _ = setenv("XCTestConfigurationFilePath", "1", 1)
+        #expect(
+            SettingsSectionViewController.runStrictModeAlert(TestModalAlert())
+                == .alertSecondButtonReturn
+        )
+    }
+
     @Test("Settings controller action helpers cover strict-mode challenge and accent selection")
     @MainActor
     func settingsControllerActionHelpers() {

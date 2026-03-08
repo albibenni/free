@@ -6,11 +6,30 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct FreeAppKitShellTests {
+    private final class LaunchPromptManager: LaunchAtLoginManaging {
+        var isEnabled: Bool = false
+        func enable() throws { isEnabled = true }
+        func disable() throws { isEnabled = false }
+    }
+
     private func isolatedAppState(name: String) -> AppState {
         let suite = "FreeAppKitShellTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
         return AppState(defaults: defaults, isTesting: true)
+    }
+
+    private func isolatedAppStateWithLaunchPrompt(name: String) -> AppState {
+        let suite = "FreeAppKitShellTests.\(name)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let launchManager = LaunchPromptManager()
+        return AppState(
+            defaults: defaults,
+            launchAtLoginManager: launchManager,
+            canPromptForLaunchAtLogin: { true },
+            isTesting: true
+        )
     }
 
     @Test("VerticalStackScrollContainer uses flipped document coordinates")
@@ -130,6 +149,31 @@ struct FreeAppKitShellTests {
         controller.loadViewIfNeeded()
 
         controller.presentLaunchAtLoginPromptIfNeeded()
+        #expect(controller.selectedSectionForTesting == .focus)
+    }
+
+    @Test("FreeMainViewController launch-at-login prompt presents sheet path when window and prompt eligibility exist")
+    func mainViewControllerLaunchAtLoginPromptWithWindow() {
+        let appState = isolatedAppStateWithLaunchPrompt(name: "launchPromptWithWindow")
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+        controller.loadViewIfNeeded()
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 640),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentViewController = controller
+        window.makeKeyAndOrderFront(nil)
+        defer { window.orderOut(nil) }
+
+        controller.presentLaunchAtLoginPromptIfNeeded()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
         #expect(controller.selectedSectionForTesting == .focus)
     }
 

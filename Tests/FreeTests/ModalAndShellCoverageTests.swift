@@ -19,6 +19,12 @@ private final class ImportCoverageAutomator: BrowserAutomator {
 
 @Suite(.serialized)
 struct ModalAndShellCoverageTests {
+    private final class NonBlockingAlert: NSAlert {
+        override func runModal() -> NSApplication.ModalResponse {
+            .alertFirstButtonReturn
+        }
+    }
+
     private func isolatedAppState(
         name: String,
         openUrls: [String] = []
@@ -65,6 +71,27 @@ struct ModalAndShellCoverageTests {
 
         #expect(ScheduleEditorActionsCoordinator.toggledRecurring(checkboxState: .on))
         #expect(ScheduleEditorActionsCoordinator.toggledRecurring(checkboxState: .off) == false)
+    }
+
+    @MainActor
+    @Test("Rule-set alert presenters default native-modal runners execute through NSAlert.runModal override")
+    func alertPresentersDefaultNativeModalRunners() {
+        defer {
+            AllowedWebsitesRuleSetAlertPresenter.resetForTesting()
+            RulesSheetAlertPresenter.resetForTesting()
+        }
+
+        AllowedWebsitesRuleSetAlertPresenter.resetForTesting()
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = { [:] }
+        AllowedWebsitesRuleSetAlertPresenter.classLookup = { _ in nil }
+        _ = AllowedWebsitesRuleSetAlertPresenter.makeAlert()
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NonBlockingAlert()) == .alertFirstButtonReturn)
+
+        RulesSheetAlertPresenter.resetForTesting()
+        RulesSheetAlertPresenter.environmentProvider = { [:] }
+        RulesSheetAlertPresenter.classLookup = { _ in nil }
+        _ = RulesSheetAlertPresenter.makeAlert()
+        #expect(RulesSheetAlertPresenter.runModal(NonBlockingAlert()) == .alertFirstButtonReturn)
     }
 
     @MainActor

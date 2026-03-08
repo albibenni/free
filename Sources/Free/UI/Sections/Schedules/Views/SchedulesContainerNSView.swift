@@ -404,4 +404,12 @@ extension SchedulesContainerNSView {
     func goToNextWeekForTesting() {
         goToNextWeek()
     }
+
+    func setEditorSheetControllerForTesting(_ controller: FreeSheetWindowController?) {
+        editorSheetController = controller
+    }
+
+    func dismissEditorIfNeededForTesting(clearContext: Bool = false) {
+        dismissEditorIfNeeded(clearContext: clearContext)
+    }
 }
