@@ -269,6 +269,34 @@ struct PomodoroWidgetTests {
         #expect(appState.pomodoroBreakDuration == 5)
     }
 
+    @Test("FocusPomodoroWidgetSupport helper functions cover selection fallback and recursive labels")
+    @MainActor
+    func pomodoroWidgetSupportHelpers() {
+        let appState = isolatedAppState(name: "pomodoroWidgetSupportHelpers")
+        let first = sampleRuleSet(name: "First", url: "https://first.example")
+        let second = sampleRuleSet(name: "Second", url: "https://second.example")
+        appState.ruleSets = [first, second]
+        appState.activeRuleSetId = nil
+
+        #expect(FocusPomodoroWidgetSupport.selectedRuleSetId(appState) == first.id)
+
+        appState.activeRuleSetId = second.id
+        #expect(FocusPomodoroWidgetSupport.selectedRuleSetId(appState) == second.id)
+
+        appState.ruleSets = []
+        appState.activeRuleSetId = nil
+        #expect(FocusPomodoroWidgetSupport.selectedRuleSetId(appState) == nil)
+
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 100, height: 100))
+        let branch = NSView(frame: NSRect(x: 0, y: 0, width: 80, height: 80))
+        let label = NSTextField(labelWithString: "Nested")
+        branch.addSubview(label)
+        root.addSubview(branch)
+
+        #expect(FocusPomodoroWidgetSupport.firstLabel(in: root) === label)
+        #expect(FocusPomodoroWidgetSupport.firstLabel(in: NSView()) == nil)
+    }
+
     @Test("FocusPomodoroWidgetView refresh handles mode transitions and active updates")
     @MainActor
     func pomodoroWidgetRefreshTransitions() {

@@ -168,6 +168,27 @@ struct WeeklyCalendarSurfaceTests {
         #expect(WeeklyCalendarSupport.primarySymbolName(for: recurring) == AppKitUISymbols.Name.target)
         #expect(WeeklyCalendarSupport.importedSymbolName(for: recurring) == nil)
         #expect(WeeklyCalendarSupport.importedSymbolName(for: imported) == AppKitUISymbols.Name.importedCalendar)
+
+        let baseDay = calendar.startOfDay(for: inWeekDate)
+        let target = WeeklyCalendarSupport.SchedulePlacement(
+            id: "target",
+            day: 2,
+            startDate: calendar.date(byAdding: .hour, value: 8, to: baseDay) ?? baseDay,
+            endDate: calendar.date(byAdding: .hour, value: 9, to: baseDay) ?? baseDay
+        )
+        let disjoint = WeeklyCalendarSupport.SchedulePlacement(
+            id: "disjoint",
+            day: 2,
+            startDate: calendar.date(byAdding: .hour, value: 11, to: baseDay) ?? baseDay,
+            endDate: calendar.date(byAdding: .hour, value: 12, to: baseDay) ?? baseDay
+        )
+        #expect(
+            WeeklyCalendarSupport.concurrentLaneCount(
+                for: target,
+                among: [target, disjoint],
+                calendar: calendar
+            ) == 1
+        )
     }
 
     @MainActor

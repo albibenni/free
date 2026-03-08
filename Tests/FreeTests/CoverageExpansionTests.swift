@@ -179,6 +179,45 @@ struct CoverageExpansionTests {
         #expect(update?.schedule.schedules.contains(where: { $0.importedCalendarEventKey == event.id }) == true)
     }
 
+    @Test("AppState calendar sync extension methods apply imported event updates")
+    func appStateCalendarSyncExtensionUpdatePaths() {
+        let appState = isolatedAppState(name: "appStateCalendarSyncExtensionUpdatePaths")
+        let defaultSet = RuleSet(name: "Default", urls: ["example.com"])
+        appState.ruleSets = [defaultSet]
+        appState.activeRuleSetId = defaultSet.id
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "calendar-ext-sync-1",
+                title: "Imported",
+                startDate: Date().addingTimeInterval(900),
+                endDate: Date().addingTimeInterval(1800)
+            )
+        ]
+
+        appState.resyncImportedCalendarSchedules()
+        #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "calendar-ext-sync-1" }))
+
+        appState.synchronizeImportedCalendarSchedulesIfNeeded()
+        #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "calendar-ext-sync-1" }))
+    }
+
+    @Test("AppState schedules extension delete guard keeps state when id is unknown")
+    func appStateSchedulesDeleteGuardPath() {
+        let appState = isolatedAppState(name: "appStateSchedulesDeleteGuardPath")
+        let start = Date()
+        let end = start.addingTimeInterval(1800)
+        appState.schedules = [
+            Schedule(name: "Keep", days: [2], startTime: start, endTime: end, type: .focus)
+        ]
+
+        let before = appState.schedules
+        appState.deleteSchedule(id: UUID(), modifyAllDays: true, initialDay: nil)
+
+        #expect(appState.schedules == before)
+    }
+
     @MainActor
     @Test("AppKit observation bind deduplicates signatures and publishes section changes")
     func appKitObservationBindsAndPublishers() {

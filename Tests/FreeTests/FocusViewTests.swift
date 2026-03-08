@@ -380,6 +380,15 @@ struct FocusViewTests {
             $0.firstAttribute == .width && $0.relation == .equal
         })
         #expect(regularWidthConstraint?.constant == 220)
+
+        let fallbackIconRow = FocusSectionLayoutBuilder.makeOverviewRow(
+            iconName: "definitely.not.a.symbol",
+            title: "Fallback",
+            value: "Value",
+            accentColorIndex: 1,
+            availableWidth: 160
+        )
+        #expect(fallbackIconRow.subviews.isEmpty == false)
     }
 
     @Test("Focus section keeps pomodoro widget stable when applying a preset")
