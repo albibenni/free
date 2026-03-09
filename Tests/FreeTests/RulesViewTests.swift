@@ -151,6 +151,9 @@ struct RulesViewTests {
             existing: RuleSet(name: "Edge", urls: ["example.com"])
         )
         #expect(emptyNormalized == false)
+
+        #expect(RulesSectionSupport.websiteRuleForTesting(raw: "http://") == nil)
+        #expect(RulesSectionSupport.websiteRuleForTesting(raw: "http:example.com") != nil)
     }
 
     @Test("Rules section support delete-set visibility boolean matrix")

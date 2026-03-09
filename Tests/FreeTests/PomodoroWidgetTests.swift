@@ -839,4 +839,102 @@ struct PomodoroWidgetTests {
         FocusPomodoroWidgetView.runAlertSheet(alert, window) { _ in }
     }
 
+    @Test("FocusPomodoroWidgetView covers strict-mode row/preset early-return closures and invalid prompt input branches")
+    @MainActor
+    func pomodoroWidgetClosureGuardCoverage() {
+        defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
+
+        let appState = isolatedAppState(name: "closureGuardCoverage")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
+        appState.ruleSets = [work, personal]
+        appState.activeRuleSetId = work.id
+        appState.isBlocking = true
+        appState.isUnblockable = true
+        appState.startPomodoro()
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-20)
+
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        let hosted = host(widget)
+
+        let strictRow = selectableRowButtons(in: hosted).first { $0.displayedTitleForTesting == "Personal" }
+        #expect(strictRow != nil)
+        strictRow?.isEnabled = true
+        strictRow?.performClick(nil)
+        #expect(appState.activeRuleSetId == work.id)
+
+        let preset = buttons(in: hosted).first { $0.title == "45/15" }
+        #expect(preset != nil)
+        preset?.isEnabled = true
+        preset?.performClick(nil)
+        #expect(appState.pomodoroFocusDuration != 45)
+
+        FocusPomodoroWidgetView.makeAlert = { NSAlert() }
+        FocusPomodoroWidgetView.runAlertModal = { alert in
+            (alert.accessoryView as? NSTextField)?.stringValue = "not-a-number"
+            return .alertFirstButtonReturn
+        }
+
+        appState.stopPomodoro()
+        appState.isBlocking = true
+        buttons(in: hosted).first { $0.title == "Cust" }?.performClick(nil)
+        #expect(appState.isPaused == false)
+
+        appState.startPomodoro()
+        appState.isBlocking = true
+        appState.isUnblockable = true
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-20)
+        FocusPomodoroWidgetView.runAlertModal = { _ in .alertSecondButtonReturn }
+        buttons(in: hosted).first { $0.title == "Stop" }?.performClick(nil)
+        #expect(appState.pomodoroStatus != .none)
+    }
+
+    @Test("FocusPomodoroWidgetView covers missing-button and nil-container guard paths")
+    @MainActor
+    func pomodoroWidgetGuardPathsCoverage() {
+        let appState = isolatedAppState(name: "guardPathsCoverage")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        appState.ruleSets = [work]
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        _ = host(widget)
+
+        appState.ruleSets = [work, sampleRuleSet(name: "New", url: "https://new.example")]
+        widget.updateRuleSetSelection()
+
+        widget.clearContainersForTesting()
+        widget.forceReplaceViewsForTesting()
+    }
+
+    @Test("FocusPomodoroWidgetView covers zero-duration active progress fallback branches")
+    @MainActor
+    func pomodoroWidgetZeroDurationProgressCoverage() {
+        let appState = isolatedAppState(name: "zeroDurationProgressCoverage")
+        appState.pomodoroStatus = .focus
+        appState.pomodoroFocusDuration = 0
+        appState.pomodoroRemaining = 0
+
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        _ = host(widget)
+        widget.forceUpdateActiveControlsForTesting()
+
+        appState.pomodoroStatus = .breakTime
+        appState.pomodoroBreakDuration = 0
+        widget.refreshForStateChange()
+        widget.forceUpdateActiveControlsForTesting()
+    }
+
+    @Test("FocusPomodoroWidgetView custom break prompt rejects invalid numeric input")
+    @MainActor
+    func pomodoroWidgetCustomBreakInvalidInputCoverage() {
+        let appState = isolatedAppState(name: "customBreakInvalidInputCoverage")
+        appState.isBlocking = true
+        appState.isUnblockable = false
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        let hosted = host(widget)
+        widget.customBreakPromptSimulation = { (.alertFirstButtonReturn, "abc") }
+
+        buttons(in: hosted).first { $0.title == "Cust" }?.performClick(nil)
+        #expect(appState.isPaused == false)
+    }
+
 }

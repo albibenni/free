@@ -679,4 +679,14 @@ extension FocusPomodoroWidgetView {
     func forceUpdateActiveControlsForTesting() {
         updateActiveControls()
     }
+
+    func clearContainersForTesting() {
+        mainStatusContainer = nil
+        actionContainer = nil
+    }
+
+    func forceReplaceViewsForTesting() {
+        replaceMainStatusView(with: NSView())
+        replaceActionView(with: NSView())
+    }
 }

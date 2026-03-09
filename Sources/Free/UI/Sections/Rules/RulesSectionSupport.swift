@@ -96,4 +96,8 @@ enum RulesSectionSupport {
     static func isExactRuleAlreadyPresentForTesting(rule: String, existing: RuleSet) -> Bool {
         isExactRuleAlreadyPresent(rule: rule, existing: existing)
     }
+
+    static func websiteRuleForTesting(raw: String) -> String? {
+        websiteRule(from: raw)
+    }
 }
