@@ -77,6 +77,15 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         updateForStateChange()
     }
 
+    @discardableResult
+    func simulateDialInteractionCallbacksForTesting() -> (didBegin: Bool, didEnd: Bool) {
+        let didBegin = onDialInteractionDidBegin != nil
+        let didEnd = onDialInteractionDidEnd != nil
+        onDialInteractionDidBegin?()
+        onDialInteractionDidEnd?()
+        return (didBegin: didBegin, didEnd: didEnd)
+    }
+
     private func rebuildContent() {
         removeAllArrangedSubviews(from: contentStack)
         renderMode = currentRenderMode()

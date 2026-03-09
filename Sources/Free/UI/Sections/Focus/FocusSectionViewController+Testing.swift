@@ -27,4 +27,7 @@ extension FocusSectionViewController {
     func simulateObservedAppStateChangeForTesting() {
         handleObservedAppStateChange()
     }
+    func simulatePomodoroWidgetInteractionCallbacksForTesting() -> (didBegin: Bool, didEnd: Bool)? {
+        (widgetView as? FocusPomodoroWidgetView)?.simulateDialInteractionCallbacksForTesting()
+    }
 }

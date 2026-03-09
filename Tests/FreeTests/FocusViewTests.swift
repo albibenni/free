@@ -302,6 +302,24 @@ struct FocusViewTests {
         #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
     }
 
+    @Test("Focus section widget interaction callbacks execute through reloadWidget closure wiring")
+    @MainActor
+    func focusViewPomodoroWidgetInteractionCallbackWiring() {
+        let appState = isolatedAppState(name: "pomodoroInteractionCallbackWiring")
+        let controller = makeController(appState: appState, section: .pomodoro)
+
+        _ = host(controller)
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusPomodoroWidgetView")
+        #expect(controller.hasDeferredPomodoroReloadForTesting == false)
+
+        controller.needsReloadAfterPomodoroInteraction = true
+        let callbackState = controller.simulatePomodoroWidgetInteractionCallbacksForTesting()
+
+        #expect(callbackState?.didBegin == true)
+        #expect(callbackState?.didEnd == true)
+        #expect(controller.hasDeferredPomodoroReloadForTesting == false)
+    }
+
     @Test("Focus section keeps pomodoro widget instance when unrelated app state changes")
     @MainActor
     func focusViewKeepsPomodoroWidgetForUnrelatedStateChanges() {
