@@ -154,6 +154,16 @@ struct UIComponentTests {
         #expect(image != nil)
     }
 
+    @Test("AppKit symbol helper supports default color argument")
+    func appKitSymbolHelperDefaultColorArgument() {
+        let image = appKitSymbolImage(
+            named: "chevron.left",
+            pointSize: 12,
+            weight: .regular
+        )
+        #expect(image != nil)
+    }
+
     @Test("AppKit symbol helper supports symbol spec overload")
     func appKitSymbolHelperSpecOverload() {
         let image = appKitSymbolImage(

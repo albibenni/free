@@ -79,6 +79,7 @@ struct ModalAndShellCoverageTests {
         defer {
             AllowedWebsitesRuleSetAlertPresenter.resetForTesting()
             RulesSheetAlertPresenter.resetForTesting()
+            AllowedWebsitesImportAlertPresenter.resetForTesting()
         }
 
         AllowedWebsitesRuleSetAlertPresenter.resetForTesting()
@@ -92,6 +93,13 @@ struct ModalAndShellCoverageTests {
         RulesSheetAlertPresenter.classLookup = { _ in nil }
         _ = RulesSheetAlertPresenter.makeAlert()
         #expect(RulesSheetAlertPresenter.runModal(NonBlockingAlert()) == .alertFirstButtonReturn)
+
+        AllowedWebsitesImportAlertPresenter.resetForTesting()
+        AllowedWebsitesImportAlertPresenter.environmentProvider = { [:] }
+        AllowedWebsitesImportAlertPresenter.classLookup = { _ in nil }
+        _ = AllowedWebsitesImportAlertPresenter.makeAlert()
+        #expect(AllowedWebsitesImportAlertPresenter.runNativeModal(NonBlockingAlert()) == .alertFirstButtonReturn)
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NonBlockingAlert()) == .alertFirstButtonReturn)
     }
 
     @MainActor
@@ -113,6 +121,28 @@ struct ModalAndShellCoverageTests {
         AllowedWebsitesImportAlertPresenter.resetForTesting()
         _ = AllowedWebsitesImportAlertPresenter.makeAlert()
         _ = AllowedWebsitesImportAlertPresenter.runModal(NSAlert())
+        var usedImportNativeRunner = false
+        AllowedWebsitesImportAlertPresenter.environmentProvider = { ["XCTestConfigurationFilePath": "1"] }
+        AllowedWebsitesImportAlertPresenter.classLookup = { _ in nil }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesImportAlertPresenter.environmentProvider = { ["XCTestBundlePath": "1"] }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesImportAlertPresenter.environmentProvider = {
+            ["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES": "1"]
+        }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesImportAlertPresenter.environmentProvider = { ["__XCODE_BUILT_PRODUCTS_DIR_PATHS": "1"] }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesImportAlertPresenter.environmentProvider = { [:] }
+        AllowedWebsitesImportAlertPresenter.classLookup = { _ in nil }
+        AllowedWebsitesImportAlertPresenter.runNativeModal = { _ in
+            usedImportNativeRunner = true
+            return .alertFirstButtonReturn
+        }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertFirstButtonReturn)
+        #expect(usedImportNativeRunner)
+        AllowedWebsitesImportAlertPresenter.classLookup = { _ in NSObject.self }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
 
         var usedAllowedNativeRunner = false
         AllowedWebsitesRuleSetAlertPresenter.environmentProvider = { ["XCTestConfigurationFilePath": "1"] }
@@ -202,6 +232,12 @@ struct ModalAndShellCoverageTests {
                 defaultSelected: true
             ),
             AllowedWebsitesImportCoordinator.Candidate(
+                rule: "https://toggle-on.com",
+                title: "https://toggle-on.com",
+                isSelectable: true,
+                defaultSelected: false
+            ),
+            AllowedWebsitesImportCoordinator.Candidate(
                 rule: "https://already.com",
                 title: "https://already.com (already allowed)",
                 isSelectable: false,
@@ -234,6 +270,26 @@ struct ModalAndShellCoverageTests {
                 candidates: candidates,
                 selectedSetName: "Work"
             ) == []
+        )
+
+        AllowedWebsitesImportAlertPresenter.runModal = { alert in
+            guard
+                let accessory = alert.accessoryView,
+                let selectAll = accessory.subviews.compactMap({ $0 as? NSButton }).first
+            else {
+                return .alertFirstButtonReturn
+            }
+            selectAll.state = .on
+            if let action = selectAll.action {
+                _ = NSApp.sendAction(action, to: selectAll.target, from: selectAll)
+            }
+            return .alertFirstButtonReturn
+        }
+        #expect(
+            AllowedWebsitesImportAlertPresenter.presentCandidateSelection(
+                candidates: candidates,
+                selectedSetName: "Work"
+            )?.sorted() == ["https://example.com", "https://toggle-on.com"]
         )
 
         AllowedWebsitesImportAlertPresenter.runModal = { _ in .alertSecondButtonReturn }

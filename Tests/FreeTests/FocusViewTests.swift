@@ -206,6 +206,20 @@ struct FocusViewTests {
         #expect(controller.hasDeferredPomodoroReloadForTesting == false)
     }
 
+    @Test("Focus section end interaction keeps deferred flag when depth flush predicate is false")
+    @MainActor
+    func focusEndInteractionNoFlushWhenDeferredFlagIsFalse() {
+        let appState = isolatedAppState(name: "endInteractionNoFlush")
+        let controller = makeController(appState: appState, section: .pomodoro)
+        _ = host(controller)
+
+        controller.beginPomodoroWidgetInteractionForTesting()
+        controller.endPomodoroWidgetInteractionForTesting()
+
+        #expect(controller.hasDeferredPomodoroReloadForTesting == false)
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusPomodoroWidgetView")
+    }
+
     @Test("Focus section shows live overview instead of full widgets")
     @MainActor
     func focusViewLiveOverviewRender() {

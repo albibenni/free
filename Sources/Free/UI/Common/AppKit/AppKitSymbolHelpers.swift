@@ -1,10 +1,19 @@
 import AppKit
 
+private func applySymbolPaletteColor(
+    to configuration: NSImage.SymbolConfiguration,
+    color: NSColor
+) -> NSImage.SymbolConfiguration {
+    configuration.applying(
+        NSImage.SymbolConfiguration(paletteColors: [color])
+    )
+}
+
 func appKitSymbolImage(
     named symbolName: String,
     pointSize: CGFloat,
     weight: NSFont.Weight,
-    color: NSColor? = nil
+    color: NSColor?
 ) -> NSImage? {
     guard let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) else {
         return nil
@@ -12,9 +21,22 @@ func appKitSymbolImage(
 
     var configuration = NSImage.SymbolConfiguration(pointSize: pointSize, weight: weight)
     if let color {
-        configuration = configuration.applying(.init(paletteColors: [color]))
+        configuration = applySymbolPaletteColor(to: configuration, color: color)
     }
-    return baseImage.withSymbolConfiguration(configuration) ?? baseImage
+    return baseImage.withSymbolConfiguration(configuration)
+}
+
+func appKitSymbolImage(
+    named symbolName: String,
+    pointSize: CGFloat,
+    weight: NSFont.Weight
+) -> NSImage? {
+    appKitSymbolImage(
+        named: symbolName,
+        pointSize: pointSize,
+        weight: weight,
+        color: nil
+    )
 }
 
 func appKitSymbolImage(
