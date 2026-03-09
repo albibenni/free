@@ -11,7 +11,8 @@ enum RulesSectionSupport {
     ]
 
     static func shouldShowDeleteSetButton(ruleSetCount: Int, isBlocking: Bool) -> Bool {
-        ruleSetCount > 1 && !isBlocking
+        if ruleSetCount <= 1 { return false }
+        return isBlocking == false
     }
 
     static func sidebarToggleIcon(isSidebarVisible: Bool) -> String {
@@ -41,10 +42,13 @@ enum RulesSectionSupport {
         }
 
         return orderedRules.map { rule in
-            OpenTabImportCandidate(
-                rule: rule,
-                isAlreadyAllowed: existing.map { isExactRuleAlreadyPresent(rule: rule, existing: $0) } ?? false
-            )
+            let isAlreadyAllowed: Bool
+            if let existing {
+                isAlreadyAllowed = isExactRuleAlreadyPresent(rule: rule, existing: existing)
+            } else {
+                isAlreadyAllowed = false
+            }
+            return OpenTabImportCandidate(rule: rule, isAlreadyAllowed: isAlreadyAllowed)
         }
     }
 
@@ -59,10 +63,15 @@ enum RulesSectionSupport {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         if trimmed == "localhost:10000" || trimmed.hasPrefix("localhost:10000/") { return nil }
-        if let colonIndex = trimmed.firstIndex(of: ":"), !trimmed.contains("://") {
-            let schemeCandidate = String(trimmed[..<colonIndex]).lowercased()
-            if schemeCandidate != "http" && schemeCandidate != "https" {
-                return nil
+        let hasExplicitSchemeDelimiter = trimmed.contains("://")
+        if !hasExplicitSchemeDelimiter {
+            let schemeParts = trimmed.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+            if schemeParts.count == 2 {
+                let schemeCandidate = String(schemeParts[0]).lowercased()
+                let isSupportedScheme = schemeCandidate == "http" || schemeCandidate == "https"
+                if !isSupportedScheme {
+                    return nil
+                }
             }
         }
 
