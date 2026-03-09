@@ -101,6 +101,9 @@ struct PomodoroWidgetTests {
     @Test("FocusPomodoroWidgetView default alert hook closures execute safely")
     @MainActor
     func pomodoroWidgetDefaultAlertHookClosures() {
+        let createdAlert = FocusPomodoroWidgetView.makeAlert()
+        #expect(type(of: createdAlert) == NSAlert.self)
+
         let modalResponse = FocusPomodoroWidgetView.runAlertModal(TestModalAlert())
         #expect(modalResponse == .alertSecondButtonReturn)
 

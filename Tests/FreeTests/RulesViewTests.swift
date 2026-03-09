@@ -153,6 +153,14 @@ struct RulesViewTests {
         #expect(emptyNormalized == false)
     }
 
+    @Test("Rules section support delete-set visibility boolean matrix")
+    func rulesSectionSupportDeleteSetVisibilityMatrix() {
+        #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 0, isBlocking: false) == false)
+        #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 1, isBlocking: false) == false)
+        #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: true) == false)
+        #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: false) == true)
+    }
+
     @Test("Rules sheet controller actions mutate rule-set state and UI state")
     @MainActor
     func rulesSheetControllerActionCoverage() throws {
