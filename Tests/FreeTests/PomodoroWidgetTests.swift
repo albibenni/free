@@ -376,6 +376,78 @@ struct PomodoroWidgetTests {
         #expect(appState.pomodoroBreakDuration >= 5)
     }
 
+    @Test("FocusPomodoroWidgetView dial adjustment minus path and break-branch currentDuration are exercised")
+    @MainActor
+    func pomodoroWidgetDialMinusAndBreakBranchCoverage() {
+        let appState = isolatedAppState(name: "dialMinusAndBreakBranch")
+        appState.pomodoroStatus = .none
+        appState.pomodoroFocusDuration = 35
+        appState.pomodoroBreakDuration = 20
+
+        let hosted = host(FocusPomodoroWidgetView(appState: appState), size: CGSize(width: 900, height: 900))
+        let symbolButtons = subviews(ofType: AppKitSymbolControlButton.self, in: hosted)
+        #expect(symbolButtons.count >= 4)
+
+        // Order is deterministic in the dial row: [-, +] for focus then [-, +] for break.
+        symbolButtons[0].performClick(nil)
+        symbolButtons[3].performClick(nil)
+
+        #expect(appState.pomodoroFocusDuration == 30)
+        #expect(appState.pomodoroBreakDuration == 25)
+    }
+
+    @Test("FocusPomodoroWidgetView idle refresh path updates idle controls and rule-set selection state")
+    @MainActor
+    func pomodoroWidgetIdleRefreshUpdatesSelectionAndControls() {
+        let appState = isolatedAppState(name: "idleRefreshSelectionAndControls")
+        let first = sampleRuleSet(name: "First", url: "https://first.example")
+        let second = sampleRuleSet(name: "Second", url: "https://second.example")
+        appState.ruleSets = [first, second]
+        appState.activeRuleSetId = first.id
+        appState.isBlocking = true
+        appState.isUnblockable = false
+
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        let hosted = host(widget)
+        let initialButtons = selectableRowButtons(in: hosted)
+        #expect(initialButtons.count == 2)
+        #expect(initialButtons.allSatisfy { $0.isEnabled })
+
+        appState.activeRuleSetId = second.id
+        appState.isUnblockable = true
+        widget.refreshForStateChange()
+
+        let updatedButtons = selectableRowButtons(in: hosted)
+        #expect(updatedButtons.count == 2)
+        #expect(updatedButtons.allSatisfy { $0.isEnabled == false })
+    }
+
+    @Test("FocusPomodoroWidgetView testing callback hook and default prompt hook closures execute")
+    @MainActor
+    func pomodoroWidgetTestingCallbacksAndDefaultPromptHooks() {
+        defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
+
+        var beginCount = 0
+        var endCount = 0
+        let appState = isolatedAppState(name: "testingCallbacksAndDefaultHooks")
+        let widget = FocusPomodoroWidgetView(
+            appState: appState,
+            onDialInteractionDidBegin: { beginCount += 1 },
+            onDialInteractionDidEnd: { endCount += 1 }
+        )
+        let state = widget.simulateDialInteractionCallbacksForTesting()
+        #expect(state.didBegin)
+        #expect(state.didEnd)
+        #expect(beginCount == 1)
+        #expect(endCount == 1)
+
+        FocusPomodoroWidgetView.resetPromptHooksForTesting()
+        let defaultAlert = FocusPomodoroWidgetView.makeAlert()
+        #expect(type(of: defaultAlert) == NSAlert.self)
+        let modalResponse = FocusPomodoroWidgetView.runAlertModal(TestModalAlert())
+        #expect(modalResponse == .alertSecondButtonReturn)
+    }
+
     @Test("Pomodoro dial views cover draw and mouse interaction paths")
     @MainActor
     func pomodoroDialViewsInteractionCoverage() throws {
@@ -501,6 +573,45 @@ struct PomodoroWidgetTests {
 
         progressDial.frame = .zero
         progressDial.draw(.zero)
+    }
+
+    @Test("PomodoroDurationDialView guard-return branches handle non-drag and zero-size safely")
+    @MainActor
+    func pomodoroDurationDialGuardBranches() throws {
+        var commitCount = 0
+        let dial = PomodoroDurationDialView(
+            title: "FOCUS",
+            durationMinutes: 25,
+            maxMinutes: 120,
+            iconName: AppKitUISymbols.Name.focus,
+            color: .systemGreen,
+            onCommit: { _ in commitCount += 1 }
+        )
+
+        // draw guard: radius <= 0
+        dial.frame = .zero
+        dial.draw(.zero)
+
+        // mouseUp guard: not dragging
+        let mouseUp = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseUp,
+                location: NSPoint(x: 0, y: 0),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        dial.mouseUp(with: mouseUp)
+
+        // applyInteraction guard: bounds width/height <= 0
+        dial.applyLocationForTesting(.zero, commit: true)
+
+        #expect(commitCount == 0)
     }
 
     @Test("FocusPomodoroWidgetView custom break and strict stop prompts use simulation hooks")

@@ -126,6 +126,33 @@ struct RulesViewTests {
         #expect(wildcardRegression.allSatisfy { !$0.isAlreadyAllowed })
     }
 
+    @Test("Rules section support import candidates cover duplicate, nil-existing, excluded-scheme, and fallback URL parsing branches")
+    func rulesSectionSupportImportCandidateEdgeBranches() {
+        let candidates = RulesSectionSupport.importableWebsiteCandidates(
+            from: [
+                "   ",  // trimmed empty guard
+                "example.com/path?q=1",  // adds https:// prefix branch
+                "example.com/path?q=1",  // duplicate guard (!seen.contains)
+                "file://Users/test/Desktop",  // excluded internal scheme branch
+                "https://?",  // components with no host -> fallback normalize path
+                "https://",  // fallback normalize with empty normalized output
+            ],
+            existing: nil  // existing.map(... ) ?? false branch
+        )
+
+        #expect(candidates.contains(where: { $0.rule.contains("example.com/path?q=1") }))
+        #expect(candidates.filter { $0.rule.contains("example.com/path?q=1") }.count == 1)
+        #expect(candidates.allSatisfy { $0.isAlreadyAllowed == false })
+        #expect(candidates.contains(where: { $0.rule.contains("https://?") || $0.rule == "?" }))
+        #expect(candidates.contains(where: { $0.rule.contains("file://") }) == false)
+
+        let emptyNormalized = RulesSectionSupport.isExactRuleAlreadyPresentForTesting(
+            rule: "   ",
+            existing: RuleSet(name: "Edge", urls: ["example.com"])
+        )
+        #expect(emptyNormalized == false)
+    }
+
     @Test("Rules sheet controller actions mutate rule-set state and UI state")
     @MainActor
     func rulesSheetControllerActionCoverage() throws {
@@ -487,6 +514,32 @@ struct RulesViewTests {
 
         controller.handleDone()
         #expect(doneCount == 1)
+    }
+
+    @Test("Rules sheet selectRuleSet returns early when tapping already selected row")
+    @MainActor
+    func rulesSheetSelectRuleSetNoOpWhenAlreadySelected() {
+        let appState = isolatedAppState(name: "objcSelectSameRowNoOp")
+        let setA = RuleSet(name: "Set A", urls: ["a.com"])
+        let setB = RuleSet(name: "Set B", urls: ["b.com"])
+        appState.ruleSets = [setA, setB]
+        appState.activeRuleSetId = setA.id
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
+
+        let initialReloadGeneration = controller.reloadGenerationForTesting
+        let setARowId = controller.sidebarRowObjectIdentifierForTesting(setA.id)
+        let setBRowId = controller.sidebarRowObjectIdentifierForTesting(setB.id)
+
+        let sameSelectionButton = NSButton()
+        sameSelectionButton.identifier = NSUserInterfaceItemIdentifier(setA.id.uuidString)
+        controller.selectRuleSet(sameSelectionButton)
+
+        #expect(controller.selectedSetIdForTesting == setA.id)
+        #expect(controller.reloadGenerationForTesting == initialReloadGeneration)
+        #expect(controller.sidebarRowObjectIdentifierForTesting(setA.id) == setARowId)
+        #expect(controller.sidebarRowObjectIdentifierForTesting(setB.id) == setBRowId)
     }
 
     @Test("Rules layout builder covers sidebar delete teardown and row reorder/trim branches")

@@ -83,4 +83,8 @@ enum RulesSectionSupport {
         let normalized = RuleMatcher.normalize(trimmed)
         return normalized.isEmpty ? nil : normalized
     }
+
+    static func isExactRuleAlreadyPresentForTesting(rule: String, existing: RuleSet) -> Bool {
+        isExactRuleAlreadyPresent(rule: rule, existing: existing)
+    }
 }
