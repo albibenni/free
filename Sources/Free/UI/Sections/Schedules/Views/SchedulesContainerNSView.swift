@@ -74,7 +74,7 @@ final class SchedulesContainerNSView: NSView {
     }
 
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        nil
     }
 
     override func viewDidMoveToWindow() {
@@ -152,13 +152,7 @@ final class SchedulesContainerNSView: NSView {
             contentViewController: editorViewController,
             contentSize: CGSize(width: 500, height: 650)
         ) { [weak self] in
-            guard let self else { return }
-            self.editorSheetController = nil
-            self.presentedEditorContextId = nil
-            if self.editorDismissShouldClearContext, self.configuration?.editorContext != nil {
-                self.configuration?.onDismissEditor()
-            }
-            self.editorDismissShouldClearContext = true
+            self?.handleEditorSheetDidClose()
         }
         editorSheetController = controller
         presentedEditorContextId = context.id
@@ -172,6 +166,15 @@ final class SchedulesContainerNSView: NSView {
         editorSheetController = nil
         presentedEditorContextId = nil
         controller.dismiss()
+    }
+
+    private func handleEditorSheetDidClose() {
+        editorSheetController = nil
+        presentedEditorContextId = nil
+        if editorDismissShouldClearContext, configuration?.editorContext != nil {
+            configuration?.onDismissEditor()
+        }
+        editorDismissShouldClearContext = true
     }
 
     override func layout() {

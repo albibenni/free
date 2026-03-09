@@ -996,4 +996,112 @@ struct WeeklyCalendarSurfaceTests {
 
         #expect(document.scheduleBlockCountForTesting == 0)
     }
+
+    @MainActor
+    @Test("Weekly calendar document covers unconfigured guard paths and unavailable coder init")
+    func weeklyCalendarDocumentUnconfiguredGuardsAndCoderInitCoverage() throws {
+        let document = WeeklyCalendarSurfaceDocumentNSView(
+            frame: NSRect(x: 0, y: 0, width: 640, height: 24 * 80)
+        )
+
+        let down = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDown,
+                location: NSPoint(x: 80, y: 80),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let drag = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDragged,
+                location: NSPoint(x: 120, y: 120),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 1,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let up = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseUp,
+                location: NSPoint(x: 120, y: 120),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 2,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+
+        document.mouseDown(with: down)
+        document.mouseDragged(with: drag)
+        document.mouseUp(with: up)
+        document.applyCurrentLayout()
+        document.scheduleInteractionDidEndForTesting(rebuildImmediately: true)
+
+        let image = NSImage(size: document.bounds.size)
+        image.lockFocus()
+        document.draw(document.bounds)
+        image.unlockFocus()
+
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        archiver.finishEncoding()
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        defer { unarchiver.finishDecoding() }
+        #expect(WeeklyCalendarSurfaceDocumentNSView(coder: unarchiver) == nil)
+    }
+
+    @MainActor
+    @Test("Weekly calendar document current-time indicator covers out-of-week and missing-day guards")
+    func weeklyCalendarDocumentCurrentTimeIndicatorGuardCoverage() {
+        let now = Date()
+        let currentWeekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
+        let document = WeeklyCalendarSurfaceDocumentNSView(
+            frame: NSRect(x: 0, y: 0, width: 900, height: 24 * 80)
+        )
+
+        document.configure(
+            with: makeConfiguration(
+                dayOrder: dayOrder,
+                weekRange: currentWeekRange,
+                weekStart: now.addingTimeInterval(-7200),
+                weekEnd: now.addingTimeInterval(-3600),
+                positionedSchedules: [],
+                showsExternalEvents: false
+            )
+        )
+        var image = NSImage(size: document.bounds.size)
+        image.lockFocus()
+        document.draw(document.bounds)
+        image.unlockFocus()
+
+        let weekday = Calendar.current.component(.weekday, from: now)
+        let missingDayOrder = dayOrder.filter { $0 != weekday }
+        document.configure(
+            with: makeConfiguration(
+                dayOrder: missingDayOrder,
+                weekRange: currentWeekRange,
+                weekStart: now.addingTimeInterval(-3600),
+                weekEnd: now.addingTimeInterval(3600),
+                positionedSchedules: [],
+                showsExternalEvents: false
+            )
+        )
+        image = NSImage(size: document.bounds.size)
+        image.lockFocus()
+        document.draw(document.bounds)
+        image.unlockFocus()
+    }
 }

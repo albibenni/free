@@ -40,18 +40,34 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     typealias AlertModalRunner = (NSAlert) -> NSApplication.ModalResponse
     typealias AlertSheetRunner = (NSAlert, NSWindow, @escaping (NSApplication.ModalResponse) -> Void) -> Void
 
-    static var makeAlert: AlertFactory = { NSAlert() }
-    static var runAlertModal: AlertModalRunner = { alert in alert.runModal() }
-    static var runAlertSheet: AlertSheetRunner = { alert, window, completion in
+    private static func defaultMakeAlert() -> NSAlert {
+        NSAlert()
+    }
+
+    private static func defaultRunAlertModal(_ alert: NSAlert) -> NSApplication.ModalResponse {
+        alert.runModal()
+    }
+
+    private static func defaultRunAlertSheet(
+        _ alert: NSAlert,
+        _ window: NSWindow,
+        _ completion: @escaping (NSApplication.ModalResponse) -> Void
+    ) {
         alert.beginSheetModal(for: window, completionHandler: completion)
     }
 
+    private static var makeAlertOverride: AlertFactory?
+    static var makeAlert: AlertFactory {
+        get { makeAlertOverride ?? defaultMakeAlert }
+        set { makeAlertOverride = newValue }
+    }
+    static var runAlertModal: AlertModalRunner = defaultRunAlertModal
+    static var runAlertSheet: AlertSheetRunner = defaultRunAlertSheet
+
     static func resetPromptHooksForTesting() {
-        makeAlert = { NSAlert() }
-        runAlertModal = { alert in alert.runModal() }
-        runAlertSheet = { alert, window, completion in
-            alert.beginSheetModal(for: window, completionHandler: completion)
-        }
+        makeAlertOverride = nil
+        runAlertModal = defaultRunAlertModal
+        runAlertSheet = defaultRunAlertSheet
     }
 
     init(
@@ -75,6 +91,15 @@ final class FocusPomodoroWidgetView: AppKitCardView {
 
     func refreshForStateChange() {
         updateForStateChange()
+    }
+
+    @discardableResult
+    func simulateDialInteractionCallbacksForTesting() -> (didBegin: Bool, didEnd: Bool) {
+        let didBegin = onDialInteractionDidBegin != nil
+        let didEnd = onDialInteractionDidEnd != nil
+        onDialInteractionDidBegin?()
+        onDialInteractionDidEnd?()
+        return (didBegin: didBegin, didEnd: didEnd)
     }
 
     private func rebuildContent() {
@@ -304,18 +329,16 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 iconName: AppKitUISymbols.Name.focus,
                 duration: appState.pomodoroFocusDuration,
                 maxMinutes: 120
-            ) { [weak appState] minutes in
-                guard let appState else { return }
-                appState.pomodoroFocusDuration = minutes
+            ) { [self] minutes in
+                self.appState.pomodoroFocusDuration = minutes
             }
             let breakColumn = makeDurationDialColumn(
                 title: "BREAK",
                 iconName: AppKitUISymbols.Name.breakCup,
                 duration: appState.pomodoroBreakDuration,
                 maxMinutes: 60
-            ) { [weak appState] minutes in
-                guard let appState else { return }
-                appState.pomodoroBreakDuration = minutes
+            ) { [self] minutes in
+                self.appState.pomodoroBreakDuration = minutes
             }
 
             row.addArrangedSubview(focusColumn)
@@ -393,9 +416,9 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 set: set,
                 isSelected: isSelected,
                 accentColor: accentColor
-            ) { [weak appState] in
-                guard let appState, !appState.isStrictActive else { return }
-                appState.selectActiveRuleSet(set.id)
+            ) { [self] in
+                guard !self.appState.isStrictActive else { return }
+                self.appState.selectActiveRuleSet(set.id)
             }
             ruleSetButtons[set.id] = button
             button.isEnabled = !appState.isStrictActive
@@ -410,7 +433,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     private func makeActionButtons() -> NSView {
         if appState.pomodoroStatus == .none {
             let button = makeAppKitPrimaryButton(title: "Start Focus Session", color: accentColor)
-            button.onAction = { [weak appState] in appState?.startPomodoro() }
+            button.onAction = { [self] in self.appState.startPomodoro() }
             button.translatesAutoresizingMaskIntoConstraints = false
             return button
         }
@@ -422,13 +445,12 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         row.distribution = .fillEqually
 
         let skipButton = makeAppKitPrimaryButton(title: "Skip", color: accentColor)
-        skipButton.onAction = { [weak appState] in appState?.skipPomodoroPhase() }
+        skipButton.onAction = { [self] in self.appState.skipPomodoroPhase() }
         skipButton.isEnabled = !appState.isPomodoroLocked
         self.skipButton = skipButton
 
         let stopButton = makeAppKitPrimaryButton(title: "Stop", color: .systemRed)
-        stopButton.onAction = { [weak self] in
-            guard let self else { return }
+        stopButton.onAction = { [self] in
             if self.appState.isPomodoroLocked {
                 self.presentStopChallengePrompt()
             } else {
@@ -459,10 +481,10 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 isSelected: appState.pomodoroFocusDuration == focus && appState.pomodoroBreakDuration == breakTime,
                 selectedColor: accentColor,
                 width: 50
-            ) { [weak appState] in
-                guard let appState, appState.pomodoroStatus == .none else { return }
-                appState.pomodoroFocusDuration = focus
-                appState.pomodoroBreakDuration = breakTime
+            ) { [self] in
+                guard self.appState.pomodoroStatus == .none else { return }
+                self.appState.pomodoroFocusDuration = focus
+                self.appState.pomodoroBreakDuration = breakTime
             }
             button.isEnabled = appState.pomodoroStatus == .none
             presetButtons.append((focus: focus, breakTime: breakTime, button: button))
@@ -491,8 +513,8 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 isSelected: false,
                 selectedColor: .secondaryLabelColor,
                 width: 50
-            ) { [weak appState] in
-                appState?.startPause(minutes: Double(minutes))
+            ) { [self] in
+                self.appState.startPause(minutes: Double(minutes))
             }
             button.isEnabled = appState.isBlocking && !appState.isStrictActive
             quickBreakButtons.append(button)
@@ -504,8 +526,8 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             isSelected: false,
             selectedColor: .secondaryLabelColor,
             width: 50
-        ) { [weak self] in
-            self?.presentCustomBreakPrompt()
+        ) { [self] in
+            self.presentCustomBreakPrompt()
         }
         customButton.isEnabled = appState.isBlocking && !appState.isStrictActive
         customBreakButton = customButton
@@ -553,8 +575,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         controls.widthAnchor.constraint(equalToConstant: 64).isActive = true
 
         let minimumValue = 5.0
-        let currentDuration: () -> Double = { [weak self] in
-            guard let self else { return duration }
+        let currentDuration: () -> Double = { [self] in
             return title == "FOCUS"
                 ? self.appState.pomodoroFocusDuration
                 : self.appState.pomodoroBreakDuration
@@ -599,9 +620,9 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         alert.addButton(withTitle: "Start")
         alert.addButton(withTitle: "Cancel")
 
-        let present: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+        let present: (NSApplication.ModalResponse) -> Void = { [self] response in
             guard response == .alertFirstButtonReturn else { return }
-            guard let self, let minutes = Double(field.stringValue) else { return }
+            guard let minutes = Double(field.stringValue) else { return }
             self.appState.startPause(minutes: minutes)
         }
 
@@ -630,9 +651,8 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         alert.addButton(withTitle: "Stop Pomodoro")
         alert.addButton(withTitle: "Cancel")
 
-        let present: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+        let present: (NSApplication.ModalResponse) -> Void = { [self] response in
             guard response == .alertFirstButtonReturn else { return }
-            guard let self else { return }
             _ = self.appState.stopPomodoroWithChallenge(phrase: field.stringValue)
         }
 
@@ -658,5 +678,15 @@ extension FocusPomodoroWidgetView {
 
     func forceUpdateActiveControlsForTesting() {
         updateActiveControls()
+    }
+
+    func clearContainersForTesting() {
+        mainStatusContainer = nil
+        actionContainer = nil
+    }
+
+    func forceReplaceViewsForTesting() {
+        replaceMainStatusView(with: NSView())
+        replaceActionView(with: NSView())
     }
 }

@@ -415,6 +415,15 @@ struct AddScheduleViewTests {
         let daysBeforeNoopToggle = controller.daysForTesting
         controller.toggleRecurringDayForTesting(3)
         #expect(controller.daysForTesting == daysBeforeNoopToggle)
+
+        // Guard branch: non-NSTextField object should no-op.
+        controller.controlTextDidChangeForTesting(object: NSView())
+        #expect(controller.nameForTesting == "Edited Name")
+
+        // Guard branch: delete with no existing schedule should no-op.
+        let beforeDelete = appState.schedules.count
+        controller.deleteScheduleForTesting()
+        #expect(appState.schedules.count == beforeDelete)
     }
 
     @Test("Schedule editor UI interactions trigger selection closures and button actions")

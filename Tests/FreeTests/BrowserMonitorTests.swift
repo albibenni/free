@@ -543,17 +543,26 @@ struct BrowserMonitorTests {
         let appState = isolatedAppState(name: "deinitInvalidatesActiveTimer")
         let mock = MockBrowserAutomator()
         let scheduler = MockRepeatingTimerScheduler()
-        var monitor: BrowserMonitor? = makeMonitor(
-            appState: appState,
-            mock: mock,
-            timerScheduler: scheduler,
-            startTimer: true
-        )
-        #expect(monitor != nil)
+        weak var weakMonitor: BrowserMonitor?
 
-        #expect(scheduler.timers.count == 1)
+        do {
+            let monitor = makeMonitor(
+                appState: appState,
+                mock: mock,
+                timerScheduler: scheduler,
+                startTimer: true
+            )
+            weakMonitor = monitor
+            #expect(scheduler.timers.count == 1)
+        }
+
+        #expect(weakMonitor == nil)
         let timer = scheduler.timers[0]
-        monitor = nil
+
+        let timeout = Date().addingTimeInterval(0.25)
+        while timer.invalidateCallCount < 1, Date() < timeout {
+            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.005))
+        }
         #expect(timer.invalidateCallCount == 1)
     }
 

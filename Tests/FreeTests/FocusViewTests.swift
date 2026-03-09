@@ -206,6 +206,20 @@ struct FocusViewTests {
         #expect(controller.hasDeferredPomodoroReloadForTesting == false)
     }
 
+    @Test("Focus section end interaction keeps deferred flag when depth flush predicate is false")
+    @MainActor
+    func focusEndInteractionNoFlushWhenDeferredFlagIsFalse() {
+        let appState = isolatedAppState(name: "endInteractionNoFlush")
+        let controller = makeController(appState: appState, section: .pomodoro)
+        _ = host(controller)
+
+        controller.beginPomodoroWidgetInteractionForTesting()
+        controller.endPomodoroWidgetInteractionForTesting()
+
+        #expect(controller.hasDeferredPomodoroReloadForTesting == false)
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusPomodoroWidgetView")
+    }
+
     @Test("Focus section shows live overview instead of full widgets")
     @MainActor
     func focusViewLiveOverviewRender() {
@@ -300,6 +314,24 @@ struct FocusViewTests {
         #expect(controller.widgetViewIdentifierForTesting != nil)
         #expect(controller.widgetViewIdentifierForTesting == initialWidgetIdentifier)
         #expect(controller.pomodoroWidgetRefreshGenerationForTesting == initialRefreshGeneration)
+    }
+
+    @Test("Focus section widget interaction callbacks execute through reloadWidget closure wiring")
+    @MainActor
+    func focusViewPomodoroWidgetInteractionCallbackWiring() {
+        let appState = isolatedAppState(name: "pomodoroInteractionCallbackWiring")
+        let controller = makeController(appState: appState, section: .pomodoro)
+
+        _ = host(controller)
+        #expect(controller.currentWidgetViewTypeForTesting == "FocusPomodoroWidgetView")
+        #expect(controller.hasDeferredPomodoroReloadForTesting == false)
+
+        controller.needsReloadAfterPomodoroInteraction = true
+        let callbackState = controller.simulatePomodoroWidgetInteractionCallbacksForTesting()
+
+        #expect(callbackState?.didBegin == true)
+        #expect(callbackState?.didEnd == true)
+        #expect(controller.hasDeferredPomodoroReloadForTesting == false)
     }
 
     @Test("Focus section keeps pomodoro widget instance when unrelated app state changes")
