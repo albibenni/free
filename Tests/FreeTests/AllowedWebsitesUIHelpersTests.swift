@@ -197,6 +197,20 @@ struct AllowedWebsitesUIHelpersTests {
         #expect(rebuiltFromMissingId.count == 2)
         #expect(stack.arrangedSubviews.count == 2)
 
+        // Same-count but mismatched ids should exercise the "missing existing button" path.
+        let sameCountWrongIds: [UUID: AppKitSelectableRowButton] = [
+            UUID(): rebuiltFromMissingId[firstId]!,
+            UUID(): rebuiltFromMissingId[secondId]!,
+        ]
+        let rebuiltFromWrongIdSet = AllowedWebsitesRuleSetListBuilder.updateOrRebuild(
+            in: stack,
+            rows: titleChangedRows,
+            accentColor: .systemIndigo,
+            isRowSelectionEnabled: true,
+            existingButtons: sameCountWrongIds
+        ) { _ in }
+        #expect(rebuiltFromWrongIdSet.count == 2)
+
         // Order mismatch should also force rebuild and reorder arranged subviews.
         let reversedRows = [
             AllowedWebsitesPresentationCoordinator.RuleSetRow(id: secondId, title: "Second", isSelected: true),
@@ -212,5 +226,23 @@ struct AllowedWebsitesUIHelpersTests {
         #expect(reorderedButtons.count == 2)
         let orderedIds = stack.arrangedSubviews.compactMap { UUID(uuidString: $0.identifier?.rawValue ?? "") }
         #expect(orderedIds == [secondId, firstId])
+
+        // Invalid/missing arranged-subview identifiers should force rebuild.
+        for arranged in stack.arrangedSubviews {
+            stack.removeArrangedSubview(arranged)
+            arranged.removeFromSuperview()
+        }
+        let orphan = NSView(frame: .zero)
+        stack.addArrangedSubview(orphan)
+        let rebuiltFromMissingIdentifier = AllowedWebsitesRuleSetListBuilder.updateOrRebuild(
+            in: stack,
+            rows: reversedRows,
+            accentColor: .systemTeal,
+            isRowSelectionEnabled: true,
+            existingButtons: reorderedButtons
+        ) { _ in }
+        #expect(rebuiltFromMissingIdentifier.count == 2)
+        let repairedOrder = stack.arrangedSubviews.compactMap { UUID(uuidString: $0.identifier?.rawValue ?? "") }
+        #expect(repairedOrder == [secondId, firstId])
     }
 }

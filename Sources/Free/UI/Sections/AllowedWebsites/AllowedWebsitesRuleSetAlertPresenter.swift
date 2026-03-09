@@ -7,18 +7,39 @@ enum AllowedWebsitesRuleSetAlertPresenter {
     typealias EnvironmentProvider = () -> [String: String]
     typealias ClassLookup = (String) -> AnyClass?
 
-    static var makeAlert: AlertFactory = defaultMakeAlert
-    static var runModal: AlertRunner = defaultRunModal
-    static var runNativeModal: AlertRunner = defaultRunNativeModal
-    static var environmentProvider: EnvironmentProvider = defaultEnvironmentProvider
-    static var classLookup: ClassLookup = defaultClassLookup
+    private static var makeAlertOverride: AlertFactory?
+    private static var runModalOverride: AlertRunner?
+    private static var runNativeModalOverride: AlertRunner?
+    private static var environmentProviderOverride: EnvironmentProvider?
+    private static var classLookupOverride: ClassLookup?
+
+    static var makeAlert: AlertFactory {
+        get { makeAlertOverride ?? defaultMakeAlert }
+        set { makeAlertOverride = newValue }
+    }
+    static var runModal: AlertRunner {
+        get { runModalOverride ?? defaultRunModal }
+        set { runModalOverride = newValue }
+    }
+    static var runNativeModal: AlertRunner {
+        get { runNativeModalOverride ?? defaultRunNativeModal }
+        set { runNativeModalOverride = newValue }
+    }
+    static var environmentProvider: EnvironmentProvider {
+        get { environmentProviderOverride ?? defaultEnvironmentProvider }
+        set { environmentProviderOverride = newValue }
+    }
+    static var classLookup: ClassLookup {
+        get { classLookupOverride ?? defaultClassLookup }
+        set { classLookupOverride = newValue }
+    }
 
     static func resetForTesting() {
-        makeAlert = defaultMakeAlert
-        runModal = defaultRunModal
-        runNativeModal = defaultRunNativeModal
-        environmentProvider = defaultEnvironmentProvider
-        classLookup = defaultClassLookup
+        makeAlertOverride = nil
+        runModalOverride = nil
+        runNativeModalOverride = nil
+        environmentProviderOverride = nil
+        classLookupOverride = nil
     }
 
     private static func defaultMakeAlert() -> NSAlert {
