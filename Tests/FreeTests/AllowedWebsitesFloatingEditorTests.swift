@@ -129,10 +129,27 @@ struct AllowedWebsitesFloatingEditorTests {
         controller.handleDeleteRuleSet()
         #expect(appState.ruleSets.count == originalCount)
 
+        // Cover activeRuleSetId fallback path when explicit selection is nil.
+        appState.createRuleSet(name: "Extra", makeActive: false)
+        controller.selectedRuleSetId = nil
+        appState.activeRuleSetId = appState.ruleSets.first?.id
+        AllowedWebsitesRuleSetAlertPresenter.runModal = { _ in .alertSecondButtonReturn }
+        controller.handleDeleteRuleSet()
+        #expect(appState.ruleSets.count == originalCount + 1)
+
+        // Cover first-rule fallback path when both explicit selection and active id are nil.
+        appState.activeRuleSetId = nil
+        controller.selectedRuleSetId = nil
+        controller.handleDeleteRuleSet()
+        #expect(appState.ruleSets.count == originalCount + 1)
+
         appState.isBlocking = true
         appState.isUnblockable = true
         controller.handleCreateRuleSet()
-        #expect(appState.ruleSets.count == originalCount)
+        #expect(appState.ruleSets.count == originalCount + 1)
+
+        controller.handleDeleteRuleSet()
+        #expect(appState.ruleSets.count == originalCount + 1)
     }
 
     @MainActor
@@ -166,6 +183,16 @@ struct AllowedWebsitesFloatingEditorTests {
         let previousRemoveEnabled = controller.removeButton.isEnabled
         controller.handleTableSelectionChange()
         #expect(controller.removeButton.isEnabled == previousRemoveEnabled)
+
+        // Cover add/remove guards when no rule set can be resolved.
+        appState.ruleSets = []
+        appState.activeRuleSetId = nil
+        controller.selectedRuleSetId = nil
+        let visibleBeforeNoRuleSetGuards = controller.visibleRules
+        controller.urlField.stringValue = "example.com"
+        controller.handleAddRule()
+        controller.handleRemoveSelected()
+        #expect(controller.visibleRules == visibleBeforeNoRuleSetGuards)
     }
 
     @MainActor
@@ -202,6 +229,10 @@ struct AllowedWebsitesFloatingEditorTests {
             #expect(!candidates.isEmpty)
             return [candidates[0].rule]
         }
+        controller.handleImportOpenTabs()
+        #expect(controller.visibleRules.count == baselineCount + 1)
+
+        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in [] }
         controller.handleImportOpenTabs()
         #expect(controller.visibleRules.count == baselineCount + 1)
 

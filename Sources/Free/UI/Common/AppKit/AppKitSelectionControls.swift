@@ -63,9 +63,7 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
     }
 
     override var intrinsicContentSize: NSSize {
-        let contentWidth = options.reduce(CGFloat.zero) { partialResult, option in
-            partialResult + (buttonWidths[option.value] ?? 0)
-        }
+        let contentWidth = buttonWidths.values.reduce(CGFloat.zero, +)
         let spacingWidth = max(CGFloat(options.count - 1), 0) * buttonSpacing
         return NSSize(
             width: contentWidth + spacingWidth + (controlInset * 2),
@@ -113,9 +111,8 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
             NSColor.labelColor.withAlphaComponent(0.08),
             appearance: effectiveAppearance
         )
-        for option in options {
-            guard let button = buttons[option.value] else { continue }
-            let isSelected = option.value == selectedValue
+        for (value, button) in buttons {
+            let isSelected = value == selectedValue
             button.setGradientBackground(
                 colors: isSelected
                     ? [accentColor.withAlphaComponent(0.20), accentColor.withAlphaComponent(0.12)]
@@ -124,7 +121,7 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
                 borderWidth: 0
             )
             button.attributedTitle = NSAttributedString(
-                string: option.title,
+                string: button.title,
                 attributes: [
                     .font: AppKitUIConstants.Typography.regular,
                     .foregroundColor: isSelected ? accentColor : NSColor.labelColor,
