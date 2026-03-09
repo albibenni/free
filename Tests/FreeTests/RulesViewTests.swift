@@ -228,6 +228,33 @@ struct RulesViewTests {
         #expect(controller.reloadGenerationForTesting == initialReloadGeneration)
     }
 
+    @Test("Rules sheet observation signature covers nil-controller fallback and live-controller path")
+    @MainActor
+    func rulesSheetObservationSignatureCoverage() {
+        let appState = isolatedAppState(name: "observationSignatureCoverage")
+        let set = RuleSet(name: "Set A", urls: ["a.com"])
+        appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+        appState.currentOpenUrls = ["https://open.example.com"]
+
+        let fallback = RulesSheetViewController.observationSignature(
+            controller: nil,
+            appState: appState
+        )
+        #expect(fallback.selectedSetId == set.id)
+        #expect(fallback.currentOpenUrls.isEmpty)
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
+        controller.setSuggestionsExpandedForTesting(true)
+        let live = RulesSheetViewController.observationSignature(
+            controller: controller,
+            appState: appState
+        )
+        #expect(live.selectedSetId == set.id)
+        #expect(live.currentOpenUrls == appState.currentOpenUrls)
+    }
+
     @Test("Rules sheet controller reuses sidebar row views when selection changes")
     @MainActor
     func rulesSheetControllerReusesSidebarRowsOnSelection() throws {
@@ -250,6 +277,40 @@ struct RulesViewTests {
         #expect(controller.sidebarRowObjectIdentifierForTesting(setA.id) == setARowId)
         #expect(controller.sidebarRowObjectIdentifierForTesting(setB.id) == setBRowId)
         #expect(controller.selectedSetIdForTesting == setB.id)
+    }
+
+    @Test("Rules sheet canReuseSidebarRows returns false when row IDs are incomplete despite matching count")
+    @MainActor
+    func rulesSheetCanReuseSidebarRowsIncompleteIds() {
+        let appState = isolatedAppState(name: "sidebarReuseIncompleteIds")
+        let setA = RuleSet(name: "Set A", urls: ["a.com"])
+        let setB = RuleSet(name: "Set B", urls: ["b.com"])
+        appState.ruleSets = [setA, setB]
+        appState.activeRuleSetId = setA.id
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
+
+        let rowA = RulesSheetLayoutBuilder.makeSidebarRow(
+            ruleSet: setA,
+            isSelected: true,
+            canDelete: true,
+            onSelect: #selector(RulesSheetViewController.selectRuleSet(_:)),
+            onDelete: #selector(RulesSheetViewController.deleteRuleSet(_:)),
+            target: controller
+        )
+        let rowB = RulesSheetLayoutBuilder.makeSidebarRow(
+            ruleSet: setB,
+            isSelected: false,
+            canDelete: true,
+            onSelect: #selector(RulesSheetViewController.selectRuleSet(_:)),
+            onDelete: #selector(RulesSheetViewController.deleteRuleSet(_:)),
+            target: controller
+        )
+
+        controller.sidebarRowsById = [setA.id: rowA, UUID(): rowB]
+        #expect(controller.sidebarRowsById.count == appState.ruleSets.count)
+        #expect(controller.canReuseSidebarRows(rows: appState.ruleSets) == false)
     }
 
     @Test("Rules sheet controller reuses existing rule row views for unchanged rules")
