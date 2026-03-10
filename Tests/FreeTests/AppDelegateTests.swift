@@ -117,6 +117,19 @@ struct AppDelegateTests {
         #expect(system.copiedItems.isEmpty)
     }
 
+    @Test("AppDelegate launch check short-circuits for default system during test runtime")
+    func launchCheckDefaultSystemTestRuntimeEarlyReturn() {
+        let delegate = AppDelegate()
+        var callbackCalls = 0
+        delegate.onApplicationDidFinishLaunching = {
+            callbackCalls += 1
+        }
+
+        delegate.applicationDidFinishLaunching(Notification(name: Notification.Name("test")))
+
+        #expect(callbackCalls == 1)
+    }
+
     @Test("AppDelegate launch check returns early in test process")
     func launchCheckTestProcessEarlyReturn() {
         let system = MockAppDelegateSystem()
@@ -322,5 +335,45 @@ struct AppDelegateTests {
         #expect(delegate.isInApplications(path: "/System/Applications/Safari.app"))
         #expect(!delegate.isInApplications(path: "/Users/test/Downloads/Free.app"))
         #expect(!delegate.isInApplications(path: "/Volumes/Free/Free.app"))
+    }
+
+    @Test("isRunningInTestProcess checks all environment keys and class lookup fallback")
+    func isRunningInTestProcessHelperCoverage() {
+        #expect(
+            AppDelegate.isRunningInTestProcess(
+                environment: ["XCTestConfigurationFilePath": "1"],
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            AppDelegate.isRunningInTestProcess(
+                environment: ["XCTestBundlePath": "1"],
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            AppDelegate.isRunningInTestProcess(
+                environment: ["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES": "1"],
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            AppDelegate.isRunningInTestProcess(
+                environment: ["__XCODE_BUILT_PRODUCTS_DIR_PATHS": "1"],
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            AppDelegate.isRunningInTestProcess(
+                environment: [:],
+                classLookup: { _ in nil }
+            ) == false
+        )
+        #expect(
+            AppDelegate.isRunningInTestProcess(
+                environment: [:],
+                classLookup: { _ in NSObject.self }
+            )
+        )
     }
 }

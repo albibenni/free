@@ -19,6 +19,12 @@ private final class ImportCoverageAutomator: BrowserAutomator {
 
 @Suite(.serialized)
 struct ModalAndShellCoverageTests {
+    private final class NonBlockingAlert: NSAlert {
+        override func runModal() -> NSApplication.ModalResponse {
+            .alertFirstButtonReturn
+        }
+    }
+
     private func isolatedAppState(
         name: String,
         openUrls: [String] = []
@@ -68,6 +74,35 @@ struct ModalAndShellCoverageTests {
     }
 
     @MainActor
+    @Test("Rule-set alert presenters default native-modal runners execute through NSAlert.runModal override")
+    func alertPresentersDefaultNativeModalRunners() {
+        defer {
+            AllowedWebsitesRuleSetAlertPresenter.resetForTesting()
+            RulesSheetAlertPresenter.resetForTesting()
+            AllowedWebsitesImportAlertPresenter.resetForTesting()
+        }
+
+        AllowedWebsitesRuleSetAlertPresenter.resetForTesting()
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = { [:] }
+        AllowedWebsitesRuleSetAlertPresenter.classLookup = { _ in nil }
+        _ = AllowedWebsitesRuleSetAlertPresenter.makeAlert()
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NonBlockingAlert()) == .alertFirstButtonReturn)
+
+        RulesSheetAlertPresenter.resetForTesting()
+        RulesSheetAlertPresenter.environmentProvider = { [:] }
+        RulesSheetAlertPresenter.classLookup = { _ in nil }
+        _ = RulesSheetAlertPresenter.makeAlert()
+        #expect(RulesSheetAlertPresenter.runModal(NonBlockingAlert()) == .alertFirstButtonReturn)
+
+        AllowedWebsitesImportAlertPresenter.resetForTesting()
+        AllowedWebsitesImportAlertPresenter.environmentProvider = { [:] }
+        AllowedWebsitesImportAlertPresenter.classLookup = { _ in nil }
+        _ = AllowedWebsitesImportAlertPresenter.makeAlert()
+        #expect(AllowedWebsitesImportAlertPresenter.runNativeModal(NonBlockingAlert()) == .alertFirstButtonReturn)
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NonBlockingAlert()) == .alertFirstButtonReturn)
+    }
+
+    @MainActor
     @Test("Alert presenters support create/cancel and confirm paths through injected runner")
     func alertPresenters() {
         defer {
@@ -86,6 +121,76 @@ struct ModalAndShellCoverageTests {
         AllowedWebsitesImportAlertPresenter.resetForTesting()
         _ = AllowedWebsitesImportAlertPresenter.makeAlert()
         _ = AllowedWebsitesImportAlertPresenter.runModal(NSAlert())
+        var usedImportNativeRunner = false
+        AllowedWebsitesImportAlertPresenter.environmentProvider = { ["XCTestConfigurationFilePath": "1"] }
+        AllowedWebsitesImportAlertPresenter.classLookup = { _ in nil }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesImportAlertPresenter.environmentProvider = { ["XCTestBundlePath": "1"] }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesImportAlertPresenter.environmentProvider = {
+            ["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES": "1"]
+        }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesImportAlertPresenter.environmentProvider = { ["__XCODE_BUILT_PRODUCTS_DIR_PATHS": "1"] }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesImportAlertPresenter.environmentProvider = { [:] }
+        AllowedWebsitesImportAlertPresenter.classLookup = { _ in nil }
+        AllowedWebsitesImportAlertPresenter.runNativeModal = { _ in
+            usedImportNativeRunner = true
+            return .alertFirstButtonReturn
+        }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertFirstButtonReturn)
+        #expect(usedImportNativeRunner)
+        AllowedWebsitesImportAlertPresenter.classLookup = { _ in NSObject.self }
+        #expect(AllowedWebsitesImportAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+
+        var usedAllowedNativeRunner = false
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = { ["XCTestConfigurationFilePath": "1"] }
+        AllowedWebsitesRuleSetAlertPresenter.classLookup = { _ in nil }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = { ["XCTestBundlePath": "1"] }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = {
+            ["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES": "1"]
+        }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = { ["__XCODE_BUILT_PRODUCTS_DIR_PATHS": "1"] }
+        AllowedWebsitesRuleSetAlertPresenter.classLookup = { _ in nil }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        AllowedWebsitesRuleSetAlertPresenter.environmentProvider = { [:] }
+        AllowedWebsitesRuleSetAlertPresenter.classLookup = { _ in nil }
+        AllowedWebsitesRuleSetAlertPresenter.runNativeModal = { _ in
+            usedAllowedNativeRunner = true
+            return .alertFirstButtonReturn
+        }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertFirstButtonReturn)
+        #expect(usedAllowedNativeRunner)
+        AllowedWebsitesRuleSetAlertPresenter.classLookup = { _ in NSObject.self }
+        #expect(AllowedWebsitesRuleSetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+
+        var usedRulesNativeRunner = false
+        RulesSheetAlertPresenter.environmentProvider = { ["XCTestConfigurationFilePath": "1"] }
+        RulesSheetAlertPresenter.classLookup = { _ in nil }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        RulesSheetAlertPresenter.environmentProvider = { ["XCTestBundlePath": "1"] }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        RulesSheetAlertPresenter.environmentProvider = {
+            ["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES": "1"]
+        }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        RulesSheetAlertPresenter.environmentProvider = { ["__XCODE_BUILT_PRODUCTS_DIR_PATHS": "1"] }
+        RulesSheetAlertPresenter.classLookup = { _ in nil }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
+        RulesSheetAlertPresenter.environmentProvider = { [:] }
+        RulesSheetAlertPresenter.classLookup = { _ in nil }
+        RulesSheetAlertPresenter.runNativeModal = { _ in
+            usedRulesNativeRunner = true
+            return .alertFirstButtonReturn
+        }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertFirstButtonReturn)
+        #expect(usedRulesNativeRunner)
+        RulesSheetAlertPresenter.classLookup = { _ in NSObject.self }
+        #expect(RulesSheetAlertPresenter.runModal(NSAlert()) == .alertSecondButtonReturn)
 
         AllowedWebsitesRuleSetAlertPresenter.makeAlert = { NSAlert() }
         AllowedWebsitesRuleSetAlertPresenter.runModal = { alert in
@@ -127,6 +232,12 @@ struct ModalAndShellCoverageTests {
                 defaultSelected: true
             ),
             AllowedWebsitesImportCoordinator.Candidate(
+                rule: "https://toggle-on.com",
+                title: "https://toggle-on.com",
+                isSelectable: true,
+                defaultSelected: false
+            ),
+            AllowedWebsitesImportCoordinator.Candidate(
                 rule: "https://already.com",
                 title: "https://already.com (already allowed)",
                 isSelectable: false,
@@ -159,6 +270,26 @@ struct ModalAndShellCoverageTests {
                 candidates: candidates,
                 selectedSetName: "Work"
             ) == []
+        )
+
+        AllowedWebsitesImportAlertPresenter.runModal = { alert in
+            guard
+                let accessory = alert.accessoryView,
+                let selectAll = accessory.subviews.compactMap({ $0 as? NSButton }).first
+            else {
+                return .alertFirstButtonReturn
+            }
+            selectAll.state = .on
+            if let action = selectAll.action {
+                _ = NSApp.sendAction(action, to: selectAll.target, from: selectAll)
+            }
+            return .alertFirstButtonReturn
+        }
+        #expect(
+            AllowedWebsitesImportAlertPresenter.presentCandidateSelection(
+                candidates: candidates,
+                selectedSetName: "Work"
+            )?.sorted() == ["https://example.com", "https://toggle-on.com"]
         )
 
         AllowedWebsitesImportAlertPresenter.runModal = { _ in .alertSecondButtonReturn }
@@ -505,6 +636,11 @@ struct ModalAndShellCoverageTests {
                 display: false
             )
             floating.restoreDesiredContentSize()
+            window.setFrame(
+                NSRect(origin: window.frame.origin, size: NSSize(width: 760, height: 560)),
+                display: false
+            )
+            floating.reconcileWindowFrameForTesting()
         }
         floating.restoreDesiredContentSize()
         floating.dismiss()
@@ -524,6 +660,110 @@ struct ModalAndShellCoverageTests {
 
         sheet.windowWillClose(Notification(name: NSWindow.willCloseNotification))
         #expect(sheetClosed == 2)
+    }
+
+    @MainActor
+    @Test("Free sheet window controller covers no-op and already-attached branches")
+    func freeSheetWindowControllerBranchCoverage() {
+        let parent = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 520),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+
+        // Cover floating dismiss path when not parented.
+        var floatingClosed = 0
+        let floating = FreeSheetWindowController(
+            contentViewController: NSViewController(),
+            contentSize: CGSize(width: 360, height: 260),
+            presentsAsSheet: false,
+            showsNativeCloseButton: false
+        ) {
+            floatingClosed += 1
+        }
+
+        floating.dismiss()
+        #expect(floatingClosed == 1)
+
+        guard let floatingWindow = floating.window else {
+            Issue.record("Expected floating window")
+            return
+        }
+
+        // First present attaches and centers.
+        floating.present(for: parent)
+        #expect(floatingWindow.parent === parent)
+
+        // Second present should cover already-visible / already-parented branches.
+        floating.present(for: parent)
+        #expect(floatingWindow.parent === parent)
+
+        // Exercise reconcile() branch where width already matches but height differs.
+        let targetFrame = floatingWindow.frameRect(
+            forContentRect: NSRect(origin: .zero, size: CGSize(width: 360, height: 260))
+        )
+        floatingWindow.setFrame(
+            NSRect(
+                origin: floatingWindow.frame.origin,
+                size: NSSize(width: targetFrame.width, height: targetFrame.height + 12)
+            ),
+            display: false
+        )
+        floating.reconcileWindowFrameForTesting()
+        #expect(abs(floatingWindow.frame.height - targetFrame.height) <= 0.5)
+
+        floating.dismiss()
+        #expect(floatingClosed == 2)
+
+        // Cover sheet dismiss path when no sheet parent exists.
+        var sheetClosed = 0
+        let sheet = FreeSheetWindowController(
+            contentViewController: NSViewController(),
+            contentSize: CGSize(width: 360, height: 260),
+            presentsAsSheet: true
+        ) {
+            sheetClosed += 1
+        }
+        sheet.dismiss()
+        #expect(sheetClosed == 1)
+    }
+
+    @MainActor
+    @Test("Free sheet window controller guard-return branches are covered")
+    func freeSheetWindowControllerGuardBranches() {
+        let parent = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+
+        var closeCount = 0
+        let controller = FreeSheetWindowController(
+            contentViewController: NSViewController(),
+            contentSize: CGSize(width: 320, height: 240),
+            presentsAsSheet: false
+        ) {
+            closeCount += 1
+        }
+
+        // Force nil-window guard paths.
+        controller.window = nil
+        controller.present(for: parent)
+        controller.restoreDesiredContentSize()
+        controller.dismiss()
+        controller.reconcileWindowFrameForTesting()
+        #expect(closeCount == 0)
+
+        // Cover programmatic-close guard in windowWillClose.
+        controller.setClosingProgrammaticallyForTesting(true)
+        controller.windowWillClose(Notification(name: NSWindow.willCloseNotification))
+        #expect(closeCount == 0)
+
+        controller.setClosingProgrammaticallyForTesting(false)
+        controller.windowWillClose(Notification(name: NSWindow.willCloseNotification))
+        #expect(closeCount == 1)
     }
 
     @MainActor
@@ -560,6 +800,14 @@ struct ModalAndShellCoverageTests {
                 iconColor: .labelColor
             )
         }
+
+        // Cover guard path when a status button cannot be resolved.
+        controller.setStatusButtonProviderForTesting { nil }
+        controller.update(
+            statusText: "Focus Mode: Inactive",
+            isQuitDisabled: false,
+            iconColor: .labelColor
+        )
     }
 
     @MainActor

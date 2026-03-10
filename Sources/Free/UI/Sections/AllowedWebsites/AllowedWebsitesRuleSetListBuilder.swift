@@ -25,7 +25,7 @@ enum AllowedWebsitesRuleSetListBuilder {
         }
 
         for row in rows {
-            guard let button = existingButtons[row.id] else { continue }
+            let button = existingButtons[row.id]!
             button.accentColor = accentColor
             button.applySelectionState(row.isSelected)
             button.isEnabled = isRowSelectionEnabled

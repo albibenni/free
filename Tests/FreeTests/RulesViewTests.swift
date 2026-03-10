@@ -6,6 +6,11 @@ import Testing
 
 @Suite(.serialized)
 struct RulesViewTests {
+    private final class ActionTarget: NSObject {
+        @objc
+        func noop(_: Any?) {}
+    }
+
     private func isolatedAppState(name: String) -> AppState {
         let suite = "RulesViewTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -121,6 +126,44 @@ struct RulesViewTests {
         #expect(wildcardRegression.allSatisfy { !$0.isAlreadyAllowed })
     }
 
+    @Test("Rules section support import candidates cover duplicate, nil-existing, excluded-scheme, and fallback URL parsing branches")
+    func rulesSectionSupportImportCandidateEdgeBranches() {
+        let candidates = RulesSectionSupport.importableWebsiteCandidates(
+            from: [
+                "   ",  // trimmed empty guard
+                "example.com/path?q=1",  // adds https:// prefix branch
+                "example.com/path?q=1",  // duplicate guard (!seen.contains)
+                "file://Users/test/Desktop",  // excluded internal scheme branch
+                "https://?",  // components with no host -> fallback normalize path
+                "https://",  // fallback normalize with empty normalized output
+            ],
+            existing: nil  // existing.map(... ) ?? false branch
+        )
+
+        #expect(candidates.contains(where: { $0.rule.contains("example.com/path?q=1") }))
+        #expect(candidates.filter { $0.rule.contains("example.com/path?q=1") }.count == 1)
+        #expect(candidates.allSatisfy { $0.isAlreadyAllowed == false })
+        #expect(candidates.contains(where: { $0.rule.contains("https://?") || $0.rule == "?" }))
+        #expect(candidates.contains(where: { $0.rule.contains("file://") }) == false)
+
+        let emptyNormalized = RulesSectionSupport.isExactRuleAlreadyPresentForTesting(
+            rule: "   ",
+            existing: RuleSet(name: "Edge", urls: ["example.com"])
+        )
+        #expect(emptyNormalized == false)
+
+        #expect(RulesSectionSupport.websiteRuleForTesting(raw: "http://") == nil)
+        #expect(RulesSectionSupport.websiteRuleForTesting(raw: "http:example.com") != nil)
+    }
+
+    @Test("Rules section support delete-set visibility boolean matrix")
+    func rulesSectionSupportDeleteSetVisibilityMatrix() {
+        #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 0, isBlocking: false) == false)
+        #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 1, isBlocking: false) == false)
+        #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: true) == false)
+        #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: false) == true)
+    }
+
     @Test("Rules sheet controller actions mutate rule-set state and UI state")
     @MainActor
     func rulesSheetControllerActionCoverage() throws {
@@ -223,6 +266,33 @@ struct RulesViewTests {
         #expect(controller.reloadGenerationForTesting == initialReloadGeneration)
     }
 
+    @Test("Rules sheet observation signature covers nil-controller fallback and live-controller path")
+    @MainActor
+    func rulesSheetObservationSignatureCoverage() {
+        let appState = isolatedAppState(name: "observationSignatureCoverage")
+        let set = RuleSet(name: "Set A", urls: ["a.com"])
+        appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+        appState.currentOpenUrls = ["https://open.example.com"]
+
+        let fallback = RulesSheetViewController.observationSignature(
+            controller: nil,
+            appState: appState
+        )
+        #expect(fallback.selectedSetId == set.id)
+        #expect(fallback.currentOpenUrls.isEmpty)
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
+        controller.setSuggestionsExpandedForTesting(true)
+        let live = RulesSheetViewController.observationSignature(
+            controller: controller,
+            appState: appState
+        )
+        #expect(live.selectedSetId == set.id)
+        #expect(live.currentOpenUrls == appState.currentOpenUrls)
+    }
+
     @Test("Rules sheet controller reuses sidebar row views when selection changes")
     @MainActor
     func rulesSheetControllerReusesSidebarRowsOnSelection() throws {
@@ -245,6 +315,40 @@ struct RulesViewTests {
         #expect(controller.sidebarRowObjectIdentifierForTesting(setA.id) == setARowId)
         #expect(controller.sidebarRowObjectIdentifierForTesting(setB.id) == setBRowId)
         #expect(controller.selectedSetIdForTesting == setB.id)
+    }
+
+    @Test("Rules sheet canReuseSidebarRows returns false when row IDs are incomplete despite matching count")
+    @MainActor
+    func rulesSheetCanReuseSidebarRowsIncompleteIds() {
+        let appState = isolatedAppState(name: "sidebarReuseIncompleteIds")
+        let setA = RuleSet(name: "Set A", urls: ["a.com"])
+        let setB = RuleSet(name: "Set B", urls: ["b.com"])
+        appState.ruleSets = [setA, setB]
+        appState.activeRuleSetId = setA.id
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
+
+        let rowA = RulesSheetLayoutBuilder.makeSidebarRow(
+            ruleSet: setA,
+            isSelected: true,
+            canDelete: true,
+            onSelect: #selector(RulesSheetViewController.selectRuleSet(_:)),
+            onDelete: #selector(RulesSheetViewController.deleteRuleSet(_:)),
+            target: controller
+        )
+        let rowB = RulesSheetLayoutBuilder.makeSidebarRow(
+            ruleSet: setB,
+            isSelected: false,
+            canDelete: true,
+            onSelect: #selector(RulesSheetViewController.selectRuleSet(_:)),
+            onDelete: #selector(RulesSheetViewController.deleteRuleSet(_:)),
+            target: controller
+        )
+
+        controller.sidebarRowsById = [setA.id: rowA, UUID(): rowB]
+        #expect(controller.sidebarRowsById.count == appState.ruleSets.count)
+        #expect(controller.canReuseSidebarRows(rows: appState.ruleSets) == false)
     }
 
     @Test("Rules sheet controller reuses existing rule row views for unchanged rules")
@@ -421,5 +525,191 @@ struct RulesViewTests {
 
         controller.handleDone()
         #expect(doneCount == 1)
+    }
+
+    @Test("Rules sheet selectRuleSet returns early when tapping already selected row")
+    @MainActor
+    func rulesSheetSelectRuleSetNoOpWhenAlreadySelected() {
+        let appState = isolatedAppState(name: "objcSelectSameRowNoOp")
+        let setA = RuleSet(name: "Set A", urls: ["a.com"])
+        let setB = RuleSet(name: "Set B", urls: ["b.com"])
+        appState.ruleSets = [setA, setB]
+        appState.activeRuleSetId = setA.id
+
+        let controller = RulesSheetViewController(appState: appState)
+        _ = host(controller)
+
+        let initialReloadGeneration = controller.reloadGenerationForTesting
+        let setARowId = controller.sidebarRowObjectIdentifierForTesting(setA.id)
+        let setBRowId = controller.sidebarRowObjectIdentifierForTesting(setB.id)
+
+        let sameSelectionButton = NSButton()
+        sameSelectionButton.identifier = NSUserInterfaceItemIdentifier(setA.id.uuidString)
+        controller.selectRuleSet(sameSelectionButton)
+
+        #expect(controller.selectedSetIdForTesting == setA.id)
+        #expect(controller.reloadGenerationForTesting == initialReloadGeneration)
+        #expect(controller.sidebarRowObjectIdentifierForTesting(setA.id) == setARowId)
+        #expect(controller.sidebarRowObjectIdentifierForTesting(setB.id) == setBRowId)
+    }
+
+    @Test("Rules layout builder covers sidebar delete teardown and row reorder/trim branches")
+    @MainActor
+    func rulesLayoutBuilderReorderAndTrimCoverage() {
+        let target = ActionTarget()
+        let onSelect = #selector(ActionTarget.noop(_:))
+        let onDelete = #selector(ActionTarget.noop(_:))
+        let onAdd = #selector(ActionTarget.noop(_:))
+
+        let setA = RuleSet(name: "A", urls: ["a.com"])
+        let sidebarRow = RulesSheetLayoutBuilder.makeSidebarRow(
+            ruleSet: setA,
+            isSelected: true,
+            canDelete: true,
+            onSelect: onSelect,
+            onDelete: onDelete,
+            target: target
+        )
+        #expect(sidebarRow.arrangedSubviews.count == 3)
+        sidebarRow.configure(
+            title: setA.name,
+            ruleSetId: setA.id,
+            isSelected: false,
+            canDelete: false,
+            onSelect: onSelect,
+            onDelete: onDelete,
+            target: target
+        )
+        #expect(sidebarRow.arrangedSubviews.count == 2)
+
+        let rulesStack = NSStackView()
+        let ruleA = RulesSheetLayoutBuilder.makeRuleRow(rule: "a.com", onDelete: onDelete, target: target)
+        let ruleB = RulesSheetLayoutBuilder.makeRuleRow(rule: "b.com", onDelete: onDelete, target: target)
+        rulesStack.addArrangedSubview(ruleB)
+        rulesStack.addArrangedSubview(ruleA)
+        rulesStack.addArrangedSubview(NSView())
+
+        let reorderedRuleRows = RulesSheetLayoutBuilder.updateOrRebuildRuleRows(
+            in: rulesStack,
+            rules: ["a.com", "b.com"],
+            existingRows: ["a.com": ruleA, "b.com": ruleB],
+            onDelete: onDelete,
+            target: target
+        )
+        #expect(reorderedRuleRows.count == 2)
+        #expect(rulesStack.arrangedSubviews.count == 2)
+        #expect((rulesStack.arrangedSubviews[0] as? RulesSheetRuleRowView)?.rule == "a.com")
+        #expect((rulesStack.arrangedSubviews[1] as? RulesSheetRuleRowView)?.rule == "b.com")
+
+        let suggestionStack = NSStackView()
+        let suggestionA = RulesSheetLayoutBuilder.makeSuggestionRow(
+            suggestion: "https://a.com",
+            accentColor: .systemBlue,
+            onAdd: onAdd,
+            target: target
+        )
+        let suggestionB = RulesSheetLayoutBuilder.makeSuggestionRow(
+            suggestion: "https://b.com",
+            accentColor: .systemBlue,
+            onAdd: onAdd,
+            target: target
+        )
+        suggestionStack.addArrangedSubview(suggestionB)
+        suggestionStack.addArrangedSubview(suggestionA)
+        suggestionStack.addArrangedSubview(NSView())
+
+        let reorderedSuggestionRows = RulesSheetLayoutBuilder.updateOrRebuildSuggestionRows(
+            in: suggestionStack,
+            suggestions: ["https://a.com", "https://b.com"],
+            accentColor: .systemGreen,
+            existingRows: ["https://a.com": suggestionA, "https://b.com": suggestionB],
+            onAdd: onAdd,
+            target: target
+        )
+        #expect(reorderedSuggestionRows.count == 2)
+        #expect(suggestionStack.arrangedSubviews.count == 2)
+        #expect((suggestionStack.arrangedSubviews[0] as? RulesSheetSuggestionRowView)?.suggestion == "https://a.com")
+        #expect((suggestionStack.arrangedSubviews[1] as? RulesSheetSuggestionRowView)?.suggestion == "https://b.com")
+
+        // Cover insert-and-continue branches when existing rows are detached.
+        let detachedRulesStack = NSStackView()
+        let detachedRuleRow = RulesSheetLayoutBuilder.makeRuleRow(rule: "detached.com", onDelete: onDelete, target: target)
+        let detachedRules = RulesSheetLayoutBuilder.updateOrRebuildRuleRows(
+            in: detachedRulesStack,
+            rules: ["detached.com"],
+            existingRows: ["detached.com": detachedRuleRow],
+            onDelete: onDelete,
+            target: target
+        )
+        #expect(detachedRulesStack.arrangedSubviews.count == 1)
+        #expect((detachedRulesStack.arrangedSubviews.first as? RulesSheetRuleRowView)?.rule == "detached.com")
+        #expect(detachedRules["detached.com"] === detachedRuleRow)
+
+        let detachedSuggestionsStack = NSStackView()
+        let detachedSuggestionRow = RulesSheetLayoutBuilder.makeSuggestionRow(
+            suggestion: "https://detached.com",
+            accentColor: .systemBlue,
+            onAdd: onAdd,
+            target: target
+        )
+        let detachedSuggestions = RulesSheetLayoutBuilder.updateOrRebuildSuggestionRows(
+            in: detachedSuggestionsStack,
+            suggestions: ["https://detached.com"],
+            accentColor: .systemGreen,
+            existingRows: ["https://detached.com": detachedSuggestionRow],
+            onAdd: onAdd,
+            target: target
+        )
+        #expect(detachedSuggestionsStack.arrangedSubviews.count == 1)
+        #expect((detachedSuggestionsStack.arrangedSubviews.first as? RulesSheetSuggestionRowView)?.suggestion == "https://detached.com")
+        #expect(detachedSuggestions["https://detached.com"] === detachedSuggestionRow)
+
+        // Cover currentAtIndex nil branch when row still has superview but is not arranged.
+        let nonArrangedRuleStack = NSStackView()
+        let nonArrangedRuleRow = RulesSheetLayoutBuilder.makeRuleRow(rule: "edge.com", onDelete: onDelete, target: target)
+        nonArrangedRuleStack.addArrangedSubview(nonArrangedRuleRow)
+        nonArrangedRuleStack.removeArrangedSubview(nonArrangedRuleRow)
+        let edgeRules = RulesSheetLayoutBuilder.updateOrRebuildRuleRows(
+            in: nonArrangedRuleStack,
+            rules: ["edge.com"],
+            existingRows: ["edge.com": nonArrangedRuleRow],
+            onDelete: onDelete,
+            target: target
+        )
+        #expect((nonArrangedRuleStack.arrangedSubviews.first as? RulesSheetRuleRowView)?.rule == "edge.com")
+        #expect(edgeRules["edge.com"] === nonArrangedRuleRow)
+
+        let nonArrangedSuggestionStack = NSStackView()
+        let nonArrangedSuggestionRow = RulesSheetLayoutBuilder.makeSuggestionRow(
+            suggestion: "https://edge.com",
+            accentColor: .systemBlue,
+            onAdd: onAdd,
+            target: target
+        )
+        nonArrangedSuggestionStack.addArrangedSubview(nonArrangedSuggestionRow)
+        nonArrangedSuggestionStack.removeArrangedSubview(nonArrangedSuggestionRow)
+        let edgeSuggestions = RulesSheetLayoutBuilder.updateOrRebuildSuggestionRows(
+            in: nonArrangedSuggestionStack,
+            suggestions: ["https://edge.com"],
+            accentColor: .systemGreen,
+            existingRows: ["https://edge.com": nonArrangedSuggestionRow],
+            onAdd: onAdd,
+            target: target
+        )
+        #expect((nonArrangedSuggestionStack.arrangedSubviews.first as? RulesSheetSuggestionRowView)?.suggestion == "https://edge.com")
+        #expect(edgeSuggestions["https://edge.com"] === nonArrangedSuggestionRow)
+    }
+
+    @Test("Rules layout row NSCoder init paths return nil")
+    @MainActor
+    func rulesLayoutRowCoderInitCoverage() throws {
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        archiver.finishEncoding()
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        defer { unarchiver.finishDecoding() }
+
+        #expect(RulesSheetSidebarRowView(coder: unarchiver) == nil)
+        #expect(RulesSheetRuleRowView(coder: unarchiver) == nil)
+        #expect(RulesSheetSuggestionRowView(coder: unarchiver) == nil)
     }
 }

@@ -2,6 +2,17 @@ import AppKit
 import Combine
 
 final class SettingsSectionViewController: NSViewController {
+    typealias AlertFactory = () -> NSAlert
+    typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+
+    static var makeStrictModeAlert: AlertFactory = { NSAlert() }
+    static var runStrictModeAlert: AlertRunner = { alert in
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return .alertSecondButtonReturn
+        }
+        return alert.runModal()
+    }
+
     private struct ObservationSignature: Equatable {
         let isBlocking: Bool
         let isUnblockable: Bool
@@ -96,11 +107,25 @@ final class SettingsSectionViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        let appState = self.appState
 
         AppKitAppStateObservation.bind(
             publisher: AppKitAppStateObservation.settingsPublisher(appState: appState),
-            signature: { [weak self] in
-                self?.observationSignature() ?? .fallback
+            signature: {
+                ObservationSignature(
+                    isBlocking: appState.isBlocking,
+                    isUnblockable: appState.isUnblockable,
+                    isStrictActive: appState.isStrictActive,
+                    weekStartsOnMonday: appState.weekStartsOnMonday,
+                    calendarIntegrationEnabled: appState.calendarIntegrationEnabled,
+                    calendarImportsBlockTime: appState.calendarImportsBlockTime,
+                    blockNewTabs: appState.blockNewTabs,
+                    blockDeveloperHosts: appState.blockDeveloperHosts,
+                    blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
+                    appearanceMode: appState.appearanceMode,
+                    accentColorIndex: appState.accentColorIndex,
+                    launchAtLoginEnabled: appState.launchAtLoginStatus()
+                )
             },
             cancellables: &cancellables
         ) { [weak self] _ in
@@ -108,23 +133,6 @@ final class SettingsSectionViewController: NSViewController {
         }
 
         reloadSettings()
-    }
-
-    private func observationSignature() -> ObservationSignature {
-        ObservationSignature(
-            isBlocking: appState.isBlocking,
-            isUnblockable: appState.isUnblockable,
-            isStrictActive: appState.isStrictActive,
-            weekStartsOnMonday: appState.weekStartsOnMonday,
-            calendarIntegrationEnabled: appState.calendarIntegrationEnabled,
-            calendarImportsBlockTime: appState.calendarImportsBlockTime,
-            blockNewTabs: appState.blockNewTabs,
-            blockDeveloperHosts: appState.blockDeveloperHosts,
-            blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
-            appearanceMode: appState.appearanceMode,
-            accentColorIndex: appState.accentColorIndex,
-            launchAtLoginEnabled: appState.launchAtLoginStatus()
-        )
     }
 
     private func makeSectionTitle(_ text: String) -> NSView {
@@ -407,7 +415,7 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func disableStrictMode() {
-        let alert = NSAlert()
+        let alert = Self.makeStrictModeAlert()
         alert.messageText = "Emergency Unlock"
         alert.informativeText = "Type the phrase exactly to disable Unblockable Mode:\n\n\"\(AppState.challengePhrase)\""
         let input = NSTextField(string: "")
@@ -416,7 +424,7 @@ final class SettingsSectionViewController: NSViewController {
         alert.accessoryView = input
         alert.addButton(withTitle: "Unlock")
         alert.addButton(withTitle: "Cancel")
-        let response = alert.runModal()
+        let response = Self.runStrictModeAlert(alert)
         if response == .alertFirstButtonReturn {
             _ = appState.disableUnblockableWithChallenge(phrase: input.stringValue)
         }
@@ -492,5 +500,72 @@ extension SettingsSectionViewController {
     func setLaunchAtLoginForTesting(_ enabled: Bool) {
         launchAtLoginSwitch.state = enabled ? .on : .off
         toggleLaunchAtLogin()
+    }
+
+    func setStrictModeForTesting(_ enabled: Bool) {
+        strictToggle.state = enabled ? .on : .off
+        toggleStrictMode()
+        reloadSettings()
+    }
+
+    func setWeekStartsMondayForTesting(_ enabled: Bool) {
+        weekStartsMondaySwitch.state = enabled ? .on : .off
+        toggleWeekStartsMonday()
+        reloadSettings()
+    }
+
+    func setCalendarIntegrationForTesting(_ enabled: Bool) {
+        calendarIntegrationSwitch.state = enabled ? .on : .off
+        toggleCalendarIntegration()
+        reloadSettings()
+    }
+
+    func setCalendarImportsForTesting(_ enabled: Bool) {
+        calendarImportsSwitch.state = enabled ? .on : .off
+        toggleCalendarImports()
+        reloadSettings()
+    }
+
+    func resyncImportedSchedulesForTesting() {
+        resyncImportedSchedules()
+    }
+
+    func setBlockNewTabsForTesting(_ enabled: Bool) {
+        blockNewTabsSwitch.state = enabled ? .on : .off
+        toggleBlockNewTabs()
+        reloadSettings()
+    }
+
+    func setBlockDeveloperHostsForTesting(_ enabled: Bool) {
+        blockDeveloperHostsSwitch.state = enabled ? .on : .off
+        toggleBlockDeveloperHosts()
+        reloadSettings()
+    }
+
+    func setBlockLocalNetworkHostsForTesting(_ enabled: Bool) {
+        blockLocalNetworkHostsSwitch.state = enabled ? .on : .off
+        toggleBlockLocalNetworkHosts()
+        reloadSettings()
+    }
+
+    func selectAppearanceModeForTesting(_ mode: AppearanceMode) {
+        appearanceModeControl?.onSelection?(mode)
+        appearanceModeControl?.selectedValue = mode
+        reloadSettings()
+    }
+
+    static func resetStrictModeAlertHooksForTesting() {
+        makeStrictModeAlert = { NSAlert() }
+        runStrictModeAlert = { alert in
+            if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+                return .alertSecondButtonReturn
+            }
+            return alert.runModal()
+        }
+    }
+
+    func invokeDisableStrictModeModalForTesting() {
+        disableStrictMode()
+        reloadSettings()
     }
 }

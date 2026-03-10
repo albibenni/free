@@ -50,11 +50,9 @@ class LocalServer {
     private(set) var port: NWEndpoint.Port?
     var onFailure: ((Error) -> Void)?
     var processNameProvider: () -> String = { ProcessInfo.processInfo.processName }
-    var listenerFactory:
-        (_ parameters: NWParameters, _ port: NWEndpoint.Port) throws -> NWListener = {
-            parameters, port in
-            try NWListener(using: parameters, on: port)
-        }
+    var listenerFactory: (_ port: NWEndpoint.Port) throws -> NWListener = { port in
+        try NWListener(using: .tcp, on: port)
+    }
 
     func start(on requestedPort: NWEndpoint.Port = 10000) {
         let isGeneralTesting = processNameProvider().contains("Test") && requestedPort == 10000
@@ -64,18 +62,14 @@ class LocalServer {
         }
 
         do {
-            let parameters = NWParameters.tcp
-            let listener = try listenerFactory(parameters, requestedPort)
+            let listener = try listenerFactory(requestedPort)
             self.port = requestedPort
 
             listener.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    if let actualPort = listener.port {
-                        print("Local server listening on port \(actualPort)")
-                    }
+                    _ = listener.port
                 case .failed(let error):
-                    print("Server failed with error: \(error)")
                     self.onFailure?(error)
                 default:
                     break
@@ -89,7 +83,6 @@ class LocalServer {
             listener.start(queue: .global())
             self.listener = listener
         } catch {
-            print("Failed to start server: \(error)")
             self.onFailure?(error)
         }
     }

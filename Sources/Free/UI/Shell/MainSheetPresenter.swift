@@ -114,3 +114,9 @@ final class MainSheetPresenter {
         controller.dismiss()
     }
 }
+
+extension MainSheetPresenter {
+    var schedulesSheetControllerForTesting: (any SchedulesSheetPresenting)? {
+        schedulesSheetController
+    }
+}

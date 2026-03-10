@@ -91,6 +91,20 @@ struct AllowedWebsitesActionsCoordinatorsTests {
         #expect(
             appState.ruleSets.first(where: { $0.id == set.id })?.urls.contains("example.com") == false
         )
+
+        let addInvalid = AllowedWebsitesRuleActionsCoordinator.addRule(
+            appState: appState,
+            setId: set.id,
+            rawValue: "   "
+        )
+        #expect(addInvalid == false)
+
+        let removedEmpty = AllowedWebsitesRuleActionsCoordinator.removeRules(
+            appState: appState,
+            setId: set.id,
+            rules: []
+        )
+        #expect(removedEmpty == 0)
     }
 
     @Test("Reload coordinator resolves signature and selected rule-set fallback")
@@ -113,5 +127,30 @@ struct AllowedWebsitesActionsCoordinatorsTests {
         )
         #expect(state.renderSignature.ruleSets.contains(where: { $0.id == a.id }))
         #expect(state.renderSignature.ruleSets.contains(where: { $0.id == b.id }))
+    }
+
+    @Test("Rule-set actions coordinator function references execute runtime paths")
+    func ruleSetActionsCoordinatorFunctionReferences() {
+        let createAllowed: (Bool) -> Bool = AllowedWebsitesRuleSetActionsCoordinator.canCreateRuleSet
+        let deleteAllowed: (Bool, Int) -> Bool = AllowedWebsitesRuleSetActionsCoordinator.canDeleteRuleSet
+        let selectRuleSet: (UUID?, [RuleSet]) -> RuleSet? = AllowedWebsitesRuleSetActionsCoordinator.selectedRuleSet
+        let selectionAfterTap: (UUID, UUID?, Bool) -> UUID? =
+            AllowedWebsitesRuleSetActionsCoordinator.selectedRuleSetAfterRowTap
+
+        let strictActive = Bool.random()
+        let count = Int.random(in: 0...3)
+        #expect(createAllowed(strictActive) == !strictActive)
+        #expect(deleteAllowed(strictActive, count) == (!strictActive && count > 1))
+
+        let ruleSet = RuleSet(name: "A", urls: ["example.com"])
+        let id = ruleSet.id
+        let ruleSets = [ruleSet]
+        #expect(selectRuleSet(id, ruleSets)?.id == id)
+        #expect(selectRuleSet(nil, ruleSets) == nil)
+
+        let tappedId = UUID()
+        let currentSelectedId = UUID()
+        #expect(selectionAfterTap(tappedId, currentSelectedId, true) == currentSelectedId)
+        #expect(selectionAfterTap(tappedId, currentSelectedId, false) == tappedId)
     }
 }

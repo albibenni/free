@@ -61,6 +61,163 @@ struct WeeklyCalendarSurfaceTests {
         )
     }
 
+    private func mirrorValue<T>(_ name: String, in root: Any) -> T? {
+        var mirror: Mirror? = Mirror(reflecting: root)
+        while let current = mirror {
+            for child in current.children where child.label == name {
+                return child.value as? T
+            }
+            mirror = current.superclassMirror
+        }
+        return nil
+    }
+
+    @Test("Weekly calendar support hook fallbacks cover nil builder and overnight normalization")
+    func weeklyCalendarSupportHookFallbackCoverage() throws {
+        defer { WeeklyCalendarSupport.resetCalendarHooksForTesting() }
+        let calendar = Calendar.current
+        let anchor = calendar.startOfDay(for: Date())
+        let defaultHourSet = WeeklyCalendarSupport.calendarHourSetter(calendar, 8, 45, anchor)
+        #expect(defaultHourSet != nil)
+        let defaultTimeOnly = WeeklyCalendarSupport.calendarDateBuilder(
+            calendar,
+            DateComponents(hour: 8, minute: 45)
+        )
+        #expect(defaultTimeOnly != nil)
+
+        WeeklyCalendarSupport.calendarHourSetter = { _, _, _, _ in nil }
+        WeeklyCalendarSupport.calendarDateBuilder = { _, _ in nil }
+
+        let start = try #require(calendar.date(from: DateComponents(hour: 23, minute: 30)))
+        let end = try #require(calendar.date(from: DateComponents(hour: 1, minute: 15)))
+
+        let normalized = WeeklyCalendarSupport.normalizedInterval(
+            startDate: start,
+            endDate: end,
+            calendar: calendar
+        )
+        #expect(normalized.end > normalized.start)
+
+        let placement = WeeklyCalendarSupport.SchedulePlacement(
+            id: "fallback",
+            day: 2,
+            startDate: start,
+            endDate: end
+        )
+        let wrapped = WeeklyCalendarSupport.normalizedInterval(for: placement, calendar: calendar)
+        #expect(wrapped.end > wrapped.start)
+
+        let fallbackTimeOnly = WeeklyCalendarSupport.timeOnlyDate(from: start, calendar: calendar)
+        #expect(fallbackTimeOnly == start)
+    }
+
+    @Test("Weekly calendar support schedule helpers cover visibility, labels, and style metadata")
+    func weeklyCalendarSupportScheduleHelpersCoverage() throws {
+        let calendar = Calendar.current
+        let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let bounds = WeeklyCalendarSupport.weekBounds(for: weekRange, calendar: calendar)
+        let inWeekDate = try #require(weekRange.first)
+        let outOfWeekDate = try #require(calendar.date(byAdding: .day, value: 10, to: inWeekDate))
+
+        let recurring = makeSchedule(name: "Recurring", day: 2)
+        var imported = recurring
+        imported.importedCalendarEventKey = "evt"
+        var oneOffInWeek = recurring
+        oneOffInWeek.date = inWeekDate
+        var oneOffOutOfWeek = recurring
+        oneOffOutOfWeek.date = outOfWeekDate
+
+        #expect(WeeklyCalendarSupport.canDirectlyManipulate(recurring))
+        #expect(WeeklyCalendarSupport.canDirectlyManipulate(imported) == false)
+        #expect(WeeklyCalendarSupport.dayName(for: 1).isEmpty == false)
+        #expect(WeeklyCalendarSupport.timeString(hour: 9).isEmpty == false)
+        #expect(WeeklyCalendarSupport.formattedTime(recurring.startTime, calendar: calendar).isEmpty == false)
+        #expect(WeeklyCalendarSupport.monthYearString(for: inWeekDate, calendar: calendar).isEmpty == false)
+
+        let events = [
+            ExternalEvent(
+                id: "in",
+                title: "In",
+                startDate: inWeekDate.addingTimeInterval(3600),
+                endDate: inWeekDate.addingTimeInterval(7200)
+            ),
+            ExternalEvent(
+                id: "out",
+                title: "Out",
+                startDate: outOfWeekDate,
+                endDate: outOfWeekDate.addingTimeInterval(3600)
+            ),
+        ]
+        let visible = WeeklyCalendarSupport.visibleCalendarEvents(events, weekStart: bounds.0, weekEnd: bounds.1)
+        #expect(visible.map(\.id) == ["in"])
+
+        #expect(WeeklyCalendarSupport.shouldDisplaySchedule(oneOffInWeek, weekStart: bounds.0, weekEnd: bounds.1))
+        #expect(WeeklyCalendarSupport.shouldDisplaySchedule(oneOffOutOfWeek, weekStart: bounds.0, weekEnd: bounds.1) == false)
+        #expect(WeeklyCalendarSupport.shouldDisplaySchedule(recurring, weekStart: bounds.0, weekEnd: bounds.1))
+
+        let placementsInWeek = WeeklyCalendarSupport.schedulePlacements(
+            for: oneOffInWeek,
+            weekRange: weekRange,
+            calendar: calendar
+        )
+        let placementsOutOfWeek = WeeklyCalendarSupport.schedulePlacements(
+            for: oneOffOutOfWeek,
+            weekRange: weekRange,
+            calendar: calendar
+        )
+        #expect(placementsInWeek.count == 1)
+        #expect(placementsOutOfWeek.isEmpty)
+
+        let positioned = WeeklyCalendarSupport.positionedSchedules(
+            schedules: [recurring, oneOffInWeek, oneOffOutOfWeek],
+            weekRange: weekRange,
+            calendar: calendar
+        )
+        #expect(positioned.isEmpty == false)
+
+        #expect(WeeklyCalendarSupport.blockFillOpacity(isImported: false) == 0.8)
+        #expect(WeeklyCalendarSupport.blockFillOpacity(isImported: true) == 0.5)
+        #expect(WeeklyCalendarSupport.blockBorderOpacity(isImported: false) == 0.95)
+        #expect(WeeklyCalendarSupport.blockBorderOpacity(isImported: true) == 0.72)
+        #expect(WeeklyCalendarSupport.primarySymbolName(for: recurring) == AppKitUISymbols.Name.target)
+        #expect(WeeklyCalendarSupport.importedSymbolName(for: recurring) == nil)
+        #expect(WeeklyCalendarSupport.importedSymbolName(for: imported) == AppKitUISymbols.Name.importedCalendar)
+
+        let baseDay = calendar.startOfDay(for: inWeekDate)
+        let target = WeeklyCalendarSupport.SchedulePlacement(
+            id: "target",
+            day: 2,
+            startDate: calendar.date(byAdding: .hour, value: 8, to: baseDay) ?? baseDay,
+            endDate: calendar.date(byAdding: .hour, value: 9, to: baseDay) ?? baseDay
+        )
+        let disjoint = WeeklyCalendarSupport.SchedulePlacement(
+            id: "disjoint",
+            day: 2,
+            startDate: calendar.date(byAdding: .hour, value: 11, to: baseDay) ?? baseDay,
+            endDate: calendar.date(byAdding: .hour, value: 12, to: baseDay) ?? baseDay
+        )
+        #expect(
+            WeeklyCalendarSupport.concurrentLaneCount(
+                for: target,
+                among: [target, disjoint],
+                calendar: calendar
+            ) == 1
+        )
+    }
+
+    @MainActor
+    @Test("Weekly calendar document timer callback marks view for redraw")
+    func weeklyCalendarDocumentTimerCallbackCoverage() {
+        let document = WeeklyCalendarSurfaceDocumentNSView(
+            frame: NSRect(x: 0, y: 0, width: 320, height: 320)
+        )
+
+        let timer: Timer? = mirrorValue("timer", in: document)
+        #expect(timer != nil)
+        timer?.fire()
+        #expect(timer?.isValid == true)
+    }
+
     @MainActor
     @Test("Weekly calendar schedule block supports click, drag, update, and imported draw")
     func weeklyCalendarScheduleBlockInteractionsAndDraw() throws {
@@ -214,6 +371,64 @@ struct WeeklyCalendarSurfaceTests {
 
         #expect(importedOpened)
         #expect(opened == nil)
+    }
+
+    @MainActor
+    @Test("Weekly calendar schedule block guard branches handle unconfigured state")
+    func weeklyCalendarScheduleBlockUnconfiguredGuards() throws {
+        let block = WeeklyCalendarSurfaceScheduleBlockNSView()
+        block.frame = NSRect(x: 0, y: 0, width: 120, height: 80)
+
+        let image = NSImage(size: block.bounds.size)
+        image.lockFocus()
+        block.draw(block.bounds)
+        image.unlockFocus()
+        block.resetCursorRects()
+
+        let down = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDown,
+                location: NSPoint(x: 10, y: 10),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let drag = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDragged,
+                location: NSPoint(x: 16, y: 12),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 1,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let up = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseUp,
+                location: NSPoint(x: 16, y: 12),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 2,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+
+        block.mouseDown(with: down)
+        block.mouseDragged(with: drag)
+        block.mouseUp(with: up)
+        #expect(block.frame.width == 120)
     }
 
     @MainActor
@@ -721,5 +936,172 @@ struct WeeklyCalendarSurfaceTests {
         #expect(document.scheduleBlockCountForTesting == 1)
         block.mouseUp(with: blockUp)
         #expect(document.scheduleBlockCountForTesting == 0)
+    }
+
+    @MainActor
+    @Test("Weekly calendar document skips entries with unmapped days in schedule and external-event rendering")
+    func weeklyCalendarDocumentUnmappedDayBranches() {
+        let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let weekBounds = WeeklyCalendarSupport.weekBounds(for: weekRange)
+        let schedule = makeSchedule(name: "Unmapped", day: 2)
+        let placement = WeeklyCalendarSupport.SchedulePlacement(
+            id: "unmapped-placement",
+            day: 2,
+            startDate: makeDate(hour: 8),
+            endDate: makeDate(hour: 9)
+        )
+        let positioned = [
+            WeeklyCalendarSupport.PositionedSchedule(
+                id: "unmapped-placement",
+                schedule: schedule,
+                placement: placement,
+                laneIndex: 0,
+                laneCount: 1
+            )
+        ]
+
+        let eventDate =
+            Calendar.current.nextDate(
+                after: Date(),
+                matching: DateComponents(hour: 9, minute: 0, weekday: 2),
+                matchingPolicy: .nextTimePreservingSmallerComponents
+            ) ?? Date()
+        let event = ExternalEvent(
+            id: "unmapped-event",
+            title: "Out",
+            startDate: eventDate,
+            endDate: eventDate.addingTimeInterval(1800)
+        )
+
+        let document = WeeklyCalendarSurfaceDocumentNSView(
+            frame: NSRect(x: 0, y: 0, width: 900, height: 24 * 80)
+        )
+        document.configure(
+            with: makeConfiguration(
+                dayOrder: [1],  // excludes schedule day/event weekday
+                weekRange: weekRange,
+                weekStart: weekBounds.0,
+                weekEnd: weekBounds.1,
+                positionedSchedules: positioned,
+                externalEvents: [event],
+                showsExternalEvents: true
+            )
+        )
+        document.layoutSubtreeIfNeeded()
+
+        let image = NSImage(size: document.bounds.size)
+        image.lockFocus()
+        document.draw(document.bounds)
+        image.unlockFocus()
+
+        #expect(document.scheduleBlockCountForTesting == 0)
+    }
+
+    @MainActor
+    @Test("Weekly calendar document covers unconfigured guard paths and unavailable coder init")
+    func weeklyCalendarDocumentUnconfiguredGuardsAndCoderInitCoverage() throws {
+        let document = WeeklyCalendarSurfaceDocumentNSView(
+            frame: NSRect(x: 0, y: 0, width: 640, height: 24 * 80)
+        )
+
+        let down = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDown,
+                location: NSPoint(x: 80, y: 80),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let drag = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDragged,
+                location: NSPoint(x: 120, y: 120),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 1,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let up = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseUp,
+                location: NSPoint(x: 120, y: 120),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 2,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+
+        document.mouseDown(with: down)
+        document.mouseDragged(with: drag)
+        document.mouseUp(with: up)
+        document.applyCurrentLayout()
+        document.scheduleInteractionDidEndForTesting(rebuildImmediately: true)
+
+        let image = NSImage(size: document.bounds.size)
+        image.lockFocus()
+        document.draw(document.bounds)
+        image.unlockFocus()
+
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        archiver.finishEncoding()
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        defer { unarchiver.finishDecoding() }
+        #expect(WeeklyCalendarSurfaceDocumentNSView(coder: unarchiver) == nil)
+    }
+
+    @MainActor
+    @Test("Weekly calendar document current-time indicator covers out-of-week and missing-day guards")
+    func weeklyCalendarDocumentCurrentTimeIndicatorGuardCoverage() {
+        let now = Date()
+        let currentWeekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
+        let document = WeeklyCalendarSurfaceDocumentNSView(
+            frame: NSRect(x: 0, y: 0, width: 900, height: 24 * 80)
+        )
+
+        document.configure(
+            with: makeConfiguration(
+                dayOrder: dayOrder,
+                weekRange: currentWeekRange,
+                weekStart: now.addingTimeInterval(-7200),
+                weekEnd: now.addingTimeInterval(-3600),
+                positionedSchedules: [],
+                showsExternalEvents: false
+            )
+        )
+        var image = NSImage(size: document.bounds.size)
+        image.lockFocus()
+        document.draw(document.bounds)
+        image.unlockFocus()
+
+        let weekday = Calendar.current.component(.weekday, from: now)
+        let missingDayOrder = dayOrder.filter { $0 != weekday }
+        document.configure(
+            with: makeConfiguration(
+                dayOrder: missingDayOrder,
+                weekRange: currentWeekRange,
+                weekStart: now.addingTimeInterval(-3600),
+                weekEnd: now.addingTimeInterval(3600),
+                positionedSchedules: [],
+                showsExternalEvents: false
+            )
+        )
+        image = NSImage(size: document.bounds.size)
+        image.lockFocus()
+        document.draw(document.bounds)
+        image.unlockFocus()
     }
 }

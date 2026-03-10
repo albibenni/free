@@ -7,6 +7,19 @@ import Testing
 
 @Suite(.serialized)
 struct CoverageExpansionTests {
+    private final class ImportFlowAutomator: BrowserAutomator {
+        let urls: [String]
+
+        init(urls: [String]) {
+            self.urls = urls
+        }
+
+        func getActiveUrl(for app: NSRunningApplication) -> String? { nil }
+        func redirect(app: NSRunningApplication, to url: String) {}
+        func getAllOpenUrls(browsers: [String]) -> [String] { urls }
+        func checkPermissions(prompt: Bool) -> Bool { true }
+    }
+
     private func isolatedAppState(name: String) -> AppState {
         let suite = "CoverageExpansionTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -122,6 +135,89 @@ struct CoverageExpansionTests {
         #expect(appState.schedules == originalSchedules)
     }
 
+    @Test("Calendar sync mutation service resync returns rebuilt schedule update")
+    func calendarSyncMutationServiceResyncUpdatePath() {
+        let now = Date()
+        let existing = Schedule(
+            name: "Manual",
+            days: [2],
+            startTime: now,
+            endTime: now.addingTimeInterval(1200),
+            type: .focus
+        )
+        let event = ExternalEvent(
+            id: "resync-event",
+            title: "Imported Focus",
+            startDate: now.addingTimeInterval(300),
+            endDate: now.addingTimeInterval(1800)
+        )
+        let ruleSet = RuleSet(name: "Default", urls: ["example.com"])
+
+        let context = AppStateCalendarSyncMutationService.Context(
+            schedule: AppScheduleDomainState(
+                schedules: [existing],
+                calendarIntegrationEnabled: true,
+                calendarImportsBlockTime: true,
+                isSynchronizingImportedSchedules: false,
+                suppressedImportedCalendarEventKeys: []
+            ),
+            rules: AppRulesDomainState(
+                ruleSets: [ruleSet],
+                activeRuleSetId: ruleSet.id
+            ),
+            events: [event]
+        )
+
+        let update = AppStateCalendarSyncMutationService.resync(
+            logicFacade: .live,
+            context: context,
+            preservedImportedByKey: [:]
+        )
+
+        #expect(update != nil)
+        #expect(update?.schedule.isSynchronizingImportedSchedules == false)
+        #expect(update?.schedule.schedules.contains(where: { $0.importedCalendarEventKey == event.id }) == true)
+    }
+
+    @Test("AppState calendar sync extension methods apply imported event updates")
+    func appStateCalendarSyncExtensionUpdatePaths() {
+        let appState = isolatedAppState(name: "appStateCalendarSyncExtensionUpdatePaths")
+        let defaultSet = RuleSet(name: "Default", urls: ["example.com"])
+        appState.ruleSets = [defaultSet]
+        appState.activeRuleSetId = defaultSet.id
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "calendar-ext-sync-1",
+                title: "Imported",
+                startDate: Date().addingTimeInterval(900),
+                endDate: Date().addingTimeInterval(1800)
+            )
+        ]
+
+        appState.resyncImportedCalendarSchedules()
+        #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "calendar-ext-sync-1" }))
+
+        appState.synchronizeImportedCalendarSchedulesIfNeeded()
+        #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "calendar-ext-sync-1" }))
+    }
+
+    @Test("AppState schedules extension delete guard keeps state when id is unknown")
+    func appStateSchedulesDeleteGuardPath() {
+        let appState = isolatedAppState(name: "appStateSchedulesDeleteGuardPath")
+        let start = Date()
+        let end = start.addingTimeInterval(1800)
+        appState.schedules = [
+            Schedule(name: "Keep", days: [2], startTime: start, endTime: end, type: .focus)
+        ]
+
+        let before = appState.schedules
+        appState.deleteSchedule(id: UUID(), modifyAllDays: true, initialDay: nil)
+
+        #expect(appState.schedules == before)
+    }
+
     @MainActor
     @Test("AppKit observation bind deduplicates signatures and publishes section changes")
     func appKitObservationBindsAndPublishers() {
@@ -170,6 +266,17 @@ struct CoverageExpansionTests {
         appState.weekStartsOnMonday.toggle()
         flushMainRunLoop()
         #expect(schedulesEvents >= 1)
+        let schedulesEventsBeforeCalendar = schedulesEvents
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "calendar-schedule-publisher",
+                title: "Event",
+                startDate: Date(),
+                endDate: Date().addingTimeInterval(600)
+            )
+        ]
+        flushMainRunLoop()
+        #expect(schedulesEvents > schedulesEventsBeforeCalendar)
 
         var rulesEvents = 0
         AppKitAppStateObservation
@@ -197,6 +304,17 @@ struct CoverageExpansionTests {
         appState.pomodoroStatus = .focus
         flushMainRunLoop()
         #expect(focusEvents >= 1)
+        let focusEventsBeforeCalendar = focusEvents
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "calendar-focus-publisher",
+                title: "Event 2",
+                startDate: Date(),
+                endDate: Date().addingTimeInterval(900)
+            )
+        ]
+        flushMainRunLoop()
+        #expect(focusEvents > focusEventsBeforeCalendar)
 
         var shellEvents = 0
         AppKitAppStateObservation
@@ -206,6 +324,38 @@ struct CoverageExpansionTests {
         appState.accentColorIndex += 1
         flushMainRunLoop()
         #expect(shellEvents >= 1)
+
+        var appStateSignatureEvents: [Bool] = []
+        AppKitAppStateObservation.bind(
+            appState: appState,
+            signature: { [appState] in appState.isBlocking },
+            cancellables: &cancellables
+        ) { value in
+            appStateSignatureEvents.append(value)
+        }
+        appState.isBlocking.toggle()
+        flushMainRunLoop()
+        #expect(appStateSignatureEvents.last == appState.isBlocking)
+
+        var appStateVoidEvents = 0
+        AppKitAppStateObservation.bind(
+            appState: appState,
+            cancellables: &cancellables
+        ) {
+            appStateVoidEvents += 1
+        }
+        appState.accentColorIndex += 1
+        flushMainRunLoop()
+        #expect(appStateVoidEvents >= 1)
+
+        var rawAppStatePublisherEvents = 0
+        AppKitAppStateObservation
+            .appStatePublisher(appState: appState)
+            .sink { rawAppStatePublisherEvents += 1 }
+            .store(in: &cancellables)
+        appState.weekStartsOnMonday.toggle()
+        flushMainRunLoop()
+        #expect(rawAppStatePublisherEvents >= 1)
     }
 
     @MainActor
@@ -294,6 +444,87 @@ struct CoverageExpansionTests {
     }
 
     @MainActor
+    @Test("Allowed websites import presenters expose default alert-backed closures")
+    func allowedWebsitesImportPresenterDefaults() {
+        AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting()
+        let emptyPresenter = AllowedWebsitesFloatingEditorViewController.presentEmptyImportState
+        let candidatesPresenter = AllowedWebsitesFloatingEditorViewController.presentImportCandidates
+        #expect(type(of: emptyPresenter) == AllowedWebsitesFloatingEditorViewController.EmptyImportStatePresenter.self)
+        #expect(type(of: candidatesPresenter) == AllowedWebsitesFloatingEditorViewController.ImportCandidatesPresenter.self)
+
+        emptyPresenter([])
+        let selection = candidatesPresenter([], "Default")
+        #expect(selection == nil)
+    }
+
+    @MainActor
+    @Test("Allowed websites import flow covers guard/cancel/success branches")
+    func allowedWebsitesImportFlowBranches() {
+        let suite = "CoverageExpansionTests.allowedWebsitesImportFlowBranches"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        let monitor = BrowserMonitor(
+            stateSnapshotProvider: { nil },
+            setTrustedState: { _ in },
+            server: nil,
+            automator: ImportFlowAutomator(urls: ["https://example.com/path"]),
+            startTimer: false
+        )
+        let appState = AppState(
+            defaults: defaults,
+            monitor: monitor,
+            calendar: MockCalendarManager(),
+            isTesting: true
+        )
+        let set = RuleSet(name: "Default", urls: [])
+        appState.ruleSets = []
+        appState.activeRuleSetId = nil
+
+        let controller = AllowedWebsitesFloatingEditorViewController(
+            appState: appState,
+            initialRuleSetId: nil
+        )
+        controller.loadViewIfNeeded()
+
+        var emptyCalls = 0
+        var candidateCalls = 0
+        AllowedWebsitesFloatingEditorViewController.presentEmptyImportState = { _ in
+            emptyCalls += 1
+        }
+        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in
+            candidateCalls += 1
+            return nil
+        }
+        defer { AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting() }
+
+        controller.selectedRuleSetId = nil
+        controller.handleImportOpenTabs()
+        #expect(emptyCalls == 0)
+        #expect(candidateCalls == 0)
+
+        controller.selectedRuleSetId = set.id
+        controller.handleImportOpenTabs()
+        #expect(emptyCalls == 0)
+        #expect(candidateCalls == 0)
+
+        appState.ruleSets = [set]
+        appState.activeRuleSetId = set.id
+        controller.selectedRuleSetId = set.id
+        controller.handleImportOpenTabs()
+        #expect(candidateCalls == 1)
+        #expect(appState.ruleSets.first?.urls.isEmpty == true)
+
+        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in
+            candidateCalls += 1
+            return ["example.com"]
+        }
+        controller.handleImportOpenTabs()
+        #expect(candidateCalls == 2)
+        #expect(appState.ruleSets.first?.urls.contains("example.com") == true)
+    }
+
+    @MainActor
     @Test("Allowed websites table controller and floating sheet wiring")
     func allowedWebsitesTableAndSheetWiring() {
         let tableController = AllowedWebsitesRulesTableController()
@@ -319,6 +550,12 @@ struct CoverageExpansionTests {
         )
         sheet.present(for: parent, selectedRuleSetId: nil)
         #expect(sheet.window != nil)
+        sheet.dismiss()
+        #expect(closeCount == 1)
+
+        // Cover nil-window guard branches in present/dismiss.
+        sheet.window = nil
+        sheet.present(for: parent, selectedRuleSetId: nil)
         sheet.dismiss()
         #expect(closeCount == 1)
 

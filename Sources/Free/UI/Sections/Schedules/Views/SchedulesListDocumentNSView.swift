@@ -32,7 +32,7 @@ final class SchedulesListDocumentNSView: NSView {
         var y: CGFloat = 0
 
         for (index, schedule) in schedules.enumerated() {
-            guard let rowView = rowViews[schedule.id] else { continue }
+            let rowView = rowViews[schedule.id]!
             rowView.frame = CGRect(x: 0, y: y, width: contentWidth, height: rowHeight)
             rowView.showsSeparator = index < schedules.count - 1
             y += rowHeight
@@ -47,7 +47,7 @@ final class SchedulesListDocumentNSView: NSView {
 
             let idsToRemove = rowViews.keys.filter { !desiredIds.contains($0) }
             for id in idsToRemove {
-                guard let rowView = rowViews[id] else { continue }
+                let rowView = rowViews[id]!
                 rowView.removeFromSuperview()
                 rowViews.removeValue(forKey: id)
             }

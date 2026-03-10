@@ -57,7 +57,7 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
     func present(for parentWindow: NSWindow, selectedRuleSetId: UUID?) {
         guard let window else { return }
         editorController.focusOnRuleSet(selectedRuleSetId)
-        restoreDesiredContentSize()
+        restoreDesiredContentSize(for: window)
         if let panel = window as? NSPanel {
             configureAppKitWindowButton(
                 in: panel,
@@ -76,8 +76,7 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func restoreDesiredContentSize() {
-        guard let window else { return }
+    private func restoreDesiredContentSize(for window: NSWindow) {
         window.contentViewController?.preferredContentSize = desiredContentSize
         window.setContentSize(desiredContentSize)
     }

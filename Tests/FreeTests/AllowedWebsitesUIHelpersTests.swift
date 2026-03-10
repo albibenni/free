@@ -151,4 +151,98 @@ struct AllowedWebsitesUIHelpersTests {
         #expect(updatedButtons[firstId]?.accentColor == .systemRed)
         #expect(updatedButtons[secondId]?.accentColor == .systemRed)
     }
+
+    @Test("Rule-set list builder updateOrRebuild falls back to rebuild on id/title/order mismatches")
+    func ruleSetListBuilderUpdateFallbacks() {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        let firstId = UUID()
+        let secondId = UUID()
+
+        let initialRows = [
+            AllowedWebsitesPresentationCoordinator.RuleSetRow(id: firstId, title: "First", isSelected: false),
+            AllowedWebsitesPresentationCoordinator.RuleSetRow(id: secondId, title: "Second", isSelected: true),
+        ]
+        let initialButtons = AllowedWebsitesRuleSetListBuilder.rebuild(
+            in: stack,
+            rows: initialRows,
+            accentColor: .systemBlue,
+            isRowSelectionEnabled: true
+        ) { _ in }
+
+        // Title mismatch for an existing id should force rebuild.
+        let titleChangedRows = [
+            AllowedWebsitesPresentationCoordinator.RuleSetRow(id: firstId, title: "Renamed", isSelected: true),
+            AllowedWebsitesPresentationCoordinator.RuleSetRow(id: secondId, title: "Second", isSelected: false),
+        ]
+        let titleChangedButtons = AllowedWebsitesRuleSetListBuilder.updateOrRebuild(
+            in: stack,
+            rows: titleChangedRows,
+            accentColor: .systemGreen,
+            isRowSelectionEnabled: true,
+            existingButtons: initialButtons
+        ) { _ in }
+        #expect(titleChangedButtons[firstId] !== initialButtons[firstId])
+        #expect(titleChangedButtons[firstId]?.displayedTitleForTesting == "Renamed")
+
+        // Mismatched existing id set with same count should force rebuild.
+        let foreignExisting = [UUID(): titleChangedButtons[firstId]!]
+        let rebuiltFromMissingId = AllowedWebsitesRuleSetListBuilder.updateOrRebuild(
+            in: stack,
+            rows: titleChangedRows,
+            accentColor: .systemOrange,
+            isRowSelectionEnabled: false,
+            existingButtons: foreignExisting
+        ) { _ in }
+        #expect(rebuiltFromMissingId.count == 2)
+        #expect(stack.arrangedSubviews.count == 2)
+
+        // Same-count but mismatched ids should exercise the "missing existing button" path.
+        let sameCountWrongIds: [UUID: AppKitSelectableRowButton] = [
+            UUID(): rebuiltFromMissingId[firstId]!,
+            UUID(): rebuiltFromMissingId[secondId]!,
+        ]
+        let rebuiltFromWrongIdSet = AllowedWebsitesRuleSetListBuilder.updateOrRebuild(
+            in: stack,
+            rows: titleChangedRows,
+            accentColor: .systemIndigo,
+            isRowSelectionEnabled: true,
+            existingButtons: sameCountWrongIds
+        ) { _ in }
+        #expect(rebuiltFromWrongIdSet.count == 2)
+
+        // Order mismatch should also force rebuild and reorder arranged subviews.
+        let reversedRows = [
+            AllowedWebsitesPresentationCoordinator.RuleSetRow(id: secondId, title: "Second", isSelected: true),
+            AllowedWebsitesPresentationCoordinator.RuleSetRow(id: firstId, title: "Renamed", isSelected: false),
+        ]
+        let reorderedButtons = AllowedWebsitesRuleSetListBuilder.updateOrRebuild(
+            in: stack,
+            rows: reversedRows,
+            accentColor: .systemPurple,
+            isRowSelectionEnabled: true,
+            existingButtons: rebuiltFromMissingId
+        ) { _ in }
+        #expect(reorderedButtons.count == 2)
+        let orderedIds = stack.arrangedSubviews.compactMap { UUID(uuidString: $0.identifier?.rawValue ?? "") }
+        #expect(orderedIds == [secondId, firstId])
+
+        // Invalid/missing arranged-subview identifiers should force rebuild.
+        for arranged in stack.arrangedSubviews {
+            stack.removeArrangedSubview(arranged)
+            arranged.removeFromSuperview()
+        }
+        let orphan = NSView(frame: .zero)
+        stack.addArrangedSubview(orphan)
+        let rebuiltFromMissingIdentifier = AllowedWebsitesRuleSetListBuilder.updateOrRebuild(
+            in: stack,
+            rows: reversedRows,
+            accentColor: .systemTeal,
+            isRowSelectionEnabled: true,
+            existingButtons: reorderedButtons
+        ) { _ in }
+        #expect(rebuiltFromMissingIdentifier.count == 2)
+        let repairedOrder = stack.arrangedSubviews.compactMap { UUID(uuidString: $0.identifier?.rawValue ?? "") }
+        #expect(repairedOrder == [secondId, firstId])
+    }
 }

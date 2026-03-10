@@ -10,6 +10,7 @@ class MockBrowserAutomator: BrowserAutomator {
     var forwardedBrowsers: [String] = []
     var checkedPermissions = false
     var permissionsReturn = true
+    var prompts: [Bool] = []
     
     func getActiveUrl(for app: NSRunningApplication) -> String? {
         getActiveUrlCalls += 1
@@ -27,10 +28,12 @@ class MockBrowserAutomator: BrowserAutomator {
 
     func checkPermissions(prompt: Bool) -> Bool {
         checkedPermissions = true
+        prompts.append(prompt)
         return permissionsReturn
     }
 }
 
+@Suite(.serialized)
 struct BrowserMonitorTests {
     
     private func isolatedAppState(name: String) -> AppState {
@@ -540,17 +543,84 @@ struct BrowserMonitorTests {
         let appState = isolatedAppState(name: "deinitInvalidatesActiveTimer")
         let mock = MockBrowserAutomator()
         let scheduler = MockRepeatingTimerScheduler()
-        var monitor: BrowserMonitor? = makeMonitor(
-            appState: appState,
-            mock: mock,
-            timerScheduler: scheduler,
-            startTimer: true
-        )
-        #expect(monitor != nil)
+        weak var weakMonitor: BrowserMonitor?
 
-        #expect(scheduler.timers.count == 1)
+        do {
+            let monitor = makeMonitor(
+                appState: appState,
+                mock: mock,
+                timerScheduler: scheduler,
+                startTimer: true
+            )
+            weakMonitor = monitor
+            #expect(scheduler.timers.count == 1)
+        }
+
+        #expect(weakMonitor == nil)
         let timer = scheduler.timers[0]
-        monitor = nil
+
+        let timeout = Date().addingTimeInterval(0.25)
+        while timer.invalidateCallCount < 1, Date() < timeout {
+            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.005))
+        }
         #expect(timer.invalidateCallCount == 1)
+    }
+
+    @Test("BrowserMonitor TestRuntime environment probes cover all early-return branches")
+    func testRuntimeEnvironmentCoverage() {
+        func withEnvironment(
+            _ key: String,
+            value: String?,
+            _ body: () -> Void
+        ) {
+            let original = getenv(key).map { String(cString: $0) }
+            if let value {
+                setenv(key, value, 1)
+            } else {
+                unsetenv(key)
+            }
+            defer {
+                if let original {
+                    setenv(key, original, 1)
+                } else {
+                    unsetenv(key)
+                }
+            }
+            body()
+        }
+
+        let envKeys = [
+            "XCTestConfigurationFilePath",
+            "XCTestBundlePath",
+            "SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES",
+            "__XCODE_BUILT_PRODUCTS_DIR_PATHS",
+        ]
+
+        func clearKnownTestEnv() {
+            for key in envKeys {
+                unsetenv(key)
+            }
+        }
+
+        let appState = isolatedAppState(name: "testRuntimeEnvironmentCoverage")
+        let mock = MockBrowserAutomator()
+
+        clearKnownTestEnv()
+        _ = makeMonitor(appState: appState, mock: mock, startTimer: false)
+
+        withEnvironment("XCTestConfigurationFilePath", value: "1") {
+            _ = makeMonitor(appState: appState, mock: mock, startTimer: false)
+        }
+        withEnvironment("XCTestBundlePath", value: "1") {
+            _ = makeMonitor(appState: appState, mock: mock, startTimer: false)
+        }
+        withEnvironment("SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES", value: "1") {
+            _ = makeMonitor(appState: appState, mock: mock, startTimer: false)
+        }
+        withEnvironment("__XCODE_BUILT_PRODUCTS_DIR_PATHS", value: "1") {
+            _ = makeMonitor(appState: appState, mock: mock, startTimer: false)
+        }
+
+        #expect(mock.prompts.isEmpty == false)
     }
 }

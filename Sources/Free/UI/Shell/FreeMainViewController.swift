@@ -2,6 +2,15 @@ import AppKit
 import Combine
 
 final class FreeMainViewController: NSViewController {
+    typealias LaunchAtLoginAlertPresenter = (
+        NSAlert,
+        NSWindow,
+        @escaping (NSApplication.ModalResponse) -> Void
+    ) -> Void
+    static var presentLaunchAtLoginAlert: LaunchAtLoginAlertPresenter = { alert, window, completion in
+        alert.beginSheetModal(for: window, completionHandler: completion)
+    }
+
     private let appState: AppState
     private let shellState: FreeShellState
     private let focusOverviewController: FocusSectionViewController
@@ -106,10 +115,14 @@ final class FreeMainViewController: NSViewController {
         alert.informativeText = "Would you like Free to start automatically when you log in?"
         alert.addButton(withTitle: "Enable")
         alert.addButton(withTitle: "Not Now")
-        alert.beginSheetModal(for: window) { [weak self] response in
-            guard response == .alertFirstButtonReturn else { return }
-            _ = self?.appState.enableLaunchAtLogin()
+        Self.presentLaunchAtLoginAlert(alert, window) { [weak self] response in
+            self?.handleLaunchAtLoginPromptResponse(response)
         }
+    }
+
+    private func handleLaunchAtLoginPromptResponse(_ response: NSApplication.ModalResponse) {
+        guard response == .alertFirstButtonReturn else { return }
+        _ = appState.enableLaunchAtLogin()
     }
 
     private func configureLayout() {
@@ -156,16 +169,18 @@ final class FreeMainViewController: NSViewController {
                 self?.updateSidebarSelection()
             },
             onShowRulesChanged: { [weak self] isShown in
-                guard let self else { return }
-                isShown
-                    ? sheetPresenter.presentRules(from: view.window)
-                    : sheetPresenter.dismissRules()
+                if isShown {
+                    self?.sheetPresenter.presentRules(from: self?.view.window)
+                } else {
+                    self?.sheetPresenter.dismissRules()
+                }
             },
             onShowSchedulesChanged: { [weak self] isShown in
-                guard let self else { return }
-                isShown
-                    ? sheetPresenter.presentSchedules(from: view.window)
-                    : sheetPresenter.dismissSchedules()
+                if isShown {
+                    self?.sheetPresenter.presentSchedules(from: self?.view.window)
+                } else {
+                    self?.sheetPresenter.dismissSchedules()
+                }
             }
         )
     }
@@ -231,14 +246,29 @@ extension FreeMainViewController {
     }
 
     func isSidebarButtonSelectedForTesting(_ section: MainContentSection) -> Bool {
-        guard let color = sidebarView.selectedBackgroundColor(for: section) else {
-            return false
-        }
-        return color.alphaComponent > 0.01
+        sidebarView.selectedBackgroundColor(for: section)!.alphaComponent > 0.01
     }
 
     func setPresentedWindowStatesForTesting(showRules: Bool, showSchedules: Bool) {
         shellState.showRules = showRules
         shellState.showSchedules = showSchedules
+    }
+
+    func invokeSidebarToggleHandlerForTesting() {
+        sidebarView.onToggleSidebar?()
+    }
+
+    func invokeSidebarSelectHandlerForTesting(_ section: MainContentSection) {
+        sidebarView.onSelectSection?(section)
+    }
+
+    func handleLaunchAtLoginPromptResponseForTesting(_ response: NSApplication.ModalResponse) {
+        handleLaunchAtLoginPromptResponse(response)
+    }
+
+    static func resetLaunchAtLoginAlertPresenterForTesting() {
+        presentLaunchAtLoginAlert = { alert, window, completion in
+            alert.beginSheetModal(for: window, completionHandler: completion)
+        }
     }
 }

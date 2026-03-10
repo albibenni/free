@@ -127,7 +127,12 @@ struct ScheduleEngine {
         start: Date,
         end: Date
     ) {
-        guard let index = schedules.firstIndex(where: { $0.id == id }) else { return }
+        var matchedIndex: Int?
+        for (index, schedule) in schedules.enumerated() where schedule.id == id {
+            matchedIndex = index
+            break
+        }
+        guard let index = matchedIndex else { return }
         let schedule = schedules[index]
         guard schedule.importedCalendarEventKey == nil else { return }
 
@@ -171,7 +176,12 @@ struct ScheduleEngine {
         modifyAllDays: Bool,
         initialDay: Int?
     ) -> Schedule? {
-        guard let index = schedules.firstIndex(where: { $0.id == id }) else { return nil }
+        var matchedIndex: Int?
+        for (index, schedule) in schedules.enumerated() where schedule.id == id {
+            matchedIndex = index
+            break
+        }
+        guard let index = matchedIndex else { return nil }
         if !modifyAllDays, let day = initialDay {
             schedules[index].days.remove(day)
             if schedules[index].days.isEmpty {

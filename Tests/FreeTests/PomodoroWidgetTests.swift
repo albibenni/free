@@ -6,6 +6,12 @@ import Testing
 
 @Suite(.serialized)
 struct PomodoroWidgetTests {
+    private final class TestModalAlert: NSAlert {
+        override func runModal() -> NSApplication.ModalResponse {
+            .alertSecondButtonReturn
+        }
+    }
+
     private func isolatedAppState(name: String) -> AppState {
         let suite = "PomodoroWidgetTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -20,6 +26,8 @@ struct PomodoroWidgetTests {
         view.displayIfNeeded()
         return view
     }
+
+
 
     private func visibleText(in view: NSView) -> [String] {
         guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
@@ -88,6 +96,28 @@ struct PomodoroWidgetTests {
         #expect(texts.contains("PRESETS"))
         #expect(texts.contains("QUICK BREAK"))
         #expect(texts.contains("Start Focus Session"))
+    }
+
+    @Test("FocusPomodoroWidgetView default alert hook closures execute safely")
+    @MainActor
+    func pomodoroWidgetDefaultAlertHookClosures() {
+        let createdAlert = FocusPomodoroWidgetView.makeAlert()
+        #expect(type(of: createdAlert) == NSAlert.self)
+
+        let modalResponse = FocusPomodoroWidgetView.runAlertModal(TestModalAlert())
+        #expect(modalResponse == .alertSecondButtonReturn)
+
+        var completionCalled = false
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 280, height: 160),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        FocusPomodoroWidgetView.runAlertSheet(NSAlert(), window) { _ in
+            completionCalled = true
+        }
+        #expect(!completionCalled)
     }
 
     @Test("FocusPomodoroWidgetView applies presets and quick breaks through AppKit buttons")
@@ -267,6 +297,34 @@ struct PomodoroWidgetTests {
         #expect(appState.pomodoroBreakDuration == 5)
     }
 
+    @Test("FocusPomodoroWidgetSupport helper functions cover selection fallback and recursive labels")
+    @MainActor
+    func pomodoroWidgetSupportHelpers() {
+        let appState = isolatedAppState(name: "pomodoroWidgetSupportHelpers")
+        let first = sampleRuleSet(name: "First", url: "https://first.example")
+        let second = sampleRuleSet(name: "Second", url: "https://second.example")
+        appState.ruleSets = [first, second]
+        appState.activeRuleSetId = nil
+
+        #expect(FocusPomodoroWidgetSupport.selectedRuleSetId(appState) == first.id)
+
+        appState.activeRuleSetId = second.id
+        #expect(FocusPomodoroWidgetSupport.selectedRuleSetId(appState) == second.id)
+
+        appState.ruleSets = []
+        appState.activeRuleSetId = nil
+        #expect(FocusPomodoroWidgetSupport.selectedRuleSetId(appState) == nil)
+
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 100, height: 100))
+        let branch = NSView(frame: NSRect(x: 0, y: 0, width: 80, height: 80))
+        let label = NSTextField(labelWithString: "Nested")
+        branch.addSubview(label)
+        root.addSubview(branch)
+
+        #expect(FocusPomodoroWidgetSupport.firstLabel(in: root) === label)
+        #expect(FocusPomodoroWidgetSupport.firstLabel(in: NSView()) == nil)
+    }
+
     @Test("FocusPomodoroWidgetView refresh handles mode transitions and active updates")
     @MainActor
     func pomodoroWidgetRefreshTransitions() {
@@ -319,6 +377,78 @@ struct PomodoroWidgetTests {
         #expect(appState.pomodoroFocusDuration != focusBefore || appState.pomodoroBreakDuration != breakBefore)
         #expect(appState.pomodoroFocusDuration >= 5)
         #expect(appState.pomodoroBreakDuration >= 5)
+    }
+
+    @Test("FocusPomodoroWidgetView dial adjustment minus path and break-branch currentDuration are exercised")
+    @MainActor
+    func pomodoroWidgetDialMinusAndBreakBranchCoverage() {
+        let appState = isolatedAppState(name: "dialMinusAndBreakBranch")
+        appState.pomodoroStatus = .none
+        appState.pomodoroFocusDuration = 35
+        appState.pomodoroBreakDuration = 20
+
+        let hosted = host(FocusPomodoroWidgetView(appState: appState), size: CGSize(width: 900, height: 900))
+        let symbolButtons = subviews(ofType: AppKitSymbolControlButton.self, in: hosted)
+        #expect(symbolButtons.count >= 4)
+
+        // Order is deterministic in the dial row: [-, +] for focus then [-, +] for break.
+        symbolButtons[0].performClick(nil)
+        symbolButtons[3].performClick(nil)
+
+        #expect(appState.pomodoroFocusDuration == 30)
+        #expect(appState.pomodoroBreakDuration == 25)
+    }
+
+    @Test("FocusPomodoroWidgetView idle refresh path updates idle controls and rule-set selection state")
+    @MainActor
+    func pomodoroWidgetIdleRefreshUpdatesSelectionAndControls() {
+        let appState = isolatedAppState(name: "idleRefreshSelectionAndControls")
+        let first = sampleRuleSet(name: "First", url: "https://first.example")
+        let second = sampleRuleSet(name: "Second", url: "https://second.example")
+        appState.ruleSets = [first, second]
+        appState.activeRuleSetId = first.id
+        appState.isBlocking = true
+        appState.isUnblockable = false
+
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        let hosted = host(widget)
+        let initialButtons = selectableRowButtons(in: hosted)
+        #expect(initialButtons.count == 2)
+        #expect(initialButtons.allSatisfy { $0.isEnabled })
+
+        appState.activeRuleSetId = second.id
+        appState.isUnblockable = true
+        widget.refreshForStateChange()
+
+        let updatedButtons = selectableRowButtons(in: hosted)
+        #expect(updatedButtons.count == 2)
+        #expect(updatedButtons.allSatisfy { $0.isEnabled == false })
+    }
+
+    @Test("FocusPomodoroWidgetView testing callback hook and default prompt hook closures execute")
+    @MainActor
+    func pomodoroWidgetTestingCallbacksAndDefaultPromptHooks() {
+        defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
+
+        var beginCount = 0
+        var endCount = 0
+        let appState = isolatedAppState(name: "testingCallbacksAndDefaultHooks")
+        let widget = FocusPomodoroWidgetView(
+            appState: appState,
+            onDialInteractionDidBegin: { beginCount += 1 },
+            onDialInteractionDidEnd: { endCount += 1 }
+        )
+        let state = widget.simulateDialInteractionCallbacksForTesting()
+        #expect(state.didBegin)
+        #expect(state.didEnd)
+        #expect(beginCount == 1)
+        #expect(endCount == 1)
+
+        FocusPomodoroWidgetView.resetPromptHooksForTesting()
+        let defaultAlert = FocusPomodoroWidgetView.makeAlert()
+        #expect(type(of: defaultAlert) == NSAlert.self)
+        let modalResponse = FocusPomodoroWidgetView.runAlertModal(TestModalAlert())
+        #expect(modalResponse == .alertSecondButtonReturn)
     }
 
     @Test("Pomodoro dial views cover draw and mouse interaction paths")
@@ -448,6 +578,45 @@ struct PomodoroWidgetTests {
         progressDial.draw(.zero)
     }
 
+    @Test("PomodoroDurationDialView guard-return branches handle non-drag and zero-size safely")
+    @MainActor
+    func pomodoroDurationDialGuardBranches() throws {
+        var commitCount = 0
+        let dial = PomodoroDurationDialView(
+            title: "FOCUS",
+            durationMinutes: 25,
+            maxMinutes: 120,
+            iconName: AppKitUISymbols.Name.focus,
+            color: .systemGreen,
+            onCommit: { _ in commitCount += 1 }
+        )
+
+        // draw guard: radius <= 0
+        dial.frame = .zero
+        dial.draw(.zero)
+
+        // mouseUp guard: not dragging
+        let mouseUp = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseUp,
+                location: NSPoint(x: 0, y: 0),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        dial.mouseUp(with: mouseUp)
+
+        // applyInteraction guard: bounds width/height <= 0
+        dial.applyLocationForTesting(.zero, commit: true)
+
+        #expect(commitCount == 0)
+    }
+
     @Test("FocusPomodoroWidgetView custom break and strict stop prompts use simulation hooks")
     @MainActor
     func pomodoroWidgetPromptSimulations() {
@@ -494,4 +663,278 @@ struct PomodoroWidgetTests {
         buttons(in: cancelBreakHosted).first { $0.title == "Cust" }?.performClick(nil)
         #expect(cancelBreakState.isPaused == false)
     }
+
+    @Test("FocusPomodoroWidgetView refresh rebuilds active badge when rule-set visibility changes")
+    @MainActor
+    func pomodoroWidgetActiveBadgeRebuildBranches() {
+        let appState = isolatedAppState(name: "activeBadgeRebuildBranches")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        appState.ruleSets = [work]
+        appState.activeRuleSetId = work.id
+        appState.startPomodoro()
+
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        let hosted = host(widget)
+        #expect(visibleText(in: hosted).contains("Work"))
+
+        appState.ruleSets = []
+        widget.refreshForStateChange()
+        #expect(!visibleText(in: hosted).contains("Work"))
+
+        appState.ruleSets = [work]
+        appState.activeRuleSetId = work.id
+        widget.refreshForStateChange()
+        #expect(visibleText(in: hosted).contains("Work"))
+    }
+
+    @Test("FocusPomodoroWidgetView prompt hook paths cover modal and sheet flows")
+    @MainActor
+    func pomodoroWidgetPromptHookPaths() {
+        defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
+
+        let breakState = isolatedAppState(name: "promptHookModal")
+        breakState.isBlocking = true
+        breakState.isUnblockable = false
+        let breakWidget = FocusPomodoroWidgetView(appState: breakState)
+        _ = host(breakWidget)
+
+        var modalCalls = 0
+        FocusPomodoroWidgetView.makeAlert = { NSAlert() }
+        FocusPomodoroWidgetView.runAlertModal = { alert in
+            modalCalls += 1
+            (alert.accessoryView as? NSTextField)?.stringValue = "9"
+            return .alertFirstButtonReturn
+        }
+        FocusPomodoroWidgetView.runAlertSheet = { _, _, _ in
+            Issue.record("Expected no sheet for custom prompt without a window")
+        }
+
+        buttons(in: breakWidget).first { $0.title == "Cust" }?.performClick(nil)
+        #expect(modalCalls == 1)
+        #expect(breakState.isPaused)
+        #expect(breakState.pauseRemaining == 9 * 60)
+
+        let strictState = isolatedAppState(name: "promptHookSheet")
+        strictState.startPomodoro()
+        strictState.isBlocking = true
+        strictState.isUnblockable = true
+        strictState.pomodoroStartedAt = Date().addingTimeInterval(-20)
+
+        let strictWidget = FocusPomodoroWidgetView(appState: strictState)
+        let strictWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 960, height: 760),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        strictWindow.contentView = strictWidget
+        strictWidget.frame = strictWindow.contentView?.bounds ?? .zero
+        strictWidget.layoutSubtreeIfNeeded()
+        strictWidget.displayIfNeeded()
+
+        var sheetCalls = 0
+        FocusPomodoroWidgetView.runAlertSheet = { alert, _, completion in
+            sheetCalls += 1
+            (alert.accessoryView as? NSTextField)?.stringValue = AppState.challengePhrase
+            completion(.alertFirstButtonReturn)
+        }
+        FocusPomodoroWidgetView.runAlertModal = { _ in
+            Issue.record("Expected sheet path for strict stop when window exists")
+            return .alertSecondButtonReturn
+        }
+
+        buttons(in: strictWidget).first { $0.title == "Stop" }?.performClick(nil)
+        #expect(sheetCalls == 1)
+        #expect(strictState.pomodoroStatus == .none)
+    }
+
+    @Test("FocusPomodoroWidgetView prompt branches cover custom-sheet and strict-modal paths")
+    @MainActor
+    func pomodoroWidgetPromptBranchCoverage() {
+        defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
+
+        let customState = isolatedAppState(name: "promptBranchCustomSheet")
+        customState.isBlocking = true
+        customState.isUnblockable = false
+        let customWidget = FocusPomodoroWidgetView(appState: customState)
+        let customWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 960, height: 760),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        customWindow.contentView = customWidget
+        customWidget.frame = customWindow.contentView?.bounds ?? .zero
+        customWidget.layoutSubtreeIfNeeded()
+
+        FocusPomodoroWidgetView.makeAlert = { NSAlert() }
+        var customSheetCalls = 0
+        FocusPomodoroWidgetView.runAlertSheet = { alert, _, completion in
+            customSheetCalls += 1
+            (alert.accessoryView as? NSTextField)?.stringValue = "4"
+            completion(.alertFirstButtonReturn)
+        }
+        FocusPomodoroWidgetView.runAlertModal = { _ in
+            Issue.record("Expected sheet path for custom break when widget has a window")
+            return .alertSecondButtonReturn
+        }
+        buttons(in: customWidget).first { $0.title == "Cust" }?.performClick(nil)
+        #expect(customSheetCalls == 1)
+        #expect(customState.isPaused)
+
+        let strictState = isolatedAppState(name: "promptBranchStrictModal")
+        strictState.startPomodoro()
+        strictState.isBlocking = true
+        strictState.isUnblockable = true
+        strictState.pomodoroStartedAt = Date().addingTimeInterval(-20)
+        let strictWidget = FocusPomodoroWidgetView(appState: strictState)
+        _ = host(strictWidget)
+
+        FocusPomodoroWidgetView.runAlertSheet = { _, _, _ in
+            Issue.record("Expected modal path for strict stop when widget has no window")
+        }
+        FocusPomodoroWidgetView.runAlertModal = { alert in
+            (alert.accessoryView as? NSTextField)?.stringValue = AppState.challengePhrase
+            return .alertFirstButtonReturn
+        }
+        buttons(in: strictWidget).first { $0.title == "Stop" }?.performClick(nil)
+        #expect(strictState.pomodoroStatus == .none)
+    }
+
+    @Test("FocusPomodoroWidgetView testing hooks cover active-badge rebuild branches")
+    @MainActor
+    func pomodoroWidgetTestingHookBadgeBranches() {
+        let appState = isolatedAppState(name: "testingHookBadgeBranches")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        appState.ruleSets = [work]
+        appState.activeRuleSetId = work.id
+        appState.startPomodoro()
+
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        let hosted = host(widget)
+        #expect(visibleText(in: hosted).filter { $0 == "Work" }.count >= 2)
+
+        widget.clearActiveRuleSetBadgeForTesting()
+        widget.forceUpdateActiveControlsForTesting()
+        #expect(visibleText(in: hosted).filter { $0 == "Work" }.count >= 2)
+
+        appState.ruleSets = []
+        widget.forceUpdateActiveControlsForTesting()
+        #expect(visibleText(in: hosted).filter { $0 == "Work" }.count == 1)
+    }
+
+    @Test("FocusPomodoroWidgetView default sheet prompt hook executes without custom overrides")
+    @MainActor
+    func pomodoroWidgetDefaultSheetPromptHookCoverage() {
+        defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
+
+        FocusPomodoroWidgetView.resetPromptHooksForTesting()
+        let alert = NSAlert()
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 280, height: 160),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        FocusPomodoroWidgetView.runAlertSheet(alert, window) { _ in }
+    }
+
+    @Test("FocusPomodoroWidgetView covers strict-mode row/preset early-return closures and invalid prompt input branches")
+    @MainActor
+    func pomodoroWidgetClosureGuardCoverage() {
+        defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
+
+        let appState = isolatedAppState(name: "closureGuardCoverage")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
+        appState.ruleSets = [work, personal]
+        appState.activeRuleSetId = work.id
+        appState.isBlocking = true
+        appState.isUnblockable = true
+        appState.startPomodoro()
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-20)
+
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        let hosted = host(widget)
+
+        let strictRow = selectableRowButtons(in: hosted).first { $0.displayedTitleForTesting == "Personal" }
+        #expect(strictRow != nil)
+        strictRow?.isEnabled = true
+        strictRow?.performClick(nil)
+        #expect(appState.activeRuleSetId == work.id)
+
+        let preset = buttons(in: hosted).first { $0.title == "45/15" }
+        #expect(preset != nil)
+        preset?.isEnabled = true
+        preset?.performClick(nil)
+        #expect(appState.pomodoroFocusDuration != 45)
+
+        FocusPomodoroWidgetView.makeAlert = { NSAlert() }
+        FocusPomodoroWidgetView.runAlertModal = { alert in
+            (alert.accessoryView as? NSTextField)?.stringValue = "not-a-number"
+            return .alertFirstButtonReturn
+        }
+
+        appState.stopPomodoro()
+        appState.isBlocking = true
+        buttons(in: hosted).first { $0.title == "Cust" }?.performClick(nil)
+        #expect(appState.isPaused == false)
+
+        appState.startPomodoro()
+        appState.isBlocking = true
+        appState.isUnblockable = true
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-20)
+        FocusPomodoroWidgetView.runAlertModal = { _ in .alertSecondButtonReturn }
+        buttons(in: hosted).first { $0.title == "Stop" }?.performClick(nil)
+        #expect(appState.pomodoroStatus != .none)
+    }
+
+    @Test("FocusPomodoroWidgetView covers missing-button and nil-container guard paths")
+    @MainActor
+    func pomodoroWidgetGuardPathsCoverage() {
+        let appState = isolatedAppState(name: "guardPathsCoverage")
+        let work = sampleRuleSet(name: "Work", url: "https://work.example")
+        appState.ruleSets = [work]
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        _ = host(widget)
+
+        appState.ruleSets = [work, sampleRuleSet(name: "New", url: "https://new.example")]
+        widget.updateRuleSetSelection()
+
+        widget.clearContainersForTesting()
+        widget.forceReplaceViewsForTesting()
+    }
+
+    @Test("FocusPomodoroWidgetView covers zero-duration active progress fallback branches")
+    @MainActor
+    func pomodoroWidgetZeroDurationProgressCoverage() {
+        let appState = isolatedAppState(name: "zeroDurationProgressCoverage")
+        appState.pomodoroStatus = .focus
+        appState.pomodoroFocusDuration = 0
+        appState.pomodoroRemaining = 0
+
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        _ = host(widget)
+        widget.forceUpdateActiveControlsForTesting()
+
+        appState.pomodoroStatus = .breakTime
+        appState.pomodoroBreakDuration = 0
+        widget.refreshForStateChange()
+        widget.forceUpdateActiveControlsForTesting()
+    }
+
+    @Test("FocusPomodoroWidgetView custom break prompt rejects invalid numeric input")
+    @MainActor
+    func pomodoroWidgetCustomBreakInvalidInputCoverage() {
+        let appState = isolatedAppState(name: "customBreakInvalidInputCoverage")
+        appState.isBlocking = true
+        appState.isUnblockable = false
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        let hosted = host(widget)
+        widget.customBreakPromptSimulation = { (.alertFirstButtonReturn, "abc") }
+
+        buttons(in: hosted).first { $0.title == "Cust" }?.performClick(nil)
+        #expect(appState.isPaused == false)
+    }
+
 }

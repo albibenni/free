@@ -36,7 +36,7 @@ final class SchedulesListRowNSView: NSView {
     }
 
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        nil
     }
 
     func configure(

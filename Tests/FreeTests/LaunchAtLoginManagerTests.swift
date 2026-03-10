@@ -96,18 +96,10 @@ struct LaunchAtLoginManagerTests {
 
     @Test("DefaultLaunchAtLoginManager live runtime can be constructed safely")
     func liveRuntimeClosuresInvocable() {
-        if ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] == "1" {
-            // ServiceManagement calls can crash swiftpm-testing-helper under coverage,
-            // but we can still execute runtime construction for coverage.
-            _ = DefaultLaunchAtLoginManager.Runtime.live
-            #expect(Bool(true))
-            return
-        }
-
         let runtime = DefaultLaunchAtLoginManager.Runtime.live
-        // Avoid mutating login items in automated tests.
         _ = runtime.status()
-
+        _ = try? runtime.register()
+        _ = try? runtime.unregister()
         #expect(Bool(true))
     }
 }

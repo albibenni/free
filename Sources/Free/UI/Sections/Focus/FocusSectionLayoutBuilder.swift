@@ -2,6 +2,13 @@ import AppKit
 import Foundation
 
 enum FocusSectionLayoutBuilder {
+    private static func systemSymbolImageOrEmpty(_ name: String) -> NSImage {
+        guard let image = NSImage(systemSymbolName: name, accessibilityDescription: nil) else {
+            return NSImage()
+        }
+        return image
+    }
+
     static func configurePermissionWarning(
         permissionWarningView: AppKitDynamicView,
         permissionTitleLabel: NSTextField,
@@ -13,9 +20,7 @@ enum FocusSectionLayoutBuilder {
         permissionWarningView.layer?.backgroundColor = NSColor.systemRed.cgColor
         permissionWarningView.layer?.cornerRadius = 12
 
-        let icon = NSImageView(
-            image: NSImage(systemSymbolName: AppKitUISymbols.Name.warning, accessibilityDescription: nil) ?? NSImage()
-        )
+        let icon = NSImageView(image: systemSymbolImageOrEmpty(AppKitUISymbols.Name.warning))
         icon.contentTintColor = .white
 
         permissionTitleLabel.font = .systemFont(ofSize: 13, weight: .bold)
@@ -167,9 +172,7 @@ enum FocusSectionLayoutBuilder {
         accentColorIndex: Int,
         availableWidth: CGFloat
     ) -> NSView {
-        let icon = NSImageView(
-            image: NSImage(systemSymbolName: iconName, accessibilityDescription: nil) ?? NSImage()
-        )
+        let icon = NSImageView(image: systemSymbolImageOrEmpty(iconName))
         icon.contentTintColor = FocusColor.nsColor(for: accentColorIndex)
 
         let titleLabel = NSTextField(labelWithString: title)

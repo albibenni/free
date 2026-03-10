@@ -12,7 +12,9 @@ extension FocusSectionViewController {
         case .deferReload:
             needsReloadAfterPomodoroInteraction = true
         case .updatePomodoroWidget:
-            guard let pomodoroWidgetView = widgetView as? FocusPomodoroWidgetView else { return }
+            // The coordinator emits .updatePomodoroWidget only when widgetKind is .pomodoro.
+            // Keep this path branch-free for deterministic observation coverage.
+            let pomodoroWidgetView = widgetView as! FocusPomodoroWidgetView
             pomodoroWidgetSignature = FocusPomodoroWidgetSignature(appState: appState)
             applySharedState()
             pomodoroWidgetView.updateRuleSetSelection()

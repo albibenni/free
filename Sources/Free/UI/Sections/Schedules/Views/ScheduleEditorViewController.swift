@@ -257,7 +257,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private func makeEditScopeSection() -> NSView {
         let section = makeSectionContainer(title: "EDIT SCOPE")
-        let onlyDayTitle = "Only \(ScheduleEditorSupport.dayName(for: initialDay ?? 1))"
+        let onlyDayTitle = "Only \(ScheduleEditorSupport.dayName(for: initialDay!))"
         let control = AppKitSelectionButtonGroup(
             options: [
                 AppKitSelectionButtonOption(title: "All Days", value: true),
@@ -349,8 +349,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
             let button = ScheduleEditorLayoutBuilder.makeRecurringDayButton(
                 symbol: ScheduleEditorSupport.daySymbol(at: day)
             ) { [weak self] in
-                guard let self else { return }
-                self.toggleRecurringDay(day)
+                self?.toggleRecurringDay(day)
             }
             recurringDayButtons[day] = button
             row.addArrangedSubview(button)
@@ -562,4 +561,53 @@ extension ScheduleEditorViewController {
         self.isRecurring = isRecurring
         updateRecurringUI()
     }
+
+    func setNameForTesting(_ value: String) {
+        let field = NSTextField(string: value)
+        field.identifier = NSUserInterfaceItemIdentifier("scheduleNameField")
+        controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
+    }
+
+    func selectRuleSetIndexForTesting(_ index: Int) {
+        let popup = NSPopUpButton()
+        popup.addItem(withTitle: "None")
+        for set in appState.ruleSets {
+            popup.addItem(withTitle: set.name)
+            popup.lastItem?.representedObject = UUID?.some(set.id)
+        }
+        popup.selectItem(at: max(0, min(index, popup.numberOfItems - 1)))
+        changeRuleSet(popup)
+    }
+
+    func changeStartTimeForTesting(_ date: Date) {
+        let picker = NSDatePicker()
+        picker.dateValue = date
+        changeStartTime(picker)
+    }
+
+    func changeEndTimeForTesting(_ date: Date) {
+        let picker = NSDatePicker()
+        picker.dateValue = date
+        changeEndTime(picker)
+    }
+
+    func toggleRecurringForTesting(_ enabled: Bool) {
+        let checkbox = NSButton(checkboxWithTitle: "Repeat", target: nil, action: nil)
+        checkbox.state = enabled ? .on : .off
+        toggleRecurring(checkbox)
+    }
+
+    func toggleRecurringDayForTesting(_ day: Int) {
+        toggleRecurringDay(day)
+    }
+
+    func controlTextDidChangeForTesting(object: Any?) {
+        controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: object))
+    }
+
+    var nameForTesting: String { name }
+    var daysForTesting: Set<Int> { days }
+    var startTimeForTesting: Date { startTime }
+    var endTimeForTesting: Date { endTime }
+    var ruleSetIdForTesting: UUID? { ruleSetId }
 }

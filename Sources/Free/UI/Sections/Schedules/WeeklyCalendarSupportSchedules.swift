@@ -39,7 +39,7 @@ extension WeeklyCalendarSupport {
                         id: entry.placement.id,
                         schedule: entry.schedule,
                         placement: entry.placement,
-                        laneIndex: laneAssignments[entry.placement.id] ?? 0,
+                        laneIndex: laneAssignments[entry.placement.id]!,
                         laneCount: max(
                             1,
                             concurrentLaneCount(

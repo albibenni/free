@@ -154,6 +154,25 @@ struct UIComponentTests {
         #expect(image != nil)
     }
 
+    @Test("AppKit symbol helper supports default color argument")
+    func appKitSymbolHelperDefaultColorArgument() {
+        let image = appKitSymbolImage(
+            named: "chevron.left",
+            pointSize: 12,
+            weight: .regular
+        )
+        #expect(image != nil)
+    }
+
+    @Test("AppKit symbol helper supports symbol spec overload")
+    func appKitSymbolHelperSpecOverload() {
+        let image = appKitSymbolImage(
+            spec: AppKitUISymbols.navChevron,
+            color: .labelColor
+        )
+        #expect(image != nil)
+    }
+
     @Test("Shared AppKit icon button helper applies image inset when supported")
     func sharedAppKitIconButtonInset() {
         let button = IconInsetButton()
@@ -175,6 +194,12 @@ struct UIComponentTests {
     @MainActor
     @Test("AppKit button primitives cover action, gradient, and inset-cell geometry")
     func appKitButtonPrimitivesCoverage() {
+        let plainButton = ActionButton(title: "Plain")
+        plainButton.wantsLayer = false
+        plainButton.frame = NSRect(x: 0, y: 0, width: 100, height: 24)
+        plainButton.layoutSubtreeIfNeeded()
+        plainButton.viewDidChangeEffectiveAppearance()
+
         let actionButton = ActionButton(title: "Run")
         var didTap = false
         actionButton.onAction = { didTap = true }
@@ -206,7 +231,9 @@ struct UIComponentTests {
         let iconButton = IconInsetButton(frame: NSRect(x: 0, y: 0, width: 24, height: 24))
         iconButton.imageInset = 4
         #expect(iconButton.imageInset == 4)
-        IconInsetButton.cellClass = NSButtonCell.self
+        IconInsetButton.cellClass = IconInsetButtonCell.self
+        iconButton.cell = NSButtonCell(textCell: "")
+        #expect(iconButton.imageInset == 0)
 
         let leadingButton = LeadingInsetActionButton(title: "Lead")
         leadingButton.leadingInset = 12
@@ -215,7 +242,11 @@ struct UIComponentTests {
         #expect(leadingButton.leadingInset == 12)
         #expect(leadingButton.titleAdditionalInset == 7)
         #expect(leadingButton.imageSlotWidth == 18)
-        LeadingInsetActionButton.cellClass = NSButtonCell.self
+        LeadingInsetActionButton.cellClass = LeadingInsetButtonCell.self
+        leadingButton.cell = NSButtonCell(textCell: "")
+        #expect(leadingButton.leadingInset == 0)
+        #expect(leadingButton.titleAdditionalInset == 0)
+        #expect(leadingButton.imageSlotWidth == 0)
     }
 
     @Test("Shared AppKit pill and selectable-row helpers configure common controls")
@@ -241,6 +272,110 @@ struct UIComponentTests {
         #expect(rowButton.subviews.contains { $0 is NSStackView })
     }
 
+    @MainActor
+    @Test("AppKit button style helpers cover didSet, appearance refresh, and utility builders")
+    func appKitButtonStylesCoverage() {
+        let selectable = AppKitSelectableRowButton(
+            title: "Row",
+            isSelected: false,
+            accentColor: .systemBlue,
+            trailingSelectedSymbol: nil
+        )
+        selectable.applySelectionState(true)
+        selectable.accentColor = .systemPink
+        selectable.viewDidChangeEffectiveAppearance()
+        #expect(selectable.displayedTitleForTesting == "Row")
+
+        let pill = AppKitPillButton(
+            title: "Pill",
+            isSelected: false,
+            selectedColor: .systemOrange
+        )
+        pill.applySelectionState(true)
+        pill.selectedColor = .systemGreen
+        pill.viewDidChangeEffectiveAppearance()
+        #expect(pill.attributedTitle.string == "Pill")
+
+        let symbol = AppKitSymbolControlButton(
+            symbolName: "chevron.left",
+            pointSize: 12,
+            weight: .regular,
+            color: .secondaryLabelColor
+        )
+        symbol.symbolColor = .systemPurple
+        symbol.viewDidChangeEffectiveAppearance()
+        #expect(symbol.symbolNameForTesting == "chevron.left")
+
+        let dangerButton = NSButton()
+        configureAppKitDangerSymbolButton(dangerButton, symbol: AppKitUISymbols.closeEditor)
+        #expect(dangerButton.contentTintColor == .systemRed)
+        #expect(dangerButton.image != nil)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        configureAppKitWindowButton(in: window, type: .closeButton, targetSize: nil)
+        configureAppKitWindowButton(
+            in: window,
+            type: .closeButton,
+            controlSize: .small,
+            targetSize: 18,
+            xOffset: 1,
+            yOffset: -1
+        )
+        let borderless = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 140),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        configureAppKitWindowButton(in: borderless, type: .closeButton, targetSize: 16)
+
+        let primary = makeAppKitPrimaryButton(title: "Primary", color: .systemBlue)
+        #expect(primary.attributedTitle.string == "Primary")
+        #expect(primary.contentTintColor == .systemBlue)
+
+        let secondary = makeAppKitSecondaryButton(title: "Secondary", color: .systemTeal)
+        #expect(secondary.attributedTitle.string == "Secondary")
+        applyAppKitSecondaryButtonStyle(secondary, title: "Updated", color: .systemIndigo)
+        #expect(secondary.attributedTitle.string == "Updated")
+
+        applyAppKitNeutralButtonStyle(secondary, title: "Neutral")
+        #expect(secondary.attributedTitle.string == "Neutral")
+        #expect(secondary.contentTintColor == .labelColor)
+
+        let divider = makeAppKitDividerView()
+        #expect(divider is AppKitDynamicView)
+        #expect(divider.constraints.contains { $0.constant == 1 })
+    }
+
+    @Test("Schedule editor support views cover arranged-subview removal and safe collection lookup")
+    func scheduleEditorSupportViewsCoverage() {
+        let section = EditorSectionView(title: "Section")
+        #expect(section.contentStack.arrangedSubviews.count == 1)
+
+        let first = NSTextField(labelWithString: "First")
+        let second = NSTextField(labelWithString: "Second")
+        section.contentStack.addArrangedSubview(first)
+        section.contentStack.addArrangedSubview(second)
+        #expect(section.contentStack.arrangedSubviews.count == 3)
+
+        removeArrangedSubviews(from: section.contentStack)
+        #expect(section.contentStack.arrangedSubviews.isEmpty)
+        #expect(first.superview == nil)
+        #expect(second.superview == nil)
+
+        let untitled = EditorSectionView(title: "")
+        #expect(untitled.contentStack.arrangedSubviews.isEmpty)
+
+        let values = [10, 20]
+        #expect(values[safe: 0] == 10)
+        #expect(values[safe: 99] == nil)
+    }
+
     @Test("Shared AppKit selection button group applies accent to selected value")
     func sharedAppKitSelectionButtonGroup() {
         let control = AppKitSelectionButtonGroup(
@@ -261,6 +396,18 @@ struct UIComponentTests {
         #expect(control.selectedButtonTintColor == .systemPurple)
         #expect(control.intrinsicContentSize.width > 80)
         #expect(control.intrinsicContentSize.width < 220)
+        #expect(control.intrinsicContentSize.height == 26)
+    }
+
+    @Test("Selection button group handles empty options with stable intrinsic size")
+    func sharedAppKitSelectionButtonGroupEmptyOptions() {
+        let control = AppKitSelectionButtonGroup(
+            options: [AppKitSelectionButtonOption<String>](),
+            selectedValue: "",
+            accentColor: .systemBlue
+        )
+
+        #expect(control.intrinsicContentSize.width == 2)
         #expect(control.intrinsicContentSize.height == 26)
     }
 
@@ -350,12 +497,60 @@ struct UIComponentTests {
         #expect(toggle.state == .off)
         #expect(actionCount == 2)
 
+        let mouseOutside = NSEvent.mouseEvent(
+            with: .leftMouseUp,
+            location: NSPoint(x: 500, y: 500),
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            eventNumber: 0,
+            clickCount: 1,
+            pressure: 1
+        )
+        #expect(mouseOutside != nil)
+        if let mouseOutside {
+            toggle.mouseUp(with: mouseOutside)
+        }
+        #expect(actionCount == 2)
+
+        let nonToggleKey = NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "a",
+            charactersIgnoringModifiers: "a",
+            isARepeat: false,
+            keyCode: 0
+        )
+        #expect(nonToggleKey != nil)
+        if let nonToggleKey {
+            toggle.keyDown(with: nonToggleKey)
+        }
+        #expect(toggle.state == .off)
+
         toggle.isEnabled = false
         #expect(toggle.acceptsFirstResponder == false)
         if let keyEvent {
             toggle.keyDown(with: keyEvent)
         }
         #expect(toggle.state == .off)
+
+        if let mouseInside {
+            toggle.mouseUp(with: mouseInside)
+        }
+        #expect(actionCount == 2)
+    }
+
+    @Test("AppKit card stack view refreshes appearance colors on appearance changes")
+    func appKitCardStackViewAppearanceRefresh() {
+        let cardStack = AppKitCardStackView(frame: NSRect(x: 0, y: 0, width: 100, height: 60))
+        #expect(cardStack.layer?.backgroundColor != nil)
+        cardStack.viewDidChangeEffectiveAppearance()
+        #expect(cardStack.layer?.backgroundColor != nil)
     }
 
     @Test("Shared AppKit stack helpers build consistent row and column layouts")
@@ -492,5 +687,61 @@ struct UIComponentTests {
         #expect(toggleButton != nil)
         toggleButton?.performClick(nil)
         #expect(didToggle)
+
+        // Cover unresolved sidebar identifier guard path.
+        sidebar.invokeSidebarButtonForTesting(identifierRawValue: "does.not.exist")
+        #expect(selectedSection == .pomodoro)
+    }
+
+    @MainActor
+    @Test("Main section metadata and router cover all enum cases")
+    func mainSectionMetadataAndRouterCoverage() {
+        let suite = "UIComponentTests.mainSectionMetadataAndRouterCoverage"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let appState = AppState(defaults: defaults, isTesting: true)
+        let shellState = FreeShellState()
+
+        let focusController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .all
+        )
+        let schedulesController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .schedules
+        )
+        let pomodoroController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .pomodoro
+        )
+        let allowedWebsitesController = FocusSectionViewController(
+            appState: appState,
+            shellState: shellState,
+            section: .allowedWebsites
+        )
+        let settingsController = SettingsSectionViewController(appState: appState)
+        let router = MainSectionRouter(
+            focusOverviewController: focusController,
+            schedulesOverviewController: schedulesController,
+            pomodoroSectionController: pomodoroController,
+            allowedWebsitesSectionController: allowedWebsitesController,
+            settingsSectionController: settingsController
+        )
+
+        #expect(MainContentSection.focus.icon == AppKitUISymbols.Name.focus)
+        #expect(MainContentSection.schedules.icon == AppKitUISymbols.Name.schedules)
+        #expect(MainContentSection.pomodoro.icon == AppKitUISymbols.Name.pomodoro)
+        #expect(MainContentSection.allowedWebsites.icon == AppKitUISymbols.Name.allowedWebsites)
+        #expect(MainContentSection.settings.icon == AppKitUISymbols.Name.settings)
+        #expect(MainContentSection.settings.id == MainContentSection.settings.rawValue)
+
+        #expect(router.controller(for: .focus) === focusController)
+        #expect(router.controller(for: .schedules) === schedulesController)
+        #expect(router.controller(for: .pomodoro) === pomodoroController)
+        #expect(router.controller(for: .allowedWebsites) === allowedWebsitesController)
+        #expect(router.controller(for: .settings) === settingsController)
     }
 }

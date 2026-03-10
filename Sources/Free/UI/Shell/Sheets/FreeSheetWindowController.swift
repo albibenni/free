@@ -114,14 +114,7 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
         let frameRect = window.frameRect(
             forContentRect: NSRect(origin: .zero, size: desiredContentSize)
         )
-        if abs(window.frame.width - frameRect.width) > 0.5
-            || abs(window.frame.height - frameRect.height) > 0.5
-        {
-            window.setFrame(
-                NSRect(origin: window.frame.origin, size: frameRect.size),
-                display: true
-            )
-        }
+        reconcileWindowFrameIfNeeded(window, targetFrameRect: frameRect)
         window.layoutIfNeeded()
     }
 
@@ -143,5 +136,33 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard !isClosingProgrammatically else { return }
         onClose()
+    }
+
+    private func reconcileWindowFrameIfNeeded(
+        _ window: NSWindow,
+        targetFrameRect: NSRect
+    ) {
+        if abs(window.frame.width - targetFrameRect.width) > 0.5
+            || abs(window.frame.height - targetFrameRect.height) > 0.5
+        {
+            window.setFrame(
+                NSRect(origin: window.frame.origin, size: targetFrameRect.size),
+                display: true
+            )
+        }
+    }
+}
+
+extension FreeSheetWindowController {
+    func reconcileWindowFrameForTesting() {
+        guard let window else { return }
+        let target = window.frameRect(
+            forContentRect: NSRect(origin: .zero, size: desiredContentSize)
+        )
+        reconcileWindowFrameIfNeeded(window, targetFrameRect: target)
+    }
+
+    func setClosingProgrammaticallyForTesting(_ value: Bool) {
+        isClosingProgrammatically = value
     }
 }

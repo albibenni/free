@@ -98,6 +98,13 @@ struct SchedulesWidgetTests {
     func schedulesWidgetRowsRender() {
         let appState = isolatedAppState(name: "rowsRender")
         let active = schedule(name: "Deep Work", enabled: true, startOffsetMinutes: -30, endOffsetMinutes: 30)
+        let inactiveEnabled = schedule(
+            name: "Later",
+            enabled: true,
+            startOffsetMinutes: 180,
+            endOffsetMinutes: 240,
+            type: .focus
+        )
         let disabled = schedule(
             name: "Muted",
             enabled: false,
@@ -105,12 +112,13 @@ struct SchedulesWidgetTests {
             endOffsetMinutes: 180,
             type: .unfocus
         )
-        appState.schedules = [active, disabled]
+        appState.schedules = [active, inactiveEnabled, disabled]
 
         let hosted = host(FocusSchedulesWidgetView(appState: appState, shellState: FreeShellState()))
         let texts = visibleText(in: hosted)
 
         #expect(texts.contains("Deep Work"))
+        #expect(texts.contains("Later"))
         #expect(texts.contains("Muted"))
         #expect(texts.contains("Focus"))
         #expect(texts.contains("Break"))

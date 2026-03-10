@@ -158,6 +158,46 @@ struct SchedulesViewTests {
         #expect(appState.schedules.contains(where: { $0.id == imported.id }))
     }
 
+    @Test("Schedules remove-at-offsets skips imported entries in compactMap guard branch")
+    @MainActor
+    func schedulesRemoveOffsetsSkipsImportedBranch() {
+        let appState = isolatedAppState(name: "removeOffsetsSkipsImported")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+        let now = Date()
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "imported-event-id",
+                title: "Imported",
+                startDate: now.addingTimeInterval(-300),
+                endDate: now.addingTimeInterval(300)
+            )
+        ]
+        appState.schedules = [sampleSchedule(name: "Local")]
+        appState.checkSchedules()
+        guard let importedIndex = appState.schedules.firstIndex(where: { $0.importedCalendarEventKey != nil }) else {
+            Issue.record("Expected imported schedule generated from calendar sync")
+            return
+        }
+        let importedId = appState.schedules[importedIndex].id
+        guard let localIndex = appState.schedules.firstIndex(where: { $0.importedCalendarEventKey == nil }) else {
+            Issue.record("Expected local schedule alongside imported schedule")
+            return
+        }
+        let localId = appState.schedules[localIndex].id
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: {},
+            initialViewMode: 0
+        )
+        #expect(controller.removableScheduleIDForTesting(at: 999) == nil)
+        #expect(controller.removableScheduleIDForTesting(at: importedIndex) == nil)
+        #expect(controller.removableScheduleIDForTesting(at: localIndex) == localId)
+        controller.removeSchedulesForTesting(at: IndexSet(integer: importedIndex))
+        #expect(appState.schedules.contains(where: { $0.id == importedId }))
+    }
+
     @Test("Schedules sheet controller renders list mode with schedules")
     @MainActor
     func schedulesViewListModeRender() {
@@ -291,6 +331,62 @@ struct SchedulesViewTests {
         #expect(controller.editorContextForTesting?.schedule?.id == schedule.id)
     }
 
+    @Test("Schedules sheet AppKit configuration callbacks route to controller actions")
+    @MainActor
+    func schedulesViewConfigurationCallbacks() {
+        let appState = isolatedAppState(name: "configurationCallbacks")
+        var dismissCount = 0
+        let schedule = sampleSchedule(name: "Callback")
+        appState.schedules = [schedule]
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: { dismissCount += 1 },
+            initialViewMode: 1
+        )
+        _ = host(controller)
+
+        var config = controller.appKitConfigurationForTesting
+        config.onChangeViewMode(0)
+        #expect(controller.viewModeForTesting == 0)
+
+        config = controller.appKitConfigurationForTesting
+        config.onSelectSchedule(schedule)
+        #expect(controller.editorContextForTesting?.schedule?.id == schedule.id)
+
+        config.onDismissEditor()
+        #expect(controller.editorContextForTesting == nil)
+
+        config.calendarViewConfiguration.onQuickAdd(2, 10)
+        #expect(controller.editorContextForTesting?.day == 2)
+
+        config.calendarViewConfiguration.onCreateSelection(3, 9.25, 10.75)
+        #expect(controller.editorContextForTesting?.day == 3)
+
+        config.calendarViewConfiguration.onOpenSchedule(2, schedule)
+        #expect(controller.editorContextForTesting?.schedule?.id == schedule.id)
+
+        config.onToggleScheduleEnabled(schedule.id, false)
+        #expect(appState.schedules.first?.isEnabled == false)
+
+        config.onDeleteSchedule(UUID())
+        #expect(appState.schedules.count == 1)
+
+        config.onAddSchedule()
+        #expect(controller.editorContextForTesting != nil)
+
+        let weekBefore = controller.weekOffsetForTesting
+        config.onPreviousWeek()
+        #expect(controller.weekOffsetForTesting == weekBefore - 1)
+        config.onCurrentWeek()
+        #expect(controller.weekOffsetForTesting == 0)
+        config.onNextWeek()
+        #expect(controller.weekOffsetForTesting == 1)
+
+        config.onDismiss?()
+        #expect(dismissCount == 1)
+    }
+
     @Test("Schedules list view reuses existing row view identity for unchanged schedules")
     @MainActor
     func schedulesListRowReuseIdentity() throws {
@@ -317,12 +413,52 @@ struct SchedulesViewTests {
         #expect(controller.listRowObjectIdentifierForTesting(scheduleId: second.id) != nil)
     }
 
+    @Test("Schedules list document reorders existing row views when schedule order changes")
+    @MainActor
+    func schedulesListDocumentReorderCoverage() throws {
+        let first = sampleSchedule(name: "First")
+        let second = sampleSchedule(name: "Second")
+        let document = SchedulesListDocumentNSView(frame: NSRect(x: 0, y: 0, width: 600, height: 300))
+
+        document.configure(
+            schedules: [first, second],
+            accentColorIndex: 0,
+            onSelectSchedule: { _ in },
+            onDeleteSchedule: { _ in },
+            onToggleScheduleEnabled: { _, _ in }
+        )
+        document.layoutRows(width: 600)
+
+        let firstIdentity = try #require(document.rowObjectIdentifierForTesting(scheduleId: first.id))
+        let secondIdentity = try #require(document.rowObjectIdentifierForTesting(scheduleId: second.id))
+        #expect(document.subviews.count == 2)
+
+        document.configure(
+            schedules: [second, first],
+            accentColorIndex: 0,
+            onSelectSchedule: { _ in },
+            onDeleteSchedule: { _ in },
+            onToggleScheduleEnabled: { _, _ in }
+        )
+        document.layoutRows(width: 600)
+
+        #expect(document.rowObjectIdentifierForTesting(scheduleId: first.id) == firstIdentity)
+        #expect(document.rowObjectIdentifierForTesting(scheduleId: second.id) == secondIdentity)
+        #expect(ObjectIdentifier(document.subviews[0]) == secondIdentity)
+        #expect(ObjectIdentifier(document.subviews[1]) == firstIdentity)
+    }
+
     @Test("Schedules list row view handles draw, select, delete, and toggle callbacks")
     @MainActor
     func schedulesListRowViewInteractionCoverage() {
         let row = SchedulesListRowNSView(frame: NSRect(x: 0, y: 0, width: 420, height: 72))
         row.showsSeparator = false
         row.layoutSubtreeIfNeeded()
+        let image = NSImage(size: row.bounds.size)
+
+        image.lockFocus()
+        row.draw(row.bounds)
+        image.unlockFocus()
 
         // Guard path when schedule is not configured.
         if let emptyMouseUp = NSEvent.mouseEvent(
@@ -338,6 +474,8 @@ struct SchedulesViewTests {
         ) {
             row.mouseUp(with: emptyMouseUp)
         }
+        firstSubview(of: NSButton.self, in: row)?.performClick(nil)
+        firstSubview(of: NSSwitch.self, in: row)?.performClick(nil)
 
         let base = sampleSchedule(name: "Row Test")
         var selectedId: UUID?
@@ -379,7 +517,6 @@ struct SchedulesViewTests {
         #expect(toggled?.0 == base.id)
         #expect(toggled != nil)
 
-        let image = NSImage(size: row.bounds.size)
         image.lockFocus()
         row.draw(row.bounds)
         image.unlockFocus()
@@ -400,6 +537,25 @@ struct SchedulesViewTests {
         image.lockFocus()
         row.draw(row.bounds)
         image.unlockFocus()
+
+        // Small-width guard paths for badge/tag rendering.
+        row.frame = NSRect(x: 0, y: 0, width: 20, height: 72)
+        row.layoutSubtreeIfNeeded()
+        image.lockFocus()
+        row.draw(row.bounds)
+        image.unlockFocus()
+    }
+
+    @Test("Schedules list row and schedules sheet unavailable coder init paths return nil")
+    @MainActor
+    func schedulesUnavailableCoderInitCoverage() throws {
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        archiver.finishEncoding()
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        defer { unarchiver.finishDecoding() }
+
+        #expect(SchedulesListRowNSView(coder: unarchiver) == nil)
+        #expect(SchedulesSheetViewController(coder: unarchiver) == nil)
     }
 
     @Test("Schedules container routes toolbar actions and window attachment callback")
@@ -455,12 +611,99 @@ struct SchedulesViewTests {
         container.goToCurrentWeekForTesting()
         container.goToNextWeekForTesting()
 
+        var dismissEditorCount = 0
+        let editorContext = ScheduleEditorContext(
+            day: 2,
+            startTime: sampleSchedule(name: "Edit Seed").startTime,
+            endTime: sampleSchedule(name: "Edit Seed").endTime,
+            schedule: nil,
+            weekOffset: 0
+        )
+        let editorConfig = SchedulesAppKitConfiguration(
+            viewMode: 1,
+            monthTitle: "March 2026",
+            schedules: [sampleSchedule(name: "Editor Host")],
+            accentColor: .systemGreen,
+            accentColorIndex: appState.accentColorIndex,
+            appState: appState,
+            editorContext: editorContext,
+            calendarViewConfiguration: sampleCalendarConfiguration(),
+            onChangeViewMode: { _ in },
+            onSelectSchedule: { _ in },
+            onDeleteSchedule: { _ in },
+            onToggleScheduleEnabled: { _, _ in },
+            onAddSchedule: {},
+            onDismissEditor: { dismissEditorCount += 1 },
+            onDismiss: {},
+            onPreviousWeek: {},
+            onCurrentWeek: {},
+            onNextWeek: {}
+        )
+        container.configure(with: editorConfig)
+        // Reconfigure with same context while sheet is active (reuse/guard path).
+        container.configure(with: editorConfig)
+
+        if let editor = window.attachedSheet?.contentViewController as? ScheduleEditorViewController {
+            editor.dismissForTesting()
+        }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+
+        let noEditorConfig = SchedulesAppKitConfiguration(
+            viewMode: 1,
+            monthTitle: "March 2026",
+            schedules: [sampleSchedule(name: "Editor Host")],
+            accentColor: .systemGreen,
+            accentColorIndex: appState.accentColorIndex,
+            appState: appState,
+            editorContext: nil,
+            calendarViewConfiguration: sampleCalendarConfiguration(),
+            onChangeViewMode: { _ in },
+            onSelectSchedule: { _ in },
+            onDeleteSchedule: { _ in },
+            onToggleScheduleEnabled: { _, _ in },
+            onAddSchedule: {},
+            onDismissEditor: { dismissEditorCount += 1 },
+            onDismiss: {},
+            onPreviousWeek: {},
+            onCurrentWeek: {},
+            onNextWeek: {}
+        )
+        container.configure(with: noEditorConfig)
+
         #expect(changedModes == [1])
         #expect(addCount == 1)
         #expect(prevCount == 1)
         #expect(currentCount == 1)
         #expect(nextCount == 1)
         #expect(attachedWindows > 0)
+        #expect(dismissEditorCount >= 1)
+    }
+
+    @Test("Schedules container dismiss helper clears injected editor controller")
+    @MainActor
+    func schedulesContainerDismissHelperCoverage() {
+        let container = SchedulesContainerNSView(frame: NSRect(x: 0, y: 0, width: 500, height: 400))
+        let sheet = FreeSheetWindowController(
+            contentViewController: NSViewController(),
+            contentSize: CGSize(width: 320, height: 240),
+            onClose: {}
+        )
+        container.setEditorSheetControllerForTesting(sheet)
+        container.dismissEditorIfNeededForTesting(clearContext: true)
+        container.dismissEditorIfNeededForTesting()
+    }
+
+    @Test("Schedules container coder init returns nil and pre-config window attach is safe")
+    @MainActor
+    func schedulesContainerCoderAndPreConfigGuardCoverage() throws {
+        let container = SchedulesContainerNSView(frame: NSRect(x: 0, y: 0, width: 500, height: 400))
+        container.viewDidMoveToWindow()
+
+        let archiver = NSKeyedArchiver(requiringSecureCoding: false)
+        archiver.finishEncoding()
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
+        defer { unarchiver.finishDecoding() }
+        #expect(SchedulesContainerNSView(coder: unarchiver) == nil)
     }
 
     @Test("Schedules controller testing hooks cover editor and lightweight refresh paths")
@@ -510,5 +753,63 @@ struct SchedulesViewTests {
         window.contentView?.addSubview(controller.view)
         controller.updateWindowTitleForTesting()
         #expect(!window.title.isEmpty)
+
+        var dismissCount = 0
+        let dismissController = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: { dismissCount += 1 },
+            initialViewMode: 0
+        )
+        _ = host(dismissController)
+        dismissController.invokeDismissForTesting()
+        #expect(dismissCount == 1)
     }
+
+    @Test("Schedules sheet maps external-event snapshots and routes calendar update callback")
+    @MainActor
+    func schedulesExternalEventsAndUpdateCallbackCoverage() {
+        let appState = isolatedAppState(name: "externalEventsAndUpdateCallback")
+        var schedule = sampleSchedule(name: "Calendar Update")
+        schedule.days = [2]
+        appState.schedules = [schedule]
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = false
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "event-1",
+                title: "Meeting",
+                startDate: Date().addingTimeInterval(600),
+                endDate: Date().addingTimeInterval(1200)
+            )
+        ]
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: {},
+            initialViewMode: 1
+        )
+        _ = host(controller)
+
+        controller.refreshConfigurationForTesting(force: false)
+        let config = controller.appKitConfigurationForTesting
+
+        let updatedStart = schedule.startTime.addingTimeInterval(900)
+        let updatedEnd = schedule.endTime.addingTimeInterval(900)
+        config.calendarViewConfiguration.onUpdateSchedule(
+            schedule.id,
+            2,
+            2,
+            nil,
+            updatedStart,
+            updatedEnd
+        )
+
+        guard let updated = appState.schedules.first(where: { $0.id == schedule.id }) else {
+            Issue.record("Expected updated schedule to still exist")
+            return
+        }
+        #expect(updated.startTime == updatedStart)
+        #expect(updated.endTime == updatedEnd)
+    }
+
 }
