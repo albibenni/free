@@ -9,6 +9,8 @@ final class SettingsStore {
         static let appearanceMode = "AppearanceMode"
         static let calendarIntegrationEnabled = "CalendarIntegrationEnabled"
         static let calendarImportsBlockTime = "CalendarImportsBlockTime"
+        static let calendarImportFocusTitleRules = "CalendarImportFocusTitleRules"
+        static let calendarImportBreakTitleRules = "CalendarImportBreakTitleRules"
         static let blockNewTabs = "BlockNewTabs"
         static let blockDeveloperHosts = "BlockDeveloperHosts"
         static let blockLocalNetworkHosts = "BlockLocalNetworkHosts"
@@ -54,6 +56,20 @@ final class SettingsStore {
     func calendarImportsBlockTime() -> Bool { defaults.bool(forKey: Key.calendarImportsBlockTime) }
     func setCalendarImportsBlockTime(_ value: Bool) {
         defaults.set(value, forKey: Key.calendarImportsBlockTime)
+    }
+
+    func calendarImportFocusTitleRules() -> [String] {
+        defaults.stringArray(forKey: Key.calendarImportFocusTitleRules) ?? []
+    }
+    func setCalendarImportFocusTitleRules(_ value: [String]) {
+        defaults.set(value, forKey: Key.calendarImportFocusTitleRules)
+    }
+
+    func calendarImportBreakTitleRules() -> [String] {
+        defaults.stringArray(forKey: Key.calendarImportBreakTitleRules) ?? []
+    }
+    func setCalendarImportBreakTitleRules(_ value: [String]) {
+        defaults.set(value, forKey: Key.calendarImportBreakTitleRules)
     }
 
     func blockNewTabs() -> Bool { defaults.bool(forKey: Key.blockNewTabs) }

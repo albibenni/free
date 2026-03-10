@@ -48,6 +48,8 @@ struct AppSettingsDomainState: Equatable {
     var weekStartsOnMonday: Bool
     var accentColorIndex: Int
     var appearanceMode: AppearanceMode
+    var calendarImportFocusTitleRules: [String]
+    var calendarImportBreakTitleRules: [String]
     var blockNewTabs: Bool
     var blockDeveloperHosts: Bool
     var blockLocalNetworkHosts: Bool

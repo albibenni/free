@@ -42,6 +42,12 @@ class AppState: ObservableObject {
             )
         }
     }
+    @Published var calendarImportFocusTitleRules: [String] = [] {
+        didSet { checkSchedules() }
+    }
+    @Published var calendarImportBreakTitleRules: [String] = [] {
+        didSet { checkSchedules() }
+    }
     @Published var blockNewTabs = false
     @Published var blockDeveloperHosts = false
     @Published var blockLocalNetworkHosts = false

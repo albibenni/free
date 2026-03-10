@@ -34,6 +34,8 @@ struct CalendarImportService {
         events: [ExternalEvent],
         shouldImportCalendarEvents: Bool,
         suppressedImportedCalendarEventKeys: Set<String>,
+        focusTitleRules: [String] = [],
+        breakTitleRules: [String] = [],
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
         preservedImportedByKey: [String: Schedule]
@@ -48,12 +50,23 @@ struct CalendarImportService {
             }
         )
         let defaultImportedRuleSetId = RuleSetService.normalizeRuleSetId(activeRuleSetId, in: ruleSets)
+        let normalizedFocusRules = normalizedTitleRules(focusTitleRules)
+        let normalizedBreakRules = normalizedTitleRules(breakTitleRules)
 
         let importedSchedules = events
             .sorted { $0.startDate < $1.startDate }
             .compactMap { event -> Schedule? in
                 guard !suppressedImportedCalendarEventKeys.contains(event.id) else { return nil }
                 let existing = existingImportedByKey[event.id] ?? preservedImportedByKey[event.id]
+                let resolvedType: ScheduleType = {
+                    if titleMatchesRules(event.title, normalizedRules: normalizedBreakRules) {
+                        return .unfocus
+                    }
+                    if titleMatchesRules(event.title, normalizedRules: normalizedFocusRules) {
+                        return .focus
+                    }
+                    return existing?.type ?? .focus
+                }()
                 return Schedule(
                     id: existing?.id ?? UUID(),
                     name: event.title,
@@ -63,7 +76,7 @@ struct CalendarImportService {
                     endTime: event.endDate,
                     isEnabled: existing?.isEnabled ?? true,
                     colorIndex: existing?.colorIndex ?? 0,
-                    type: existing?.type ?? .focus,
+                    type: resolvedType,
                     ruleSetId: existing?.ruleSetId ?? defaultImportedRuleSetId,
                     importedCalendarEventKey: event.id
                 )
@@ -160,5 +173,21 @@ struct CalendarImportService {
             return calendar.startOfDay(for: start)
         }
         return calendar.startOfDay(for: now)
+    }
+
+    private static func normalizedTitleRules(_ rules: [String]) -> [String] {
+        var seen = Set<String>()
+        return rules.reduce(into: [String]()) { result, rule in
+            let normalized = rule.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard normalized.isEmpty == false, seen.insert(normalized).inserted else { return }
+            result.append(normalized)
+        }
+    }
+
+    private static func titleMatchesRules(_ title: String, normalizedRules: [String]) -> Bool {
+        guard normalizedRules.isEmpty == false else { return false }
+        let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard normalizedTitle.isEmpty == false else { return false }
+        return normalizedRules.contains(where: { normalizedTitle.contains($0) })
     }
 }

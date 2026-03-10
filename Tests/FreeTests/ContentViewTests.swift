@@ -85,6 +85,7 @@ struct ContentViewTests {
         #expect(texts.contains("Menu"))
         #expect(texts.contains("Focus"))
         #expect(texts.contains("Schedules"))
+        #expect(texts.contains("Calendar"))
         #expect(texts.contains("Allowed Websites"))
         #expect(texts.contains("Pomodoro"))
         #expect(texts.contains("Settings"))
@@ -137,5 +138,26 @@ struct ContentViewTests {
         #expect(texts.contains("Settings"))
         #expect(texts.contains("Strict Mode"))
         #expect(texts.contains("Appearance"))
+    }
+
+    @Test("Main shell calendar section is accessible only when calendar integration is enabled")
+    @MainActor
+    func mainShellCalendarSectionAvailability() {
+        let appState = isolatedAppState(name: "calendarSectionAvailability")
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+        _ = host(controller)
+
+        controller.selectSectionForTesting(.calendar)
+        #expect(controller.selectedSectionForTesting == .focus)
+
+        appState.calendarIntegrationEnabled = true
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        controller.selectSectionForTesting(.calendar)
+        #expect(controller.selectedSectionForTesting == .calendar)
+        #expect(controller.currentContentViewControllerForTesting is CalendarSectionViewController)
     }
 }

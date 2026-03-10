@@ -280,6 +280,34 @@ struct LogicServicesCoverageBoostTests {
         #expect(importedC?.type == .focus)
         #expect(importedC?.ruleSetId == defaultSet.id)
 
+        let eventD = ExternalEvent(
+            id: "event-d",
+            title: "Team Lunch",
+            startDate: baseStart.addingTimeInterval(3_000),
+            endDate: baseEnd.addingTimeInterval(3_000)
+        )
+        let eventE = ExternalEvent(
+            id: "event-e",
+            title: "Deep Work Session",
+            startDate: baseStart.addingTimeInterval(4_000),
+            endDate: baseEnd.addingTimeInterval(4_000)
+        )
+        let mergedWithTitleRules = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
+            schedules: [manual],
+            events: [eventD, eventE],
+            shouldImportCalendarEvents: true,
+            suppressedImportedCalendarEventKeys: [],
+            focusTitleRules: ["deep work"],
+            breakTitleRules: ["lunch"],
+            activeRuleSetId: defaultSet.id,
+            ruleSets: [defaultSet],
+            preservedImportedByKey: [:]
+        )
+        let importedD = mergedWithTitleRules.first(where: { $0.importedCalendarEventKey == eventD.id })
+        let importedE = mergedWithTitleRules.first(where: { $0.importedCalendarEventKey == eventE.id })
+        #expect(importedD?.type == .unfocus)
+        #expect(importedE?.type == .focus)
+
         let signatures = CalendarImportService.legacyImportedEventSignatures(from: [eventA, eventB])
         #expect(signatures.count == 2)
 

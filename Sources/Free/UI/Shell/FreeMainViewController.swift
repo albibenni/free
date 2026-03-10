@@ -15,6 +15,7 @@ final class FreeMainViewController: NSViewController {
     private let shellState: FreeShellState
     private let focusOverviewController: FocusSectionViewController
     private let schedulesOverviewController: FocusSectionViewController
+    private let calendarSectionController: CalendarSectionViewController
     private let pomodoroSectionController: FocusSectionViewController
     private let allowedWebsitesSectionController: FocusSectionViewController
     private let settingsSectionController: SettingsSectionViewController
@@ -73,10 +74,12 @@ final class FreeMainViewController: NSViewController {
             shellState: shellState,
             section: .allowedWebsites
         )
+        calendarSectionController = CalendarSectionViewController(appState: appState)
         settingsSectionController = SettingsSectionViewController(appState: appState)
         sectionRouter = MainSectionRouter(
             focusOverviewController: focusOverviewController,
             schedulesOverviewController: schedulesOverviewController,
+            calendarSectionController: calendarSectionController,
             pomodoroSectionController: pomodoroSectionController,
             allowedWebsitesSectionController: allowedWebsitesSectionController,
             settingsSectionController: settingsSectionController
@@ -97,6 +100,7 @@ final class FreeMainViewController: NSViewController {
         configureLayout()
         updateSidebarVisibility()
         updateSidebarSelection()
+        updateCalendarTabAvailability()
         updateContentController()
     }
 
@@ -167,6 +171,7 @@ final class FreeMainViewController: NSViewController {
             },
             onAppStateChanged: { [weak self] in
                 self?.updateSidebarSelection()
+                self?.updateCalendarTabAvailability()
             },
             onShowRulesChanged: { [weak self] isShown in
                 if isShown {
@@ -192,6 +197,16 @@ final class FreeMainViewController: NSViewController {
         )
     }
 
+    private func updateCalendarTabAvailability() {
+        let isEnabled = appState.calendarIntegrationEnabled
+        sidebarView.setSectionEnabled(.calendar, isEnabled: isEnabled)
+        if !isEnabled, shellState.selectedSection == .calendar {
+            shellState.selectedSection = .settings
+            updateSidebarSelection()
+            updateContentController()
+        }
+    }
+
     private func updateSidebarVisibility() {
         sidebarView.setSidebarVisible(shellState.showSidebar)
     }
@@ -203,6 +218,9 @@ final class FreeMainViewController: NSViewController {
 
     private func applySelectedSection(_ section: MainContentSection) {
         if isTabSwitchBlockedByPresentedWindow, section != shellState.selectedSection {
+            return
+        }
+        if section == .calendar, appState.calendarIntegrationEnabled == false {
             return
         }
         shellState.selectedSection = section

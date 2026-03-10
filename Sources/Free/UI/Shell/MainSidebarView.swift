@@ -10,6 +10,7 @@ final class MainSidebarView: AppKitDynamicView {
     private let settingsDivider = AppKitDynamicView()
     private var sidebarWidthConstraint: NSLayoutConstraint?
     private var sectionButtons: [MainContentSection: NSButton] = [:]
+    private var sectionEnabled: [MainContentSection: Bool] = [:]
 
     var onToggleSidebar: (() -> Void)?
     var onSelectSection: ((MainContentSection) -> Void)?
@@ -71,6 +72,17 @@ final class MainSidebarView: AppKitDynamicView {
         }
     }
 
+    func setSectionEnabled(_ section: MainContentSection, isEnabled: Bool) {
+        sectionEnabled[section] = isEnabled
+        guard let button = sectionButtons[section] else { return }
+        applySidebarButtonStyle(
+            button,
+            section: section,
+            isSelected: selectedSection == section,
+            accentColorIndex: accentColorIndex
+        )
+    }
+
     func selectedBackgroundColor(for section: MainContentSection) -> NSColor? {
         sectionButtons[section]?.layer?.backgroundColor.flatMap(NSColor.init(cgColor:))
     }
@@ -107,9 +119,10 @@ final class MainSidebarView: AppKitDynamicView {
         sectionButtonsStack.alignment = .leading
         sectionButtonsStack.spacing = 8
 
-        for section in [.focus, .schedules, .pomodoro, .allowedWebsites] as [MainContentSection] {
+        for section in [.focus, .schedules, .calendar, .pomodoro, .allowedWebsites] as [MainContentSection] {
             let button = sidebarButton(for: section)
             sectionButtons[section] = button
+            sectionEnabled[section] = true
             sectionButtonsStack.addArrangedSubview(button)
         }
 
@@ -120,6 +133,7 @@ final class MainSidebarView: AppKitDynamicView {
 
         let settingsButton = sidebarButton(for: .settings)
         sectionButtons[.settings] = settingsButton
+        sectionEnabled[.settings] = true
 
         let spacer = NSView()
         spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
@@ -178,21 +192,24 @@ final class MainSidebarView: AppKitDynamicView {
         accentColorIndex: Int
     ) {
         let accentColor = FocusColor.nsColor(for: accentColorIndex)
+        let isEnabled = sectionEnabled[section] ?? true
+        let isActivelySelected = isEnabled && isSelected
         let backgroundColor =
-            isSelected
+            isActivelySelected
             ? accentColor.withAlphaComponent(0.18)
             : .clear
         let titleColor =
-            isSelected
+            isActivelySelected
             ? NSColor.labelColor
-            : NSColor.secondaryLabelColor
+            : (isEnabled ? NSColor.secondaryLabelColor : NSColor.tertiaryLabelColor)
         let iconColor =
-            isSelected
+            isActivelySelected
             ? accentColor
-            : NSColor.secondaryLabelColor
-        let fontWeight: NSFont.Weight = isSelected ? .semibold : .medium
+            : (isEnabled ? NSColor.secondaryLabelColor : NSColor.tertiaryLabelColor)
+        let fontWeight: NSFont.Weight = isActivelySelected ? .semibold : .medium
 
         button.layer?.backgroundColor = backgroundColor.cgColor
+        button.isEnabled = isEnabled
         button.image = appKitSymbolImage(
             spec: AppKitUISymbolSpec(
                 name: section.icon,
@@ -224,6 +241,7 @@ final class MainSidebarView: AppKitDynamicView {
 
     @objc
     private func handleSidebarButton(_ sender: NSButton) {
+        guard sender.isEnabled else { return }
         guard let section = section(for: sender.identifier) else { return }
         onSelectSection?(section)
     }

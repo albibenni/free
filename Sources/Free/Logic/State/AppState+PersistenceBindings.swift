@@ -11,6 +11,8 @@ extension AppState {
             appearanceMode: $appearanceMode.eraseToAnyPublisher(),
             calendarIntegrationEnabled: $calendarIntegrationEnabled.eraseToAnyPublisher(),
             calendarImportsBlockTime: $calendarImportsBlockTime.eraseToAnyPublisher(),
+            calendarImportFocusTitleRules: $calendarImportFocusTitleRules.eraseToAnyPublisher(),
+            calendarImportBreakTitleRules: $calendarImportBreakTitleRules.eraseToAnyPublisher(),
             blockNewTabs: $blockNewTabs.eraseToAnyPublisher(),
             blockDeveloperHosts: $blockDeveloperHosts.eraseToAnyPublisher(),
             blockLocalNetworkHosts: $blockLocalNetworkHosts.eraseToAnyPublisher(),

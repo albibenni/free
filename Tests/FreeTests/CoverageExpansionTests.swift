@@ -49,6 +49,8 @@ struct CoverageExpansionTests {
                 weekStartsOnMonday: true,
                 accentColorIndex: 3,
                 appearanceMode: .dark,
+                calendarImportFocusTitleRules: ["focus"],
+                calendarImportBreakTitleRules: ["break"],
                 blockNewTabs: true,
                 blockDeveloperHosts: true,
                 blockLocalNetworkHosts: true,
@@ -59,6 +61,8 @@ struct CoverageExpansionTests {
         #expect(appState.settingsDomainState.weekStartsOnMonday)
         #expect(appState.settingsDomainState.accentColorIndex == 3)
         #expect(appState.settingsDomainState.appearanceMode == .dark)
+        #expect(appState.settingsDomainState.calendarImportFocusTitleRules == ["focus"])
+        #expect(appState.settingsDomainState.calendarImportBreakTitleRules == ["break"])
         #expect(appState.settingsDomainState.blockNewTabs)
         #expect(appState.settingsDomainState.blockDeveloperHosts)
         #expect(appState.settingsDomainState.blockLocalNetworkHosts)
@@ -168,6 +172,18 @@ struct CoverageExpansionTests {
             rules: AppRulesDomainState(
                 ruleSets: [ruleSet],
                 activeRuleSetId: ruleSet.id
+            ),
+            settings: AppSettingsDomainState(
+                weekStartsOnMonday: false,
+                accentColorIndex: 0,
+                appearanceMode: .system,
+                calendarImportFocusTitleRules: [],
+                calendarImportBreakTitleRules: [],
+                blockNewTabs: false,
+                blockDeveloperHosts: false,
+                blockLocalNetworkHosts: false,
+                allowSearchEngineWebsites: false,
+                allowAIProviderWebsites: false
             ),
             weekStartsOnMonday: false,
             events: [event]

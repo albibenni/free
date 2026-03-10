@@ -41,6 +41,8 @@ enum AppStateLifecycleService {
             weekStartsOnMonday: snapshot.weekStartsOnMonday,
             accentColorIndex: snapshot.accentColorIndex,
             appearanceMode: snapshot.appearanceMode,
+            calendarImportFocusTitleRules: snapshot.calendarImportFocusTitleRules,
+            calendarImportBreakTitleRules: snapshot.calendarImportBreakTitleRules,
             blockNewTabs: snapshot.blockNewTabs,
             blockDeveloperHosts: snapshot.blockDeveloperHosts,
             blockLocalNetworkHosts: snapshot.blockLocalNetworkHosts,

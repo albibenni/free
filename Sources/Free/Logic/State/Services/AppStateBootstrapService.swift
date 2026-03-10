@@ -9,6 +9,8 @@ struct AppStateBootstrapService {
         let appearanceMode: AppearanceMode
         let calendarIntegrationEnabled: Bool
         let calendarImportsBlockTime: Bool
+        let calendarImportFocusTitleRules: [String]
+        let calendarImportBreakTitleRules: [String]
         let blockNewTabs: Bool
         let blockDeveloperHosts: Bool
         let blockLocalNetworkHosts: Bool
@@ -46,6 +48,8 @@ struct AppStateBootstrapService {
             appearanceMode: appearanceMode,
             calendarIntegrationEnabled: settingsStore.calendarIntegrationEnabled(),
             calendarImportsBlockTime: settingsStore.calendarImportsBlockTime(),
+            calendarImportFocusTitleRules: settingsStore.calendarImportFocusTitleRules(),
+            calendarImportBreakTitleRules: settingsStore.calendarImportBreakTitleRules(),
             blockNewTabs: settingsStore.blockNewTabs(),
             blockDeveloperHosts: settingsStore.blockDeveloperHosts(),
             blockLocalNetworkHosts: settingsStore.blockLocalNetworkHosts(),

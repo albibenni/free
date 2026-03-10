@@ -44,6 +44,8 @@ struct AppStateLifecycleServiceTests {
             appearanceMode: .dark,
             calendarIntegrationEnabled: true,
             calendarImportsBlockTime: true,
+            calendarImportFocusTitleRules: ["Focus", "Deep Work"],
+            calendarImportBreakTitleRules: ["Break", "Lunch"],
             blockNewTabs: true,
             blockDeveloperHosts: true,
             blockLocalNetworkHosts: true,
@@ -67,6 +69,8 @@ struct AppStateLifecycleServiceTests {
         #expect(projection.settings.weekStartsOnMonday)
         #expect(projection.settings.accentColorIndex == 3)
         #expect(projection.settings.appearanceMode == .dark)
+        #expect(projection.settings.calendarImportFocusTitleRules == ["Focus", "Deep Work"])
+        #expect(projection.settings.calendarImportBreakTitleRules == ["Break", "Lunch"])
         #expect(projection.settings.blockNewTabs)
         #expect(projection.settings.blockDeveloperHosts)
         #expect(projection.settings.blockLocalNetworkHosts)
@@ -204,6 +208,8 @@ struct AppStateLifecycleServiceTests {
             appearanceMode: Just(.system).eraseToAnyPublisher(),
             calendarIntegrationEnabled: Just(false).eraseToAnyPublisher(),
             calendarImportsBlockTime: Just(false).eraseToAnyPublisher(),
+            calendarImportFocusTitleRules: Just([]).eraseToAnyPublisher(),
+            calendarImportBreakTitleRules: Just([]).eraseToAnyPublisher(),
             blockNewTabs: Just(false).eraseToAnyPublisher(),
             blockDeveloperHosts: Just(false).eraseToAnyPublisher(),
             blockLocalNetworkHosts: Just(false).eraseToAnyPublisher(),
@@ -219,6 +225,6 @@ struct AppStateLifecycleServiceTests {
             bindings: bindings,
             settingsStore: settingsStore
         )
-        #expect(cancellables.count == 16)
+        #expect(cancellables.count == 18)
     }
 }

@@ -6,6 +6,8 @@ extension AppState {
             weekStartsOnMonday: weekStartsOnMonday,
             accentColorIndex: accentColorIndex,
             appearanceMode: appearanceMode,
+            calendarImportFocusTitleRules: calendarImportFocusTitleRules,
+            calendarImportBreakTitleRules: calendarImportBreakTitleRules,
             blockNewTabs: blockNewTabs,
             blockDeveloperHosts: blockDeveloperHosts,
             blockLocalNetworkHosts: blockLocalNetworkHosts,
@@ -20,6 +22,12 @@ extension AppState {
         }
         if accentColorIndex != state.accentColorIndex { accentColorIndex = state.accentColorIndex }
         if appearanceMode != state.appearanceMode { appearanceMode = state.appearanceMode }
+        if calendarImportFocusTitleRules != state.calendarImportFocusTitleRules {
+            calendarImportFocusTitleRules = state.calendarImportFocusTitleRules
+        }
+        if calendarImportBreakTitleRules != state.calendarImportBreakTitleRules {
+            calendarImportBreakTitleRules = state.calendarImportBreakTitleRules
+        }
         if blockNewTabs != state.blockNewTabs { blockNewTabs = state.blockNewTabs }
         if blockDeveloperHosts != state.blockDeveloperHosts {
             blockDeveloperHosts = state.blockDeveloperHosts

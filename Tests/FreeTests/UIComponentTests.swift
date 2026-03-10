@@ -645,10 +645,12 @@ struct UIComponentTests {
             shellState: shellState,
             section: .allowedWebsites
         )
+        let calendarController = CalendarSectionViewController(appState: appState)
         let settingsController = SettingsSectionViewController(appState: appState)
         let router = MainSectionRouter(
             focusOverviewController: focusController,
             schedulesOverviewController: schedulesController,
+            calendarSectionController: calendarController,
             pomodoroSectionController: pomodoroController,
             allowedWebsitesSectionController: allowedWebsitesController,
             settingsSectionController: settingsController
@@ -722,10 +724,12 @@ struct UIComponentTests {
             shellState: shellState,
             section: .allowedWebsites
         )
+        let calendarController = CalendarSectionViewController(appState: appState)
         let settingsController = SettingsSectionViewController(appState: appState)
         let router = MainSectionRouter(
             focusOverviewController: focusController,
             schedulesOverviewController: schedulesController,
+            calendarSectionController: calendarController,
             pomodoroSectionController: pomodoroController,
             allowedWebsitesSectionController: allowedWebsitesController,
             settingsSectionController: settingsController
@@ -733,6 +737,7 @@ struct UIComponentTests {
 
         #expect(MainContentSection.focus.icon == AppKitUISymbols.Name.focus)
         #expect(MainContentSection.schedules.icon == AppKitUISymbols.Name.schedules)
+        #expect(MainContentSection.calendar.icon == AppKitUISymbols.Name.calendar)
         #expect(MainContentSection.pomodoro.icon == AppKitUISymbols.Name.pomodoro)
         #expect(MainContentSection.allowedWebsites.icon == AppKitUISymbols.Name.allowedWebsites)
         #expect(MainContentSection.settings.icon == AppKitUISymbols.Name.settings)
@@ -740,6 +745,7 @@ struct UIComponentTests {
 
         #expect(router.controller(for: .focus) === focusController)
         #expect(router.controller(for: .schedules) === schedulesController)
+        #expect(router.controller(for: .calendar) === calendarController)
         #expect(router.controller(for: .pomodoro) === pomodoroController)
         #expect(router.controller(for: .allowedWebsites) === allowedWebsitesController)
         #expect(router.controller(for: .settings) === settingsController)

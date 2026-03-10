@@ -42,6 +42,8 @@ struct AppStateScheduleCoordinatorTests {
             events: [],
             shouldImportCalendarEvents: true,
             suppressedImportedCalendarEventKeys: [],
+            focusTitleRules: [],
+            breakTitleRules: [],
             activeRuleSetId: nil,
             ruleSets: [RuleSet.defaultSet()],
             weekStartsOnMonday: false

@@ -10,6 +10,7 @@ enum AppKitUISymbols {
     enum Name {
         static let focus = "leaf.fill"
         static let schedules = "calendar"
+        static let calendar = "calendar.badge.clock"
         static let pomodoro = "timer"
         static let allowedWebsites = "lock.fill"
         static let settings = "gearshape.fill"
