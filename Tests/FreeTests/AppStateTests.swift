@@ -139,6 +139,23 @@ struct AppStateTests {
         #expect(appState.allowedRules.contains("url1.com"))
     }
 
+    @Test("AI-provider allow toggle augments effective allowed rules")
+    func aiProviderAllowToggleAffectsAllowedRules() {
+        let appState = isolatedAppState(name: "aiProviderAllowToggleAffectsAllowedRules")
+        let ruleSet = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
+        appState.ruleSets = [ruleSet]
+        appState.activeRuleSetId = ruleSet.id
+        appState.isBlocking = true
+
+        appState.allowAIProviderWebsites = false
+        #expect(appState.allowedRules.contains("chatgpt.com") == false)
+
+        appState.allowAIProviderWebsites = true
+        #expect(appState.allowedRules.contains("chatgpt.com"))
+        #expect(appState.allowedRules.contains("claude.ai"))
+        #expect(appState.allowedRules.contains("url1.com"))
+    }
+
     @Test("Break schedule overrides Focus schedule")
     func schedulePriorityBreakOverridesFocus() {
         let appState = isolatedAppState(name: "schedulePriorityBreakOverridesFocus")

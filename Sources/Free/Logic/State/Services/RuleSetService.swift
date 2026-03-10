@@ -11,6 +11,17 @@ struct RuleSetService {
         "startpage.com",
         "qwant.com",
     ]
+    static let knownAIProviderRules = [
+        "chatgpt.com",
+        "openai.com",
+        "claude.ai",
+        "anthropic.com",
+        "gemini.google.com",
+        "copilot.microsoft.com",
+        "perplexity.ai",
+        "poe.com",
+        "grok.com",
+    ]
 
     static func normalizeRuleSetId(_ id: UUID?, in ruleSets: [RuleSet]) -> UUID? {
         if let id, ruleSets.contains(where: { $0.id == id }) {
@@ -87,12 +98,16 @@ struct RuleSetService {
         isPomodoroFocus: Bool,
         isBlocking: Bool,
         wasStartedBySchedule: Bool,
-        allowSearchEngineWebsites: Bool
+        allowSearchEngineWebsites: Bool,
+        allowAIProviderWebsites: Bool
     ) -> [String] {
         if isPomodoroFocus {
             var urls = Set(ruleSet(for: pomodoroRuleSetId ?? activeRuleSetId, in: ruleSets)?.urls ?? [])
             if allowSearchEngineWebsites {
                 urls.formUnion(knownSearchEngineRules)
+            }
+            if allowAIProviderWebsites {
+                urls.formUnion(knownAIProviderRules)
             }
             return Array(urls)
         }
@@ -118,6 +133,9 @@ struct RuleSetService {
 
         if allowSearchEngineWebsites {
             urls.formUnion(knownSearchEngineRules)
+        }
+        if allowAIProviderWebsites {
+            urls.formUnion(knownAIProviderRules)
         }
 
         return Array(urls)

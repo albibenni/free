@@ -52,4 +52,5 @@ struct AppSettingsDomainState: Equatable {
     var blockDeveloperHosts: Bool
     var blockLocalNetworkHosts: Bool
     var allowSearchEngineWebsites: Bool
+    var allowAIProviderWebsites: Bool
 }

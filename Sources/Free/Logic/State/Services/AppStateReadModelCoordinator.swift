@@ -10,6 +10,7 @@ enum AppStateReadModelCoordinator {
         let isBlocking: Bool
         let wasStartedBySchedule: Bool
         let allowSearchEngineWebsites: Bool
+        let allowAIProviderWebsites: Bool
     }
 
     static func currentPrimaryRuleSetId(context: RuleContext) -> UUID? {
@@ -44,7 +45,8 @@ enum AppStateReadModelCoordinator {
             isPomodoroFocus: context.isPomodoroFocus,
             isBlocking: context.isBlocking,
             wasStartedBySchedule: context.wasStartedBySchedule,
-            allowSearchEngineWebsites: context.allowSearchEngineWebsites
+            allowSearchEngineWebsites: context.allowSearchEngineWebsites,
+            allowAIProviderWebsites: context.allowAIProviderWebsites
         )
     }
 

@@ -67,7 +67,8 @@ extension AppStateLogicFacade {
         isPomodoroFocus: Bool,
         isBlocking: Bool,
         wasStartedBySchedule: Bool,
-        allowSearchEngineWebsites: Bool
+        allowSearchEngineWebsites: Bool,
+        allowAIProviderWebsites: Bool
     ) -> RuleContext {
         RuleContext(
             ruleSets: ruleSets,
@@ -77,7 +78,8 @@ extension AppStateLogicFacade {
             isPomodoroFocus: isPomodoroFocus,
             isBlocking: isBlocking,
             wasStartedBySchedule: wasStartedBySchedule,
-            allowSearchEngineWebsites: allowSearchEngineWebsites
+            allowSearchEngineWebsites: allowSearchEngineWebsites,
+            allowAIProviderWebsites: allowAIProviderWebsites
         )
     }
 

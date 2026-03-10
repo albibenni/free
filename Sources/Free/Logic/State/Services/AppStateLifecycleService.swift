@@ -44,7 +44,8 @@ enum AppStateLifecycleService {
             blockNewTabs: snapshot.blockNewTabs,
             blockDeveloperHosts: snapshot.blockDeveloperHosts,
             blockLocalNetworkHosts: snapshot.blockLocalNetworkHosts,
-            allowSearchEngineWebsites: snapshot.allowSearchEngineWebsites
+            allowSearchEngineWebsites: snapshot.allowSearchEngineWebsites,
+            allowAIProviderWebsites: snapshot.allowAIProviderWebsites
         ),
             pomodoro: AppPomodoroDomainState(
             status: .none,

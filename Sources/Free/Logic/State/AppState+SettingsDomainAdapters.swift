@@ -9,7 +9,8 @@ extension AppState {
             blockNewTabs: blockNewTabs,
             blockDeveloperHosts: blockDeveloperHosts,
             blockLocalNetworkHosts: blockLocalNetworkHosts,
-            allowSearchEngineWebsites: allowSearchEngineWebsites
+            allowSearchEngineWebsites: allowSearchEngineWebsites,
+            allowAIProviderWebsites: allowAIProviderWebsites
         )
     }
 
@@ -28,6 +29,9 @@ extension AppState {
         }
         if allowSearchEngineWebsites != state.allowSearchEngineWebsites {
             allowSearchEngineWebsites = state.allowSearchEngineWebsites
+        }
+        if allowAIProviderWebsites != state.allowAIProviderWebsites {
+            allowAIProviderWebsites = state.allowAIProviderWebsites
         }
     }
 }

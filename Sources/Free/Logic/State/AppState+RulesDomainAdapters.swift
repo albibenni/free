@@ -10,7 +10,8 @@ extension AppState {
             isPomodoroFocus: pomodoroDomainState.status == .focus,
             isBlocking: sessionDomainState.isBlocking,
             wasStartedBySchedule: sessionDomainState.wasStartedBySchedule,
-            allowSearchEngineWebsites: settingsDomainState.allowSearchEngineWebsites
+            allowSearchEngineWebsites: settingsDomainState.allowSearchEngineWebsites,
+            allowAIProviderWebsites: settingsDomainState.allowAIProviderWebsites
         )
     }
 

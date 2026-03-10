@@ -15,6 +15,7 @@ extension AppState {
             blockDeveloperHosts: $blockDeveloperHosts.eraseToAnyPublisher(),
             blockLocalNetworkHosts: $blockLocalNetworkHosts.eraseToAnyPublisher(),
             allowSearchEngineWebsites: $allowSearchEngineWebsites.eraseToAnyPublisher(),
+            allowAIProviderWebsites: $allowAIProviderWebsites.eraseToAnyPublisher(),
             ruleSets: $ruleSets.eraseToAnyPublisher(),
             activeRuleSetId: $activeRuleSetId.eraseToAnyPublisher(),
             pomodoroFocusDuration: $pomodoroFocusDuration.eraseToAnyPublisher(),

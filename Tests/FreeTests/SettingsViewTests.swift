@@ -249,8 +249,9 @@ struct SettingsViewTests {
         #expect(texts.contains("Block Localhost/Dev Ports"))
         #expect(texts.contains("Block Local Network IPs"))
         #expect(texts.contains("Allow Search Engines"))
-        #expect(toggleFrames.count == 9)
-        #expect(toggleAccentColors.count == 9)
+        #expect(texts.contains("Allow AI Providers"))
+        #expect(toggleFrames.count == 10)
+        #expect(toggleAccentColors.count == 10)
         if let referenceMaxX = toggleFrames.first?.maxX {
             for frame in toggleFrames {
                 #expect(abs(frame.maxX - referenceMaxX) <= 2)
@@ -325,6 +326,11 @@ struct SettingsViewTests {
         #expect(appState.allowSearchEngineWebsites)
         controller.setAllowSearchEngineWebsitesForTesting(false)
         #expect(appState.allowSearchEngineWebsites == false)
+
+        controller.setAllowAIProviderWebsitesForTesting(true)
+        #expect(appState.allowAIProviderWebsites)
+        controller.setAllowAIProviderWebsitesForTesting(false)
+        #expect(appState.allowAIProviderWebsites == false)
 
         controller.selectAppearanceModeForTesting(.dark)
         #expect(appState.appearanceMode == .dark)

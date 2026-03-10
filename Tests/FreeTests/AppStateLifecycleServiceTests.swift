@@ -48,6 +48,7 @@ struct AppStateLifecycleServiceTests {
             blockDeveloperHosts: true,
             blockLocalNetworkHosts: true,
             allowSearchEngineWebsites: true,
+            allowAIProviderWebsites: true,
             pomodoroFocusDuration: 50,
             pomodoroBreakDuration: 10,
             ruleSets: [ruleSet],
@@ -69,6 +70,7 @@ struct AppStateLifecycleServiceTests {
         #expect(projection.settings.blockDeveloperHosts)
         #expect(projection.settings.blockLocalNetworkHosts)
         #expect(projection.settings.allowSearchEngineWebsites)
+        #expect(projection.settings.allowAIProviderWebsites)
         #expect(projection.pomodoro.focusDurationMinutes == 50)
         #expect(projection.pomodoro.breakDurationMinutes == 10)
         #expect(projection.rules.ruleSets == [ruleSet])
@@ -205,6 +207,7 @@ struct AppStateLifecycleServiceTests {
             blockDeveloperHosts: Just(false).eraseToAnyPublisher(),
             blockLocalNetworkHosts: Just(false).eraseToAnyPublisher(),
             allowSearchEngineWebsites: Just(false).eraseToAnyPublisher(),
+            allowAIProviderWebsites: Just(false).eraseToAnyPublisher(),
             ruleSets: Just([sampleRuleSet]).eraseToAnyPublisher(),
             activeRuleSetId: Just(sampleRuleSet.id).map(Optional.some).eraseToAnyPublisher(),
             pomodoroFocusDuration: Just(25).eraseToAnyPublisher(),
@@ -215,6 +218,6 @@ struct AppStateLifecycleServiceTests {
             bindings: bindings,
             settingsStore: settingsStore
         )
-        #expect(cancellables.count == 15)
+        #expect(cancellables.count == 16)
     }
 }

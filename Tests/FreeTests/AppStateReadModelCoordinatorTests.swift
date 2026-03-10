@@ -24,7 +24,8 @@ struct AppStateReadModelCoordinatorTests {
             isPomodoroFocus: false,
             isBlocking: true,
             wasStartedBySchedule: false,
-            allowSearchEngineWebsites: true
+            allowSearchEngineWebsites: true,
+            allowAIProviderWebsites: true
         )
 
         #expect(AppStateReadModelCoordinator.currentPrimaryRuleSetId(context: context) == second.id)
@@ -33,5 +34,7 @@ struct AppStateReadModelCoordinatorTests {
         #expect(allowedRules.contains("two.com"))
         #expect(allowedRules.contains("google.com"))
         #expect(allowedRules.contains("duckduckgo.com"))
+        #expect(allowedRules.contains("chatgpt.com"))
+        #expect(allowedRules.contains("claude.ai"))
     }
 }

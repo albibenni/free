@@ -24,6 +24,7 @@ final class SettingsSectionViewController: NSViewController {
         let blockDeveloperHosts: Bool
         let blockLocalNetworkHosts: Bool
         let allowSearchEngineWebsites: Bool
+        let allowAIProviderWebsites: Bool
         let appearanceMode: AppearanceMode
         let accentColorIndex: Int
         let launchAtLoginEnabled: Bool
@@ -39,6 +40,7 @@ final class SettingsSectionViewController: NSViewController {
             blockDeveloperHosts: false,
             blockLocalNetworkHosts: false,
             allowSearchEngineWebsites: false,
+            allowAIProviderWebsites: false,
             appearanceMode: .system,
             accentColorIndex: 0,
             launchAtLoginEnabled: false
@@ -63,6 +65,7 @@ final class SettingsSectionViewController: NSViewController {
     private let blockDeveloperHostsSwitch = AppKitToggleSwitch()
     private let blockLocalNetworkHostsSwitch = AppKitToggleSwitch()
     private let allowSearchEngineWebsitesSwitch = AppKitToggleSwitch()
+    private let allowAIProviderWebsitesSwitch = AppKitToggleSwitch()
     private var appearanceModeControl: AppKitSelectionButtonGroup<AppearanceMode>?
     private var accentButtons: [NSButton] = []
 
@@ -126,6 +129,7 @@ final class SettingsSectionViewController: NSViewController {
                     blockDeveloperHosts: appState.blockDeveloperHosts,
                     blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
                     allowSearchEngineWebsites: appState.allowSearchEngineWebsites,
+                    allowAIProviderWebsites: appState.allowAIProviderWebsites,
                     appearanceMode: appState.appearanceMode,
                     accentColorIndex: appState.accentColorIndex,
                     launchAtLoginEnabled: appState.launchAtLoginStatus()
@@ -235,6 +239,8 @@ final class SettingsSectionViewController: NSViewController {
         blockLocalNetworkHostsSwitch.action = #selector(toggleBlockLocalNetworkHosts)
         allowSearchEngineWebsitesSwitch.target = self
         allowSearchEngineWebsitesSwitch.action = #selector(toggleAllowSearchEngineWebsites)
+        allowAIProviderWebsitesSwitch.target = self
+        allowAIProviderWebsitesSwitch.action = #selector(toggleAllowAIProviderWebsites)
 
         [
             makeToggleRow(
@@ -256,6 +262,11 @@ final class SettingsSectionViewController: NSViewController {
                 title: "Allow Search Engines",
                 descriptionLabel: makeDescriptionLabel("Always allow popular search websites while blocking."),
                 toggle: allowSearchEngineWebsitesSwitch
+            ),
+            makeToggleRow(
+                title: "Allow AI Providers",
+                descriptionLabel: makeDescriptionLabel("Always allow popular AI provider websites while blocking."),
+                toggle: allowAIProviderWebsitesSwitch
             ),
         ].forEach { section.addArrangedSubview($0) }
         return section
@@ -398,6 +409,7 @@ final class SettingsSectionViewController: NSViewController {
         blockDeveloperHostsSwitch.state = appState.blockDeveloperHosts ? .on : .off
         blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .on : .off
         allowSearchEngineWebsitesSwitch.state = appState.allowSearchEngineWebsites ? .on : .off
+        allowAIProviderWebsitesSwitch.state = appState.allowAIProviderWebsites ? .on : .off
 
         for (index, button) in accentButtons.enumerated() {
             button.layer?.borderWidth = appState.accentColorIndex == index ? 2 : 0
@@ -418,6 +430,7 @@ final class SettingsSectionViewController: NSViewController {
             blockDeveloperHostsSwitch,
             blockLocalNetworkHostsSwitch,
             allowSearchEngineWebsitesSwitch,
+            allowAIProviderWebsitesSwitch,
         ]
     }
 
@@ -489,6 +502,11 @@ final class SettingsSectionViewController: NSViewController {
     @objc
     private func toggleAllowSearchEngineWebsites() {
         appState.allowSearchEngineWebsites = allowSearchEngineWebsitesSwitch.state == .on
+    }
+
+    @objc
+    private func toggleAllowAIProviderWebsites() {
+        appState.allowAIProviderWebsites = allowAIProviderWebsitesSwitch.state == .on
     }
 
     @objc
@@ -569,6 +587,12 @@ extension SettingsSectionViewController {
     func setAllowSearchEngineWebsitesForTesting(_ enabled: Bool) {
         allowSearchEngineWebsitesSwitch.state = enabled ? .on : .off
         toggleAllowSearchEngineWebsites()
+        reloadSettings()
+    }
+
+    func setAllowAIProviderWebsitesForTesting(_ enabled: Bool) {
+        allowAIProviderWebsitesSwitch.state = enabled ? .on : .off
+        toggleAllowAIProviderWebsites()
         reloadSettings()
     }
 

@@ -79,6 +79,7 @@ enum AppKitAppStateObservation {
             appState.$blockDeveloperHosts.map { _ in () }.eraseToAnyPublisher(),
             appState.$blockLocalNetworkHosts.map { _ in () }.eraseToAnyPublisher(),
             appState.$allowSearchEngineWebsites.map { _ in () }.eraseToAnyPublisher(),
+            appState.$allowAIProviderWebsites.map { _ in () }.eraseToAnyPublisher(),
             appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
             appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
         ])

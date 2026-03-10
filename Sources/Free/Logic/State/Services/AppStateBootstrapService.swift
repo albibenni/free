@@ -13,6 +13,7 @@ struct AppStateBootstrapService {
         let blockDeveloperHosts: Bool
         let blockLocalNetworkHosts: Bool
         let allowSearchEngineWebsites: Bool
+        let allowAIProviderWebsites: Bool
         let pomodoroFocusDuration: Double
         let pomodoroBreakDuration: Double
         let ruleSets: [RuleSet]
@@ -48,6 +49,7 @@ struct AppStateBootstrapService {
             blockDeveloperHosts: settingsStore.blockDeveloperHosts(),
             blockLocalNetworkHosts: settingsStore.blockLocalNetworkHosts(),
             allowSearchEngineWebsites: settingsStore.allowSearchEngineWebsites(),
+            allowAIProviderWebsites: settingsStore.allowAIProviderWebsites(),
             pomodoroFocusDuration: settingsStore.pomodoroFocusDuration(default: 25),
             pomodoroBreakDuration: settingsStore.pomodoroBreakDuration(default: 5),
             ruleSets: ruleSets,
