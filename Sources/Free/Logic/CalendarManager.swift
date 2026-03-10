@@ -87,6 +87,9 @@ class RealCalendarManager: CalendarProvider {
 class MockCalendarManager: CalendarProvider {
     @Published var events: [ExternalEvent] = []
     @Published var isAuthorized: Bool = true
-    func requestAccess() {}
+    var requestAccessCallCount = 0
+    func requestAccess() {
+        requestAccessCallCount += 1
+    }
     func fetchEvents() {}
 }

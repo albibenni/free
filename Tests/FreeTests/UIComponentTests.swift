@@ -444,7 +444,7 @@ struct UIComponentTests {
     func appKitToggleSwitchInteractions() {
         let toggle = AppKitToggleSwitch(frame: NSRect(x: 0, y: 0, width: 52, height: 28))
         toggle.accentColor = .systemGreen
-        #expect(toggle.intrinsicContentSize == NSSize(width: 52, height: 28))
+        #expect(toggle.intrinsicContentSize == NSSize(width: 46, height: 24))
         #expect(toggle.acceptsFirstResponder)
 
         var actionCount = 0

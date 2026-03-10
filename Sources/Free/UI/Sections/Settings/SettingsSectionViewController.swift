@@ -4,6 +4,7 @@ import Combine
 final class SettingsSectionViewController: NSViewController {
     typealias AlertFactory = () -> NSAlert
     typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+    typealias CalendarSettingsOpener = () -> Void
 
     static var makeStrictModeAlert: AlertFactory = { NSAlert() }
     static var runStrictModeAlert: AlertRunner = { alert in
@@ -12,6 +13,21 @@ final class SettingsSectionViewController: NSViewController {
         }
         return alert.runModal()
     }
+    static var makeCalendarPermissionAlert: AlertFactory = { NSAlert() }
+    static var runCalendarPermissionAlert: AlertRunner = { alert in
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return .alertSecondButtonReturn
+        }
+        return alert.runModal()
+    }
+    static var openCalendarPrivacySettings: CalendarSettingsOpener = {
+        guard
+            let url = URL(
+                string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars")
+        else { return }
+        NSWorkspace.shared.open(url)
+    }
+    static var calendarPermissionFallbackDelay: TimeInterval = 0.6
 
     private struct ObservationSignature: Equatable {
         let isBlocking: Bool
@@ -68,6 +84,7 @@ final class SettingsSectionViewController: NSViewController {
     private let allowAIProviderWebsitesSwitch = AppKitToggleSwitch()
     private var appearanceModeControl: AppKitSelectionButtonGroup<AppearanceMode>?
     private var accentButtons: [NSButton] = []
+    private var pendingCalendarPermissionFallback = false
 
     init(appState: AppState) {
         self.appState = appState
@@ -473,7 +490,40 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func resyncImportedSchedules() {
+        guard appState.calendarProvider.isAuthorized else {
+            appState.calendarProvider.requestAccess()
+            scheduleCalendarPermissionFallbackIfNeeded()
+            return
+        }
         appState.resyncImportedCalendarSchedules()
+    }
+
+    private func scheduleCalendarPermissionFallbackIfNeeded() {
+        guard pendingCalendarPermissionFallback == false else { return }
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            presentCalendarPermissionAlert()
+            return
+        }
+        pendingCalendarPermissionFallback = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.calendarPermissionFallbackDelay) { [weak self] in
+            guard let self else { return }
+            self.pendingCalendarPermissionFallback = false
+            guard self.appState.calendarProvider.isAuthorized == false else { return }
+            self.presentCalendarPermissionAlert()
+        }
+    }
+
+    private func presentCalendarPermissionAlert() {
+        let alert = Self.makeCalendarPermissionAlert()
+        alert.messageText = "Calendar Access Needed"
+        alert.informativeText =
+            "Free could not access your calendars. Allow access in System Settings > Privacy & Security > Calendars."
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Cancel")
+        if Self.runCalendarPermissionAlert(alert) == .alertFirstButtonReturn {
+            Self.openCalendarPrivacySettings()
+        }
     }
 
     @objc
@@ -610,10 +660,29 @@ extension SettingsSectionViewController {
             }
             return alert.runModal()
         }
+        makeCalendarPermissionAlert = { NSAlert() }
+        runCalendarPermissionAlert = { alert in
+            if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+                return .alertSecondButtonReturn
+            }
+            return alert.runModal()
+        }
+        openCalendarPrivacySettings = {
+            guard
+                let url = URL(
+                    string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars")
+            else { return }
+            NSWorkspace.shared.open(url)
+        }
+        calendarPermissionFallbackDelay = 0.6
     }
 
     func invokeDisableStrictModeModalForTesting() {
         disableStrictMode()
         reloadSettings()
+    }
+
+    func invokeCalendarPermissionAlertForTesting() {
+        presentCalendarPermissionAlert()
     }
 }

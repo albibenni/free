@@ -65,6 +65,17 @@ struct SettingsViewTests {
         )
     }
 
+    private func isolatedAppState(name: String, calendar: any CalendarProvider) -> AppState {
+        let suite = "SettingsViewTests.\(name)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return AppState(
+            defaults: defaults,
+            calendar: calendar,
+            isTesting: true
+        )
+    }
+
     @MainActor
     private func host(
         _ controller: NSViewController,
@@ -374,6 +385,47 @@ struct SettingsViewTests {
         appState.accentColorIndex = 3
         RunLoop.main.run(until: Date().addingTimeInterval(0.02))
         #expect(controller.appearanceSelectionColorForTesting == FocusColor.nsColor(for: 3))
+    }
+
+    @Test("Resync imported schedules requests calendar permission when unauthorized")
+    @MainActor
+    func settingsResyncRequestsCalendarPermissionWhenUnauthorized() {
+        let calendar = MockCalendarManager()
+        calendar.isAuthorized = false
+        let appState = isolatedAppState(name: "resyncPermissionRequest", calendar: calendar)
+        appState.calendarIntegrationEnabled = true
+        let baselineRequestCalls = calendar.requestAccessCallCount
+
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+        controller.resyncImportedSchedulesForTesting()
+
+        #expect(calendar.requestAccessCallCount == baselineRequestCalls + 1)
+    }
+
+    @Test("Calendar-permission fallback alert can open system settings")
+    @MainActor
+    func settingsCalendarPermissionFallbackAlert() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        let appState = isolatedAppState(name: "calendarPermissionFallbackAlert")
+
+        var alertShown = 0
+        var openedSettings = 0
+        SettingsSectionViewController.makeCalendarPermissionAlert = { NSAlert() }
+        SettingsSectionViewController.runCalendarPermissionAlert = { _ in
+            alertShown += 1
+            return .alertFirstButtonReturn
+        }
+        SettingsSectionViewController.openCalendarPrivacySettings = {
+            openedSettings += 1
+        }
+
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+        controller.invokeCalendarPermissionAlertForTesting()
+        #expect(alertShown == 1)
+        #expect(openedSettings == 1)
     }
 
     @Test("Settings strict-mode alert default hooks return cancel response in test environment")
