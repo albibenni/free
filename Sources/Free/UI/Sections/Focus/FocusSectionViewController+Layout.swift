@@ -33,6 +33,24 @@ extension FocusSectionViewController {
         )
     }
 
+    func configureQuickBreakDashboard() {
+        FocusSectionLayoutBuilder.configureQuickBreakDashboard(
+            quickBreakDashboardView: quickBreakDashboardView,
+            quickBreakTitleLabel: quickBreakTitleLabel,
+            quickBreakFiveButton: quickBreakFiveButton,
+            quickBreakFifteenButton: quickBreakFifteenButton,
+            quickBreakThirtyButton: quickBreakThirtyButton,
+            quickBreakCustomMinutesField: quickBreakCustomMinutesField,
+            quickBreakCustomButton: quickBreakCustomButton,
+            startBreak: { [weak self] minutes in
+                self?.startQuickBreak(minutes: minutes)
+            },
+            startCustomBreak: { [weak self] in
+                self?.startCustomQuickBreak()
+            }
+        )
+    }
+
     func configureOverview() {
         FocusSectionLayoutBuilder.configureOverview(
             overviewCardView: overviewCardView,

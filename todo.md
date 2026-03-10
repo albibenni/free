@@ -41,7 +41,7 @@
 - [x] add git steps
   - [x] build and tests
 - [ ] breaks allowed or not base on settings toggle
-  - [ ] breaks only in first view - mode there from pomodoro
+  - [x] breaks only in first view - mode there from pomodoro
   - [ ] pomodoro setting for it
   - [ ] calendar setting for it
 

@@ -134,6 +134,75 @@ enum FocusSectionLayoutBuilder {
         ])
     }
 
+    static func configureQuickBreakDashboard(
+        quickBreakDashboardView: AppKitDynamicView,
+        quickBreakTitleLabel: NSTextField,
+        quickBreakFiveButton: ActionButton,
+        quickBreakFifteenButton: ActionButton,
+        quickBreakThirtyButton: ActionButton,
+        quickBreakCustomMinutesField: NSTextField,
+        quickBreakCustomButton: ActionButton,
+        startBreak: @escaping (Double) -> Void,
+        startCustomBreak: @escaping () -> Void
+    ) {
+        quickBreakDashboardView.backgroundColorProvider = { NSColor.controlBackgroundColor }
+        quickBreakDashboardView.layer?.cornerRadius = 12
+        quickBreakDashboardView.borderColorProvider = { NSColor.systemOrange.withAlphaComponent(0.25) }
+        quickBreakDashboardView.borderWidthValue = 1
+
+        quickBreakTitleLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+        quickBreakTitleLabel.textColor = .secondaryLabelColor
+
+        let buttonRow = NSStackView()
+        buttonRow.orientation = .horizontal
+        buttonRow.alignment = .centerY
+        buttonRow.spacing = 8
+        buttonRow.distribution = .fillEqually
+
+        [quickBreakFiveButton, quickBreakFifteenButton, quickBreakThirtyButton, quickBreakCustomButton].forEach {
+            button in
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.bezelStyle = .rounded
+            if button !== quickBreakCustomButton {
+                buttonRow.addArrangedSubview(button)
+            }
+        }
+
+        quickBreakFiveButton.onAction = { startBreak(5) }
+        quickBreakFifteenButton.onAction = { startBreak(15) }
+        quickBreakThirtyButton.onAction = { startBreak(30) }
+        quickBreakCustomButton.onAction = startCustomBreak
+
+        quickBreakCustomMinutesField.placeholderString = "Minutes"
+        quickBreakCustomMinutesField.alignment = .right
+        quickBreakCustomMinutesField.translatesAutoresizingMaskIntoConstraints = false
+        quickBreakCustomMinutesField.widthAnchor.constraint(equalToConstant: 72).isActive = true
+
+        let customRow = NSStackView()
+        customRow.orientation = .horizontal
+        customRow.alignment = .centerY
+        customRow.spacing = 8
+        customRow.distribution = .fill
+        customRow.addArrangedSubview(quickBreakCustomMinutesField)
+        customRow.addArrangedSubview(quickBreakCustomButton)
+
+        let stack = makeAppKitVerticalStack(
+            views: [quickBreakTitleLabel, buttonRow, customRow],
+            alignment: .leading,
+            spacing: 10,
+            edgeInsets: NSEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+        )
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        quickBreakDashboardView.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: quickBreakDashboardView.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: quickBreakDashboardView.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: quickBreakDashboardView.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: quickBreakDashboardView.bottomAnchor),
+        ])
+    }
+
     static func configureOverview(
         overviewCardView: AppKitDynamicView,
         overviewTitleLabel: NSTextField,

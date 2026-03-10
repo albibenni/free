@@ -679,6 +679,51 @@ struct FocusViewTests {
         #expect(controller.isPauseDashboardHiddenForTesting == true)
     }
 
+    @Test("Quick Break buttons in main view start pause sessions")
+    @MainActor
+    func focusViewMainQuickBreakButtonsStartPause() {
+        let appState = isolatedAppState(name: "mainQuickBreak")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+        #expect(controller.isQuickBreakDashboardHiddenForTesting == false)
+
+        let quickBreakButton = buttons(in: hosted).first { $0.title == "5m" }
+        #expect(quickBreakButton != nil)
+        quickBreakButton?.performClick(nil)
+
+        #expect(appState.isPaused)
+        #expect(controller.isPauseDashboardHiddenForTesting == false)
+        #expect(controller.isQuickBreakDashboardHiddenForTesting)
+    }
+
+    @Test("Quick Break custom value in main view starts pause session")
+    @MainActor
+    func focusViewMainQuickBreakCustomValue() {
+        let appState = isolatedAppState(name: "mainQuickBreakCustom")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+
+        let minutesField = hosted
+            .recursiveSubviews()
+            .compactMap { $0 as? NSTextField }
+            .first { $0.placeholderString == "Minutes" }
+        minutesField?.stringValue = "12"
+
+        let customButton = buttons(in: hosted).first { $0.title == "Start" }
+        #expect(customButton != nil)
+        customButton?.performClick(nil)
+
+        #expect(appState.isPaused)
+        #expect(controller.pauseTimeTextForTesting == "12:00")
+        #expect(controller.isQuickBreakDashboardHiddenForTesting)
+    }
+
     @Test("Focus schedules widget reload keeps existing view when signature is unchanged")
     @MainActor
     func focusSchedulesWidgetKeepExistingReload() {
@@ -724,5 +769,11 @@ struct FocusViewTests {
 
         #expect(controller.currentWidgetViewTypeForTesting == "FocusAllowedWebsitesWidgetView")
         #expect(controller.widgetViewIdentifierForTesting == initialIdentifier)
+    }
+}
+
+private extension NSView {
+    func recursiveSubviews() -> [NSView] {
+        [self] + subviews.flatMap { $0.recursiveSubviews() }
     }
 }
