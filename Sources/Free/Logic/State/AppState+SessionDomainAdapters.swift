@@ -17,6 +17,9 @@ extension AppState {
         if state.wasStartedBySchedule != wasStartedBySchedule {
             setWasStartedBySchedule(state.wasStartedBySchedule)
         }
+        if (!state.isBlocking || state.wasStartedBySchedule) && manualBlockingEnabled {
+            setManualBlockingEnabled(false)
+        }
     }
 
     var sessionDomainState: AppSessionDomainState {

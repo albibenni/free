@@ -55,6 +55,7 @@ struct AppStateLifecycleServiceTests {
             schedules: [schedule],
             activeRuleSetId: ruleSet.id,
             wasStartedBySchedule: true,
+            manualBlockingEnabled: false,
             suppressedImportedCalendarEventKeys: ["event-1"]
         )
 

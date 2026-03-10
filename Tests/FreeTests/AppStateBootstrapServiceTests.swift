@@ -22,6 +22,7 @@ struct AppStateBootstrapServiceTests {
         #expect(snapshot.activeRuleSetId == snapshot.ruleSets.first?.id)
         #expect(snapshot.allowSearchEngineWebsites == false)
         #expect(snapshot.allowAIProviderWebsites == false)
+        #expect(snapshot.manualBlockingEnabled == false)
     }
 
     @Test("snapshot normalizes invalid appearance while preserving persisted rule selection")
@@ -37,6 +38,7 @@ struct AppStateBootstrapServiceTests {
         store.setAppearanceModeRawValue("INVALID")
         store.setAllowSearchEngineWebsites(true)
         store.setAllowAIProviderWebsites(true)
+        store.setManualBlockingEnabled(true)
 
         let snapshot = AppStateBootstrapService.snapshot(from: store)
 
@@ -45,6 +47,7 @@ struct AppStateBootstrapServiceTests {
         #expect(snapshot.activeRuleSetId == set.id)
         #expect(snapshot.allowSearchEngineWebsites)
         #expect(snapshot.allowAIProviderWebsites)
+        #expect(snapshot.manualBlockingEnabled)
     }
 
     @Test("snapshot prunes one-off schedules older than previous week")

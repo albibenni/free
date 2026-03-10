@@ -248,6 +248,7 @@ struct AppStateTests {
         defaults.removePersistentDomain(forName: suite)
         defaults.set(true, forKey: "IsBlocking")
         defaults.set(false, forKey: "WasStartedBySchedule")
+        defaults.set(true, forKey: "ManualBlockingEnabled")
 
         let appState = AppState(defaults: defaults, isTesting: true)
 

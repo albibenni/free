@@ -20,6 +20,7 @@ final class SettingsStore {
         static let pomodoroFocusDuration = "PomodoroFocusDuration"
         static let pomodoroBreakDuration = "PomodoroBreakDuration"
         static let wasStartedBySchedule = "WasStartedBySchedule"
+        static let manualBlockingEnabled = "ManualBlockingEnabled"
         static let launchAtLoginPromptShown = "LaunchAtLoginPromptShown"
         static let suppressedImportedCalendarEventKeys = "SuppressedImportedCalendarEventKeys"
     }
@@ -105,6 +106,11 @@ final class SettingsStore {
     }
     func hasPersistedWasStartedBySchedule() -> Bool {
         defaults.object(forKey: Key.wasStartedBySchedule) != nil
+    }
+
+    func manualBlockingEnabled() -> Bool { defaults.bool(forKey: Key.manualBlockingEnabled) }
+    func setManualBlockingEnabled(_ value: Bool) {
+        defaults.set(value, forKey: Key.manualBlockingEnabled)
     }
 
     func launchAtLoginPromptShown() -> Bool {

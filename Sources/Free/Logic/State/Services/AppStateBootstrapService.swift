@@ -20,6 +20,7 @@ struct AppStateBootstrapService {
         let schedules: [Schedule]
         let activeRuleSetId: UUID?
         let wasStartedBySchedule: Bool
+        let manualBlockingEnabled: Bool
         let suppressedImportedCalendarEventKeys: Set<String>
     }
 
@@ -56,6 +57,7 @@ struct AppStateBootstrapService {
             schedules: schedules,
             activeRuleSetId: settingsStore.activeRuleSetId() ?? ruleSets.first?.id,
             wasStartedBySchedule: settingsStore.wasStartedBySchedule(),
+            manualBlockingEnabled: settingsStore.manualBlockingEnabled(),
             suppressedImportedCalendarEventKeys: settingsStore.suppressedImportedCalendarEventKeys()
         )
     }

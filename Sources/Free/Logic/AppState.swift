@@ -135,6 +135,7 @@ class AppState: ObservableObject {
         applyPomodoroDomainState(bootstrapProjection.pomodoro)
         applyRulesDomainState(bootstrapProjection.rules)
         applyScheduleDomainState(bootstrapProjection.schedule)
+        manualBlockingEnabled = snapshot.manualBlockingEnabled
         persistenceCancellables = AppStateLifecycleService.bindPersistence(
             bindings: persistenceBindings,
             settingsStore: settingsStore
@@ -178,6 +179,9 @@ class AppState: ObservableObject {
         )
         self.monitor = runtimeBindings.monitor
         calendarCancellable = runtimeBindings.calendarCancellable
+        if isBlocking && !wasStartedBySchedule && !manualBlockingEnabled {
+            isBlocking = false
+        }
         checkSchedules()
     }
 
@@ -190,12 +194,18 @@ class AppState: ObservableObject {
     }
 
     func toggleBlocking() {
+        let wasBlocking = isBlocking
         let updated = logicFacade.toggleSession(
             current: sessionState,
             isUnblockable: sessionDomainState.isUnblockable,
             schedules: scheduleDomainState.schedules
         )
         applySessionState(updated)
+        if !wasBlocking && updated.isBlocking && !updated.wasStartedBySchedule {
+            setManualBlockingEnabled(true)
+        } else if wasBlocking && !updated.isBlocking {
+            setManualBlockingEnabled(false)
+        }
     }
 
     func checkSchedules() {

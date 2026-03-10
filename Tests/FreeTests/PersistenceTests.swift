@@ -62,8 +62,10 @@ struct PersistenceTests {
         let defaults = UserDefaults(suiteName: testSuite)!
 
         var appState: AppState? = AppState(defaults: defaults, isTesting: true)
-        appState?.isBlocking = true
+        appState?.toggleBlocking()
+        defaults.set(true, forKey: "IsBlocking")
         defaults.set(false, forKey: "WasStartedBySchedule")
+        defaults.set(true, forKey: "ManualBlockingEnabled")
         appState?.isUnblockable = true
         appState?.accentColorIndex = 5
         appState?.calendarImportsBlockTime = true
