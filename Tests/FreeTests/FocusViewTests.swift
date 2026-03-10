@@ -724,6 +724,29 @@ struct FocusViewTests {
         #expect(controller.isQuickBreakDashboardHiddenForTesting)
     }
 
+    @Test("Quick Break controls are locked when Unblockable mode is active")
+    @MainActor
+    func focusViewMainQuickBreakLockedInUnblockableMode() {
+        let appState = isolatedAppState(name: "mainQuickBreakLockedUnblockable")
+        appState.isTrusted = true
+        appState.isBlocking = true
+        appState.isUnblockable = true
+
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+
+        let quickBreakButton = buttons(in: hosted).first { $0.title == "5m" }
+        let customButton = buttons(in: hosted).first { $0.title == "Start" }
+        let minutesField = hosted
+            .recursiveSubviews()
+            .compactMap { $0 as? NSTextField }
+            .first { $0.placeholderString == "Minutes" }
+
+        #expect(quickBreakButton?.isEnabled == false)
+        #expect(customButton?.isEnabled == false)
+        #expect(minutesField?.isEditable == false)
+    }
+
     @Test("Focus schedules widget reload keeps existing view when signature is unchanged")
     @MainActor
     func focusSchedulesWidgetKeepExistingReload() {

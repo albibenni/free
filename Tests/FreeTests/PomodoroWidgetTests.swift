@@ -297,6 +297,31 @@ struct PomodoroWidgetTests {
         #expect(appState.pomodoroBreakDuration == 5)
     }
 
+    @Test("FocusPomodoroWidgetView disables stop during strict grace period and enables it after")
+    @MainActor
+    func pomodoroWidgetStopDisabledDuringStrictGracePeriod() {
+        let appState = isolatedAppState(name: "stopDisabledDuringStrictGracePeriod")
+        appState.startPomodoro()
+        appState.isBlocking = true
+        appState.isUnblockable = true
+        appState.pomodoroStartedAt = Date()
+
+        let widget = FocusPomodoroWidgetView(appState: appState)
+        let hosted = host(widget)
+        let stopButton = buttons(in: hosted).first { $0.title == "Stop" }
+        #expect(stopButton != nil)
+        #expect(stopButton?.isEnabled == false)
+
+        stopButton?.performClick(nil)
+        #expect(appState.pomodoroStatus == .focus)
+
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-11)
+        widget.refreshForStateChange()
+        widget.forceUpdateActiveControlsForTesting()
+
+        #expect(stopButton?.isEnabled == true)
+    }
+
     @Test("FocusPomodoroWidgetSupport helper functions cover selection fallback and recursive labels")
     @MainActor
     func pomodoroWidgetSupportHelpers() {

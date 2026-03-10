@@ -31,7 +31,10 @@ enum FocusSectionLayoutBuilder {
         grantPermissionButton.layer?.cornerRadius = 8
         grantPermissionButton.layer?.backgroundColor = NSColor.white.cgColor
         grantPermissionButton.contentTintColor = .black
-        grantPermissionButton.font = .systemFont(ofSize: 12, weight: .semibold)
+        grantPermissionButton.font = .systemFont(ofSize: 13, weight: .bold)
+        grantPermissionButton.translatesAutoresizingMaskIntoConstraints = false
+        grantPermissionButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 82).isActive = true
+        grantPermissionButton.heightAnchor.constraint(equalToConstant: 30).isActive = true
         grantPermissionButton.target = target
         grantPermissionButton.action = grantAction
 

@@ -33,6 +33,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     private var progressDialView: PomodoroProgressDialView?
     private var activeRuleSetBadgeLabel: NSTextField?
     private var skipButton: ActionButton?
+    private var stopButton: ActionButton?
     var customBreakPromptSimulation: (() -> (NSApplication.ModalResponse, String))?
     var stopChallengePromptSimulation: (() -> (NSApplication.ModalResponse, String))?
     private(set) var refreshGeneration = 0
@@ -123,6 +124,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         progressDialView = nil
         activeRuleSetBadgeLabel = nil
         skipButton = nil
+        stopButton = nil
         contentStack.spacing = 12
         contentStack.addArrangedSubview(FocusPomodoroWidgetLayoutBuilder.makePomodoroHeader())
         let topContentSection = makeTopContentSection()
@@ -267,6 +269,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             centerText: appState.timeString(time: appState.pomodoroRemaining)
         )
         skipButton?.isEnabled = !appState.isPomodoroLocked
+        stopButton?.isEnabled = !appState.isPomodoroWithinStrictGracePeriod
 
         if isFocus {
             let currentSetName = appState.ruleSets.first(where: { $0.id == appState.currentPrimaryRuleSetId })?.name
@@ -450,13 +453,16 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         self.skipButton = skipButton
 
         let stopButton = makeAppKitPrimaryButton(title: "Stop", color: .systemRed)
+        stopButton.isEnabled = !appState.isPomodoroWithinStrictGracePeriod
         stopButton.onAction = { [self] in
+            guard !self.appState.isPomodoroWithinStrictGracePeriod else { return }
             if self.appState.isPomodoroLocked {
                 self.presentStopChallengePrompt()
             } else {
                 self.appState.stopPomodoro()
             }
         }
+        self.stopButton = stopButton
 
         row.addArrangedSubview(skipButton)
         row.addArrangedSubview(stopButton)
@@ -613,6 +619,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     private func presentCustomBreakPrompt() {
         let field = NSTextField(string: "")
         field.placeholderString = "Minutes"
+        field.frame = CGRect(x: 0, y: 0, width: 320, height: 24)
         let alert = Self.makeAlert()
         alert.messageText = "Custom Break"
         alert.informativeText = "Enter duration in minutes."
@@ -643,10 +650,11 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     private func presentStopChallengePrompt() {
         let field = NSTextField(string: "")
         field.placeholderString = "Type the phrase exactly"
+        field.frame = CGRect(x: 0, y: 0, width: 360, height: 24)
         let alert = Self.makeAlert()
-        alert.messageText = "Emergency Unlock"
+        alert.messageText = "Emergency Unlock (Strict Mode)"
         alert.informativeText =
-            "To stop a Strict Pomodoro session, type the following exactly:\n\n\"\(AppState.challengePhrase)\""
+            "WARNING: This immediately disables strict focus protection.\n\nTo stop a Strict Pomodoro session, type the following exactly:\n\n\"\(AppState.challengePhrase)\""
         alert.accessoryView = field
         alert.addButton(withTitle: "Stop Pomodoro")
         alert.addButton(withTitle: "Cancel")
