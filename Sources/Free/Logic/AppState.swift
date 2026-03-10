@@ -45,6 +45,7 @@ class AppState: ObservableObject {
     @Published var blockNewTabs = false
     @Published var blockDeveloperHosts = false
     @Published var blockLocalNetworkHosts = false
+    @Published var allowSearchEngineWebsites = false
     @Published var ruleSets: [RuleSet] = []
     @Published var activeRuleSetId: UUID? = nil
     @Published var schedules: [Schedule] = [] {

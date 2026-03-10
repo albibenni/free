@@ -51,7 +51,8 @@ struct CoverageExpansionTests {
                 appearanceMode: .dark,
                 blockNewTabs: true,
                 blockDeveloperHosts: true,
-                blockLocalNetworkHosts: true
+                blockLocalNetworkHosts: true,
+                allowSearchEngineWebsites: true
             )
         )
         #expect(appState.settingsDomainState.weekStartsOnMonday)
@@ -60,6 +61,7 @@ struct CoverageExpansionTests {
         #expect(appState.settingsDomainState.blockNewTabs)
         #expect(appState.settingsDomainState.blockDeveloperHosts)
         #expect(appState.settingsDomainState.blockLocalNetworkHosts)
+        #expect(appState.settingsDomainState.allowSearchEngineWebsites)
 
         appState.applyScheduleDomainState(
             .init(

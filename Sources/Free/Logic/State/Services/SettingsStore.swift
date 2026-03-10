@@ -12,6 +12,7 @@ final class SettingsStore {
         static let blockNewTabs = "BlockNewTabs"
         static let blockDeveloperHosts = "BlockDeveloperHosts"
         static let blockLocalNetworkHosts = "BlockLocalNetworkHosts"
+        static let allowSearchEngineWebsites = "AllowSearchEngineWebsites"
         static let ruleSets = "RuleSets"
         static let activeRuleSetId = "ActiveRuleSetId"
         static let schedules = "Schedules"
@@ -62,6 +63,11 @@ final class SettingsStore {
     func blockLocalNetworkHosts() -> Bool { defaults.bool(forKey: Key.blockLocalNetworkHosts) }
     func setBlockLocalNetworkHosts(_ value: Bool) {
         defaults.set(value, forKey: Key.blockLocalNetworkHosts)
+    }
+
+    func allowSearchEngineWebsites() -> Bool { defaults.bool(forKey: Key.allowSearchEngineWebsites) }
+    func setAllowSearchEngineWebsites(_ value: Bool) {
+        defaults.set(value, forKey: Key.allowSearchEngineWebsites)
     }
 
     func activeRuleSetId() -> UUID? {

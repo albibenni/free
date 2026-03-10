@@ -248,8 +248,9 @@ struct SettingsViewTests {
         #expect(texts.contains("Block New Tabs"))
         #expect(texts.contains("Block Localhost/Dev Ports"))
         #expect(texts.contains("Block Local Network IPs"))
-        #expect(toggleFrames.count == 8)
-        #expect(toggleAccentColors.count == 8)
+        #expect(texts.contains("Allow Search Engines"))
+        #expect(toggleFrames.count == 9)
+        #expect(toggleAccentColors.count == 9)
         if let referenceMaxX = toggleFrames.first?.maxX {
             for frame in toggleFrames {
                 #expect(abs(frame.maxX - referenceMaxX) <= 2)
@@ -319,6 +320,11 @@ struct SettingsViewTests {
         #expect(appState.blockLocalNetworkHosts)
         controller.setBlockLocalNetworkHostsForTesting(false)
         #expect(appState.blockLocalNetworkHosts == false)
+
+        controller.setAllowSearchEngineWebsitesForTesting(true)
+        #expect(appState.allowSearchEngineWebsites)
+        controller.setAllowSearchEngineWebsitesForTesting(false)
+        #expect(appState.allowSearchEngineWebsites == false)
 
         controller.selectAppearanceModeForTesting(.dark)
         #expect(appState.appearanceMode == .dark)

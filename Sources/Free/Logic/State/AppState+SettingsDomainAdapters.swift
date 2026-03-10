@@ -8,7 +8,8 @@ extension AppState {
             appearanceMode: appearanceMode,
             blockNewTabs: blockNewTabs,
             blockDeveloperHosts: blockDeveloperHosts,
-            blockLocalNetworkHosts: blockLocalNetworkHosts
+            blockLocalNetworkHosts: blockLocalNetworkHosts,
+            allowSearchEngineWebsites: allowSearchEngineWebsites
         )
     }
 
@@ -24,6 +25,9 @@ extension AppState {
         }
         if blockLocalNetworkHosts != state.blockLocalNetworkHosts {
             blockLocalNetworkHosts = state.blockLocalNetworkHosts
+        }
+        if allowSearchEngineWebsites != state.allowSearchEngineWebsites {
+            allowSearchEngineWebsites = state.allowSearchEngineWebsites
         }
     }
 }

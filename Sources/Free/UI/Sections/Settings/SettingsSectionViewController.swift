@@ -23,6 +23,7 @@ final class SettingsSectionViewController: NSViewController {
         let blockNewTabs: Bool
         let blockDeveloperHosts: Bool
         let blockLocalNetworkHosts: Bool
+        let allowSearchEngineWebsites: Bool
         let appearanceMode: AppearanceMode
         let accentColorIndex: Int
         let launchAtLoginEnabled: Bool
@@ -37,6 +38,7 @@ final class SettingsSectionViewController: NSViewController {
             blockNewTabs: false,
             blockDeveloperHosts: false,
             blockLocalNetworkHosts: false,
+            allowSearchEngineWebsites: false,
             appearanceMode: .system,
             accentColorIndex: 0,
             launchAtLoginEnabled: false
@@ -60,6 +62,7 @@ final class SettingsSectionViewController: NSViewController {
     private let blockNewTabsSwitch = AppKitToggleSwitch()
     private let blockDeveloperHostsSwitch = AppKitToggleSwitch()
     private let blockLocalNetworkHostsSwitch = AppKitToggleSwitch()
+    private let allowSearchEngineWebsitesSwitch = AppKitToggleSwitch()
     private var appearanceModeControl: AppKitSelectionButtonGroup<AppearanceMode>?
     private var accentButtons: [NSButton] = []
 
@@ -122,6 +125,7 @@ final class SettingsSectionViewController: NSViewController {
                     blockNewTabs: appState.blockNewTabs,
                     blockDeveloperHosts: appState.blockDeveloperHosts,
                     blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
+                    allowSearchEngineWebsites: appState.allowSearchEngineWebsites,
                     appearanceMode: appState.appearanceMode,
                     accentColorIndex: appState.accentColorIndex,
                     launchAtLoginEnabled: appState.launchAtLoginStatus()
@@ -229,6 +233,8 @@ final class SettingsSectionViewController: NSViewController {
         blockDeveloperHostsSwitch.action = #selector(toggleBlockDeveloperHosts)
         blockLocalNetworkHostsSwitch.target = self
         blockLocalNetworkHostsSwitch.action = #selector(toggleBlockLocalNetworkHosts)
+        allowSearchEngineWebsitesSwitch.target = self
+        allowSearchEngineWebsitesSwitch.action = #selector(toggleAllowSearchEngineWebsites)
 
         [
             makeToggleRow(
@@ -245,6 +251,11 @@ final class SettingsSectionViewController: NSViewController {
                 title: "Block Local Network IPs",
                 descriptionLabel: makeDescriptionLabel("When off, private-network IPs are allowed."),
                 toggle: blockLocalNetworkHostsSwitch
+            ),
+            makeToggleRow(
+                title: "Allow Search Engines",
+                descriptionLabel: makeDescriptionLabel("Always allow popular search websites while blocking."),
+                toggle: allowSearchEngineWebsitesSwitch
             ),
         ].forEach { section.addArrangedSubview($0) }
         return section
@@ -386,6 +397,7 @@ final class SettingsSectionViewController: NSViewController {
         blockNewTabsSwitch.state = appState.blockNewTabs ? .on : .off
         blockDeveloperHostsSwitch.state = appState.blockDeveloperHosts ? .on : .off
         blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .on : .off
+        allowSearchEngineWebsitesSwitch.state = appState.allowSearchEngineWebsites ? .on : .off
 
         for (index, button) in accentButtons.enumerated() {
             button.layer?.borderWidth = appState.accentColorIndex == index ? 2 : 0
@@ -405,6 +417,7 @@ final class SettingsSectionViewController: NSViewController {
             blockNewTabsSwitch,
             blockDeveloperHostsSwitch,
             blockLocalNetworkHostsSwitch,
+            allowSearchEngineWebsitesSwitch,
         ]
     }
 
@@ -471,6 +484,11 @@ final class SettingsSectionViewController: NSViewController {
     @objc
     private func toggleBlockLocalNetworkHosts() {
         appState.blockLocalNetworkHosts = blockLocalNetworkHostsSwitch.state == .on
+    }
+
+    @objc
+    private func toggleAllowSearchEngineWebsites() {
+        appState.allowSearchEngineWebsites = allowSearchEngineWebsitesSwitch.state == .on
     }
 
     @objc
@@ -545,6 +563,12 @@ extension SettingsSectionViewController {
     func setBlockLocalNetworkHostsForTesting(_ enabled: Bool) {
         blockLocalNetworkHostsSwitch.state = enabled ? .on : .off
         toggleBlockLocalNetworkHosts()
+        reloadSettings()
+    }
+
+    func setAllowSearchEngineWebsitesForTesting(_ enabled: Bool) {
+        allowSearchEngineWebsitesSwitch.state = enabled ? .on : .off
+        toggleAllowSearchEngineWebsites()
         reloadSettings()
     }
 

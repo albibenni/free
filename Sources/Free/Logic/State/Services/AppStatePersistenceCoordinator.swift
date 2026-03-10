@@ -13,6 +13,7 @@ enum AppStatePersistenceCoordinator {
         let blockNewTabs: AnyPublisher<Bool, Never>
         let blockDeveloperHosts: AnyPublisher<Bool, Never>
         let blockLocalNetworkHosts: AnyPublisher<Bool, Never>
+        let allowSearchEngineWebsites: AnyPublisher<Bool, Never>
         let ruleSets: AnyPublisher<[RuleSet], Never>
         let activeRuleSetId: AnyPublisher<UUID?, Never>
         let pomodoroFocusDuration: AnyPublisher<Double, Never>
@@ -80,6 +81,11 @@ enum AppStatePersistenceCoordinator {
         bindings.blockLocalNetworkHosts
             .dropFirst()
             .sink { settingsStore.setBlockLocalNetworkHosts($0) }
+            .store(in: &cancellables)
+
+        bindings.allowSearchEngineWebsites
+            .dropFirst()
+            .sink { settingsStore.setAllowSearchEngineWebsites($0) }
             .store(in: &cancellables)
 
         bindings.ruleSets

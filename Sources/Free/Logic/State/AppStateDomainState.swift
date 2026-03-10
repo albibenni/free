@@ -51,4 +51,5 @@ struct AppSettingsDomainState: Equatable {
     var blockNewTabs: Bool
     var blockDeveloperHosts: Bool
     var blockLocalNetworkHosts: Bool
+    var allowSearchEngineWebsites: Bool
 }

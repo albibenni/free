@@ -12,6 +12,7 @@ struct AppStateBootstrapService {
         let blockNewTabs: Bool
         let blockDeveloperHosts: Bool
         let blockLocalNetworkHosts: Bool
+        let allowSearchEngineWebsites: Bool
         let pomodoroFocusDuration: Double
         let pomodoroBreakDuration: Double
         let ruleSets: [RuleSet]
@@ -46,6 +47,7 @@ struct AppStateBootstrapService {
             blockNewTabs: settingsStore.blockNewTabs(),
             blockDeveloperHosts: settingsStore.blockDeveloperHosts(),
             blockLocalNetworkHosts: settingsStore.blockLocalNetworkHosts(),
+            allowSearchEngineWebsites: settingsStore.allowSearchEngineWebsites(),
             pomodoroFocusDuration: settingsStore.pomodoroFocusDuration(default: 25),
             pomodoroBreakDuration: settingsStore.pomodoroBreakDuration(default: 5),
             ruleSets: ruleSets,

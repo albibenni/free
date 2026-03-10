@@ -122,6 +122,23 @@ struct AppStateTests {
         #expect(!appState.allowedRules.contains("url2.com"))
     }
 
+    @Test("Search-engine allow toggle augments effective allowed rules")
+    func searchEngineAllowToggleAffectsAllowedRules() {
+        let appState = isolatedAppState(name: "searchEngineAllowToggleAffectsAllowedRules")
+        let ruleSet = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
+        appState.ruleSets = [ruleSet]
+        appState.activeRuleSetId = ruleSet.id
+        appState.isBlocking = true
+
+        appState.allowSearchEngineWebsites = false
+        #expect(appState.allowedRules.contains("google.com") == false)
+
+        appState.allowSearchEngineWebsites = true
+        #expect(appState.allowedRules.contains("google.com"))
+        #expect(appState.allowedRules.contains("duckduckgo.com"))
+        #expect(appState.allowedRules.contains("url1.com"))
+    }
+
     @Test("Break schedule overrides Focus schedule")
     func schedulePriorityBreakOverridesFocus() {
         let appState = isolatedAppState(name: "schedulePriorityBreakOverridesFocus")

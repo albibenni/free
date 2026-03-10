@@ -4,6 +4,7 @@
 - [x] caldendar schedule can personalize color
 - [] light mode:
   - [ ] background color not white
+- [ ] better ui tbd
 
 ### TOPBAR
 
@@ -36,10 +37,11 @@
 - [x] lock/unlock new tabs
 - [x] fully test code
 - [x] add list selection in pomodoro mode - default on selected from allowed lists
-- [ ] allow with toggle search engines searches
+- [x] allow with toggle search engines searches
 - [x] add git steps
   - [x] build and tests
 - [ ] breaks allowed or not base on settings toggle
+  - [ ] breaks only in first view - mode there from pomodoro
   - [ ] pomodoro setting for it
   - [ ] calendar setting for it
 
@@ -115,3 +117,7 @@
 ## Simplify issues
 
 - [ ] any in LaunchAtLoginService.swift
+
+## Future features
+
+- [ ] block apps
