@@ -24,3 +24,13 @@ extension FocusSectionViewController {
         startQuickBreak(minutes: minutes)
     }
 }
+
+extension FocusSectionViewController: NSTextFieldDelegate {
+    func controlTextDidChange(_ obj: Notification) {
+        guard let field = obj.object as? NSTextField, field === quickBreakCustomMinutesField else {
+            return
+        }
+        let digitsOnly = field.stringValue.filter(\.isNumber)
+        field.stringValue = String(digitsOnly.prefix(3))
+    }
+}

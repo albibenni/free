@@ -34,6 +34,7 @@ extension FocusSectionViewController {
     }
 
     func configureQuickBreakDashboard() {
+        quickBreakCustomMinutesField.delegate = self
         FocusSectionLayoutBuilder.configureQuickBreakDashboard(
             quickBreakDashboardView: quickBreakDashboardView,
             quickBreakTitleLabel: quickBreakTitleLabel,

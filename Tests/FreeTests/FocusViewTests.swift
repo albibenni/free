@@ -724,6 +724,26 @@ struct FocusViewTests {
         #expect(controller.isQuickBreakDashboardHiddenForTesting)
     }
 
+    @Test("Quick Break custom field accepts only digits and max 3 characters")
+    @MainActor
+    func focusViewMainQuickBreakCustomFieldSanitization() {
+        let appState = isolatedAppState(name: "mainQuickBreakCustomFieldSanitization")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+
+        controller.quickBreakCustomMinutesField.stringValue = "ab12x3459"
+        controller.controlTextDidChange(
+            Notification(
+                name: NSControl.textDidChangeNotification,
+                object: controller.quickBreakCustomMinutesField
+            )
+        )
+        #expect(controller.quickBreakCustomMinutesField.stringValue == "123")
+    }
+
     @Test("Quick Break controls are locked when Unblockable mode is active")
     @MainActor
     func focusViewMainQuickBreakLockedInUnblockableMode() {
