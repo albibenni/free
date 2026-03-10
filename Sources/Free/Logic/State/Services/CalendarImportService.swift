@@ -100,7 +100,7 @@ struct CalendarImportService {
             now: now,
             calendar: calendar
         )
-        return events.filter { $0.endDate >= cutoff }
+        return events.filter { $0.startDate >= cutoff }
     }
 
     static func legacyImportedEventSignatures(from events: [ExternalEvent]) -> Set<

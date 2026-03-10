@@ -397,14 +397,21 @@ struct LogicServicesCoverageBoostTests {
             startDate: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60),
             endDate: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60 + 300)
         )
+        let crossingCutoffEvent = ExternalEvent(
+            id: "crossing-cutoff-event",
+            title: "Crossing Cutoff Event",
+            startDate: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60),
+            endDate: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60)
+        )
         let prunedEvents = CalendarImportService.pruneCalendarEventsOlderThanPreviousWeek(
-            events: [staleEvent, retainedEvent],
+            events: [staleEvent, retainedEvent, crossingCutoffEvent],
             weekStartsOnMonday: false,
             now: referenceNow,
             calendar: calendar
         )
         #expect(prunedEvents.contains(where: { $0.id == staleEvent.id }) == false)
         #expect(prunedEvents.contains(where: { $0.id == retainedEvent.id }))
+        #expect(prunedEvents.contains(where: { $0.id == crossingCutoffEvent.id }) == false)
 
         let fallbackBoundarySchedule = Schedule(
             name: "Fallback boundary",

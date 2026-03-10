@@ -579,6 +579,12 @@ struct AppStateTests {
                 endDate: now.addingTimeInterval(-22 * 24 * 60 * 60 + 900)
             ),
             ExternalEvent(
+                id: "crossing-calendar-import",
+                title: "Crossing Imported",
+                startDate: now.addingTimeInterval(-22 * 24 * 60 * 60),
+                endDate: now.addingTimeInterval(-2 * 24 * 60 * 60)
+            ),
+            ExternalEvent(
                 id: "recent-calendar-import",
                 title: "Recent Imported",
                 startDate: now.addingTimeInterval(1800),
@@ -593,6 +599,11 @@ struct AppStateTests {
         #expect(
             appState.schedules.contains(where: {
                 $0.importedCalendarEventKey == "stale-calendar-import"
+            }) == false
+        )
+        #expect(
+            appState.schedules.contains(where: {
+                $0.importedCalendarEventKey == "crossing-calendar-import"
             }) == false
         )
         #expect(
