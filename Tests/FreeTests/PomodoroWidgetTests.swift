@@ -327,6 +327,25 @@ struct PomodoroWidgetTests {
         #expect(appState.pomodoroStatus == .focus)
     }
 
+    @Test("FocusPomodoroWidgetView stop action guard returns when button is forced enabled while locked")
+    @MainActor
+    func pomodoroWidgetStopGuardReturnWhenLocked() {
+        let appState = isolatedAppState(name: "stopGuardReturnWhenLocked")
+        appState.startPomodoro()
+        appState.isBlocking = true
+        appState.isUnblockable = true
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-20)
+
+        let hosted = host(FocusPomodoroWidgetView(appState: appState))
+        let stopButton = buttons(in: hosted).first { $0.title == "Stop" }
+        #expect(stopButton != nil)
+        #expect(stopButton?.isEnabled == false)
+
+        stopButton?.isEnabled = true
+        stopButton?.performClick(nil)
+        #expect(appState.pomodoroStatus == .focus)
+    }
+
     @Test("FocusPomodoroWidgetSupport helper functions cover selection fallback and recursive labels")
     @MainActor
     func pomodoroWidgetSupportHelpers() {

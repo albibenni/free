@@ -474,4 +474,182 @@ struct SettingsViewTests {
                 == .alertFirstButtonReturn
         )
     }
+
+    @Test("Settings calendar-permission default hook falls back to NSAlert.runModal when XCTest env var is missing")
+    @MainActor
+    func settingsCalendarPermissionDefaultAlertHooksRunModalPath() {
+        defer {
+            _ = setenv("XCTestConfigurationFilePath", "1", 1)
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        }
+
+        unsetenv("XCTestConfigurationFilePath")
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        let alert = TestModalAlert()
+        #expect(
+            SettingsSectionViewController.runCalendarPermissionAlert(alert)
+                == .alertFirstButtonReturn
+        )
+    }
+
+    @Test("Settings async calendar-permission fallback presents alert after delay outside XCTest guard")
+    @MainActor
+    func settingsCalendarPermissionAsyncFallbackCoverage() {
+        defer {
+            _ = setenv("XCTestConfigurationFilePath", "1", 1)
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        }
+
+        unsetenv("XCTestConfigurationFilePath")
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        SettingsSectionViewController.calendarPermissionFallbackDelay = 0.01
+        SettingsSectionViewController.scheduleAfter = { _, work in work() }
+
+        let calendar = MockCalendarManager()
+        calendar.isAuthorized = false
+        let appState = isolatedAppState(name: "calendarAsyncFallbackCoverage", calendar: calendar)
+        appState.calendarIntegrationEnabled = true
+
+        var alertShown = 0
+        SettingsSectionViewController.makeCalendarPermissionAlert = { NSAlert() }
+        SettingsSectionViewController.runCalendarPermissionAlert = { _ in
+            alertShown += 1
+            return .alertSecondButtonReturn
+        }
+
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+        controller.resyncImportedSchedulesForTesting()
+
+        #expect(alertShown == 1)
+    }
+
+    @Test("Settings calendar privacy opener guards invalid URLs and opens valid URLs")
+    func settingsCalendarPrivacyOpenerCoverage() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        var opened: [URL] = []
+        SettingsSectionViewController.injectedWorkspaceURLOpener = { url in opened.append(url) }
+
+        SettingsSectionViewController.calendarPrivacySettingsURLString = "not a url"
+        SettingsSectionViewController.openCalendarPrivacySettings()
+        #expect(opened.isEmpty)
+
+        SettingsSectionViewController.calendarPrivacySettingsURLString =
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
+        SettingsSectionViewController.openCalendarPrivacySettings()
+        #expect(opened.count == 1)
+    }
+
+    @Test("Settings default scheduler executes delayed work closure")
+    func settingsDefaultSchedulerCoverage() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        var didRun = false
+        SettingsSectionViewController.scheduleAfter(0) { didRun = true }
+        let timeout = Date().addingTimeInterval(0.25)
+        while !didRun && Date() < timeout {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        }
+        #expect(didRun)
+    }
+
+    @Test("Settings workspace opener default path delegates to platform opener")
+    func settingsWorkspaceDefaultOpenerCoverage() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        var opened: [URL] = []
+        SettingsSectionViewController.platformWorkspaceURLOpener = { opened.append($0) }
+        let url = URL(string: "https://example.com")!
+
+        SettingsSectionViewController.workspaceURLOpener(url)
+        #expect(opened == [url])
+    }
+
+    @Test("Settings workspace opener setter path is exercised")
+    func settingsWorkspaceOpenerSetterCoverage() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        _ = SettingsSectionViewController.platformWorkspaceURLOpener
+
+        var opened: [URL] = []
+        SettingsSectionViewController.workspaceURLOpener = { opened.append($0) }
+        SettingsSectionViewController.calendarPrivacySettingsURLString = "https://example.com"
+        SettingsSectionViewController.openCalendarPrivacySettings()
+
+        #expect(opened.count == 1)
+    }
+
+    @Test("Settings calendar fallback guard handles pending-true and authorization-restored branches")
+    @MainActor
+    func settingsCalendarFallbackPendingAndAuthorizedGuardsCoverage() {
+        defer {
+            _ = setenv("XCTestConfigurationFilePath", "1", 1)
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        }
+
+        unsetenv("XCTestConfigurationFilePath")
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+
+        var scheduled: [() -> Void] = []
+        SettingsSectionViewController.scheduleAfter = { _, work in scheduled.append(work) }
+        var alertShown = 0
+        SettingsSectionViewController.makeCalendarPermissionAlert = { NSAlert() }
+        SettingsSectionViewController.runCalendarPermissionAlert = { _ in
+            alertShown += 1
+            return .alertSecondButtonReturn
+        }
+
+        let calendar = MockCalendarManager()
+        calendar.isAuthorized = false
+        let appState = isolatedAppState(name: "calendarFallbackPendingGuard", calendar: calendar)
+        appState.calendarIntegrationEnabled = true
+
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.resyncImportedSchedulesForTesting()
+        #expect(scheduled.count == 1)
+
+        controller.resyncImportedSchedulesForTesting()
+        #expect(scheduled.count == 1)
+
+        calendar.isAuthorized = true
+        scheduled.removeFirst()()
+        #expect(alertShown == 0)
+    }
+
+    @Test("Settings calendar fallback closure safely returns when controller is deallocated")
+    @MainActor
+    func settingsCalendarFallbackClosureNilSelfGuardCoverage() {
+        defer {
+            _ = setenv("XCTestConfigurationFilePath", "1", 1)
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        }
+
+        unsetenv("XCTestConfigurationFilePath")
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+
+        var scheduled: [() -> Void] = []
+        SettingsSectionViewController.scheduleAfter = { _, work in scheduled.append(work) }
+
+        let calendar = MockCalendarManager()
+        calendar.isAuthorized = false
+        let appState = isolatedAppState(name: "calendarFallbackNilSelfGuard", calendar: calendar)
+        appState.calendarIntegrationEnabled = true
+
+        var controller: SettingsSectionViewController? = SettingsSectionViewController(appState: appState)
+        if let controller {
+            _ = host(controller)
+            controller.resyncImportedSchedulesForTesting()
+        }
+        #expect(scheduled.count == 1)
+
+        controller = nil
+        scheduled.removeFirst()()
+    }
 }

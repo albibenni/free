@@ -96,6 +96,30 @@ struct AppStateTests {
         #expect(!appState.isPomodoroLocked, "Pomodoro should NOT be locked during grace period")
     }
 
+    @Test("Pomodoro strict grace period read model handles guard and lock branches")
+    func pomodoroStrictGracePeriodReadModelCoverage() {
+        let appState = isolatedAppState(name: "pomodoroStrictGracePeriodReadModelCoverage")
+
+        appState.isUnblockable = false
+        appState.pomodoroStatus = .focus
+        appState.pomodoroStartedAt = Date()
+        #expect(appState.isPomodoroWithinStrictGracePeriod == false)
+
+        appState.isUnblockable = true
+        appState.pomodoroStatus = .none
+        #expect(appState.isPomodoroWithinStrictGracePeriod == false)
+
+        appState.pomodoroStatus = .focus
+        appState.pomodoroStartedAt = nil
+        #expect(appState.isPomodoroWithinStrictGracePeriod == false)
+
+        appState.pomodoroStartedAt = Date()
+        #expect(appState.isPomodoroWithinStrictGracePeriod == true)
+
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-100)
+        #expect(appState.isPomodoroWithinStrictGracePeriod == false)
+    }
+
     @Test("Strict Mode (Unblockable) activation logic")
     func strictActive() {
         let appState = isolatedAppState(name: "strictActive")
@@ -106,6 +130,23 @@ struct AppStateTests {
 
         appState.isUnblockable = false
         #expect(!appState.isStrictActive)
+    }
+
+    @Test("applySessionState clears manual blocking when resulting session is not manual")
+    func applySessionStateClearsManualBlocking() {
+        let appState = isolatedAppState(name: "applySessionStateClearsManualBlocking")
+        appState.setManualBlockingEnabled(true)
+        #expect(appState.manualBlockingEnabled)
+
+        appState.applySessionState(
+            AppStateLogicFacade.SessionState(
+                isBlocking: false,
+                wasStartedBySchedule: false,
+                manuallyPausedScheduleIds: []
+            )
+        )
+
+        #expect(appState.manualBlockingEnabled == false)
     }
 
     @Test("Allowed rules aggregation from multiple sources")

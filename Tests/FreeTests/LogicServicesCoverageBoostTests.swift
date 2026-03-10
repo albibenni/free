@@ -552,6 +552,28 @@ struct LogicServicesCoverageBoostTests {
         #expect(ids == [focusId])
     }
 
+    @Test("RuleSetService allowedRules pomodoro path can include search and AI provider defaults")
+    func ruleSetServiceAllowedRulesPomodoroKnownProviders() {
+        let set = RuleSet(name: "Focus", urls: ["example.com"])
+        let urls = Set(
+            RuleSetService.allowedRules(
+                ruleSets: [set],
+                schedules: [],
+                activeRuleSetId: set.id,
+                pomodoroRuleSetId: nil,
+                isPomodoroFocus: true,
+                isBlocking: true,
+                wasStartedBySchedule: false,
+                allowSearchEngineWebsites: true,
+                allowAIProviderWebsites: true
+            )
+        )
+
+        #expect(urls.contains("example.com"))
+        #expect(urls.contains("google.com"))
+        #expect(urls.contains("chatgpt.com"))
+    }
+
     @Test("ScheduleEngine updateScheduleOccurrence searches through non-matching IDs")
     func scheduleEngineUpdateOccurrenceFirstIndexClosureCoverage() {
         let start = Date()

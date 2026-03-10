@@ -699,6 +699,29 @@ struct FocusViewTests {
         #expect(controller.isQuickBreakDashboardHiddenForTesting)
     }
 
+    @Test("Quick Break 15m and 30m buttons in main view start expected pause durations")
+    @MainActor
+    func focusViewMainQuickBreakButtonsAdditionalDurations() {
+        let appState = isolatedAppState(name: "mainQuickBreakAdditionalDurations")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+
+        let fifteenButton = buttons(in: hosted).first { $0.title == "15m" }
+        let thirtyButton = buttons(in: hosted).first { $0.title == "30m" }
+        #expect(fifteenButton != nil)
+        #expect(thirtyButton != nil)
+
+        fifteenButton?.performClick(nil)
+        #expect(controller.pauseTimeTextForTesting == "15:00")
+
+        controller.cancelPause()
+        thirtyButton?.performClick(nil)
+        #expect(controller.pauseTimeTextForTesting == "30:00")
+    }
+
     @Test("Quick Break custom value in main view starts pause session")
     @MainActor
     func focusViewMainQuickBreakCustomValue() {
@@ -724,6 +747,23 @@ struct FocusViewTests {
         #expect(controller.isQuickBreakDashboardHiddenForTesting)
     }
 
+    @Test("Quick Break custom start ignores non-numeric value")
+    @MainActor
+    func focusViewMainQuickBreakCustomValueInvalidInput() {
+        let appState = isolatedAppState(name: "mainQuickBreakCustomInvalid")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+        controller.quickBreakCustomMinutesField.stringValue = "abc"
+
+        controller.startCustomQuickBreak()
+
+        #expect(appState.isPaused == false)
+        #expect(controller.isQuickBreakDashboardHiddenForTesting == false)
+    }
+
     @Test("Quick Break custom field accepts only digits and max 3 characters")
     @MainActor
     func focusViewMainQuickBreakCustomFieldSanitization() {
@@ -742,6 +782,30 @@ struct FocusViewTests {
             )
         )
         #expect(controller.quickBreakCustomMinutesField.stringValue == "123")
+    }
+
+    @Test("Quick Break custom field ignores unrelated text-change notifications")
+    @MainActor
+    func focusViewMainQuickBreakCustomFieldIgnoresUnrelatedNotifications() {
+        let appState = isolatedAppState(name: "mainQuickBreakFieldUnrelatedNotification")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+        controller.quickBreakCustomMinutesField.stringValue = "789"
+
+        let unrelated = NSTextField(string: "a1b2")
+        controller.controlTextDidChange(
+            Notification(name: NSControl.textDidChangeNotification, object: unrelated)
+        )
+
+        #expect(controller.quickBreakCustomMinutesField.stringValue == "789")
+
+        controller.controlTextDidChange(
+            Notification(name: NSControl.textDidChangeNotification, object: NSView())
+        )
+        #expect(controller.quickBreakCustomMinutesField.stringValue == "789")
     }
 
     @Test("Quick Break controls are locked when Unblockable mode is active")

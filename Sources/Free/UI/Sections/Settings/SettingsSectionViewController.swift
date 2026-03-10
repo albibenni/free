@@ -5,29 +5,86 @@ final class SettingsSectionViewController: NSViewController {
     typealias AlertFactory = () -> NSAlert
     typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
     typealias CalendarSettingsOpener = () -> Void
+    typealias URLOpener = (URL) -> Void
+    typealias AsyncAfterScheduler = (TimeInterval, @escaping () -> Void) -> Void
 
-    static var makeStrictModeAlert: AlertFactory = { NSAlert() }
-    static var runStrictModeAlert: AlertRunner = { alert in
+    private static func defaultMakeStrictModeAlert() -> NSAlert { NSAlert() }
+    private static func defaultRunStrictModeAlert(_ alert: NSAlert) -> NSApplication.ModalResponse {
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             return .alertSecondButtonReturn
         }
         return alert.runModal()
     }
-    static var makeCalendarPermissionAlert: AlertFactory = { NSAlert() }
-    static var runCalendarPermissionAlert: AlertRunner = { alert in
+    private static func defaultMakeCalendarPermissionAlert() -> NSAlert { NSAlert() }
+    private static func defaultRunCalendarPermissionAlert(
+        _ alert: NSAlert
+    ) -> NSApplication.ModalResponse {
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             return .alertSecondButtonReturn
         }
         return alert.runModal()
     }
-    static var openCalendarPrivacySettings: CalendarSettingsOpener = {
-        guard
-            let url = URL(
-                string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars")
-        else { return }
-        NSWorkspace.shared.open(url)
+    private static func defaultWorkspaceURLOpener(_ url: URL) {
+        if let injectedWorkspaceURLOpener {
+            injectedWorkspaceURLOpener(url)
+            return
+        }
+        platformWorkspaceURLOpener(url)
+    }
+    private static func defaultScheduleAfter(_ delay: TimeInterval, _ work: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+    private static func defaultOpenCalendarPrivacySettings() {
+        openCalendarPrivacySettingsIfPossible(
+            urlString: calendarPrivacySettingsURLString,
+            openURL: workspaceURLOpener
+        )
+    }
+
+    static var makeStrictModeAlert: AlertFactory = defaultMakeStrictModeAlert
+    static var runStrictModeAlert: AlertRunner = defaultRunStrictModeAlert
+    private static var _makeCalendarPermissionAlert: AlertFactory?
+    private static var _runCalendarPermissionAlert: AlertRunner?
+    private static var _platformWorkspaceURLOpener: URLOpener?
+    private static var _workspaceURLOpener: URLOpener?
+    private static var _scheduleAfter: AsyncAfterScheduler?
+    private static var _openCalendarPrivacySettings: CalendarSettingsOpener?
+    static var makeCalendarPermissionAlert: AlertFactory {
+        get { _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
+        set { _makeCalendarPermissionAlert = newValue }
+    }
+    static var runCalendarPermissionAlert: AlertRunner {
+        get { _runCalendarPermissionAlert ?? defaultRunCalendarPermissionAlert }
+        set { _runCalendarPermissionAlert = newValue }
+    }
+    static var injectedWorkspaceURLOpener: URLOpener?
+    static var platformWorkspaceURLOpener: URLOpener {
+        get { _platformWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
+        set { _platformWorkspaceURLOpener = newValue }
+    }
+    static var calendarPrivacySettingsURLString =
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
+    static var workspaceURLOpener: URLOpener {
+        get { _workspaceURLOpener ?? defaultWorkspaceURLOpener }
+        set { _workspaceURLOpener = newValue }
+    }
+    static var scheduleAfter: AsyncAfterScheduler {
+        get { _scheduleAfter ?? defaultScheduleAfter }
+        set { _scheduleAfter = newValue }
+    }
+    static var openCalendarPrivacySettings: CalendarSettingsOpener {
+        get { _openCalendarPrivacySettings ?? defaultOpenCalendarPrivacySettings }
+        set { _openCalendarPrivacySettings = newValue }
     }
     static var calendarPermissionFallbackDelay: TimeInterval = 0.6
+
+    private static func openCalendarPrivacySettingsIfPossible(
+        urlString: String,
+        openURL: URLOpener
+    ) {
+        guard let url = URL(string: urlString), url.scheme != nil else { return }
+        openURL(url)
+    }
 
     private struct ObservationSignature: Equatable {
         let isBlocking: Bool
@@ -553,7 +610,7 @@ final class SettingsSectionViewController: NSViewController {
         }
         pendingCalendarPermissionFallback = true
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.calendarPermissionFallbackDelay) { [weak self] in
+        Self.scheduleAfter(Self.calendarPermissionFallbackDelay) { [weak self] in
             guard let self else { return }
             self.pendingCalendarPermissionFallback = false
             guard self.appState.calendarProvider.isAuthorized == false else { return }
@@ -700,27 +757,17 @@ extension SettingsSectionViewController {
     }
 
     static func resetStrictModeAlertHooksForTesting() {
-        makeStrictModeAlert = { NSAlert() }
-        runStrictModeAlert = { alert in
-            if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
-                return .alertSecondButtonReturn
-            }
-            return alert.runModal()
-        }
-        makeCalendarPermissionAlert = { NSAlert() }
-        runCalendarPermissionAlert = { alert in
-            if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
-                return .alertSecondButtonReturn
-            }
-            return alert.runModal()
-        }
-        openCalendarPrivacySettings = {
-            guard
-                let url = URL(
-                    string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars")
-            else { return }
-            NSWorkspace.shared.open(url)
-        }
+        calendarPrivacySettingsURLString =
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
+        injectedWorkspaceURLOpener = nil
+        _platformWorkspaceURLOpener = nil
+        _workspaceURLOpener = nil
+        _scheduleAfter = nil
+        makeStrictModeAlert = defaultMakeStrictModeAlert
+        runStrictModeAlert = defaultRunStrictModeAlert
+        _makeCalendarPermissionAlert = nil
+        _runCalendarPermissionAlert = nil
+        _openCalendarPrivacySettings = nil
         calendarPermissionFallbackDelay = 0.6
     }
 
