@@ -297,10 +297,10 @@ struct PomodoroWidgetTests {
         #expect(appState.pomodoroBreakDuration == 5)
     }
 
-    @Test("FocusPomodoroWidgetView disables stop during strict grace period and enables it after")
+    @Test("FocusPomodoroWidgetView allows stop in strict grace period and blocks it after")
     @MainActor
-    func pomodoroWidgetStopDisabledDuringStrictGracePeriod() {
-        let appState = isolatedAppState(name: "stopDisabledDuringStrictGracePeriod")
+    func pomodoroWidgetStopBehaviorAcrossStrictGracePeriod() {
+        let appState = isolatedAppState(name: "stopBehaviorAcrossStrictGracePeriod")
         appState.startPomodoro()
         appState.isBlocking = true
         appState.isUnblockable = true
@@ -310,16 +310,21 @@ struct PomodoroWidgetTests {
         let hosted = host(widget)
         let stopButton = buttons(in: hosted).first { $0.title == "Stop" }
         #expect(stopButton != nil)
-        #expect(stopButton?.isEnabled == false)
+        #expect(stopButton?.isEnabled == true)
 
         stopButton?.performClick(nil)
-        #expect(appState.pomodoroStatus == .focus)
+        #expect(appState.pomodoroStatus == .none)
 
+        appState.startPomodoro()
+        appState.isBlocking = true
+        appState.isUnblockable = true
         appState.pomodoroStartedAt = Date().addingTimeInterval(-11)
         widget.refreshForStateChange()
         widget.forceUpdateActiveControlsForTesting()
 
-        #expect(stopButton?.isEnabled == true)
+        #expect(stopButton?.isEnabled == false)
+        stopButton?.performClick(nil)
+        #expect(appState.pomodoroStatus == .focus)
     }
 
     @Test("FocusPomodoroWidgetSupport helper functions cover selection fallback and recursive labels")
@@ -642,7 +647,7 @@ struct PomodoroWidgetTests {
         #expect(commitCount == 0)
     }
 
-    @Test("FocusPomodoroWidgetView custom break and strict stop prompts use simulation hooks")
+    @Test("FocusPomodoroWidgetView custom break prompt uses simulation hooks")
     @MainActor
     func pomodoroWidgetPromptSimulations() {
         let breakState = isolatedAppState(name: "promptCustomBreak")
@@ -657,27 +662,6 @@ struct PomodoroWidgetTests {
         customButton?.performClick(nil)
         #expect(breakState.isPaused)
         #expect(breakState.pauseRemaining == 7 * 60)
-
-        let lockedState = isolatedAppState(name: "promptStrictStop")
-        lockedState.startPomodoro()
-        lockedState.isBlocking = true
-        lockedState.isUnblockable = true
-        lockedState.pomodoroStartedAt = Date().addingTimeInterval(-20)
-        let stopWidget = FocusPomodoroWidgetView(appState: lockedState)
-        stopWidget.stopChallengePromptSimulation = {
-            (.alertFirstButtonReturn, "wrong phrase")
-        }
-        let stopHosted = host(stopWidget)
-        let stopButton = buttons(in: stopHosted).first { $0.title == "Stop" }
-        #expect(stopButton != nil)
-        stopButton?.performClick(nil)
-        #expect(lockedState.pomodoroStatus != .none)
-
-        stopWidget.stopChallengePromptSimulation = {
-            (.alertFirstButtonReturn, AppState.challengePhrase)
-        }
-        stopButton?.performClick(nil)
-        #expect(lockedState.pomodoroStatus == .none)
 
         let cancelBreakState = isolatedAppState(name: "promptCancelBreak")
         cancelBreakState.isBlocking = true
@@ -712,7 +696,7 @@ struct PomodoroWidgetTests {
         #expect(visibleText(in: hosted).contains("Work"))
     }
 
-    @Test("FocusPomodoroWidgetView prompt hook paths cover modal and sheet flows")
+    @Test("FocusPomodoroWidgetView prompt hook paths cover custom-break modal flow")
     @MainActor
     func pomodoroWidgetPromptHookPaths() {
         defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
@@ -738,42 +722,9 @@ struct PomodoroWidgetTests {
         #expect(modalCalls == 1)
         #expect(breakState.isPaused)
         #expect(breakState.pauseRemaining == 9 * 60)
-
-        let strictState = isolatedAppState(name: "promptHookSheet")
-        strictState.startPomodoro()
-        strictState.isBlocking = true
-        strictState.isUnblockable = true
-        strictState.pomodoroStartedAt = Date().addingTimeInterval(-20)
-
-        let strictWidget = FocusPomodoroWidgetView(appState: strictState)
-        let strictWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 960, height: 760),
-            styleMask: [.titled],
-            backing: .buffered,
-            defer: false
-        )
-        strictWindow.contentView = strictWidget
-        strictWidget.frame = strictWindow.contentView?.bounds ?? .zero
-        strictWidget.layoutSubtreeIfNeeded()
-        strictWidget.displayIfNeeded()
-
-        var sheetCalls = 0
-        FocusPomodoroWidgetView.runAlertSheet = { alert, _, completion in
-            sheetCalls += 1
-            (alert.accessoryView as? NSTextField)?.stringValue = AppState.challengePhrase
-            completion(.alertFirstButtonReturn)
-        }
-        FocusPomodoroWidgetView.runAlertModal = { _ in
-            Issue.record("Expected sheet path for strict stop when window exists")
-            return .alertSecondButtonReturn
-        }
-
-        buttons(in: strictWidget).first { $0.title == "Stop" }?.performClick(nil)
-        #expect(sheetCalls == 1)
-        #expect(strictState.pomodoroStatus == .none)
     }
 
-    @Test("FocusPomodoroWidgetView prompt branches cover custom-sheet and strict-modal paths")
+    @Test("FocusPomodoroWidgetView prompt branches cover custom-break sheet path")
     @MainActor
     func pomodoroWidgetPromptBranchCoverage() {
         defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
@@ -806,24 +757,6 @@ struct PomodoroWidgetTests {
         buttons(in: customWidget).first { $0.title == "Cust" }?.performClick(nil)
         #expect(customSheetCalls == 1)
         #expect(customState.isPaused)
-
-        let strictState = isolatedAppState(name: "promptBranchStrictModal")
-        strictState.startPomodoro()
-        strictState.isBlocking = true
-        strictState.isUnblockable = true
-        strictState.pomodoroStartedAt = Date().addingTimeInterval(-20)
-        let strictWidget = FocusPomodoroWidgetView(appState: strictState)
-        _ = host(strictWidget)
-
-        FocusPomodoroWidgetView.runAlertSheet = { _, _, _ in
-            Issue.record("Expected modal path for strict stop when widget has no window")
-        }
-        FocusPomodoroWidgetView.runAlertModal = { alert in
-            (alert.accessoryView as? NSTextField)?.stringValue = AppState.challengePhrase
-            return .alertFirstButtonReturn
-        }
-        buttons(in: strictWidget).first { $0.title == "Stop" }?.performClick(nil)
-        #expect(strictState.pomodoroStatus == .none)
     }
 
     @Test("FocusPomodoroWidgetView testing hooks cover active-badge rebuild branches")
@@ -909,7 +842,6 @@ struct PomodoroWidgetTests {
         appState.isBlocking = true
         appState.isUnblockable = true
         appState.pomodoroStartedAt = Date().addingTimeInterval(-20)
-        FocusPomodoroWidgetView.runAlertModal = { _ in .alertSecondButtonReturn }
         buttons(in: hosted).first { $0.title == "Stop" }?.performClick(nil)
         #expect(appState.pomodoroStatus != .none)
     }

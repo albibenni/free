@@ -472,19 +472,21 @@ final class SettingsSectionViewController: NSViewController {
     }
 
     private func makeStrictModeUnlockAccessoryView() -> (NSView, NSTextField) {
+        let containerWidth: CGFloat = 340
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: containerWidth, height: 104))
+        container.translatesAutoresizingMaskIntoConstraints = false
+
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 10
+        stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
-
-        let header = NSTextField(labelWithString: "EMERGENCY UNLOCK")
-        header.font = .systemFont(ofSize: 15, weight: .black)
-        header.textColor = .systemRed
 
         let instruction = NSTextField(wrappingLabelWithString: "Type the phrase exactly to disable Unblockable Mode:")
         instruction.font = .systemFont(ofSize: 13, weight: .semibold)
         instruction.textColor = .labelColor
+        instruction.lineBreakMode = .byWordWrapping
+        instruction.translatesAutoresizingMaskIntoConstraints = false
 
         let phrase = NSTextField(
             wrappingLabelWithString:
@@ -492,19 +494,30 @@ final class SettingsSectionViewController: NSViewController {
         )
         phrase.font = .systemFont(ofSize: 13)
         phrase.textColor = .secondaryLabelColor
+        phrase.lineBreakMode = .byWordWrapping
+        phrase.translatesAutoresizingMaskIntoConstraints = false
 
         let input = NSTextField(string: "")
         input.placeholderString = "Type the phrase exactly"
         input.translatesAutoresizingMaskIntoConstraints = false
+        input.controlSize = .regular
 
-        stack.addArrangedSubview(header)
         stack.addArrangedSubview(instruction)
         stack.addArrangedSubview(phrase)
         stack.addArrangedSubview(input)
-        stack.widthAnchor.constraint(equalToConstant: 420).isActive = true
-        input.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-
-        return (stack, input)
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            instruction.widthAnchor.constraint(equalTo: container.widthAnchor),
+            phrase.widthAnchor.constraint(equalTo: container.widthAnchor),
+            input.widthAnchor.constraint(equalTo: container.widthAnchor),
+            input.heightAnchor.constraint(equalToConstant: 24),
+        ])
+        container.layoutSubtreeIfNeeded()
+        return (container, input)
     }
 
     @objc
