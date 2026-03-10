@@ -8,6 +8,7 @@ struct AppStateScheduleCoordinator {
         suppressedImportedCalendarEventKeys: Set<String>,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
+        weekStartsOnMonday: Bool,
         preservedImportedByKey: [String: Schedule] = [:]
     ) -> [Schedule]? {
         let resolvedPreservedImportedByKey = AppStateScheduleCoordinator.preservedImportedByKey(
@@ -22,6 +23,7 @@ struct AppStateScheduleCoordinator {
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
+            weekStartsOnMonday: weekStartsOnMonday,
             preservedImportedByKey: resolvedPreservedImportedByKey
         )
 

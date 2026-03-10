@@ -8,20 +8,29 @@ struct ScheduleCalendarService {
         suppressedImportedCalendarEventKeys: Set<String>,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
+        weekStartsOnMonday: Bool,
         preservedImportedByKey: [String: Schedule] = [:]
     ) -> [Schedule] {
+        let retainedSchedules = CalendarImportService.pruneSchedulesOlderThanPreviousWeek(
+            schedules: schedules,
+            weekStartsOnMonday: weekStartsOnMonday
+        )
+        let retainedEvents = CalendarImportService.pruneCalendarEventsOlderThanPreviousWeek(
+            events: events,
+            weekStartsOnMonday: weekStartsOnMonday
+        )
         let signatures = CalendarImportService.legacyImportedEventSignatures(
-            from: events
+            from: retainedEvents
         )
 
         let cleaned = CalendarImportService.removeLegacyImportedDuplicates(
-            from: schedules,
+            from: retainedSchedules,
             signatures: signatures
         )
 
         return CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
             schedules: cleaned,
-            events: events,
+            events: retainedEvents,
             shouldImportCalendarEvents: shouldImportCalendarEvents,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
             activeRuleSetId: activeRuleSetId,

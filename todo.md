@@ -78,9 +78,9 @@
 - [x] should be closable if not in strict mode
 - [x] should work with selected list on the schedule
 - [x] change to break doesn't work for imported schedules
-- [ ] ci-cd running weird - on wrong branch
-- [ ] merge allowed on ci-cd failed
-- [ ] ci-cd fix tests failing
+- [x] ci-cd running weird - on wrong branch
+- [x] merge allowed on ci-cd failed
+- [x] ci-cd fix tests failing
 
 ### Regression appkit
 
@@ -103,8 +103,8 @@
 - [x] pomodoro timer can be changed during focus via preset click, it shouldn't be possible
 - [x] end break and focus button don't work - the one in pomodoro widget
 
-- [ ] redo tests
-  - [ ] coverage
+- [x] redo tests
+  - [x] coverage
 
 ## Performance check
 

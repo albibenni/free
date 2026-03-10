@@ -14,6 +14,7 @@ struct AppStateCalendarSyncCoordinatorTests {
             suppressedImportedCalendarEventKeys: [],
             activeRuleSetId: nil,
             ruleSets: [RuleSet.defaultSet()],
+            weekStartsOnMonday: false,
             preservedImportedByKey: [:]
         )
 
@@ -31,6 +32,7 @@ struct AppStateCalendarSyncCoordinatorTests {
             suppressedImportedCalendarEventKeys: [],
             activeRuleSetId: nil,
             ruleSets: [RuleSet.defaultSet()],
+            weekStartsOnMonday: false,
             preservedImportedByKey: [:]
         )
 
@@ -55,6 +57,7 @@ struct AppStateCalendarSyncCoordinatorTests {
             suppressedImportedCalendarEventKeys: [],
             activeRuleSetId: nil,
             ruleSets: [RuleSet.defaultSet()],
+            weekStartsOnMonday: false,
             preservedImportedByKey: [:]
         )
 

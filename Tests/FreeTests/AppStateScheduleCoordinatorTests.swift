@@ -43,7 +43,8 @@ struct AppStateScheduleCoordinatorTests {
             shouldImportCalendarEvents: true,
             suppressedImportedCalendarEventKeys: [],
             activeRuleSetId: nil,
-            ruleSets: [RuleSet.defaultSet()]
+            ruleSets: [RuleSet.defaultSet()],
+            weekStartsOnMonday: false
         )
 
         #expect(rebuilt == nil)

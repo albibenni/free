@@ -75,6 +75,7 @@ extension AppStateLogicFacade {
         suppressedImportedCalendarEventKeys: Set<String>,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
+        weekStartsOnMonday: Bool,
         preservedImportedByKey: [String: Schedule]
     ) -> [Schedule]? {
         AppStateCalendarSyncCoordinator.rebuildForResync(
@@ -85,6 +86,7 @@ extension AppStateLogicFacade {
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
+            weekStartsOnMonday: weekStartsOnMonday,
             preservedImportedByKey: preservedImportedByKey
         )
     }
@@ -98,6 +100,7 @@ extension AppStateLogicFacade {
         suppressedImportedCalendarEventKeys: Set<String>,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
+        weekStartsOnMonday: Bool,
         preservedImportedByKey: [String: Schedule]
     ) -> [Schedule]? {
         AppStateCalendarSyncCoordinator.rebuildForScheduleCheck(
@@ -109,6 +112,7 @@ extension AppStateLogicFacade {
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
+            weekStartsOnMonday: weekStartsOnMonday,
             preservedImportedByKey: preservedImportedByKey
         )
     }

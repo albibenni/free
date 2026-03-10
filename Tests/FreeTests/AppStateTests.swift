@@ -509,6 +509,65 @@ struct AppStateTests {
         #expect(!appState.schedules.contains(where: { $0.importedCalendarEventKey != nil }))
     }
 
+    @Test("Calendar sync prunes schedules and imports older than previous week")
+    func calendarSyncPrunesOlderThanPreviousWeek() {
+        let appState = isolatedAppState(name: "calendarSyncPrunesOlderThanPreviousWeek")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+
+        let now = Date()
+        let staleOneOffDate = now.addingTimeInterval(-21 * 24 * 60 * 60)
+        let recentOneOffDate = now.addingTimeInterval(-2 * 24 * 60 * 60)
+
+        let staleOneOff = Schedule(
+            name: "Stale One-Off",
+            days: [Calendar.current.component(.weekday, from: staleOneOffDate)],
+            date: staleOneOffDate,
+            startTime: staleOneOffDate,
+            endTime: staleOneOffDate.addingTimeInterval(600),
+            type: .focus
+        )
+        let recentOneOff = Schedule(
+            name: "Recent One-Off",
+            days: [Calendar.current.component(.weekday, from: recentOneOffDate)],
+            date: recentOneOffDate,
+            startTime: recentOneOffDate,
+            endTime: recentOneOffDate.addingTimeInterval(600),
+            type: .focus
+        )
+
+        appState.schedules = [staleOneOff, recentOneOff]
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "stale-calendar-import",
+                title: "Stale Imported",
+                startDate: now.addingTimeInterval(-22 * 24 * 60 * 60),
+                endDate: now.addingTimeInterval(-22 * 24 * 60 * 60 + 900)
+            ),
+            ExternalEvent(
+                id: "recent-calendar-import",
+                title: "Recent Imported",
+                startDate: now.addingTimeInterval(1800),
+                endDate: now.addingTimeInterval(3600)
+            ),
+        ]
+
+        appState.checkSchedules()
+
+        #expect(appState.schedules.contains(where: { $0.id == staleOneOff.id }) == false)
+        #expect(appState.schedules.contains(where: { $0.id == recentOneOff.id }))
+        #expect(
+            appState.schedules.contains(where: {
+                $0.importedCalendarEventKey == "stale-calendar-import"
+            }) == false
+        )
+        #expect(
+            appState.schedules.contains(where: {
+                $0.importedCalendarEventKey == "recent-calendar-import"
+            })
+        )
+    }
+
     @Test("Deleting imported schedule suppresses re-import while source event remains present")
     func deletingImportedScheduleSuppressesReimport() {
         let appState = isolatedAppState(name: "deletingImportedScheduleSuppressesReimport")

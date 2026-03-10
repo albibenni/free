@@ -1335,6 +1335,10 @@ struct WeeklyCalendarViewTests {
         #expect(controller.weekOffsetForTesting == -1)
         #expect(backwardDelta == 7)
 
+        controller.goToPreviousWeekForTesting()
+        #expect(controller.weekOffsetForTesting == -1)
+        #expect(controller.calendarConfigurationForTesting.weekRange.first == previousWeekStart)
+
         controller.goToCurrentWeekForTesting()
         #expect(controller.weekOffsetForTesting == 0)
         #expect(controller.calendarConfigurationForTesting.weekRange.first == initialWeekStart)

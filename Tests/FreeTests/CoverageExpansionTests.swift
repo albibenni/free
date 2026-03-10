@@ -165,6 +165,7 @@ struct CoverageExpansionTests {
                 ruleSets: [ruleSet],
                 activeRuleSetId: ruleSet.id
             ),
+            weekStartsOnMonday: false,
             events: [event]
         )
 

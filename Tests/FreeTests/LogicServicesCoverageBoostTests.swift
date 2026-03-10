@@ -348,6 +348,63 @@ struct LogicServicesCoverageBoostTests {
                 suppressedKeys: &suppressed
             ) == false
         )
+
+        let calendar = Calendar(identifier: .gregorian)
+        let referenceNow = Date(timeIntervalSince1970: 1_700_000_000)
+        let oldOneOff = Schedule(
+            name: "Old one-off",
+            days: [2],
+            date: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60),
+            startTime: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60),
+            endTime: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60 + 600),
+            type: .focus
+        )
+        let retainedOneOff = Schedule(
+            name: "Retained one-off",
+            days: [2],
+            date: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60),
+            startTime: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60),
+            endTime: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60 + 600),
+            type: .focus
+        )
+        let retainedRecurring = Schedule(
+            name: "Recurring",
+            days: [2],
+            date: nil,
+            startTime: referenceNow,
+            endTime: referenceNow.addingTimeInterval(600),
+            type: .focus
+        )
+        let prunedSchedules = CalendarImportService.pruneSchedulesOlderThanPreviousWeek(
+            schedules: [oldOneOff, retainedOneOff, retainedRecurring],
+            weekStartsOnMonday: false,
+            now: referenceNow,
+            calendar: calendar
+        )
+        #expect(prunedSchedules.contains(where: { $0.id == oldOneOff.id }) == false)
+        #expect(prunedSchedules.contains(where: { $0.id == retainedOneOff.id }))
+        #expect(prunedSchedules.contains(where: { $0.id == retainedRecurring.id }))
+
+        let staleEvent = ExternalEvent(
+            id: "stale-event",
+            title: "Stale Event",
+            startDate: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60),
+            endDate: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60 + 300)
+        )
+        let retainedEvent = ExternalEvent(
+            id: "retained-event",
+            title: "Retained Event",
+            startDate: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60),
+            endDate: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60 + 300)
+        )
+        let prunedEvents = CalendarImportService.pruneCalendarEventsOlderThanPreviousWeek(
+            events: [staleEvent, retainedEvent],
+            weekStartsOnMonday: false,
+            now: referenceNow,
+            calendar: calendar
+        )
+        #expect(prunedEvents.contains(where: { $0.id == staleEvent.id }) == false)
+        #expect(prunedEvents.contains(where: { $0.id == retainedEvent.id }))
     }
 
     @Test("ScheduleEngine covers imported guard and save existing with nil initial-day")

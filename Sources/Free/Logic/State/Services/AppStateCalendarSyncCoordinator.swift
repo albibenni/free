@@ -9,6 +9,7 @@ struct AppStateCalendarSyncCoordinator {
         suppressedImportedCalendarEventKeys: Set<String>,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
+        weekStartsOnMonday: Bool,
         preservedImportedByKey: [String: Schedule]
     ) -> [Schedule]? {
         guard calendarIntegrationEnabled else { return nil }
@@ -19,6 +20,7 @@ struct AppStateCalendarSyncCoordinator {
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
+            weekStartsOnMonday: weekStartsOnMonday,
             preservedImportedByKey: preservedImportedByKey
         )
     }
@@ -32,6 +34,7 @@ struct AppStateCalendarSyncCoordinator {
         suppressedImportedCalendarEventKeys: Set<String>,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
+        weekStartsOnMonday: Bool,
         preservedImportedByKey: [String: Schedule]
     ) -> [Schedule]? {
         guard !isSynchronizingImportedSchedules else { return nil }
@@ -42,6 +45,7 @@ struct AppStateCalendarSyncCoordinator {
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
+            weekStartsOnMonday: weekStartsOnMonday,
             preservedImportedByKey: preservedImportedByKey
         )
     }

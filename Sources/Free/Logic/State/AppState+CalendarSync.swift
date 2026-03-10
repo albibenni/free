@@ -5,6 +5,7 @@ extension AppState {
         AppStateCalendarSyncMutationService.Context(
             schedule: scheduleDomainState,
             rules: rulesDomainState,
+            weekStartsOnMonday: settingsDomainState.weekStartsOnMonday,
             events: calendarProvider.events
         )
     }

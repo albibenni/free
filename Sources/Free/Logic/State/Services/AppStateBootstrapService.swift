@@ -28,11 +28,17 @@ struct AppStateBootstrapService {
         }()
 
         let ruleSets = settingsStore.loadRuleSets() ?? [RuleSet.defaultSet()]
+        let weekStartsOnMonday = settingsStore.weekStartsOnMonday()
+        let persistedSchedules = settingsStore.loadSchedules() ?? []
+        let schedules = CalendarImportService.pruneSchedulesOlderThanPreviousWeek(
+            schedules: persistedSchedules,
+            weekStartsOnMonday: weekStartsOnMonday
+        )
 
         return Snapshot(
             isBlocking: settingsStore.isBlocking(),
             isUnblockable: settingsStore.isUnblockable(),
-            weekStartsOnMonday: settingsStore.weekStartsOnMonday(),
+            weekStartsOnMonday: weekStartsOnMonday,
             accentColorIndex: settingsStore.accentColorIndex(),
             appearanceMode: appearanceMode,
             calendarIntegrationEnabled: settingsStore.calendarIntegrationEnabled(),
@@ -43,7 +49,7 @@ struct AppStateBootstrapService {
             pomodoroFocusDuration: settingsStore.pomodoroFocusDuration(default: 25),
             pomodoroBreakDuration: settingsStore.pomodoroBreakDuration(default: 5),
             ruleSets: ruleSets,
-            schedules: settingsStore.loadSchedules() ?? [],
+            schedules: schedules,
             activeRuleSetId: settingsStore.activeRuleSetId() ?? ruleSets.first?.id,
             wasStartedBySchedule: settingsStore.wasStartedBySchedule(),
             suppressedImportedCalendarEventKeys: settingsStore.suppressedImportedCalendarEventKeys()

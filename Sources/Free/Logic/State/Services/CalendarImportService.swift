@@ -50,6 +50,37 @@ struct CalendarImportService {
         return baseSchedules + importedSchedules
     }
 
+    static func pruneSchedulesOlderThanPreviousWeek(
+        schedules: [Schedule],
+        weekStartsOnMonday: Bool,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [Schedule] {
+        let cutoff = previousWeekStart(
+            weekStartsOnMonday: weekStartsOnMonday,
+            now: now,
+            calendar: calendar
+        )
+        return schedules.filter { schedule in
+            guard let specificDate = schedule.date else { return true }
+            return specificDate >= cutoff
+        }
+    }
+
+    static func pruneCalendarEventsOlderThanPreviousWeek(
+        events: [ExternalEvent],
+        weekStartsOnMonday: Bool,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [ExternalEvent] {
+        let cutoff = previousWeekStart(
+            weekStartsOnMonday: weekStartsOnMonday,
+            now: now,
+            calendar: calendar
+        )
+        return events.filter { $0.endDate >= cutoff }
+    }
+
     static func legacyImportedEventSignatures(from events: [ExternalEvent]) -> Set<
         LegacyImportedEventSignature
     > {
@@ -95,5 +126,22 @@ struct CalendarImportService {
             end: schedule.endTime.timeIntervalSince1970
         )
         return signatures.contains(signature)
+    }
+
+    private static func previousWeekStart(
+        weekStartsOnMonday: Bool,
+        now: Date,
+        calendar: Calendar
+    ) -> Date {
+        let previousWeek = WeekDateCalculator.getWeekDates(
+            at: now,
+            weekStartsOnMonday: weekStartsOnMonday,
+            offset: -1,
+            calendar: calendar
+        )
+        if let start = previousWeek.first {
+            return calendar.startOfDay(for: start)
+        }
+        return calendar.startOfDay(for: now)
     }
 }
