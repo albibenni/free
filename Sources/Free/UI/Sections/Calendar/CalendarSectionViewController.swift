@@ -15,8 +15,18 @@ final class CalendarSectionViewController: NSViewController {
     private let integrationNotice = NSTextField(
         wrappingLabelWithString: "Enable Calendar Integration in Settings to use calendar title rules."
     )
-    private let focusRulesField = NSTextField(string: "")
-    private let breakRulesField = NSTextField(string: "")
+    private let focusRuleField = NSTextField(string: "")
+    private let breakRuleField = NSTextField(string: "")
+    private let focusRulesTableView = NSTableView()
+    private let breakRulesTableView = NSTableView()
+    private let focusRulesScrollView = NSScrollView()
+    private let breakRulesScrollView = NSScrollView()
+    private let addFocusRuleButton = ActionButton(title: "Add")
+    private let addBreakRuleButton = ActionButton(title: "Add")
+    private let removeFocusRuleButton = ActionButton(title: "Remove Selected")
+    private let removeBreakRuleButton = ActionButton(title: "Remove Selected")
+    private let focusRulesTableController = AllowedWebsitesRulesTableController()
+    private let breakRulesTableController = AllowedWebsitesRulesTableController()
 
     init(appState: AppState) {
         self.appState = appState
@@ -53,31 +63,80 @@ final class CalendarSectionViewController: NSViewController {
         let section = makeCardSection()
         section.addArrangedSubview(integrationNotice)
         section.addArrangedSubview(
-            makeTextFieldRow(
+            makeRuleListRow(
                 title: "Focus Title Rules",
-                description: "Comma-separated title keywords imported as Focus sessions.",
-                textField: focusRulesField
+                description: "Match any rule in this list to import as Focus.",
+                inputField: focusRuleField,
+                addButton: addFocusRuleButton,
+                removeButton: removeFocusRuleButton,
+                tableView: focusRulesTableView,
+                tableScrollView: focusRulesScrollView
             )
         )
         section.addArrangedSubview(
-            makeTextFieldRow(
+            makeRuleListRow(
                 title: "Break Title Rules",
-                description: "Comma-separated title keywords imported as Break sessions.",
-                textField: breakRulesField
+                description: "Match any rule in this list to import as Break.",
+                inputField: breakRuleField,
+                addButton: addBreakRuleButton,
+                removeButton: removeBreakRuleButton,
+                tableView: breakRulesTableView,
+                tableScrollView: breakRulesScrollView
             )
         )
         addFullWidthSection(section)
 
         configureRuleField(
-            focusRulesField,
-            placeholder: "e.g. Deep Work, Focus Block",
-            action: #selector(updateFocusRules(_:))
+            focusRuleField,
+            placeholder: "Add focus title rule...",
+            action: #selector(addFocusRuleFromField(_:))
         )
         configureRuleField(
-            breakRulesField,
-            placeholder: "e.g. Lunch, Break, Coffee",
-            action: #selector(updateBreakRules(_:))
+            breakRuleField,
+            placeholder: "Add break title rule...",
+            action: #selector(addBreakRuleFromField(_:))
         )
+        addFocusRuleButton.target = self
+        addFocusRuleButton.action = #selector(addFocusRule)
+        addBreakRuleButton.target = self
+        addBreakRuleButton.action = #selector(addBreakRule)
+        removeFocusRuleButton.target = self
+        removeFocusRuleButton.action = #selector(removeSelectedFocusRule)
+        removeBreakRuleButton.target = self
+        removeBreakRuleButton.action = #selector(removeSelectedBreakRule)
+
+        configureRulesTable(
+            focusRulesTableView,
+            in: focusRulesScrollView,
+            selectionAction: #selector(handleFocusSelectionChange)
+        )
+        configureRulesTable(
+            breakRulesTableView,
+            in: breakRulesScrollView,
+            selectionAction: #selector(handleBreakSelectionChange)
+        )
+
+        focusRulesTableController.numberOfRules = { [weak self] in
+            self?.appState.calendarImportFocusTitleRules.count ?? 0
+        }
+        focusRulesTableController.ruleAt = { [weak self] row in
+            guard let self else { return nil }
+            guard self.appState.calendarImportFocusTitleRules.indices.contains(row) else { return nil }
+            return self.appState.calendarImportFocusTitleRules[row]
+        }
+        focusRulesTableView.dataSource = focusRulesTableController
+        focusRulesTableView.delegate = focusRulesTableController
+
+        breakRulesTableController.numberOfRules = { [weak self] in
+            self?.appState.calendarImportBreakTitleRules.count ?? 0
+        }
+        breakRulesTableController.ruleAt = { [weak self] row in
+            guard let self else { return nil }
+            guard self.appState.calendarImportBreakTitleRules.indices.contains(row) else { return nil }
+            return self.appState.calendarImportBreakTitleRules[row]
+        }
+        breakRulesTableView.dataSource = breakRulesTableController
+        breakRulesTableView.delegate = breakRulesTableController
 
         integrationNotice.font = .systemFont(ofSize: 12, weight: .medium)
         integrationNotice.textColor = .secondaryLabelColor
@@ -134,6 +193,32 @@ final class CalendarSectionViewController: NSViewController {
         textField.heightAnchor.constraint(equalToConstant: 24).isActive = true
     }
 
+    private func configureRulesTable(
+        _ tableView: NSTableView,
+        in scrollView: NSScrollView,
+        selectionAction: Selector
+    ) {
+        let ruleColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("CalendarRule"))
+        ruleColumn.title = ""
+        ruleColumn.resizingMask = .autoresizingMask
+        tableView.addTableColumn(ruleColumn)
+        tableView.headerView = nil
+        tableView.rowHeight = 28
+        tableView.intercellSpacing = NSSize(width: 0, height: 2)
+        tableView.usesAlternatingRowBackgroundColors = false
+        tableView.allowsMultipleSelection = true
+        tableView.target = self
+        tableView.action = selectionAction
+        tableView.doubleAction = selectionAction
+
+        scrollView.documentView = tableView
+        scrollView.hasVerticalScroller = true
+        scrollView.autohidesScrollers = true
+        scrollView.drawsBackground = false
+        scrollView.borderType = .noBorder
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+    }
+
     private func makeDescriptionLabel(_ text: String) -> NSTextField {
         let label = NSTextField(labelWithString: text)
         label.font = .systemFont(ofSize: 12)
@@ -141,45 +226,176 @@ final class CalendarSectionViewController: NSViewController {
         return label
     }
 
-    private func makeTextFieldRow(
+    private func makeRuleListRow(
         title: String,
         description: String,
-        textField: NSTextField
+        inputField: NSTextField,
+        addButton: ActionButton,
+        removeButton: ActionButton,
+        tableView: NSTableView,
+        tableScrollView: NSScrollView
     ) -> NSView {
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         let descriptionLabel = makeDescriptionLabel(description)
+        let inputRow = makeAppKitHorizontalRow(
+            views: [inputField, addButton],
+            alignment: .centerY,
+            spacing: 8
+        )
+        let removeRow = makeAppKitHorizontalRow(
+            views: [NSView(), removeButton],
+            alignment: .centerY,
+            spacing: 8
+        )
+
+        let listContainer = AppKitDynamicView()
+        listContainer.backgroundColorProvider = {
+            NSColor.controlBackgroundColor.withAlphaComponent(0.35)
+        }
+        listContainer.borderColorProvider = {
+            NSColor.separatorColor.withAlphaComponent(0.45)
+        }
+        listContainer.borderWidthValue = 1
+        listContainer.wantsLayer = true
+        listContainer.layer?.cornerRadius = 8
+        listContainer.translatesAutoresizingMaskIntoConstraints = false
+
+        listContainer.addSubview(tableScrollView)
+        NSLayoutConstraint.activate([
+            tableScrollView.leadingAnchor.constraint(equalTo: listContainer.leadingAnchor, constant: 8),
+            tableScrollView.trailingAnchor.constraint(equalTo: listContainer.trailingAnchor, constant: -8),
+            tableScrollView.topAnchor.constraint(equalTo: listContainer.topAnchor, constant: 8),
+            tableScrollView.bottomAnchor.constraint(equalTo: listContainer.bottomAnchor, constant: -8),
+            listContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: 132),
+        ])
+
         let stack = makeAppKitVerticalStack(
-            views: [titleLabel, descriptionLabel, textField],
+            views: [titleLabel, descriptionLabel, inputRow, listContainer, removeRow],
             alignment: .leading,
             spacing: 4
         )
         stack.translatesAutoresizingMaskIntoConstraints = false
-        textField.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        inputField.widthAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
+        addButton.widthAnchor.constraint(equalToConstant: 64).isActive = true
+        addButton.heightAnchor.constraint(equalToConstant: 26).isActive = true
+        removeButton.widthAnchor.constraint(equalToConstant: 140).isActive = true
+        removeButton.heightAnchor.constraint(equalToConstant: 26).isActive = true
+        listContainer.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        tableView.reloadData()
         return stack
     }
 
     private func reload() {
         let enabled = appState.calendarIntegrationEnabled
+        let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        applyAppKitListActionButtonStyle(addFocusRuleButton, title: "Add", color: accentColor)
+        applyAppKitListActionButtonStyle(addBreakRuleButton, title: "Add", color: accentColor)
+        applyAppKitListActionButtonStyle(
+            removeFocusRuleButton,
+            title: "Remove Selected",
+            color: accentColor
+        )
+        applyAppKitListActionButtonStyle(
+            removeBreakRuleButton,
+            title: "Remove Selected",
+            color: accentColor
+        )
         integrationNotice.isHidden = enabled
-        focusRulesField.isEnabled = enabled
-        breakRulesField.isEnabled = enabled
-        if focusRulesField.currentEditor() == nil {
-            focusRulesField.stringValue = appState.calendarImportFocusTitleRules.joined(separator: ", ")
-        }
-        if breakRulesField.currentEditor() == nil {
-            breakRulesField.stringValue = appState.calendarImportBreakTitleRules.joined(separator: ", ")
-        }
+        focusRuleField.isEnabled = enabled
+        breakRuleField.isEnabled = enabled
+        addFocusRuleButton.isEnabled = enabled
+        addBreakRuleButton.isEnabled = enabled
+        focusRulesTableView.isEnabled = enabled
+        breakRulesTableView.isEnabled = enabled
+        focusRulesTableView.reloadData()
+        breakRulesTableView.reloadData()
+        removeFocusRuleButton.isEnabled = enabled && focusRulesTableView.numberOfSelectedRows > 0
+        removeBreakRuleButton.isEnabled = enabled && breakRulesTableView.numberOfSelectedRows > 0
     }
 
     @objc
-    private func updateFocusRules(_ sender: NSTextField) {
-        appState.calendarImportFocusTitleRules = Self.parseRules(sender.stringValue)
+    private func handleFocusSelectionChange() {
+        removeFocusRuleButton.isEnabled =
+            appState.calendarIntegrationEnabled && focusRulesTableView.numberOfSelectedRows > 0
     }
 
     @objc
-    private func updateBreakRules(_ sender: NSTextField) {
-        appState.calendarImportBreakTitleRules = Self.parseRules(sender.stringValue)
+    private func handleBreakSelectionChange() {
+        removeBreakRuleButton.isEnabled =
+            appState.calendarIntegrationEnabled && breakRulesTableView.numberOfSelectedRows > 0
+    }
+
+    @objc
+    private func addFocusRuleFromField(_ sender: NSTextField) {
+        addRule(from: sender, into: \.calendarImportFocusTitleRules)
+    }
+
+    @objc
+    private func addBreakRuleFromField(_ sender: NSTextField) {
+        addRule(from: sender, into: \.calendarImportBreakTitleRules)
+    }
+
+    @objc
+    private func addFocusRule() {
+        addRule(from: focusRuleField, into: \.calendarImportFocusTitleRules)
+    }
+
+    @objc
+    private func addBreakRule() {
+        addRule(from: breakRuleField, into: \.calendarImportBreakTitleRules)
+    }
+
+    private func addRule(
+        from field: NSTextField,
+        into keyPath: ReferenceWritableKeyPath<AppState, [String]>
+    ) {
+        let parsed = Self.parseRules(field.stringValue)
+        guard !parsed.isEmpty else { return }
+        var rules = appState[keyPath: keyPath]
+        for rule in parsed {
+            let exists = rules.contains { $0.caseInsensitiveCompare(rule) == .orderedSame }
+            if !exists {
+                rules.append(rule)
+            }
+        }
+        appState[keyPath: keyPath] = rules
+        field.stringValue = ""
+        reload()
+    }
+
+    @objc
+    private func removeSelectedFocusRule() {
+        let rows = selectedRows(in: focusRulesTableView)
+        guard !rows.isEmpty else { return }
+        appState.calendarImportFocusTitleRules = removeRules(
+            at: rows,
+            from: appState.calendarImportFocusTitleRules
+        )
+        reload()
+    }
+
+    @objc
+    private func removeSelectedBreakRule() {
+        let rows = selectedRows(in: breakRulesTableView)
+        guard !rows.isEmpty else { return }
+        appState.calendarImportBreakTitleRules = removeRules(
+            at: rows,
+            from: appState.calendarImportBreakTitleRules
+        )
+        reload()
+    }
+
+    private func selectedRows(in tableView: NSTableView) -> [Int] {
+        let indexes = tableView.selectedRowIndexes
+        guard !indexes.isEmpty else { return [] }
+        return indexes.filter { $0 >= 0 }
+    }
+
+    private func removeRules(at indexes: [Int], from rules: [String]) -> [String] {
+        guard !indexes.isEmpty else { return rules }
+        let indexSet = Set(indexes)
+        return rules.enumerated().filter { !indexSet.contains($0.offset) }.map(\.element)
     }
 
     private static func parseRules(_ raw: String) -> [String] {
