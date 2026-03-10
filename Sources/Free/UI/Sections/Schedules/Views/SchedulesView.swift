@@ -163,6 +163,15 @@ final class SchedulesSheetViewController: NSViewController {
         let weekRange = currentWeekDates
         let (weekStart, weekEnd) = currentWeekBounds
         let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        let visibleExternalEvents = WeeklyCalendarSupport.visibleCalendarEvents(
+            appState.calendarProvider.events,
+            weekStart: weekStart,
+            weekEnd: weekEnd
+        )
+        let mirroredImportedEventKeys = Set(appState.schedules.compactMap(\.importedCalendarEventKey))
+        let externalEventsForOverlay = visibleExternalEvents.filter {
+            !mirroredImportedEventKeys.contains($0.id)
+        }
 
         return SchedulesAppKitConfiguration(
             viewMode: viewMode,
@@ -181,11 +190,7 @@ final class SchedulesSheetViewController: NSViewController {
                     schedules: appState.schedules,
                     weekRange: weekRange
                 ),
-                externalEvents: WeeklyCalendarSupport.visibleCalendarEvents(
-                    appState.calendarProvider.events,
-                    weekStart: weekStart,
-                    weekEnd: weekEnd
-                ),
+                externalEvents: externalEventsForOverlay,
                 showsExternalEvents: shouldShowExternalCalendarOverlay,
                 hourHeight: calendarHourHeight,
                 dayHeaderHeight: calendarDayHeaderHeight,

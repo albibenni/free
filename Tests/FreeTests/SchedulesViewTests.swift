@@ -812,4 +812,45 @@ struct SchedulesViewTests {
         #expect(updated.endTime == updatedEnd)
     }
 
+    @Test("Schedules sheet hides external overlay entries when mirrored imported schedules already exist")
+    @MainActor
+    func schedulesExternalOverlaySkipsMirroredImportedEvents() {
+        let appState = isolatedAppState(name: "externalOverlaySkipsMirroredImportedEvents")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = false
+        appState.suppressedImportedCalendarEventKeys = ["event-2"]
+
+        var local = sampleSchedule(name: "Local")
+        local.days = [2]
+        appState.schedules = [local]
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "event-1",
+                title: "Mirrored",
+                startDate: Date().addingTimeInterval(600),
+                endDate: Date().addingTimeInterval(1200)
+            ),
+            ExternalEvent(
+                id: "event-2",
+                title: "Unmirrored",
+                startDate: Date().addingTimeInterval(1800),
+                endDate: Date().addingTimeInterval(2400)
+            ),
+        ]
+        appState.checkSchedules()
+        #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-1" }))
+        #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-2" }) == false)
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: {},
+            initialViewMode: 1
+        )
+        _ = host(controller)
+
+        let externalEvents = controller.appKitConfigurationForTesting.calendarViewConfiguration.externalEvents
+        #expect(externalEvents.contains(where: { $0.id == "event-1" }) == false)
+        #expect(externalEvents.contains(where: { $0.id == "event-2" }))
+    }
+
 }
