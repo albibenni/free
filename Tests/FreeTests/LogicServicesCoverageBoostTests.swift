@@ -247,6 +247,7 @@ struct LogicServicesCoverageBoostTests {
         #expect(merged.count == 2)
         let importedA = merged.first(where: { $0.importedCalendarEventKey == eventA.id })
         #expect(importedA?.id == existingImportedA.id)
+        #expect(importedA?.name == eventA.title)
         #expect(importedA?.isEnabled == false)
         #expect(importedA?.colorIndex == 3)
         #expect(importedA?.type == .unfocus)
@@ -262,6 +263,7 @@ struct LogicServicesCoverageBoostTests {
         )
         let importedB = mergedWithPreserved.first(where: { $0.importedCalendarEventKey == eventB.id })
         #expect(importedB?.id == preservedImportedB.id)
+        #expect(importedB?.name == eventB.title)
         #expect(importedB?.colorIndex == preservedImportedB.colorIndex)
 
         let defaultSet = RuleSet.defaultSet()

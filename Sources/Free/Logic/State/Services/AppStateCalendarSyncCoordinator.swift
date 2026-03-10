@@ -18,7 +18,7 @@ struct AppStateCalendarSyncCoordinator {
         return AppStateScheduleCoordinator.rebuildIfNeeded(
             currentSchedules: currentSchedules,
             events: events,
-            shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+            shouldImportCalendarEvents: calendarIntegrationEnabled,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
             focusTitleRules: focusTitleRules,
             breakTitleRules: breakTitleRules,
@@ -47,7 +47,7 @@ struct AppStateCalendarSyncCoordinator {
         return AppStateScheduleCoordinator.rebuildIfNeeded(
             currentSchedules: currentSchedules,
             events: events,
-            shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+            shouldImportCalendarEvents: calendarIntegrationEnabled,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
             focusTitleRules: focusTitleRules,
             breakTitleRules: breakTitleRules,

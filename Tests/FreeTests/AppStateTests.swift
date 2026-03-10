@@ -562,9 +562,9 @@ struct AppStateTests {
         #expect(imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.ruleSetId == setId)
     }
 
-    @Test("Disabling calendar import blocking removes mirrored imported schedules")
-    func calendarImportDisableRemovesMirroredSchedules() {
-        let appState = isolatedAppState(name: "calendarImportDisableRemovesMirroredSchedules")
+    @Test("Disabling calendar import blocking keeps mirrored schedules while integration remains enabled")
+    func calendarImportDisableKeepsMirroredSchedulesWhenIntegrated() {
+        let appState = isolatedAppState(name: "calendarImportDisableKeepsMirroredSchedulesWhenIntegrated")
         appState.calendarIntegrationEnabled = true
         appState.calendarImportsBlockTime = true
 
@@ -582,7 +582,7 @@ struct AppStateTests {
 
         appState.calendarImportsBlockTime = false
         appState.checkSchedules()
-        #expect(!appState.schedules.contains(where: { $0.importedCalendarEventKey != nil }))
+        #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-remove" }))
     }
 
     @Test("Calendar sync prunes schedules and imports older than previous week")
