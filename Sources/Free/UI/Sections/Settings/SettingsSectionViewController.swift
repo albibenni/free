@@ -173,8 +173,6 @@ final class SettingsSectionViewController: NSViewController {
 
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Strict Mode"))
         addFullWidthSection(makeStrictSection())
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Calendar"))
-        addFullWidthSection(makeCalendarSection())
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Startup"))
         addFullWidthSection(makeStartupSection())
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Browser"))

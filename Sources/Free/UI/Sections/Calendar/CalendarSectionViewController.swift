@@ -2,8 +2,80 @@ import AppKit
 import Combine
 
 final class CalendarSectionViewController: NSViewController {
+    typealias AlertFactory = () -> NSAlert
+    typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+    typealias URLOpener = (URL) -> Void
+    typealias AsyncAfterScheduler = (TimeInterval, @escaping () -> Void) -> Void
+
+    private static func defaultMakeCalendarPermissionAlert() -> NSAlert { NSAlert() }
+    private static func defaultRunCalendarPermissionAlert(
+        _ alert: NSAlert
+    ) -> NSApplication.ModalResponse {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return .alertSecondButtonReturn
+        }
+        return alert.runModal()
+    }
+    private static func defaultWorkspaceURLOpener(_ url: URL) {
+        platformWorkspaceURLOpener(url)
+    }
+    private static func defaultScheduleAfter(_ delay: TimeInterval, _ work: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+    private static func defaultOpenCalendarPrivacySettings() {
+        openCalendarPrivacySettingsIfPossible(
+            urlString: calendarPrivacySettingsURLString,
+            openURL: workspaceURLOpener
+        )
+    }
+    private static func openCalendarPrivacySettingsIfPossible(
+        urlString: String,
+        openURL: URLOpener
+    ) {
+        guard let url = URL(string: urlString), url.scheme != nil else { return }
+        openURL(url)
+    }
+
+    private static var _makeCalendarPermissionAlert: AlertFactory?
+    private static var _runCalendarPermissionAlert: AlertRunner?
+    private static var _platformWorkspaceURLOpener: URLOpener?
+    private static var _workspaceURLOpener: URLOpener?
+    private static var _scheduleAfter: AsyncAfterScheduler?
+    private static var _openCalendarPrivacySettings: (() -> Void)?
+
+    static var makeCalendarPermissionAlert: AlertFactory {
+        get { _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
+        set { _makeCalendarPermissionAlert = newValue }
+    }
+    static var runCalendarPermissionAlert: AlertRunner {
+        get { _runCalendarPermissionAlert ?? defaultRunCalendarPermissionAlert }
+        set { _runCalendarPermissionAlert = newValue }
+    }
+    static var platformWorkspaceURLOpener: URLOpener {
+        get { _platformWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
+        set { _platformWorkspaceURLOpener = newValue }
+    }
+    static var calendarPrivacySettingsURLString =
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
+    static var workspaceURLOpener: URLOpener {
+        get { _workspaceURLOpener ?? defaultWorkspaceURLOpener }
+        set { _workspaceURLOpener = newValue }
+    }
+    static var scheduleAfter: AsyncAfterScheduler {
+        get { _scheduleAfter ?? defaultScheduleAfter }
+        set { _scheduleAfter = newValue }
+    }
+    static var openCalendarPrivacySettings: () -> Void {
+        get { _openCalendarPrivacySettings ?? defaultOpenCalendarPrivacySettings }
+        set { _openCalendarPrivacySettings = newValue }
+    }
+    static var calendarPermissionFallbackDelay: TimeInterval = 0.6
+
     private struct ObservationSignature: Equatable {
+        let weekStartsOnMonday: Bool
         let calendarIntegrationEnabled: Bool
+        let calendarImportsBlockTime: Bool
+        let isStrictActive: Bool
         let calendarImportFocusTitleRules: [String]
         let calendarImportBreakTitleRules: [String]
     }
@@ -12,8 +84,12 @@ final class CalendarSectionViewController: NSViewController {
     private let scrollContainer = VerticalStackScrollContainer()
     private var cancellables: Set<AnyCancellable> = []
 
+    private let weekStartsMondaySwitch = AppKitToggleSwitch()
+    private let calendarIntegrationSwitch = AppKitToggleSwitch()
+    private let calendarImportsSwitch = AppKitToggleSwitch()
+    private let resyncButton = NSButton(title: "Resync Imported Schedules", target: nil, action: nil)
     private let integrationNotice = NSTextField(
-        wrappingLabelWithString: "Enable Calendar Integration in Settings to use calendar title rules."
+        wrappingLabelWithString: "Enable Calendar Integration to use calendar title rules."
     )
     private let focusRuleField = NSTextField(string: "")
     private let breakRuleField = NSTextField(string: "")
@@ -27,6 +103,7 @@ final class CalendarSectionViewController: NSViewController {
     private let removeBreakRuleButton = ActionButton(title: "Remove Selected")
     private let focusRulesTableController = AllowedWebsitesRulesTableController()
     private let breakRulesTableController = AllowedWebsitesRulesTableController()
+    private var pendingCalendarPermissionFallback = false
 
     init(appState: AppState) {
         self.appState = appState
@@ -55,6 +132,39 @@ final class CalendarSectionViewController: NSViewController {
         let titleLabel = NSTextField(labelWithString: "Calendar")
         titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
         scrollContainer.stackView.addArrangedSubview(titleLabel)
+
+        let integrationTitle = NSTextField(labelWithString: "Integration")
+        integrationTitle.font = .systemFont(ofSize: 18, weight: .semibold)
+        scrollContainer.stackView.addArrangedSubview(integrationTitle)
+
+        let integrationSection = makeCardSection()
+        weekStartsMondaySwitch.target = self
+        weekStartsMondaySwitch.action = #selector(toggleWeekStartsMonday)
+        calendarIntegrationSwitch.target = self
+        calendarIntegrationSwitch.action = #selector(toggleCalendarIntegration)
+        calendarImportsSwitch.target = self
+        calendarImportsSwitch.action = #selector(toggleCalendarImports)
+        resyncButton.target = self
+        resyncButton.action = #selector(resyncImportedSchedules)
+        [
+            makeToggleRow(
+                title: "Start week on Monday",
+                descriptionLabel: nil,
+                toggle: weekStartsMondaySwitch
+            ),
+            makeToggleRow(
+                title: "Enable Calendar Integration",
+                descriptionLabel: makeDescriptionLabel("Use macOS Calendar events for scheduling."),
+                toggle: calendarIntegrationSwitch
+            ),
+            makeToggleRow(
+                title: "Calendar Imports Block Time",
+                descriptionLabel: makeDescriptionLabel("Imported calendar events can act as blocking sessions."),
+                toggle: calendarImportsSwitch
+            ),
+            resyncButton,
+        ].forEach { integrationSection.addArrangedSubview($0) }
+        addFullWidthSection(integrationSection)
 
         let sectionTitle = NSTextField(labelWithString: "Import Rules")
         sectionTitle.font = .systemFont(ofSize: 18, weight: .semibold)
@@ -149,7 +259,10 @@ final class CalendarSectionViewController: NSViewController {
             publisher: AppKitAppStateObservation.settingsPublisher(appState: appState),
             signature: {
                 ObservationSignature(
+                    weekStartsOnMonday: appState.weekStartsOnMonday,
                     calendarIntegrationEnabled: appState.calendarIntegrationEnabled,
+                    calendarImportsBlockTime: appState.calendarImportsBlockTime,
+                    isStrictActive: appState.isStrictActive,
                     calendarImportFocusTitleRules: appState.calendarImportFocusTitleRules,
                     calendarImportBreakTitleRules: appState.calendarImportBreakTitleRules
                 )
@@ -226,6 +339,44 @@ final class CalendarSectionViewController: NSViewController {
         return label
     }
 
+    private func makeToggleRow(
+        title: String,
+        descriptionLabel: NSTextField?,
+        toggle: NSView
+    ) -> NSView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+
+        let labelStack = makeAppKitVerticalStack(
+            views: [],
+            alignment: .leading,
+            spacing: 4
+        )
+        labelStack.addArrangedSubview(titleLabel)
+        if let descriptionLabel {
+            labelStack.addArrangedSubview(descriptionLabel)
+        }
+
+        let row = makeAppKitHorizontalRow(
+            views: [labelStack, NSView(), toggle],
+            alignment: .centerY,
+            spacing: 12
+        )
+        row.translatesAutoresizingMaskIntoConstraints = false
+        labelStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(row)
+        NSLayoutConstraint.activate([
+            row.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            row.topAnchor.constraint(equalTo: container.topAnchor),
+            row.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+        return container
+    }
+
     private func makeRuleListRow(
         title: String,
         description: String,
@@ -289,6 +440,15 @@ final class CalendarSectionViewController: NSViewController {
     private func reload() {
         let enabled = appState.calendarIntegrationEnabled
         let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        [weekStartsMondaySwitch, calendarIntegrationSwitch, calendarImportsSwitch].forEach {
+            $0.accentColor = accentColor
+        }
+        weekStartsMondaySwitch.state = appState.weekStartsOnMonday ? .on : .off
+        calendarIntegrationSwitch.state = enabled ? .on : .off
+        calendarImportsSwitch.state = appState.calendarImportsBlockTime ? .on : .off
+        calendarIntegrationSwitch.isEnabled = !appState.isStrictActive
+        calendarImportsSwitch.isEnabled = !appState.isStrictActive && enabled
+        resyncButton.isEnabled = enabled
         applyAppKitListActionButtonStyle(addFocusRuleButton, title: "Add", color: accentColor)
         applyAppKitListActionButtonStyle(addBreakRuleButton, title: "Add", color: accentColor)
         applyAppKitListActionButtonStyle(
@@ -312,6 +472,59 @@ final class CalendarSectionViewController: NSViewController {
         breakRulesTableView.reloadData()
         removeFocusRuleButton.isEnabled = enabled && focusRulesTableView.numberOfSelectedRows > 0
         removeBreakRuleButton.isEnabled = enabled && breakRulesTableView.numberOfSelectedRows > 0
+    }
+
+    @objc
+    private func toggleWeekStartsMonday() {
+        appState.weekStartsOnMonday = weekStartsMondaySwitch.state == .on
+    }
+
+    @objc
+    private func toggleCalendarIntegration() {
+        appState.calendarIntegrationEnabled = calendarIntegrationSwitch.state == .on
+    }
+
+    @objc
+    private func toggleCalendarImports() {
+        appState.calendarImportsBlockTime = calendarImportsSwitch.state == .on
+    }
+
+    @objc
+    private func resyncImportedSchedules() {
+        guard appState.calendarProvider.isAuthorized else {
+            appState.calendarProvider.requestAccess()
+            scheduleCalendarPermissionFallbackIfNeeded()
+            return
+        }
+        appState.resyncImportedCalendarSchedules()
+    }
+
+    private func scheduleCalendarPermissionFallbackIfNeeded() {
+        guard pendingCalendarPermissionFallback == false else { return }
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            presentCalendarPermissionAlert()
+            return
+        }
+        pendingCalendarPermissionFallback = true
+
+        Self.scheduleAfter(Self.calendarPermissionFallbackDelay) { [weak self] in
+            guard let self else { return }
+            self.pendingCalendarPermissionFallback = false
+            guard self.appState.calendarProvider.isAuthorized == false else { return }
+            self.presentCalendarPermissionAlert()
+        }
+    }
+
+    private func presentCalendarPermissionAlert() {
+        let alert = Self.makeCalendarPermissionAlert()
+        alert.messageText = "Calendar Access Needed"
+        alert.informativeText =
+            "Free could not access your calendars. Allow access in System Settings > Privacy & Security > Calendars."
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Cancel")
+        if Self.runCalendarPermissionAlert(alert) == .alertFirstButtonReturn {
+            Self.openCalendarPrivacySettings()
+        }
     }
 
     @objc
@@ -405,5 +618,47 @@ final class CalendarSectionViewController: NSViewController {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { $0.isEmpty == false }
             .filter { seen.insert($0.lowercased()).inserted }
+    }
+}
+
+extension CalendarSectionViewController {
+    static func resetCalendarPermissionAlertHooksForTesting() {
+        calendarPrivacySettingsURLString =
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
+        _platformWorkspaceURLOpener = nil
+        _workspaceURLOpener = nil
+        _scheduleAfter = nil
+        _makeCalendarPermissionAlert = nil
+        _runCalendarPermissionAlert = nil
+        _openCalendarPrivacySettings = nil
+        calendarPermissionFallbackDelay = 0.6
+    }
+
+    func setWeekStartsMondayForTesting(_ enabled: Bool) {
+        weekStartsMondaySwitch.state = enabled ? .on : .off
+        toggleWeekStartsMonday()
+        reload()
+    }
+
+    func setCalendarIntegrationForTesting(_ enabled: Bool) {
+        calendarIntegrationSwitch.state = enabled ? .on : .off
+        toggleCalendarIntegration()
+        reload()
+    }
+
+    func setCalendarImportsForTesting(_ enabled: Bool) {
+        calendarImportsSwitch.state = enabled ? .on : .off
+        toggleCalendarImports()
+        reload()
+    }
+
+    func resyncImportedSchedulesForTesting() {
+        resyncImportedSchedules()
+    }
+
+    var calendarControlsLockedForTesting: Bool { !calendarIntegrationSwitch.isEnabled }
+
+    func invokeCalendarPermissionAlertForTesting() {
+        presentCalendarPermissionAlert()
     }
 }

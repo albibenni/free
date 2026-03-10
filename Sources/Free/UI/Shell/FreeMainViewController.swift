@@ -198,13 +198,7 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func updateCalendarTabAvailability() {
-        let isEnabled = appState.calendarIntegrationEnabled
-        sidebarView.setSectionEnabled(.calendar, isEnabled: isEnabled)
-        if !isEnabled, shellState.selectedSection == .calendar {
-            shellState.selectedSection = .settings
-            updateSidebarSelection()
-            updateContentController()
-        }
+        sidebarView.setSectionEnabled(.calendar, isEnabled: true)
     }
 
     private func updateSidebarVisibility() {
@@ -218,9 +212,6 @@ final class FreeMainViewController: NSViewController {
 
     private func applySelectedSection(_ section: MainContentSection) {
         if isTabSwitchBlockedByPresentedWindow, section != shellState.selectedSection {
-            return
-        }
-        if section == .calendar, appState.calendarIntegrationEnabled == false {
             return
         }
         shellState.selectedSection = section

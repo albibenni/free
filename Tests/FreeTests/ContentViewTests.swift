@@ -140,7 +140,7 @@ struct ContentViewTests {
         #expect(texts.contains("Appearance"))
     }
 
-    @Test("Main shell calendar section is accessible only when calendar integration is enabled")
+    @Test("Main shell calendar section is always accessible")
     @MainActor
     func mainShellCalendarSectionAvailability() {
         let appState = isolatedAppState(name: "calendarSectionAvailability")
@@ -152,7 +152,7 @@ struct ContentViewTests {
         _ = host(controller)
 
         controller.selectSectionForTesting(.calendar)
-        #expect(controller.selectedSectionForTesting == .focus)
+        #expect(controller.selectedSectionForTesting == .calendar)
 
         appState.calendarIntegrationEnabled = true
         RunLoop.main.run(until: Date().addingTimeInterval(0.02))

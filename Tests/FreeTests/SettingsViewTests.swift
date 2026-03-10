@@ -267,15 +267,13 @@ struct SettingsViewTests {
 
         #expect(hosted.fittingSize.width >= 0)
         #expect(texts.contains("Launch at Login"))
-        #expect(texts.contains("Calendar Imports Block Time"))
-        #expect(texts.contains("Resync Imported Schedules"))
         #expect(texts.contains("Block New Tabs"))
         #expect(texts.contains("Block Localhost/Dev Ports"))
         #expect(texts.contains("Block Local Network IPs"))
         #expect(texts.contains("Allow Search Engines"))
         #expect(texts.contains("Allow AI Providers"))
-        #expect(toggleFrames.count == 10)
-        #expect(toggleAccentColors.count == 10)
+        #expect(toggleFrames.count == 7)
+        #expect(toggleAccentColors.count == 7)
         if let referenceMaxX = toggleFrames.first?.maxX {
             for frame in toggleFrames {
                 #expect(abs(frame.maxX - referenceMaxX) <= 2)
