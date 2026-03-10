@@ -1,6 +1,28 @@
 import Foundation
 
 struct CalendarImportService {
+    typealias WeekDateProvider = (_ now: Date, _ weekStartsOnMonday: Bool, _ offset: Int, _ calendar: Calendar) -> [Date]
+
+    static var weekDateProvider: WeekDateProvider = { now, weekStartsOnMonday, offset, calendar in
+        WeekDateCalculator.getWeekDates(
+            at: now,
+            weekStartsOnMonday: weekStartsOnMonday,
+            offset: offset,
+            calendar: calendar
+        )
+    }
+
+    static func resetWeekDateProviderForTesting() {
+        weekDateProvider = { now, weekStartsOnMonday, offset, calendar in
+            WeekDateCalculator.getWeekDates(
+                at: now,
+                weekStartsOnMonday: weekStartsOnMonday,
+                offset: offset,
+                calendar: calendar
+            )
+        }
+    }
+
     struct LegacyImportedEventSignature: Hashable {
         let title: String
         let start: TimeInterval
@@ -133,12 +155,7 @@ struct CalendarImportService {
         now: Date,
         calendar: Calendar
     ) -> Date {
-        let previousWeek = WeekDateCalculator.getWeekDates(
-            at: now,
-            weekStartsOnMonday: weekStartsOnMonday,
-            offset: -1,
-            calendar: calendar
-        )
+        let previousWeek = weekDateProvider(now, weekStartsOnMonday, -1, calendar)
         if let start = previousWeek.first {
             return calendar.startOfDay(for: start)
         }

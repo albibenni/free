@@ -405,6 +405,24 @@ struct LogicServicesCoverageBoostTests {
         )
         #expect(prunedEvents.contains(where: { $0.id == staleEvent.id }) == false)
         #expect(prunedEvents.contains(where: { $0.id == retainedEvent.id }))
+
+        let fallbackBoundarySchedule = Schedule(
+            name: "Fallback boundary",
+            days: [2],
+            date: referenceNow,
+            startTime: referenceNow,
+            endTime: referenceNow.addingTimeInterval(600),
+            type: .focus
+        )
+        CalendarImportService.weekDateProvider = { _, _, _, _ in [] }
+        defer { CalendarImportService.resetWeekDateProviderForTesting() }
+        let fallbackPruned = CalendarImportService.pruneSchedulesOlderThanPreviousWeek(
+            schedules: [fallbackBoundarySchedule],
+            weekStartsOnMonday: false,
+            now: referenceNow,
+            calendar: calendar
+        )
+        #expect(fallbackPruned.contains(where: { $0.id == fallbackBoundarySchedule.id }))
     }
 
     @Test("ScheduleEngine covers imported guard and save existing with nil initial-day")
