@@ -460,17 +460,51 @@ final class SettingsSectionViewController: NSViewController {
     private func disableStrictMode() {
         let alert = Self.makeStrictModeAlert()
         alert.messageText = "Emergency Unlock"
-        alert.informativeText = "Type the phrase exactly to disable Unblockable Mode:\n\n\"\(AppState.challengePhrase)\""
-        let input = NSTextField(string: "")
-        input.placeholderString = "Type the phrase exactly"
-        input.frame = CGRect(x: 0, y: 0, width: 420, height: 24)
-        alert.accessoryView = input
+        alert.informativeText = ""
+        let (accessoryView, input) = makeStrictModeUnlockAccessoryView()
+        alert.accessoryView = accessoryView
         alert.addButton(withTitle: "Unlock")
         alert.addButton(withTitle: "Cancel")
         let response = Self.runStrictModeAlert(alert)
         if response == .alertFirstButtonReturn {
             _ = appState.disableUnblockableWithChallenge(phrase: input.stringValue)
         }
+    }
+
+    private func makeStrictModeUnlockAccessoryView() -> (NSView, NSTextField) {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 10
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        let header = NSTextField(labelWithString: "EMERGENCY UNLOCK")
+        header.font = .systemFont(ofSize: 15, weight: .black)
+        header.textColor = .systemRed
+
+        let instruction = NSTextField(wrappingLabelWithString: "Type the phrase exactly to disable Unblockable Mode:")
+        instruction.font = .systemFont(ofSize: 13, weight: .semibold)
+        instruction.textColor = .labelColor
+
+        let phrase = NSTextField(
+            wrappingLabelWithString:
+                "\"\(AppState.challengePhrase)\""
+        )
+        phrase.font = .systemFont(ofSize: 13)
+        phrase.textColor = .secondaryLabelColor
+
+        let input = NSTextField(string: "")
+        input.placeholderString = "Type the phrase exactly"
+        input.translatesAutoresizingMaskIntoConstraints = false
+
+        stack.addArrangedSubview(header)
+        stack.addArrangedSubview(instruction)
+        stack.addArrangedSubview(phrase)
+        stack.addArrangedSubview(input)
+        stack.widthAnchor.constraint(equalToConstant: 420).isActive = true
+        input.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+
+        return (stack, input)
     }
 
     @objc

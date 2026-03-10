@@ -105,6 +105,19 @@ struct SettingsViewTests {
         return values
     }
 
+    private func firstEditableTextField(in view: NSView?) -> NSTextField? {
+        guard let view else { return nil }
+        if let field = view as? NSTextField, field.isEditable {
+            return field
+        }
+        for subview in view.subviews {
+            if let field = firstEditableTextField(in: subview) {
+                return field
+            }
+        }
+        return nil
+    }
+
     private func visibleSwitchFrames(in view: NSView, root: NSView) -> [CGRect] {
         guard !view.isHidden, view.alphaValue > 0.001 else { return [] }
 
@@ -363,7 +376,7 @@ struct SettingsViewTests {
 
         SettingsSectionViewController.makeStrictModeAlert = { NSAlert() }
         SettingsSectionViewController.runStrictModeAlert = { alert in
-            (alert.accessoryView as? NSTextField)?.stringValue = AppState.challengePhrase
+            firstEditableTextField(in: alert.accessoryView)?.stringValue = AppState.challengePhrase
             return .alertFirstButtonReturn
         }
         controller.invokeDisableStrictModeModalForTesting()
