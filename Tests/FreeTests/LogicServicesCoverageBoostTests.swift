@@ -722,4 +722,82 @@ struct LogicServicesCoverageBoostTests {
         #expect(schedules.count == 1)
         #expect(schedules[0].id == schedule.id)
     }
+
+    @Test("CalendarImportService previous-week fallback uses current day when provider returns empty")
+    func calendarImportServicePreviousWeekFallback() {
+        let now = Date(timeIntervalSince1970: 2_000_000)
+        let calendar = Calendar(identifier: .gregorian)
+        let todayStart = calendar.startOfDay(for: now)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: todayStart)!
+        let todayPlusOneHour = calendar.date(byAdding: .hour, value: 1, to: todayStart)!
+
+        CalendarImportService.weekDateProvider = { _, _, _, _ in [] }
+        defer { CalendarImportService.resetWeekDateProviderForTesting() }
+
+        let schedules = [
+            Schedule(
+                name: "Old One-Off",
+                days: [],
+                date: yesterday,
+                startTime: yesterday,
+                endTime: todayPlusOneHour,
+                type: .focus
+            ),
+            Schedule(
+                name: "Today One-Off",
+                days: [],
+                date: todayStart,
+                startTime: todayStart,
+                endTime: todayPlusOneHour,
+                type: .focus
+            ),
+        ]
+        let events = [
+            ExternalEvent(id: "old", title: "Old", startDate: yesterday, endDate: todayStart),
+            ExternalEvent(id: "today", title: "Today", startDate: todayStart, endDate: todayPlusOneHour),
+        ]
+
+        let prunedSchedules = CalendarImportService.pruneSchedulesOlderThanPreviousWeek(
+            schedules: schedules,
+            weekStartsOnMonday: true,
+            now: now,
+            calendar: calendar
+        )
+        let prunedEvents = CalendarImportService.pruneCalendarEventsOlderThanPreviousWeek(
+            events: events,
+            weekStartsOnMonday: true,
+            now: now,
+            calendar: calendar
+        )
+
+        #expect(prunedSchedules.count == 1)
+        #expect(prunedSchedules.first?.name == "Today One-Off")
+        #expect(prunedEvents.map(\.id) == ["today"])
+    }
+
+    @Test("CalendarImportService title-rule normalization covers duplicate/empty guards")
+    func calendarImportServiceTitleRuleNormalizationGuards() {
+        let event = ExternalEvent(
+            id: "norm-1",
+            title: "   ",
+            startDate: Date(timeIntervalSince1970: 3_000_000),
+            endDate: Date(timeIntervalSince1970: 3_000_600)
+        )
+        let defaultSet = RuleSet.defaultSet()
+
+        let merged = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
+            schedules: [],
+            events: [event],
+            shouldImportCalendarEvents: true,
+            suppressedImportedCalendarEventKeys: [],
+            focusTitleRules: ["focus", "focus", " ", "\n"],
+            breakTitleRules: ["break", "break", "", "  "],
+            activeRuleSetId: defaultSet.id,
+            ruleSets: [defaultSet],
+            preservedImportedByKey: [:]
+        )
+
+        #expect(merged.count == 1)
+        #expect(merged[0].type == .focus)
+    }
 }

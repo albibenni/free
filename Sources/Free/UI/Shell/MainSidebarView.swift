@@ -248,9 +248,18 @@ final class MainSidebarView: AppKitDynamicView {
 }
 
 extension MainSidebarView {
-    func invokeSidebarButtonForTesting(identifierRawValue: String) {
+    func invokeSidebarButtonForTesting(identifierRawValue: String, isEnabled: Bool = true) {
         let button = NSButton()
         button.identifier = NSUserInterfaceItemIdentifier(identifierRawValue)
+        button.isEnabled = isEnabled
         handleSidebarButton(button)
+    }
+
+    func removeSectionButtonForTesting(_ section: MainContentSection) {
+        sectionButtons.removeValue(forKey: section)
+    }
+
+    func clearSectionEnabledForTesting(_ section: MainContentSection) {
+        sectionEnabled.removeValue(forKey: section)
     }
 }

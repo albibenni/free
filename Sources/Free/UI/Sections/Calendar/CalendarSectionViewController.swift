@@ -19,6 +19,9 @@ final class CalendarSectionViewController: NSViewController {
     private static func defaultWorkspaceURLOpener(_ url: URL) {
         platformWorkspaceURLOpener(url)
     }
+    private static func defaultPlatformWorkspaceURLOpener(_ url: URL) {
+        NSWorkspace.shared.open(url)
+    }
     private static func defaultScheduleAfter(_ delay: TimeInterval, _ work: @escaping () -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
     }
@@ -52,7 +55,7 @@ final class CalendarSectionViewController: NSViewController {
         set { _runCalendarPermissionAlert = newValue }
     }
     static var platformWorkspaceURLOpener: URLOpener {
-        get { _platformWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
+        get { _platformWorkspaceURLOpener ?? defaultPlatformWorkspaceURLOpener }
         set { _platformWorkspaceURLOpener = newValue }
     }
     static var calendarPrivacySettingsURLString =
@@ -606,7 +609,6 @@ final class CalendarSectionViewController: NSViewController {
     }
 
     private func removeRules(at indexes: [Int], from rules: [String]) -> [String] {
-        guard !indexes.isEmpty else { return rules }
         let indexSet = Set(indexes)
         return rules.enumerated().filter { !indexSet.contains($0.offset) }.map(\.element)
     }

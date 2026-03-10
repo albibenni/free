@@ -64,12 +64,12 @@
       - [x] who manage break or focus
       - [x] if the other is longer keep it in memory after end
 
-- [ ] rule for calendar imports - if title contain `*study*` or `*work*`
-  - [ ] allow personalization on this rule with settings
-  - [ ] allow imports to be all focus
-  - [ ] allow personal imports rule about title search and focus time
-- [ ] cannot delete imported schdule
-  - [ ] future impl: allow modification to calendar if flag is toggled
+- [x] rule for calendar imports - if title contain `*study*` or `*work*`
+  - [x] allow personalization on this rule with settings
+  - [x] allow imports to be all focus
+  - [x] allow personal imports rule about title search and focus time
+- [x] cannot delete imported schdule
+  - [x] future impl: allow modification to calendar if flag is toggled
 - [ ] delete multiple scheduled day pop alert out
 - [ ] define in setting which allowed list should be used for imported schedule
 

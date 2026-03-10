@@ -750,4 +750,66 @@ struct UIComponentTests {
         #expect(router.controller(for: .allowedWebsites) === allowedWebsitesController)
         #expect(router.controller(for: .settings) === settingsController)
     }
+
+    @MainActor
+    @Test("Main sidebar visibility and enable/disable states update style and click routing")
+    func mainSidebarVisibilityAndEnabledStateCoverage() {
+        let sidebar = MainSidebarView(
+            selectedSection: .focus,
+            isSidebarVisible: false,
+            accentColorIndex: 0
+        )
+        sidebar.frame = NSRect(x: 0, y: 0, width: 220, height: 640)
+        sidebar.layoutSubtreeIfNeeded()
+        sidebar.displayIfNeeded()
+
+        // Cover collapse/expand icon and hidden state branches.
+        sidebar.setSidebarVisible(false)
+        sidebar.setSidebarVisible(true)
+        #expect(sidebar.leadingInset(for: .focus) == 6)
+
+        var selectedSections: [MainContentSection] = []
+        sidebar.onSelectSection = { section in
+            selectedSections.append(section)
+        }
+
+        // Disabled-guard branch.
+        sidebar.setSectionEnabled(.calendar, isEnabled: false)
+        let calendarButton = findButton(
+            with: NSUserInterfaceItemIdentifier(MainContentSection.calendar.rawValue),
+            in: sidebar
+        )
+        #expect(calendarButton?.isEnabled == false)
+        calendarButton?.performClick(nil)
+        #expect(selectedSections.isEmpty)
+
+        // Re-enable and route through selection branch.
+        sidebar.setSectionEnabled(.calendar, isEnabled: true)
+        calendarButton?.performClick(nil)
+        #expect(selectedSections == [.calendar])
+        #expect(sidebar.selectedBackgroundColor(for: .calendar) != nil)
+
+        // Keep unresolved identifier branch covered after enable/disable mutations.
+        sidebar.invokeSidebarButtonForTesting(identifierRawValue: "still.unknown")
+        #expect(selectedSections == [.calendar])
+
+        // Cover disabled sender guard path when action is invoked directly.
+        sidebar.invokeSidebarButtonForTesting(identifierRawValue: MainContentSection.calendar.rawValue, isEnabled: false)
+        #expect(selectedSections == [.calendar])
+
+        // Cover nil-identifier guard path.
+        let originalIdentifier = calendarButton?.identifier
+        calendarButton?.identifier = nil
+        calendarButton?.performClick(nil)
+        calendarButton?.identifier = originalIdentifier
+        #expect(selectedSections == [.calendar])
+
+        // Cover missing-button guard in setSectionEnabled.
+        sidebar.removeSectionButtonForTesting(.calendar)
+        sidebar.setSectionEnabled(.calendar, isEnabled: true)
+
+        // Cover default enabled fallback path when no explicit enabled state exists.
+        sidebar.clearSectionEnabledForTesting(.focus)
+        sidebar.updateSelection(selectedSection: .focus, accentColorIndex: 1)
+    }
 }

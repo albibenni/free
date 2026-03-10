@@ -671,16 +671,20 @@ struct AppStateTests {
 
         appState.calendarProvider.events = [event]
         appState.checkSchedules()
+        // Drain async calendar publisher callbacks queued by MockCalendarManager objectWillChange.
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
         let imported = appState.schedules.first(where: { $0.importedCalendarEventKey == "event-suppress" })
         #expect(imported != nil)
 
         if let imported {
             appState.deleteSchedule(id: imported.id, modifyAllDays: true, initialDay: nil)
+            #expect(appState.suppressedImportedCalendarEventKeys.contains("event-suppress"))
         } else {
             Issue.record("Expected imported schedule to exist before delete")
         }
 
         appState.checkSchedules()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
         #expect(!appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-suppress" }))
     }
 

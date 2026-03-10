@@ -255,38 +255,6 @@ final class SettingsSectionViewController: NSViewController {
         return strictSection
     }
 
-    private func makeCalendarSection() -> NSView {
-        let section = makeCardSection()
-        weekStartsMondaySwitch.target = self
-        weekStartsMondaySwitch.action = #selector(toggleWeekStartsMonday)
-        calendarIntegrationSwitch.target = self
-        calendarIntegrationSwitch.action = #selector(toggleCalendarIntegration)
-        calendarImportsSwitch.target = self
-        calendarImportsSwitch.action = #selector(toggleCalendarImports)
-        resyncButton.target = self
-        resyncButton.action = #selector(resyncImportedSchedules)
-
-        [
-            makeToggleRow(
-                title: "Start week on Monday",
-                descriptionLabel: nil,
-                toggle: weekStartsMondaySwitch
-            ),
-            makeToggleRow(
-                title: "Enable Calendar Integration",
-                descriptionLabel: makeDescriptionLabel("Use macOS Calendar events for scheduling."),
-                toggle: calendarIntegrationSwitch
-            ),
-            makeToggleRow(
-                title: "Calendar Imports Block Time",
-                descriptionLabel: makeDescriptionLabel("Imported calendar events can act as blocking sessions."),
-                toggle: calendarImportsSwitch
-            ),
-            resyncButton,
-        ].forEach { section.addArrangedSubview($0) }
-        return section
-    }
-
     private func makeStartupSection() -> NSView {
         let section = makeCardSection()
         launchAtLoginSwitch.target = self
