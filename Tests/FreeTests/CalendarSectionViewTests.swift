@@ -66,12 +66,12 @@ struct CalendarSectionViewTests {
         allSubviews(in: root).compactMap { $0 as? NSButton }.filter { $0.title == title }
     }
 
-    private func tableViews(in root: NSView) -> [NSTableView] {
-        allSubviews(in: root).compactMap { $0 as? NSTableView }
+    private func selectableRowButtons(in root: NSView) -> [AppKitSelectableRowButton] {
+        allSubviews(in: root).compactMap { $0 as? AppKitSelectableRowButton }
     }
 
-    private func popupButtons(in root: NSView) -> [NSPopUpButton] {
-        allSubviews(in: root).compactMap { $0 as? NSPopUpButton }
+    private func tableViews(in root: NSView) -> [NSTableView] {
+        allSubviews(in: root).compactMap { $0 as? NSTableView }
     }
 
     private func triggerTableSelectionAction(_ tableView: NSTableView) {
@@ -91,7 +91,8 @@ struct CalendarSectionViewTests {
         #expect(texts.contains("Integration"))
         #expect(texts.contains("Enable Calendar Integration"))
         #expect(texts.contains("Calendar Imports Block Time"))
-        #expect(texts.contains("Imported Schedules Allowed List"))
+        #expect(texts.contains("SELECT LIST"))
+        #expect(texts.contains("Use Active Allowed List"))
         #expect(texts.contains("Resync Imported Schedules"))
         #expect(texts.contains("Import Rules"))
         #expect(texts.contains("Focus Title Rules"))
@@ -135,17 +136,23 @@ struct CalendarSectionViewTests {
 
         let controller = CalendarSectionViewController(appState: appState)
         let hosted = host(controller)
-        guard let popup = popupButtons(in: hosted).first(where: { $0.itemTitles.contains("Use Active Allowed List") }) else {
-            Issue.record("Expected imported schedules allowed-list popup")
+        guard
+            selectableRowButtons(in: hosted).contains(where: { $0.displayedTitleForTesting == "Use Active Allowed List" }),
+            selectableRowButtons(in: hosted).contains(where: { $0.displayedTitleForTesting == "Imported List" })
+        else {
+            Issue.record("Expected imported schedules allowed-list row buttons")
             return
         }
 
-        #expect(popup.itemTitles.contains("Imported List"))
         controller.setImportedScheduleRuleSetSelectionIndexForTesting(2)
         #expect(appState.calendarImportedScheduleRuleSetId == selected.id)
 
         controller.setCalendarIntegrationForTesting(false)
-        #expect(popup.isEnabled == false)
+        #expect(
+            selectableRowButtons(in: hosted)
+                .first(where: { $0.displayedTitleForTesting == "Use Active Allowed List" })?
+                .isEnabled == false
+        )
     }
 
     @Test("Calendar section add/remove rules covers parsing, dedupe and selection")

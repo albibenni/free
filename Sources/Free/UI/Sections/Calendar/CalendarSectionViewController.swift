@@ -106,7 +106,11 @@ final class CalendarSectionViewController: NSViewController {
     private let weekStartsMondaySwitch = AppKitToggleSwitch()
     private let calendarIntegrationSwitch = AppKitToggleSwitch()
     private let calendarImportsSwitch = AppKitToggleSwitch()
-    private let importedScheduleRuleSetPopup = NSPopUpButton()
+    private let importedRuleSetScrollView = VerticalStackScrollContainer(
+        contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+    )
+    private var importedActiveRuleSetButton: AppKitSelectableRowButton?
+    private var importedRuleSetButtons: [UUID: AppKitSelectableRowButton] = [:]
     private let resyncButton = NSButton(title: "Resync Imported Schedules", target: nil, action: nil)
     private let integrationNotice = NSTextField(
         wrappingLabelWithString: "Enable Calendar Integration to use calendar title rules."
@@ -164,8 +168,6 @@ final class CalendarSectionViewController: NSViewController {
         calendarIntegrationSwitch.action = #selector(toggleCalendarIntegration)
         calendarImportsSwitch.target = self
         calendarImportsSwitch.action = #selector(toggleCalendarImports)
-        importedScheduleRuleSetPopup.target = self
-        importedScheduleRuleSetPopup.action = #selector(changeImportedScheduleRuleSet(_:))
         resyncButton.target = self
         resyncButton.action = #selector(resyncImportedSchedules)
         [
@@ -365,20 +367,26 @@ final class CalendarSectionViewController: NSViewController {
     }
 
     private func makeImportedRuleSetRow() -> NSView {
-        importedScheduleRuleSetPopup.translatesAutoresizingMaskIntoConstraints = false
-        importedScheduleRuleSetPopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 220).isActive = true
+        importedRuleSetScrollView.stackView.alignment = .width
+        importedRuleSetScrollView.drawsBackground = false
+        importedRuleSetScrollView.borderType = .noBorder
+        importedRuleSetScrollView.hasVerticalScroller = true
+        importedRuleSetScrollView.autohidesScrollers = true
+        importedRuleSetScrollView.translatesAutoresizingMaskIntoConstraints = false
+        importedRuleSetScrollView.heightAnchor.constraint(equalToConstant: 120).isActive = true
+        importedRuleSetScrollView.widthAnchor.constraint(greaterThanOrEqualToConstant: 260).isActive = true
+
         let stack = makeAppKitVerticalStack(
             views: [
-                NSTextField(labelWithString: "Imported Schedules Allowed List"),
-                makeDescriptionLabel("Choose which allowed list imported calendar schedules use."),
-                importedScheduleRuleSetPopup,
+                makeAppKitSectionLabel("SELECT LIST"),
+                importedRuleSetScrollView,
             ],
-            alignment: .leading,
+            alignment: .width,
             spacing: 4
         )
-        if let title = stack.arrangedSubviews.first as? NSTextField {
-            title.font = .systemFont(ofSize: 13, weight: .semibold)
-        }
+        stack.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        stack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        importedRuleSetScrollView.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         return stack
     }
 
@@ -491,9 +499,11 @@ final class CalendarSectionViewController: NSViewController {
         calendarImportsSwitch.state = appState.calendarImportsBlockTime ? .on : .off
         calendarIntegrationSwitch.isEnabled = !appState.isStrictActive
         calendarImportsSwitch.isEnabled = !appState.isStrictActive && enabled
-        importedScheduleRuleSetPopup.isEnabled = !appState.isStrictActive && enabled
         resyncButton.isEnabled = enabled
-        reloadImportedScheduleRuleSetPopup()
+        reloadImportedRuleSetButtons(
+            accentColor: accentColor,
+            isEnabled: !appState.isStrictActive && enabled
+        )
         applyAppKitListActionButtonStyle(addFocusRuleButton, title: "Add", color: accentColor)
         applyAppKitListActionButtonStyle(addBreakRuleButton, title: "Add", color: accentColor)
         applyAppKitListActionButtonStyle(
@@ -519,20 +529,39 @@ final class CalendarSectionViewController: NSViewController {
         removeBreakRuleButton.isEnabled = enabled && breakRulesTableView.numberOfSelectedRows > 0
     }
 
-    private func reloadImportedScheduleRuleSetPopup() {
+    private func reloadImportedRuleSetButtons(accentColor: NSColor, isEnabled: Bool) {
         let selectedRuleSetId = appState.calendarImportedScheduleRuleSetId
-        importedScheduleRuleSetPopup.removeAllItems()
-        importedScheduleRuleSetPopup.addItem(withTitle: "Use Active Allowed List")
-        importedScheduleRuleSetPopup.lastItem?.representedObject = Optional<UUID>.none
-        for set in appState.ruleSets {
-            importedScheduleRuleSetPopup.addItem(withTitle: set.name)
-            importedScheduleRuleSetPopup.lastItem?.representedObject = UUID?.some(set.id)
+        importedRuleSetScrollView.stackView.arrangedSubviews.forEach { subview in
+            importedRuleSetScrollView.stackView.removeArrangedSubview(subview)
+            subview.removeFromSuperview()
         }
 
-        let selectedIndex = importedScheduleRuleSetPopup.itemArray.firstIndex(where: {
-            ($0.representedObject as? UUID) == selectedRuleSetId
-        }) ?? 0
-        importedScheduleRuleSetPopup.selectItem(at: selectedIndex)
+        importedRuleSetButtons.removeAll()
+        let activeButton = makeAppKitSelectableRowButton(
+            title: "Use Active Allowed List",
+            isSelected: selectedRuleSetId == nil,
+            accentColor: accentColor
+        ) { [weak self] in
+            self?.setImportedScheduleRuleSet(nil)
+        }
+        activeButton.isEnabled = isEnabled
+        importedRuleSetScrollView.stackView.addArrangedSubview(activeButton)
+        activeButton.widthAnchor.constraint(equalTo: importedRuleSetScrollView.stackView.widthAnchor).isActive = true
+        importedActiveRuleSetButton = activeButton
+
+        for set in appState.ruleSets {
+            let button = makeAppKitSelectableRowButton(
+                title: set.name,
+                isSelected: selectedRuleSetId == set.id,
+                accentColor: accentColor
+            ) { [weak self] in
+                self?.setImportedScheduleRuleSet(set.id)
+            }
+            button.isEnabled = isEnabled
+            importedRuleSetButtons[set.id] = button
+            importedRuleSetScrollView.stackView.addArrangedSubview(button)
+            button.widthAnchor.constraint(equalTo: importedRuleSetScrollView.stackView.widthAnchor).isActive = true
+        }
     }
 
     @objc
@@ -550,9 +579,9 @@ final class CalendarSectionViewController: NSViewController {
         appState.calendarImportsBlockTime = calendarImportsSwitch.state == .on
     }
 
-    @objc
-    private func changeImportedScheduleRuleSet(_ sender: NSPopUpButton) {
-        appState.calendarImportedScheduleRuleSetId = sender.selectedItem?.representedObject as? UUID
+    private func setImportedScheduleRuleSet(_ ruleSetId: UUID?) {
+        guard appState.calendarImportedScheduleRuleSetId != ruleSetId else { return }
+        appState.calendarImportedScheduleRuleSetId = ruleSetId
     }
 
     @objc
@@ -720,10 +749,12 @@ extension CalendarSectionViewController {
     }
 
     func setImportedScheduleRuleSetSelectionIndexForTesting(_ index: Int) {
-        reloadImportedScheduleRuleSetPopup()
-        let clampedIndex = max(0, min(index, importedScheduleRuleSetPopup.numberOfItems - 1))
-        importedScheduleRuleSetPopup.selectItem(at: clampedIndex)
-        changeImportedScheduleRuleSet(importedScheduleRuleSetPopup)
+        if index <= 0 {
+            setImportedScheduleRuleSet(nil)
+        } else {
+            let ruleSetIndex = min(max(index - 1, 0), max(appState.ruleSets.count - 1, 0))
+            setImportedScheduleRuleSet(appState.ruleSets[safe: ruleSetIndex]?.id)
+        }
         reload()
     }
 
