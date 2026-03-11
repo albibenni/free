@@ -90,7 +90,7 @@ struct CalendarSectionViewTests {
         #expect(texts.contains("Calendar"))
         #expect(texts.contains("Integration"))
         #expect(texts.contains("Enable Calendar Integration"))
-        #expect(texts.contains("SELECT LIST"))
+        #expect(texts.contains("Imported Schedule Allowed List"))
         #expect(texts.contains("Use Active Allowed List"))
         #expect(texts.contains("Resync Imported Schedules"))
         #expect(texts.contains("Import Rules"))

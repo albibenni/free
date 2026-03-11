@@ -180,6 +180,7 @@ final class CalendarSectionViewController: NSViewController {
                 toggle: calendarIntegrationSwitch
             ),
             makeImportedRuleSetRow(),
+            makeAppKitDividerView(),
             resyncButton,
         ]
         integrationRows.forEach {
@@ -373,22 +374,43 @@ final class CalendarSectionViewController: NSViewController {
         importedRuleSetScrollView.heightAnchor.constraint(equalToConstant: 120).isActive = true
         importedRuleSetScrollView.widthAnchor.constraint(greaterThanOrEqualToConstant: 260).isActive = true
 
-        let titleLabel = makeAppKitSectionLabel("SELECT LIST")
-        let titleRow = makeAppKitHorizontalRow(
-            views: [titleLabel, NSView()],
-            alignment: .centerY,
-            spacing: 8
+        let titleLabel = NSTextField(labelWithString: "Imported Schedule Allowed List")
+        titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        let helperLabel = makeDescriptionLabel(
+            "Choose which allowed list imported calendar schedules should use."
         )
+
+        let listContainer = AppKitDynamicView()
+        listContainer.backgroundColorProvider = {
+            NSColor.controlBackgroundColor.withAlphaComponent(0.35)
+        }
+        listContainer.borderColorProvider = {
+            NSColor.separatorColor.withAlphaComponent(0.45)
+        }
+        listContainer.borderWidthValue = 1
+        listContainer.wantsLayer = true
+        listContainer.layer?.cornerRadius = 8
+        listContainer.translatesAutoresizingMaskIntoConstraints = false
+        listContainer.addSubview(importedRuleSetScrollView)
+        NSLayoutConstraint.activate([
+            importedRuleSetScrollView.leadingAnchor.constraint(equalTo: listContainer.leadingAnchor, constant: 8),
+            importedRuleSetScrollView.trailingAnchor.constraint(equalTo: listContainer.trailingAnchor, constant: -8),
+            importedRuleSetScrollView.topAnchor.constraint(equalTo: listContainer.topAnchor, constant: 8),
+            importedRuleSetScrollView.bottomAnchor.constraint(equalTo: listContainer.bottomAnchor, constant: -8),
+            listContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: 132),
+        ])
+
         let stack = makeAppKitVerticalStack(
             views: [
-                titleRow,
-                importedRuleSetScrollView,
+                titleLabel,
+                helperLabel,
+                listContainer,
             ],
-            alignment: .width,
-            spacing: 4
+            alignment: .leading,
+            spacing: 6
         )
         stack.translatesAutoresizingMaskIntoConstraints = false
-        importedRuleSetScrollView.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        listContainer.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
 
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
