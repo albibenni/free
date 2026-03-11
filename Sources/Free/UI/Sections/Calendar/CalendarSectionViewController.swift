@@ -326,9 +326,15 @@ final class CalendarSectionViewController: NSViewController {
         if let cell = textField.cell as? NSTextFieldCell {
             cell.sendsActionOnEndEditing = true
         }
+        textField.wantsLayer = true
+        textField.layer?.cornerRadius = 7
+        textField.layer?.borderWidth = 1
+        textField.layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.45).cgColor
+        textField.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.55)
+        textField.drawsBackground = true
         textField.controlSize = .regular
         textField.translatesAutoresizingMaskIntoConstraints = false
-        textField.heightAnchor.constraint(equalToConstant: 24).isActive = true
+        textField.heightAnchor.constraint(equalToConstant: 26).isActive = true
     }
 
     private func configureRulesTable(
