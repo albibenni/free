@@ -91,7 +91,6 @@ final class CalendarSectionViewController: NSViewController {
     private struct ObservationSignature: Equatable {
         let weekStartsOnMonday: Bool
         let calendarIntegrationEnabled: Bool
-        let calendarImportsBlockTime: Bool
         let isStrictActive: Bool
         let calendarImportFocusTitleRules: [String]
         let calendarImportBreakTitleRules: [String]
@@ -105,7 +104,6 @@ final class CalendarSectionViewController: NSViewController {
 
     private let weekStartsMondaySwitch = AppKitToggleSwitch()
     private let calendarIntegrationSwitch = AppKitToggleSwitch()
-    private let calendarImportsSwitch = AppKitToggleSwitch()
     private let importedRuleSetScrollView = VerticalStackScrollContainer(
         contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
     )
@@ -166,8 +164,6 @@ final class CalendarSectionViewController: NSViewController {
         weekStartsMondaySwitch.action = #selector(toggleWeekStartsMonday)
         calendarIntegrationSwitch.target = self
         calendarIntegrationSwitch.action = #selector(toggleCalendarIntegration)
-        calendarImportsSwitch.target = self
-        calendarImportsSwitch.action = #selector(toggleCalendarImports)
         resyncButton.target = self
         resyncButton.action = #selector(resyncImportedSchedules)
         resyncButton.translatesAutoresizingMaskIntoConstraints = false
@@ -182,11 +178,6 @@ final class CalendarSectionViewController: NSViewController {
                 title: "Enable Calendar Integration",
                 descriptionLabel: makeDescriptionLabel("Use macOS Calendar events for scheduling."),
                 toggle: calendarIntegrationSwitch
-            ),
-            makeToggleRow(
-                title: "Calendar Imports Block Time",
-                descriptionLabel: makeDescriptionLabel("Imported calendar events can act as blocking sessions."),
-                toggle: calendarImportsSwitch
             ),
             makeImportedRuleSetRow(),
             resyncButton,
@@ -293,7 +284,6 @@ final class CalendarSectionViewController: NSViewController {
                 ObservationSignature(
                     weekStartsOnMonday: appState.weekStartsOnMonday,
                     calendarIntegrationEnabled: appState.calendarIntegrationEnabled,
-                    calendarImportsBlockTime: appState.calendarImportsBlockTime,
                     isStrictActive: appState.isStrictActive,
                     calendarImportFocusTitleRules: appState.calendarImportFocusTitleRules,
                     calendarImportBreakTitleRules: appState.calendarImportBreakTitleRules,
@@ -383,9 +373,15 @@ final class CalendarSectionViewController: NSViewController {
         importedRuleSetScrollView.heightAnchor.constraint(equalToConstant: 120).isActive = true
         importedRuleSetScrollView.widthAnchor.constraint(greaterThanOrEqualToConstant: 260).isActive = true
 
+        let titleLabel = makeAppKitSectionLabel("SELECT LIST")
+        let titleRow = makeAppKitHorizontalRow(
+            views: [titleLabel, NSView()],
+            alignment: .centerY,
+            spacing: 8
+        )
         let stack = makeAppKitVerticalStack(
             views: [
-                makeAppKitSectionLabel("SELECT LIST"),
+                titleRow,
                 importedRuleSetScrollView,
             ],
             alignment: .width,
@@ -517,14 +513,12 @@ final class CalendarSectionViewController: NSViewController {
     private func reload() {
         let enabled = appState.calendarIntegrationEnabled
         let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
-        [weekStartsMondaySwitch, calendarIntegrationSwitch, calendarImportsSwitch].forEach {
+        [weekStartsMondaySwitch, calendarIntegrationSwitch].forEach {
             $0.accentColor = accentColor
         }
         weekStartsMondaySwitch.state = appState.weekStartsOnMonday ? .on : .off
         calendarIntegrationSwitch.state = enabled ? .on : .off
-        calendarImportsSwitch.state = appState.calendarImportsBlockTime ? .on : .off
         calendarIntegrationSwitch.isEnabled = !appState.isStrictActive
-        calendarImportsSwitch.isEnabled = !appState.isStrictActive && enabled
         resyncButton.isEnabled = enabled
         applyAppKitSecondaryButtonStyle(
             resyncButton,
@@ -603,11 +597,6 @@ final class CalendarSectionViewController: NSViewController {
     @objc
     private func toggleCalendarIntegration() {
         appState.calendarIntegrationEnabled = calendarIntegrationSwitch.state == .on
-    }
-
-    @objc
-    private func toggleCalendarImports() {
-        appState.calendarImportsBlockTime = calendarImportsSwitch.state == .on
     }
 
     private func setImportedScheduleRuleSet(_ ruleSetId: UUID?) {
@@ -770,12 +759,6 @@ extension CalendarSectionViewController {
     func setCalendarIntegrationForTesting(_ enabled: Bool) {
         calendarIntegrationSwitch.state = enabled ? .on : .off
         toggleCalendarIntegration()
-        reload()
-    }
-
-    func setCalendarImportsForTesting(_ enabled: Bool) {
-        calendarImportsSwitch.state = enabled ? .on : .off
-        toggleCalendarImports()
         reload()
     }
 

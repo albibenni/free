@@ -90,7 +90,6 @@ struct CalendarSectionViewTests {
         #expect(texts.contains("Calendar"))
         #expect(texts.contains("Integration"))
         #expect(texts.contains("Enable Calendar Integration"))
-        #expect(texts.contains("Calendar Imports Block Time"))
         #expect(texts.contains("SELECT LIST"))
         #expect(texts.contains("Use Active Allowed List"))
         #expect(texts.contains("Resync Imported Schedules"))
@@ -104,7 +103,7 @@ struct CalendarSectionViewTests {
     func calendarSectionToggleHooks() {
         let appState = isolatedAppState(name: "toggleHooks")
         let controller = CalendarSectionViewController(appState: appState)
-        _ = host(controller)
+        let hosted = host(controller)
 
         controller.setWeekStartsMondayForTesting(true)
         #expect(appState.weekStartsOnMonday)
@@ -113,12 +112,10 @@ struct CalendarSectionViewTests {
 
         controller.setCalendarIntegrationForTesting(true)
         #expect(appState.calendarIntegrationEnabled)
-        controller.setCalendarImportsForTesting(true)
-        #expect(appState.calendarImportsBlockTime)
-        controller.setCalendarImportsForTesting(false)
-        #expect(appState.calendarImportsBlockTime == false)
+        #expect(buttons(titled: "Add", in: hosted).allSatisfy { $0.isEnabled })
         controller.setCalendarIntegrationForTesting(false)
         #expect(appState.calendarIntegrationEnabled == false)
+        #expect(buttons(titled: "Add", in: hosted).allSatisfy { !$0.isEnabled })
 
         controller.setCalendarIntegrationForTesting(true)
         controller.setImportedScheduleRuleSetSelectionIndexForTesting(0)
@@ -584,7 +581,12 @@ struct CalendarSectionViewTests {
         guard
             let integrationNotice = allSubviews(in: hosted)
                 .compactMap({ $0 as? NSTextField })
-                .first(where: { $0.stringValue == "Enable Calendar Integration to use calendar title rules." })
+                .first(
+                    where: {
+                        $0.stringValue
+                            == "Enable Calendar Integration to use calendar title rules."
+                    }
+                )
         else {
             Issue.record("Expected integration notice label")
             return
