@@ -12,6 +12,7 @@ enum AppStatePersistenceCoordinator {
         let calendarImportsBlockTime: AnyPublisher<Bool, Never>
         let calendarImportFocusTitleRules: AnyPublisher<[String], Never>
         let calendarImportBreakTitleRules: AnyPublisher<[String], Never>
+        let calendarImportedScheduleRuleSetId: AnyPublisher<UUID?, Never>
         let blockNewTabs: AnyPublisher<Bool, Never>
         let blockDeveloperHosts: AnyPublisher<Bool, Never>
         let blockLocalNetworkHosts: AnyPublisher<Bool, Never>
@@ -79,6 +80,11 @@ enum AppStatePersistenceCoordinator {
         bindings.calendarImportBreakTitleRules
             .dropFirst()
             .sink { settingsStore.setCalendarImportBreakTitleRules($0) }
+            .store(in: &cancellables)
+
+        bindings.calendarImportedScheduleRuleSetId
+            .dropFirst()
+            .sink { settingsStore.setCalendarImportedScheduleRuleSetId($0) }
             .store(in: &cancellables)
 
         bindings.blockNewTabs

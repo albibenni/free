@@ -8,6 +8,7 @@ struct ScheduleCalendarService {
         suppressedImportedCalendarEventKeys: Set<String>,
         focusTitleRules: [String],
         breakTitleRules: [String],
+        calendarImportedScheduleRuleSetId: UUID? = nil,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
         weekStartsOnMonday: Bool,
@@ -37,6 +38,7 @@ struct ScheduleCalendarService {
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
             focusTitleRules: focusTitleRules,
             breakTitleRules: breakTitleRules,
+            calendarImportedScheduleRuleSetId: calendarImportedScheduleRuleSetId,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
             preservedImportedByKey: preservedImportedByKey

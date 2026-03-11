@@ -8,6 +8,7 @@ extension AppState {
             appearanceMode: appearanceMode,
             calendarImportFocusTitleRules: calendarImportFocusTitleRules,
             calendarImportBreakTitleRules: calendarImportBreakTitleRules,
+            calendarImportedScheduleRuleSetId: calendarImportedScheduleRuleSetId,
             blockNewTabs: blockNewTabs,
             blockDeveloperHosts: blockDeveloperHosts,
             blockLocalNetworkHosts: blockLocalNetworkHosts,
@@ -27,6 +28,9 @@ extension AppState {
         }
         if calendarImportBreakTitleRules != state.calendarImportBreakTitleRules {
             calendarImportBreakTitleRules = state.calendarImportBreakTitleRules
+        }
+        if calendarImportedScheduleRuleSetId != state.calendarImportedScheduleRuleSetId {
+            calendarImportedScheduleRuleSetId = state.calendarImportedScheduleRuleSetId
         }
         if blockNewTabs != state.blockNewTabs { blockNewTabs = state.blockNewTabs }
         if blockDeveloperHosts != state.blockDeveloperHosts {

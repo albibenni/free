@@ -70,6 +70,10 @@ struct CalendarSectionViewTests {
         allSubviews(in: root).compactMap { $0 as? NSTableView }
     }
 
+    private func popupButtons(in root: NSView) -> [NSPopUpButton] {
+        allSubviews(in: root).compactMap { $0 as? NSPopUpButton }
+    }
+
     private func triggerTableSelectionAction(_ tableView: NSTableView) {
         guard let action = tableView.action else { return }
         _ = (tableView.target as AnyObject?)?.perform(action, with: tableView)
@@ -87,6 +91,7 @@ struct CalendarSectionViewTests {
         #expect(texts.contains("Integration"))
         #expect(texts.contains("Enable Calendar Integration"))
         #expect(texts.contains("Calendar Imports Block Time"))
+        #expect(texts.contains("Imported Schedules Allowed List"))
         #expect(texts.contains("Resync Imported Schedules"))
         #expect(texts.contains("Import Rules"))
         #expect(texts.contains("Focus Title Rules"))
@@ -113,6 +118,34 @@ struct CalendarSectionViewTests {
         #expect(appState.calendarImportsBlockTime == false)
         controller.setCalendarIntegrationForTesting(false)
         #expect(appState.calendarIntegrationEnabled == false)
+
+        controller.setCalendarIntegrationForTesting(true)
+        controller.setImportedScheduleRuleSetSelectionIndexForTesting(0)
+        #expect(appState.calendarImportedScheduleRuleSetId == nil)
+    }
+
+    @Test("Calendar section imported allowed-list selector binds to app state and follows integration lock")
+    @MainActor
+    func calendarSectionImportedRuleSetSelection() {
+        let appState = isolatedAppState(name: "importedRuleSetSelection")
+        let base = appState.ruleSets.first ?? RuleSet.defaultSet()
+        let selected = RuleSet(name: "Imported List", urls: ["calendar.example"])
+        appState.ruleSets = [base, selected]
+        appState.calendarIntegrationEnabled = true
+
+        let controller = CalendarSectionViewController(appState: appState)
+        let hosted = host(controller)
+        guard let popup = popupButtons(in: hosted).first(where: { $0.itemTitles.contains("Use Active Allowed List") }) else {
+            Issue.record("Expected imported schedules allowed-list popup")
+            return
+        }
+
+        #expect(popup.itemTitles.contains("Imported List"))
+        controller.setImportedScheduleRuleSetSelectionIndexForTesting(2)
+        #expect(appState.calendarImportedScheduleRuleSetId == selected.id)
+
+        controller.setCalendarIntegrationForTesting(false)
+        #expect(popup.isEnabled == false)
     }
 
     @Test("Calendar section add/remove rules covers parsing, dedupe and selection")

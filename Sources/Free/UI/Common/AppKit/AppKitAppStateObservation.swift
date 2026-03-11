@@ -77,6 +77,8 @@ enum AppKitAppStateObservation {
             appState.$calendarImportsBlockTime.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarImportFocusTitleRules.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarImportBreakTitleRules.map { _ in () }.eraseToAnyPublisher(),
+            appState.$calendarImportedScheduleRuleSetId.map { _ in () }.eraseToAnyPublisher(),
+            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
             appState.$blockNewTabs.map { _ in () }.eraseToAnyPublisher(),
             appState.$blockDeveloperHosts.map { _ in () }.eraseToAnyPublisher(),
             appState.$blockLocalNetworkHosts.map { _ in () }.eraseToAnyPublisher(),

@@ -95,6 +95,8 @@ final class CalendarSectionViewController: NSViewController {
         let isStrictActive: Bool
         let calendarImportFocusTitleRules: [String]
         let calendarImportBreakTitleRules: [String]
+        let calendarImportedScheduleRuleSetId: UUID?
+        let ruleSetsSignature: [String]
     }
 
     private let appState: AppState
@@ -104,6 +106,7 @@ final class CalendarSectionViewController: NSViewController {
     private let weekStartsMondaySwitch = AppKitToggleSwitch()
     private let calendarIntegrationSwitch = AppKitToggleSwitch()
     private let calendarImportsSwitch = AppKitToggleSwitch()
+    private let importedScheduleRuleSetPopup = NSPopUpButton()
     private let resyncButton = NSButton(title: "Resync Imported Schedules", target: nil, action: nil)
     private let integrationNotice = NSTextField(
         wrappingLabelWithString: "Enable Calendar Integration to use calendar title rules."
@@ -161,6 +164,8 @@ final class CalendarSectionViewController: NSViewController {
         calendarIntegrationSwitch.action = #selector(toggleCalendarIntegration)
         calendarImportsSwitch.target = self
         calendarImportsSwitch.action = #selector(toggleCalendarImports)
+        importedScheduleRuleSetPopup.target = self
+        importedScheduleRuleSetPopup.action = #selector(changeImportedScheduleRuleSet(_:))
         resyncButton.target = self
         resyncButton.action = #selector(resyncImportedSchedules)
         [
@@ -179,6 +184,7 @@ final class CalendarSectionViewController: NSViewController {
                 descriptionLabel: makeDescriptionLabel("Imported calendar events can act as blocking sessions."),
                 toggle: calendarImportsSwitch
             ),
+            makeImportedRuleSetRow(),
             resyncButton,
         ].forEach { integrationSection.addArrangedSubview($0) }
         addFullWidthSection(integrationSection)
@@ -281,7 +287,9 @@ final class CalendarSectionViewController: NSViewController {
                     calendarImportsBlockTime: appState.calendarImportsBlockTime,
                     isStrictActive: appState.isStrictActive,
                     calendarImportFocusTitleRules: appState.calendarImportFocusTitleRules,
-                    calendarImportBreakTitleRules: appState.calendarImportBreakTitleRules
+                    calendarImportBreakTitleRules: appState.calendarImportBreakTitleRules,
+                    calendarImportedScheduleRuleSetId: appState.calendarImportedScheduleRuleSetId,
+                    ruleSetsSignature: appState.ruleSets.map { "\($0.id.uuidString)|\($0.name)" }
                 )
             },
             cancellables: &cancellables
@@ -354,6 +362,24 @@ final class CalendarSectionViewController: NSViewController {
         label.font = .systemFont(ofSize: 12)
         label.textColor = .secondaryLabelColor
         return label
+    }
+
+    private func makeImportedRuleSetRow() -> NSView {
+        importedScheduleRuleSetPopup.translatesAutoresizingMaskIntoConstraints = false
+        importedScheduleRuleSetPopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 220).isActive = true
+        let stack = makeAppKitVerticalStack(
+            views: [
+                NSTextField(labelWithString: "Imported Schedules Allowed List"),
+                makeDescriptionLabel("Choose which allowed list imported calendar schedules use."),
+                importedScheduleRuleSetPopup,
+            ],
+            alignment: .leading,
+            spacing: 4
+        )
+        if let title = stack.arrangedSubviews.first as? NSTextField {
+            title.font = .systemFont(ofSize: 13, weight: .semibold)
+        }
+        return stack
     }
 
     private func makeToggleRow(
@@ -465,7 +491,9 @@ final class CalendarSectionViewController: NSViewController {
         calendarImportsSwitch.state = appState.calendarImportsBlockTime ? .on : .off
         calendarIntegrationSwitch.isEnabled = !appState.isStrictActive
         calendarImportsSwitch.isEnabled = !appState.isStrictActive && enabled
+        importedScheduleRuleSetPopup.isEnabled = !appState.isStrictActive && enabled
         resyncButton.isEnabled = enabled
+        reloadImportedScheduleRuleSetPopup()
         applyAppKitListActionButtonStyle(addFocusRuleButton, title: "Add", color: accentColor)
         applyAppKitListActionButtonStyle(addBreakRuleButton, title: "Add", color: accentColor)
         applyAppKitListActionButtonStyle(
@@ -491,6 +519,22 @@ final class CalendarSectionViewController: NSViewController {
         removeBreakRuleButton.isEnabled = enabled && breakRulesTableView.numberOfSelectedRows > 0
     }
 
+    private func reloadImportedScheduleRuleSetPopup() {
+        let selectedRuleSetId = appState.calendarImportedScheduleRuleSetId
+        importedScheduleRuleSetPopup.removeAllItems()
+        importedScheduleRuleSetPopup.addItem(withTitle: "Use Active Allowed List")
+        importedScheduleRuleSetPopup.lastItem?.representedObject = Optional<UUID>.none
+        for set in appState.ruleSets {
+            importedScheduleRuleSetPopup.addItem(withTitle: set.name)
+            importedScheduleRuleSetPopup.lastItem?.representedObject = UUID?.some(set.id)
+        }
+
+        let selectedIndex = importedScheduleRuleSetPopup.itemArray.firstIndex(where: {
+            ($0.representedObject as? UUID) == selectedRuleSetId
+        }) ?? 0
+        importedScheduleRuleSetPopup.selectItem(at: selectedIndex)
+    }
+
     @objc
     private func toggleWeekStartsMonday() {
         appState.weekStartsOnMonday = weekStartsMondaySwitch.state == .on
@@ -504,6 +548,11 @@ final class CalendarSectionViewController: NSViewController {
     @objc
     private func toggleCalendarImports() {
         appState.calendarImportsBlockTime = calendarImportsSwitch.state == .on
+    }
+
+    @objc
+    private func changeImportedScheduleRuleSet(_ sender: NSPopUpButton) {
+        appState.calendarImportedScheduleRuleSetId = sender.selectedItem?.representedObject as? UUID
     }
 
     @objc
@@ -667,6 +716,14 @@ extension CalendarSectionViewController {
     func setCalendarImportsForTesting(_ enabled: Bool) {
         calendarImportsSwitch.state = enabled ? .on : .off
         toggleCalendarImports()
+        reload()
+    }
+
+    func setImportedScheduleRuleSetSelectionIndexForTesting(_ index: Int) {
+        reloadImportedScheduleRuleSetPopup()
+        let clampedIndex = max(0, min(index, importedScheduleRuleSetPopup.numberOfItems - 1))
+        importedScheduleRuleSetPopup.selectItem(at: clampedIndex)
+        changeImportedScheduleRuleSet(importedScheduleRuleSetPopup)
         reload()
     }
 

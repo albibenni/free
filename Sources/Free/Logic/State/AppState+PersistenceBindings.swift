@@ -13,6 +13,7 @@ extension AppState {
             calendarImportsBlockTime: $calendarImportsBlockTime.eraseToAnyPublisher(),
             calendarImportFocusTitleRules: $calendarImportFocusTitleRules.eraseToAnyPublisher(),
             calendarImportBreakTitleRules: $calendarImportBreakTitleRules.eraseToAnyPublisher(),
+            calendarImportedScheduleRuleSetId: $calendarImportedScheduleRuleSetId.eraseToAnyPublisher(),
             blockNewTabs: $blockNewTabs.eraseToAnyPublisher(),
             blockDeveloperHosts: $blockDeveloperHosts.eraseToAnyPublisher(),
             blockLocalNetworkHosts: $blockLocalNetworkHosts.eraseToAnyPublisher(),

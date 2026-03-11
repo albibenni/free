@@ -43,6 +43,7 @@ enum AppStateLifecycleService {
             appearanceMode: snapshot.appearanceMode,
             calendarImportFocusTitleRules: snapshot.calendarImportFocusTitleRules,
             calendarImportBreakTitleRules: snapshot.calendarImportBreakTitleRules,
+            calendarImportedScheduleRuleSetId: snapshot.calendarImportedScheduleRuleSetId,
             blockNewTabs: snapshot.blockNewTabs,
             blockDeveloperHosts: snapshot.blockDeveloperHosts,
             blockLocalNetworkHosts: snapshot.blockLocalNetworkHosts,

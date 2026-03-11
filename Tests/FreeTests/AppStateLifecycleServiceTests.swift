@@ -36,6 +36,7 @@ struct AppStateLifecycleServiceTests {
             type: .focus
         )
         let ruleSet = RuleSet(name: "Work", urls: ["swift.org"])
+        let importedRuleSetId = UUID()
         let snapshot = AppStateBootstrapService.Snapshot(
             isBlocking: true,
             isUnblockable: true,
@@ -46,6 +47,7 @@ struct AppStateLifecycleServiceTests {
             calendarImportsBlockTime: true,
             calendarImportFocusTitleRules: ["Focus", "Deep Work"],
             calendarImportBreakTitleRules: ["Break", "Lunch"],
+            calendarImportedScheduleRuleSetId: importedRuleSetId,
             blockNewTabs: true,
             blockDeveloperHosts: true,
             blockLocalNetworkHosts: true,
@@ -71,6 +73,7 @@ struct AppStateLifecycleServiceTests {
         #expect(projection.settings.appearanceMode == .dark)
         #expect(projection.settings.calendarImportFocusTitleRules == ["Focus", "Deep Work"])
         #expect(projection.settings.calendarImportBreakTitleRules == ["Break", "Lunch"])
+        #expect(projection.settings.calendarImportedScheduleRuleSetId == importedRuleSetId)
         #expect(projection.settings.blockNewTabs)
         #expect(projection.settings.blockDeveloperHosts)
         #expect(projection.settings.blockLocalNetworkHosts)
@@ -210,6 +213,7 @@ struct AppStateLifecycleServiceTests {
             calendarImportsBlockTime: Just(false).eraseToAnyPublisher(),
             calendarImportFocusTitleRules: Just([]).eraseToAnyPublisher(),
             calendarImportBreakTitleRules: Just([]).eraseToAnyPublisher(),
+            calendarImportedScheduleRuleSetId: Just(nil).eraseToAnyPublisher(),
             blockNewTabs: Just(false).eraseToAnyPublisher(),
             blockDeveloperHosts: Just(false).eraseToAnyPublisher(),
             blockLocalNetworkHosts: Just(false).eraseToAnyPublisher(),
@@ -225,6 +229,6 @@ struct AppStateLifecycleServiceTests {
             bindings: bindings,
             settingsStore: settingsStore
         )
-        #expect(cancellables.count == 18)
+        #expect(cancellables.count == 19)
     }
 }

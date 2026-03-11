@@ -715,6 +715,34 @@ struct AppStateTests {
         #expect(imported?.ruleSetId == secondSet.id)
     }
 
+    @Test("Imported calendar schedules use calendar-configured allowed list when set")
+    func calendarImportUsesConfiguredImportedRuleSet() {
+        let appState = isolatedAppState(name: "calendarImportUsesConfiguredImportedRuleSet")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+
+        let defaultSet = appState.ruleSets[0]
+        let secondSet = RuleSet(name: "Second", urls: ["example.com"])
+        appState.ruleSets = [defaultSet, secondSet]
+        appState.activeRuleSetId = secondSet.id
+        appState.calendarImportedScheduleRuleSetId = defaultSet.id
+
+        let now = Date()
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "event-configured-list",
+                title: "Imported Configured",
+                startDate: now.addingTimeInterval(-300),
+                endDate: now.addingTimeInterval(300)
+            )
+        ]
+        appState.checkSchedules()
+
+        let imported = appState.schedules.first(where: { $0.importedCalendarEventKey == "event-configured-list" })
+        #expect(imported != nil)
+        #expect(imported?.ruleSetId == defaultSet.id)
+    }
+
     @Test("Resync imported schedules removes legacy duplicates and rebuilds mirrored entries")
     func resyncImportedSchedulesDeduplicatesLegacy() {
         let appState = isolatedAppState(name: "resyncImportedSchedulesDeduplicatesLegacy")

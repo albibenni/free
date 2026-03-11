@@ -11,6 +11,7 @@ struct AppStateBootstrapService {
         let calendarImportsBlockTime: Bool
         let calendarImportFocusTitleRules: [String]
         let calendarImportBreakTitleRules: [String]
+        let calendarImportedScheduleRuleSetId: UUID?
         let blockNewTabs: Bool
         let blockDeveloperHosts: Bool
         let blockLocalNetworkHosts: Bool
@@ -50,6 +51,7 @@ struct AppStateBootstrapService {
             calendarImportsBlockTime: settingsStore.calendarImportsBlockTime(),
             calendarImportFocusTitleRules: settingsStore.calendarImportFocusTitleRules(),
             calendarImportBreakTitleRules: settingsStore.calendarImportBreakTitleRules(),
+            calendarImportedScheduleRuleSetId: settingsStore.calendarImportedScheduleRuleSetId(),
             blockNewTabs: settingsStore.blockNewTabs(),
             blockDeveloperHosts: settingsStore.blockDeveloperHosts(),
             blockLocalNetworkHosts: settingsStore.blockLocalNetworkHosts(),

@@ -36,6 +36,7 @@ struct CalendarImportService {
         suppressedImportedCalendarEventKeys: Set<String>,
         focusTitleRules: [String] = [],
         breakTitleRules: [String] = [],
+        calendarImportedScheduleRuleSetId: UUID? = nil,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
         preservedImportedByKey: [String: Schedule]
@@ -49,7 +50,10 @@ struct CalendarImportService {
                 return (key, schedule)
             }
         )
-        let defaultImportedRuleSetId = RuleSetService.normalizeRuleSetId(activeRuleSetId, in: ruleSets)
+        let defaultImportedRuleSetId = RuleSetService.normalizeRuleSetId(
+            calendarImportedScheduleRuleSetId ?? activeRuleSetId,
+            in: ruleSets
+        )
         let normalizedFocusRules = normalizedTitleRules(focusTitleRules)
         let normalizedBreakRules = normalizedTitleRules(breakTitleRules)
 
@@ -77,7 +81,7 @@ struct CalendarImportService {
                     isEnabled: existing?.isEnabled ?? true,
                     colorIndex: existing?.colorIndex ?? 0,
                     type: resolvedType,
-                    ruleSetId: existing?.ruleSetId ?? defaultImportedRuleSetId,
+                    ruleSetId: defaultImportedRuleSetId,
                     importedCalendarEventKey: event.id
                 )
             }
