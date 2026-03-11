@@ -7,6 +7,7 @@ final class SettingsSectionViewController: NSViewController {
     typealias CalendarSettingsOpener = () -> Void
     typealias URLOpener = (URL) -> Void
     typealias AsyncAfterScheduler = (TimeInterval, @escaping () -> Void) -> Void
+    typealias TestProcessDetector = () -> Bool
 
     private static func defaultMakeStrictModeAlert() -> NSAlert { NSAlert() }
     private static func defaultRunStrictModeAlert(_ alert: NSAlert) -> NSApplication.ModalResponse {
@@ -49,6 +50,8 @@ final class SettingsSectionViewController: NSViewController {
     private static var _workspaceURLOpener: URLOpener?
     private static var _scheduleAfter: AsyncAfterScheduler?
     private static var _openCalendarPrivacySettings: CalendarSettingsOpener?
+    private static var _isRunningInTestProcess: TestProcessDetector?
+    private static var _nativeWorkspaceURLOpener: URLOpener?
     static var makeCalendarPermissionAlert: AlertFactory {
         get { _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
         set { _makeCalendarPermissionAlert = newValue }
@@ -58,8 +61,23 @@ final class SettingsSectionViewController: NSViewController {
         set { _runCalendarPermissionAlert = newValue }
     }
     static var injectedWorkspaceURLOpener: URLOpener?
+    static var isRunningInTestProcess: TestProcessDetector {
+        get { _isRunningInTestProcess ?? { AppDelegate.isRunningInTestProcess() } }
+        set { _isRunningInTestProcess = newValue }
+    }
+    static var nativeWorkspaceURLOpener: URLOpener {
+        get { _nativeWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
+        set { _nativeWorkspaceURLOpener = newValue }
+    }
     static var platformWorkspaceURLOpener: URLOpener {
-        get { _platformWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
+        get {
+            _platformWorkspaceURLOpener ?? { url in
+                if url.scheme == "x-free-test" || isRunningInTestProcess() {
+                    return
+                }
+                nativeWorkspaceURLOpener(url)
+            }
+        }
         set { _platformWorkspaceURLOpener = newValue }
     }
     static var calendarPrivacySettingsURLString =
@@ -727,6 +745,8 @@ extension SettingsSectionViewController {
             "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
         injectedWorkspaceURLOpener = nil
         _platformWorkspaceURLOpener = nil
+        _isRunningInTestProcess = nil
+        _nativeWorkspaceURLOpener = nil
         _workspaceURLOpener = nil
         _scheduleAfter = nil
         makeStrictModeAlert = defaultMakeStrictModeAlert

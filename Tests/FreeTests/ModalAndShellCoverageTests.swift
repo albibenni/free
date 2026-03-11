@@ -826,4 +826,25 @@ struct ModalAndShellCoverageTests {
         VerticallyCenteredTextField.cellClass = NSTextFieldCell.self
         #expect(VerticallyCenteredTextField.cellClass == originalCellClass)
     }
+
+    @Test("Rule-set alert presenters execute default class lookup")
+    func alertPresenterDefaultClassLookupCoverage() {
+        defer {
+            AllowedWebsitesImportAlertPresenter.resetForTesting()
+            AllowedWebsitesRuleSetAlertPresenter.resetForTesting()
+            RulesSheetAlertPresenter.resetForTesting()
+        }
+
+        AllowedWebsitesImportAlertPresenter.resetForTesting()
+        let importLookup = AllowedWebsitesImportAlertPresenter.classLookup
+        #expect(importLookup("NSObject") != nil)
+
+        AllowedWebsitesRuleSetAlertPresenter.resetForTesting()
+        let allowedLookup = AllowedWebsitesRuleSetAlertPresenter.classLookup
+        #expect(allowedLookup("NSObject") != nil)
+
+        RulesSheetAlertPresenter.resetForTesting()
+        let rulesLookup = RulesSheetAlertPresenter.classLookup
+        #expect(rulesLookup("NSObject") != nil)
+    }
 }

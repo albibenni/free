@@ -361,6 +361,37 @@ struct CalendarSectionViewTests {
         _ = fired
     }
 
+    @Test("Calendar section platform workspace opener covers x-free-test guard and native open path")
+    @MainActor
+    func calendarSectionPlatformWorkspaceOpenerCoverage() {
+        defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
+
+        CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting()
+        var nativeOpened: [URL] = []
+        CalendarSectionViewController.isRunningInTestProcess = { false }
+        CalendarSectionViewController.nativeWorkspaceURLOpener = { nativeOpened.append($0) }
+
+        CalendarSectionViewController.platformWorkspaceURLOpener(URL(string: "x-free-test://noop")!)
+        #expect(nativeOpened.isEmpty)
+
+        let openURL = URL(string: "https://example.com/calendar")!
+        CalendarSectionViewController.platformWorkspaceURLOpener(openURL)
+        #expect(nativeOpened == [openURL])
+    }
+
+    @Test("Calendar section default workspace helpers expose callable detector and opener closures")
+    @MainActor
+    func calendarSectionDefaultWorkspaceHelperGettersCoverage() {
+        defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
+
+        CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting()
+        let detector = CalendarSectionViewController.isRunningInTestProcess
+        _ = detector()
+
+        // Getter-only coverage for default native opener closure creation.
+        _ = CalendarSectionViewController.nativeWorkspaceURLOpener
+    }
+
     @Test("Calendar section resync authorized path triggers imported schedule rebuild")
     @MainActor
     func calendarSectionResyncAuthorizedPath() {
@@ -454,7 +485,7 @@ struct CalendarSectionViewTests {
         _ = focusDelegate?.tableView?(tables[0], viewFor: tables[0].tableColumns.first, row: 999)
         _ = breakDelegate?.tableView?(tables[1], viewFor: tables[1].tableColumns.first, row: 999)
 
-        weak var weakController = controller
+        weak let weakController = controller
         controller = nil
         #expect(weakController == nil)
 

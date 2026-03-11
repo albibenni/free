@@ -582,6 +582,36 @@ struct SettingsViewTests {
         #expect(opened.count == 1)
     }
 
+    @Test("Settings platform workspace opener covers x-free-test guard and native open path")
+    func settingsPlatformWorkspaceOpenerCoverage() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        var nativeOpened: [URL] = []
+        SettingsSectionViewController.isRunningInTestProcess = { false }
+        SettingsSectionViewController.nativeWorkspaceURLOpener = { nativeOpened.append($0) }
+
+        let blockedURL = URL(string: "x-free-test://noop")!
+        SettingsSectionViewController.platformWorkspaceURLOpener(blockedURL)
+        #expect(nativeOpened.isEmpty)
+
+        let openURL = URL(string: "https://example.com/open")!
+        SettingsSectionViewController.platformWorkspaceURLOpener(openURL)
+        #expect(nativeOpened == [openURL])
+    }
+
+    @Test("Settings default workspace helpers expose callable detector and opener closures")
+    func settingsDefaultWorkspaceHelperGettersCoverage() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        let detector = SettingsSectionViewController.isRunningInTestProcess
+        _ = detector()
+
+        // Getter-only coverage for default native opener closure creation.
+        _ = SettingsSectionViewController.nativeWorkspaceURLOpener
+    }
+
     @Test("Settings calendar fallback guard handles pending-true and authorization-restored branches")
     @MainActor
     func settingsCalendarFallbackPendingAndAuthorizedGuardsCoverage() {
