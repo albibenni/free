@@ -111,7 +111,7 @@ final class CalendarSectionViewController: NSViewController {
     )
     private var importedActiveRuleSetButton: AppKitSelectableRowButton?
     private var importedRuleSetButtons: [UUID: AppKitSelectableRowButton] = [:]
-    private let resyncButton = NSButton(title: "Resync Imported Schedules", target: nil, action: nil)
+    private let resyncButton = ActionButton(title: "Resync Imported Schedules")
     private let integrationNotice = NSTextField(
         wrappingLabelWithString: "Enable Calendar Integration to use calendar title rules."
     )
@@ -170,6 +170,8 @@ final class CalendarSectionViewController: NSViewController {
         calendarImportsSwitch.action = #selector(toggleCalendarImports)
         resyncButton.target = self
         resyncButton.action = #selector(resyncImportedSchedules)
+        resyncButton.translatesAutoresizingMaskIntoConstraints = false
+        resyncButton.heightAnchor.constraint(equalToConstant: 32).isActive = true
         let integrationRows: [NSView] = [
             makeToggleRow(
                 title: "Start week on Monday",
@@ -524,6 +526,11 @@ final class CalendarSectionViewController: NSViewController {
         calendarIntegrationSwitch.isEnabled = !appState.isStrictActive
         calendarImportsSwitch.isEnabled = !appState.isStrictActive && enabled
         resyncButton.isEnabled = enabled
+        applyAppKitSecondaryButtonStyle(
+            resyncButton,
+            title: "Resync Imported Schedules",
+            color: accentColor
+        )
         reloadImportedRuleSetButtons(
             accentColor: accentColor,
             isEnabled: !appState.isStrictActive && enabled
