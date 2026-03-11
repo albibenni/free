@@ -170,7 +170,7 @@ final class CalendarSectionViewController: NSViewController {
         calendarImportsSwitch.action = #selector(toggleCalendarImports)
         resyncButton.target = self
         resyncButton.action = #selector(resyncImportedSchedules)
-        [
+        let integrationRows: [NSView] = [
             makeToggleRow(
                 title: "Start week on Monday",
                 descriptionLabel: nil,
@@ -188,7 +188,12 @@ final class CalendarSectionViewController: NSViewController {
             ),
             makeImportedRuleSetRow(),
             resyncButton,
-        ].forEach { integrationSection.addArrangedSubview($0) }
+        ]
+        integrationRows.forEach {
+            integrationSection.addArrangedSubview($0)
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            $0.widthAnchor.constraint(equalTo: integrationSection.widthAnchor).isActive = true
+        }
         addFullWidthSection(integrationSection)
 
         let sectionTitle = NSTextField(labelWithString: "Import Rules")
@@ -196,29 +201,29 @@ final class CalendarSectionViewController: NSViewController {
         scrollContainer.stackView.addArrangedSubview(sectionTitle)
 
         let section = makeCardSection()
-        section.addArrangedSubview(integrationNotice)
-        section.addArrangedSubview(
-            makeRuleListRow(
-                title: "Focus Title Rules",
-                description: "Match any rule in this list to import as Focus.",
-                inputField: focusRuleField,
-                addButton: addFocusRuleButton,
-                removeButton: removeFocusRuleButton,
-                tableView: focusRulesTableView,
-                tableScrollView: focusRulesScrollView
-            )
+        let focusRuleRow = makeRuleListRow(
+            title: "Focus Title Rules",
+            description: "Match any rule in this list to import as Focus.",
+            inputField: focusRuleField,
+            addButton: addFocusRuleButton,
+            removeButton: removeFocusRuleButton,
+            tableView: focusRulesTableView,
+            tableScrollView: focusRulesScrollView
         )
-        section.addArrangedSubview(
-            makeRuleListRow(
-                title: "Break Title Rules",
-                description: "Match any rule in this list to import as Break.",
-                inputField: breakRuleField,
-                addButton: addBreakRuleButton,
-                removeButton: removeBreakRuleButton,
-                tableView: breakRulesTableView,
-                tableScrollView: breakRulesScrollView
-            )
+        let breakRuleRow = makeRuleListRow(
+            title: "Break Title Rules",
+            description: "Match any rule in this list to import as Break.",
+            inputField: breakRuleField,
+            addButton: addBreakRuleButton,
+            removeButton: removeBreakRuleButton,
+            tableView: breakRulesTableView,
+            tableScrollView: breakRulesScrollView
         )
+        [integrationNotice, focusRuleRow, breakRuleRow].forEach {
+            section.addArrangedSubview($0)
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            $0.widthAnchor.constraint(equalTo: section.widthAnchor).isActive = true
+        }
         addFullWidthSection(section)
 
         configureRuleField(
@@ -384,10 +389,19 @@ final class CalendarSectionViewController: NSViewController {
             alignment: .width,
             spacing: 4
         )
-        stack.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        stack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        stack.translatesAutoresizingMaskIntoConstraints = false
         importedRuleSetScrollView.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        return stack
+
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+        return container
     }
 
     private func makeToggleRow(
@@ -485,7 +499,17 @@ final class CalendarSectionViewController: NSViewController {
         removeButton.heightAnchor.constraint(equalToConstant: 26).isActive = true
         listContainer.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         tableView.reloadData()
-        return stack
+
+        let container = NSView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+        return container
     }
 
     private func reload() {
