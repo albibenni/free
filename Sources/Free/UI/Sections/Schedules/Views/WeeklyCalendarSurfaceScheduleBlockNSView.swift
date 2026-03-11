@@ -216,7 +216,10 @@ final class WeeklyCalendarSurfaceScheduleBlockNSView: NSView {
             fillColor = NSColor.systemGray.withAlphaComponent(0.5)
             borderColor = NSColor.systemGray.withAlphaComponent(0.8)
         } else {
-            let baseColor = FocusColor.nsColor(for: schedule.colorIndex)
+            let baseColor = {
+                let raw = FocusColor.nsColor(for: schedule.colorIndex)
+                return schedule.type == .unfocus ? appKitEmphasizedUnfocusColor(raw) : raw
+            }()
             fillColor = baseColor.withAlphaComponent(
                 WeeklyCalendarSupport.blockFillOpacity(isImported: isImported)
             )

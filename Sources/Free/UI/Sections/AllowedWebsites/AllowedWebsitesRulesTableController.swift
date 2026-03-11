@@ -38,4 +38,26 @@ final class AllowedWebsitesRulesTableController: NSObject, NSTableViewDataSource
         }
         return cellView
     }
+
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        RuleRowView()
+    }
+}
+
+private final class RuleRowView: NSTableRowView {
+    override func drawSelection(in dirtyRect: NSRect) {
+        guard selectionHighlightStyle != .none else { return }
+
+        let fill = NSColor.controlAccentColor.withAlphaComponent(0.48)
+        let stroke = NSColor.controlAccentColor.withAlphaComponent(0.95)
+        let rect = bounds.insetBy(dx: 2, dy: 1)
+        let path = NSBezierPath(roundedRect: rect, xRadius: 6, yRadius: 6)
+
+        fill.setFill()
+        path.fill()
+
+        stroke.setStroke()
+        path.lineWidth = 1
+        path.stroke()
+    }
 }

@@ -100,7 +100,7 @@ final class SchedulesListRowNSView: NSView {
         let indicatorColor =
             schedule.type == .focus
             ? FocusColor.nsColor(for: accentColorIndex)
-            : FocusColor.nsColor(for: schedule.colorIndex)
+            : appKitEmphasizedUnfocusColor(FocusColor.nsColor(for: schedule.colorIndex))
         let indicatorRect = CGRect(x: 16, y: 16, width: 4, height: bounds.height - 32)
         let indicatorPath = NSBezierPath(roundedRect: indicatorRect, xRadius: 2, yRadius: 2)
         indicatorColor.setFill()
