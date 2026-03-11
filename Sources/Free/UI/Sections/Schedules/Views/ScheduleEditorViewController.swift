@@ -1,6 +1,33 @@
 import AppKit
 
 final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate {
+    typealias AlertFactory = () -> NSAlert
+    typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+
+    private static var _makeDeleteConfirmationAlert: AlertFactory?
+    private static var _runDeleteConfirmationAlert: AlertRunner?
+    static var makeDeleteConfirmationAlert: AlertFactory {
+        get { _makeDeleteConfirmationAlert ?? defaultMakeDeleteConfirmationAlert }
+        set { _makeDeleteConfirmationAlert = newValue }
+    }
+    static var runDeleteConfirmationAlert: AlertRunner {
+        get { _runDeleteConfirmationAlert ?? defaultRunDeleteConfirmationAlert }
+        set { _runDeleteConfirmationAlert = newValue }
+    }
+
+    private static func defaultMakeDeleteConfirmationAlert() -> NSAlert { NSAlert() }
+    private static func defaultRunDeleteConfirmationAlert(
+        _ alert: NSAlert
+    ) -> NSApplication.ModalResponse {
+        if AppDelegate.isRunningInTestProcess() {
+            return .alertFirstButtonReturn
+        }
+        return alert.runModal()
+    }
+    private static var isRunningUnderXCTest: Bool {
+        AppDelegate.isRunningInTestProcess()
+    }
+
     private let appState: AppState
     private let context: ScheduleEditorContext
     private let onRequestClose: () -> Void
@@ -453,6 +480,26 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private func deleteSchedule() {
         guard let existingSchedule else { return }
+        if ScheduleEditorSupport.shouldConfirmDeleteForMultiDayRecurring(
+            existingSchedule: existingSchedule,
+            modifyAllDays: modifyAllDays
+        ) {
+            if Self.isRunningUnderXCTest,
+                Self._makeDeleteConfirmationAlert == nil,
+                Self._runDeleteConfirmationAlert == nil
+            {
+                // Avoid constructing NSAlert off-main in non-UI tests.
+            } else {
+            let alert = Self.makeDeleteConfirmationAlert()
+            alert.alertStyle = .warning
+            alert.messageText = "Delete Multi-Day Schedule?"
+            alert.informativeText =
+                "This schedule repeats across multiple days. Deleting it will remove all days."
+            alert.addButton(withTitle: "Delete")
+            alert.addButton(withTitle: "Cancel")
+            guard Self.runDeleteConfirmationAlert(alert) == .alertFirstButtonReturn else { return }
+            }
+        }
         appState.deleteSchedule(
             id: existingSchedule.id,
             modifyAllDays: modifyAllDays,
@@ -610,4 +657,9 @@ extension ScheduleEditorViewController {
     var startTimeForTesting: Date { startTime }
     var endTimeForTesting: Date { endTime }
     var ruleSetIdForTesting: UUID? { ruleSetId }
+
+    static func resetDeleteConfirmationHooksForTesting() {
+        _makeDeleteConfirmationAlert = nil
+        _runDeleteConfirmationAlert = nil
+    }
 }

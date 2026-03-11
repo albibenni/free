@@ -355,6 +355,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController delete schedule removes and dismisses")
     func addScheduleViewPerformDelete() {
+        defer { ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting() }
         let appState = isolatedAppState(name: "performDelete")
         let schedule = Schedule(
             name: "Recurring Focus",
@@ -378,6 +379,55 @@ struct AddScheduleViewTests {
             onClose: { closeCount += 1 }
         )
         controller.deleteScheduleForTesting()
+        #expect(!appState.schedules.contains(where: { $0.id == schedule.id }))
+        #expect(closeCount == 1)
+    }
+
+    @Test("ScheduleEditorViewController delete confirms multi-day recurring schedule before deleting")
+    @MainActor
+    func addScheduleViewDeleteRequiresConfirmationForRecurringMultiDay() {
+        defer { ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting() }
+        let appState = isolatedAppState(name: "deleteRecurringConfirm")
+        let schedule = Schedule(
+            name: "Recurring Focus",
+            days: [2, 3, 4],
+            startTime: Date(),
+            endTime: Date().addingTimeInterval(3600),
+            colorIndex: 0,
+            type: .focus
+        )
+        appState.schedules = [schedule]
+
+        var closeCount = 0
+        var alertShown = 0
+        ScheduleEditorViewController.makeDeleteConfirmationAlert = { NSAlert() }
+        ScheduleEditorViewController.runDeleteConfirmationAlert = { _ in
+            alertShown += 1
+            return .alertSecondButtonReturn
+        }
+
+        let controller = makeController(
+            appState: appState,
+            context: ScheduleEditorContext(
+                day: 2,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                schedule: schedule
+            ),
+            onClose: { closeCount += 1 }
+        )
+
+        controller.deleteScheduleForTesting()
+        #expect(alertShown == 1)
+        #expect(appState.schedules.contains(where: { $0.id == schedule.id }))
+        #expect(closeCount == 0)
+
+        ScheduleEditorViewController.runDeleteConfirmationAlert = { _ in
+            alertShown += 1
+            return .alertFirstButtonReturn
+        }
+        controller.deleteScheduleForTesting()
+        #expect(alertShown == 2)
         #expect(!appState.schedules.contains(where: { $0.id == schedule.id }))
         #expect(closeCount == 1)
     }
@@ -429,6 +479,7 @@ struct AddScheduleViewTests {
     @Test("Schedule editor UI interactions trigger selection closures and button actions")
     @MainActor
     func addScheduleViewInteractiveClosureCoverage() {
+        defer { ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting() }
         let appState = isolatedAppState(name: "interactiveClosureCoverage")
         appState.ruleSets = [
             RuleSet(name: "One", urls: ["one.com"]),

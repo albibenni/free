@@ -70,7 +70,7 @@
   - [x] allow personal imports rule about title search and focus time
 - [x] cannot delete imported schdule
   - [x] future impl: allow modification to calendar if flag is toggled
-- [ ] delete multiple scheduled day pop alert out
+- [x] delete multiple scheduled day pop alert out
 - [ ] define in setting which allowed list should be used for imported schedule
 
 ## Bug
