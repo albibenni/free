@@ -7,18 +7,26 @@ struct AppStateCalendarSyncCoordinator {
         events: [ExternalEvent],
         calendarImportsBlockTime: Bool,
         suppressedImportedCalendarEventKeys: Set<String>,
+        focusTitleRules: [String],
+        breakTitleRules: [String],
+        calendarImportedScheduleRuleSetId: UUID? = nil,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
+        weekStartsOnMonday: Bool,
         preservedImportedByKey: [String: Schedule]
     ) -> [Schedule]? {
         guard calendarIntegrationEnabled else { return nil }
         return AppStateScheduleCoordinator.rebuildIfNeeded(
             currentSchedules: currentSchedules,
             events: events,
-            shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+            shouldImportCalendarEvents: calendarIntegrationEnabled,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
+            focusTitleRules: focusTitleRules,
+            breakTitleRules: breakTitleRules,
+            calendarImportedScheduleRuleSetId: calendarImportedScheduleRuleSetId,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
+            weekStartsOnMonday: weekStartsOnMonday,
             preservedImportedByKey: preservedImportedByKey
         )
     }
@@ -30,18 +38,26 @@ struct AppStateCalendarSyncCoordinator {
         calendarIntegrationEnabled: Bool,
         calendarImportsBlockTime: Bool,
         suppressedImportedCalendarEventKeys: Set<String>,
+        focusTitleRules: [String],
+        breakTitleRules: [String],
+        calendarImportedScheduleRuleSetId: UUID? = nil,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
+        weekStartsOnMonday: Bool,
         preservedImportedByKey: [String: Schedule]
     ) -> [Schedule]? {
         guard !isSynchronizingImportedSchedules else { return nil }
         return AppStateScheduleCoordinator.rebuildIfNeeded(
             currentSchedules: currentSchedules,
             events: events,
-            shouldImportCalendarEvents: calendarIntegrationEnabled && calendarImportsBlockTime,
+            shouldImportCalendarEvents: calendarIntegrationEnabled,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
+            focusTitleRules: focusTitleRules,
+            breakTitleRules: breakTitleRules,
+            calendarImportedScheduleRuleSetId: calendarImportedScheduleRuleSetId,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
+            weekStartsOnMonday: weekStartsOnMonday,
             preservedImportedByKey: preservedImportedByKey
         )
     }

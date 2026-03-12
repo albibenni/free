@@ -9,15 +9,21 @@ final class SettingsStore {
         static let appearanceMode = "AppearanceMode"
         static let calendarIntegrationEnabled = "CalendarIntegrationEnabled"
         static let calendarImportsBlockTime = "CalendarImportsBlockTime"
+        static let calendarImportFocusTitleRules = "CalendarImportFocusTitleRules"
+        static let calendarImportBreakTitleRules = "CalendarImportBreakTitleRules"
+        static let calendarImportedScheduleRuleSetId = "CalendarImportedScheduleRuleSetId"
         static let blockNewTabs = "BlockNewTabs"
         static let blockDeveloperHosts = "BlockDeveloperHosts"
         static let blockLocalNetworkHosts = "BlockLocalNetworkHosts"
+        static let allowSearchEngineWebsites = "AllowSearchEngineWebsites"
+        static let allowAIProviderWebsites = "AllowAIProviderWebsites"
         static let ruleSets = "RuleSets"
         static let activeRuleSetId = "ActiveRuleSetId"
         static let schedules = "Schedules"
         static let pomodoroFocusDuration = "PomodoroFocusDuration"
         static let pomodoroBreakDuration = "PomodoroBreakDuration"
         static let wasStartedBySchedule = "WasStartedBySchedule"
+        static let manualBlockingEnabled = "ManualBlockingEnabled"
         static let launchAtLoginPromptShown = "LaunchAtLoginPromptShown"
         static let suppressedImportedCalendarEventKeys = "SuppressedImportedCalendarEventKeys"
     }
@@ -53,6 +59,27 @@ final class SettingsStore {
         defaults.set(value, forKey: Key.calendarImportsBlockTime)
     }
 
+    func calendarImportFocusTitleRules() -> [String] {
+        defaults.stringArray(forKey: Key.calendarImportFocusTitleRules) ?? []
+    }
+    func setCalendarImportFocusTitleRules(_ value: [String]) {
+        defaults.set(value, forKey: Key.calendarImportFocusTitleRules)
+    }
+
+    func calendarImportBreakTitleRules() -> [String] {
+        defaults.stringArray(forKey: Key.calendarImportBreakTitleRules) ?? []
+    }
+    func setCalendarImportBreakTitleRules(_ value: [String]) {
+        defaults.set(value, forKey: Key.calendarImportBreakTitleRules)
+    }
+
+    func calendarImportedScheduleRuleSetId() -> UUID? {
+        UUID(uuidString: defaults.string(forKey: Key.calendarImportedScheduleRuleSetId) ?? "")
+    }
+    func setCalendarImportedScheduleRuleSetId(_ value: UUID?) {
+        defaults.set(value?.uuidString, forKey: Key.calendarImportedScheduleRuleSetId)
+    }
+
     func blockNewTabs() -> Bool { defaults.bool(forKey: Key.blockNewTabs) }
     func setBlockNewTabs(_ value: Bool) { defaults.set(value, forKey: Key.blockNewTabs) }
 
@@ -62,6 +89,16 @@ final class SettingsStore {
     func blockLocalNetworkHosts() -> Bool { defaults.bool(forKey: Key.blockLocalNetworkHosts) }
     func setBlockLocalNetworkHosts(_ value: Bool) {
         defaults.set(value, forKey: Key.blockLocalNetworkHosts)
+    }
+
+    func allowSearchEngineWebsites() -> Bool { defaults.bool(forKey: Key.allowSearchEngineWebsites) }
+    func setAllowSearchEngineWebsites(_ value: Bool) {
+        defaults.set(value, forKey: Key.allowSearchEngineWebsites)
+    }
+
+    func allowAIProviderWebsites() -> Bool { defaults.bool(forKey: Key.allowAIProviderWebsites) }
+    func setAllowAIProviderWebsites(_ value: Bool) {
+        defaults.set(value, forKey: Key.allowAIProviderWebsites)
     }
 
     func activeRuleSetId() -> UUID? {
@@ -93,6 +130,11 @@ final class SettingsStore {
     }
     func hasPersistedWasStartedBySchedule() -> Bool {
         defaults.object(forKey: Key.wasStartedBySchedule) != nil
+    }
+
+    func manualBlockingEnabled() -> Bool { defaults.bool(forKey: Key.manualBlockingEnabled) }
+    func setManualBlockingEnabled(_ value: Bool) {
+        defaults.set(value, forKey: Key.manualBlockingEnabled)
     }
 
     func launchAtLoginPromptShown() -> Bool {

@@ -25,9 +25,13 @@ extension AllowedWebsitesFloatingEditorViewController {
 
     func applyButtonStyling() {
         let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
-        styleActionButton(addButton, title: "Add", color: accentColor)
-        styleActionButton(importOpenTabsButton, title: "Import Open Tabs", color: accentColor)
-        styleActionButton(removeButton, title: "Remove Selected", color: accentColor)
+        applyAppKitListActionButtonStyle(addButton, title: "Add", color: accentColor)
+        applyAppKitListActionButtonStyle(
+            importOpenTabsButton,
+            title: "Import Open Tabs",
+            color: accentColor
+        )
+        applyAppKitListActionButtonStyle(removeButton, title: "Remove Selected", color: accentColor)
         styleHeaderIconButtons(color: accentColor)
     }
 
@@ -48,24 +52,4 @@ extension AllowedWebsitesFloatingEditorViewController {
         )
     }
 
-    private func styleActionButton(_ button: ActionButton, title: String, color: NSColor) {
-        button.isBordered = false
-        button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
-        button.focusRingType = .none
-        button.setGradientBackground(
-            colors: [
-                color.withAlphaComponent(0.14),
-                color.withAlphaComponent(0.08),
-            ],
-            borderColor: color.withAlphaComponent(0.28)
-        )
-        button.attributedTitle = NSAttributedString(
-            string: title,
-            attributes: [
-                .font: AppKitUIConstants.Typography.buttonLabel,
-                .foregroundColor: color,
-            ]
-        )
-        button.contentTintColor = color
-    }
 }

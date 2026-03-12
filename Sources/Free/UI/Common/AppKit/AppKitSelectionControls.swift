@@ -133,6 +133,13 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
 }
 
 final class AppKitToggleSwitch: NSControl {
+    private enum Metrics {
+        static let width: CGFloat = 46
+        static let height: CGFloat = 24
+        static let inset: CGFloat = 2
+        static let knobSize: CGFloat = 20
+    }
+
     private let knobView = NSView()
     private var knobLeadingConstraint: NSLayoutConstraint?
 
@@ -149,7 +156,7 @@ final class AppKitToggleSwitch: NSControl {
     }
 
     override var intrinsicContentSize: NSSize {
-        NSSize(width: 52, height: 28)
+        NSSize(width: Metrics.width, height: Metrics.height)
     }
 
     override init(frame frameRect: NSRect) {
@@ -167,11 +174,14 @@ final class AppKitToggleSwitch: NSControl {
         knobView.translatesAutoresizingMaskIntoConstraints = false
 
         addSubview(knobView)
-        knobLeadingConstraint = knobView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2)
+        knobLeadingConstraint = knobView.leadingAnchor.constraint(
+            equalTo: leadingAnchor,
+            constant: Metrics.inset
+        )
 
         NSLayoutConstraint.activate([
-            knobView.widthAnchor.constraint(equalToConstant: 24),
-            knobView.heightAnchor.constraint(equalToConstant: 24),
+            knobView.widthAnchor.constraint(equalToConstant: Metrics.knobSize),
+            knobView.heightAnchor.constraint(equalToConstant: Metrics.knobSize),
             knobView.centerYAnchor.constraint(equalTo: centerYAnchor),
             knobLeadingConstraint!,
         ])
@@ -222,10 +232,10 @@ final class AppKitToggleSwitch: NSControl {
     }
 
     private func updateKnobPosition() {
-        let knobWidth = knobView.bounds.width > 0 ? knobView.bounds.width : 24
+        let knobWidth = knobView.bounds.width > 0 ? knobView.bounds.width : Metrics.knobSize
         knobLeadingConstraint?.constant = state == .on
-            ? max(bounds.width - knobWidth - 2, 2)
-            : 2
+            ? max(bounds.width - knobWidth - Metrics.inset, Metrics.inset)
+            : Metrics.inset
     }
 
     private func updateAppearance() {

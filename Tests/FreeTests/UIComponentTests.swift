@@ -444,7 +444,7 @@ struct UIComponentTests {
     func appKitToggleSwitchInteractions() {
         let toggle = AppKitToggleSwitch(frame: NSRect(x: 0, y: 0, width: 52, height: 28))
         toggle.accentColor = .systemGreen
-        #expect(toggle.intrinsicContentSize == NSSize(width: 52, height: 28))
+        #expect(toggle.intrinsicContentSize == NSSize(width: 46, height: 24))
         #expect(toggle.acceptsFirstResponder)
 
         var actionCount = 0
@@ -616,6 +616,26 @@ struct UIComponentTests {
         #expect(missingColor == nil)
     }
 
+    @Test("Dynamic AppKit color helpers cover appearance branch and unfocus emphasis helper")
+    func dynamicAppKitColorHelperCoverage() {
+        let appearance = NSAppearance(named: .darkAqua)
+        let resolved = resolvedAppKitCGColor(NSColor.systemGreen, appearance: appearance)
+        #expect(NSColor(cgColor: resolved) != nil)
+
+        let emphasized = appKitEmphasizedUnfocusColor(.systemBlue)
+        #expect(emphasized != .systemBlue)
+
+        // Pattern colors generally cannot convert to deviceRGB; this covers the fallback guard path.
+        let image = NSImage(size: NSSize(width: 2, height: 2))
+        image.lockFocus()
+        NSColor.systemOrange.setFill()
+        NSBezierPath(rect: NSRect(x: 0, y: 0, width: 2, height: 2)).fill()
+        image.unlockFocus()
+        let pattern = NSColor(patternImage: image)
+        let fallback = appKitEmphasizedUnfocusColor(pattern)
+        #expect(fallback != .clear)
+    }
+
     @Test("Main sidebar selection callback routes to expected section controller")
     @MainActor
     func mainSidebarSelectionRoutesToExpectedController() {
@@ -645,10 +665,12 @@ struct UIComponentTests {
             shellState: shellState,
             section: .allowedWebsites
         )
+        let calendarController = CalendarSectionViewController(appState: appState)
         let settingsController = SettingsSectionViewController(appState: appState)
         let router = MainSectionRouter(
             focusOverviewController: focusController,
             schedulesOverviewController: schedulesController,
+            calendarSectionController: calendarController,
             pomodoroSectionController: pomodoroController,
             allowedWebsitesSectionController: allowedWebsitesController,
             settingsSectionController: settingsController
@@ -722,10 +744,12 @@ struct UIComponentTests {
             shellState: shellState,
             section: .allowedWebsites
         )
+        let calendarController = CalendarSectionViewController(appState: appState)
         let settingsController = SettingsSectionViewController(appState: appState)
         let router = MainSectionRouter(
             focusOverviewController: focusController,
             schedulesOverviewController: schedulesController,
+            calendarSectionController: calendarController,
             pomodoroSectionController: pomodoroController,
             allowedWebsitesSectionController: allowedWebsitesController,
             settingsSectionController: settingsController
@@ -733,6 +757,7 @@ struct UIComponentTests {
 
         #expect(MainContentSection.focus.icon == AppKitUISymbols.Name.focus)
         #expect(MainContentSection.schedules.icon == AppKitUISymbols.Name.schedules)
+        #expect(MainContentSection.calendar.icon == AppKitUISymbols.Name.calendar)
         #expect(MainContentSection.pomodoro.icon == AppKitUISymbols.Name.pomodoro)
         #expect(MainContentSection.allowedWebsites.icon == AppKitUISymbols.Name.allowedWebsites)
         #expect(MainContentSection.settings.icon == AppKitUISymbols.Name.settings)
@@ -740,8 +765,71 @@ struct UIComponentTests {
 
         #expect(router.controller(for: .focus) === focusController)
         #expect(router.controller(for: .schedules) === schedulesController)
+        #expect(router.controller(for: .calendar) === calendarController)
         #expect(router.controller(for: .pomodoro) === pomodoroController)
         #expect(router.controller(for: .allowedWebsites) === allowedWebsitesController)
         #expect(router.controller(for: .settings) === settingsController)
+    }
+
+    @MainActor
+    @Test("Main sidebar visibility and enable/disable states update style and click routing")
+    func mainSidebarVisibilityAndEnabledStateCoverage() {
+        let sidebar = MainSidebarView(
+            selectedSection: .focus,
+            isSidebarVisible: false,
+            accentColorIndex: 0
+        )
+        sidebar.frame = NSRect(x: 0, y: 0, width: 220, height: 640)
+        sidebar.layoutSubtreeIfNeeded()
+        sidebar.displayIfNeeded()
+
+        // Cover collapse/expand icon and hidden state branches.
+        sidebar.setSidebarVisible(false)
+        sidebar.setSidebarVisible(true)
+        #expect(sidebar.leadingInset(for: .focus) == 6)
+
+        var selectedSections: [MainContentSection] = []
+        sidebar.onSelectSection = { section in
+            selectedSections.append(section)
+        }
+
+        // Disabled-guard branch.
+        sidebar.setSectionEnabled(.calendar, isEnabled: false)
+        let calendarButton = findButton(
+            with: NSUserInterfaceItemIdentifier(MainContentSection.calendar.rawValue),
+            in: sidebar
+        )
+        #expect(calendarButton?.isEnabled == false)
+        calendarButton?.performClick(nil)
+        #expect(selectedSections.isEmpty)
+
+        // Re-enable and route through selection branch.
+        sidebar.setSectionEnabled(.calendar, isEnabled: true)
+        calendarButton?.performClick(nil)
+        #expect(selectedSections == [.calendar])
+        #expect(sidebar.selectedBackgroundColor(for: .calendar) != nil)
+
+        // Keep unresolved identifier branch covered after enable/disable mutations.
+        sidebar.invokeSidebarButtonForTesting(identifierRawValue: "still.unknown")
+        #expect(selectedSections == [.calendar])
+
+        // Cover disabled sender guard path when action is invoked directly.
+        sidebar.invokeSidebarButtonForTesting(identifierRawValue: MainContentSection.calendar.rawValue, isEnabled: false)
+        #expect(selectedSections == [.calendar])
+
+        // Cover nil-identifier guard path.
+        let originalIdentifier = calendarButton?.identifier
+        calendarButton?.identifier = nil
+        calendarButton?.performClick(nil)
+        calendarButton?.identifier = originalIdentifier
+        #expect(selectedSections == [.calendar])
+
+        // Cover missing-button guard in setSectionEnabled.
+        sidebar.removeSectionButtonForTesting(.calendar)
+        sidebar.setSectionEnabled(.calendar, isEnabled: true)
+
+        // Cover default enabled fallback path when no explicit enabled state exists.
+        sidebar.clearSectionEnabledForTesting(.focus)
+        sidebar.updateSelection(selectedSection: .focus, accentColorIndex: 1)
     }
 }

@@ -10,9 +10,14 @@ enum AppStatePersistenceCoordinator {
         let appearanceMode: AnyPublisher<AppearanceMode, Never>
         let calendarIntegrationEnabled: AnyPublisher<Bool, Never>
         let calendarImportsBlockTime: AnyPublisher<Bool, Never>
+        let calendarImportFocusTitleRules: AnyPublisher<[String], Never>
+        let calendarImportBreakTitleRules: AnyPublisher<[String], Never>
+        let calendarImportedScheduleRuleSetId: AnyPublisher<UUID?, Never>
         let blockNewTabs: AnyPublisher<Bool, Never>
         let blockDeveloperHosts: AnyPublisher<Bool, Never>
         let blockLocalNetworkHosts: AnyPublisher<Bool, Never>
+        let allowSearchEngineWebsites: AnyPublisher<Bool, Never>
+        let allowAIProviderWebsites: AnyPublisher<Bool, Never>
         let ruleSets: AnyPublisher<[RuleSet], Never>
         let activeRuleSetId: AnyPublisher<UUID?, Never>
         let pomodoroFocusDuration: AnyPublisher<Double, Never>
@@ -67,6 +72,21 @@ enum AppStatePersistenceCoordinator {
             .sink { settingsStore.setCalendarImportsBlockTime($0) }
             .store(in: &cancellables)
 
+        bindings.calendarImportFocusTitleRules
+            .dropFirst()
+            .sink { settingsStore.setCalendarImportFocusTitleRules($0) }
+            .store(in: &cancellables)
+
+        bindings.calendarImportBreakTitleRules
+            .dropFirst()
+            .sink { settingsStore.setCalendarImportBreakTitleRules($0) }
+            .store(in: &cancellables)
+
+        bindings.calendarImportedScheduleRuleSetId
+            .dropFirst()
+            .sink { settingsStore.setCalendarImportedScheduleRuleSetId($0) }
+            .store(in: &cancellables)
+
         bindings.blockNewTabs
             .dropFirst()
             .sink { settingsStore.setBlockNewTabs($0) }
@@ -80,6 +100,16 @@ enum AppStatePersistenceCoordinator {
         bindings.blockLocalNetworkHosts
             .dropFirst()
             .sink { settingsStore.setBlockLocalNetworkHosts($0) }
+            .store(in: &cancellables)
+
+        bindings.allowSearchEngineWebsites
+            .dropFirst()
+            .sink { settingsStore.setAllowSearchEngineWebsites($0) }
+            .store(in: &cancellables)
+
+        bindings.allowAIProviderWebsites
+            .dropFirst()
+            .sink { settingsStore.setAllowAIProviderWebsites($0) }
             .store(in: &cancellables)
 
         bindings.ruleSets

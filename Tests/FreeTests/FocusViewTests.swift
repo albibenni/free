@@ -679,6 +679,158 @@ struct FocusViewTests {
         #expect(controller.isPauseDashboardHiddenForTesting == true)
     }
 
+    @Test("Quick Break buttons in main view start pause sessions")
+    @MainActor
+    func focusViewMainQuickBreakButtonsStartPause() {
+        let appState = isolatedAppState(name: "mainQuickBreak")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+        #expect(controller.isQuickBreakDashboardHiddenForTesting == false)
+
+        let quickBreakButton = buttons(in: hosted).first { $0.title == "5m" }
+        #expect(quickBreakButton != nil)
+        quickBreakButton?.performClick(nil)
+
+        #expect(appState.isPaused)
+        #expect(controller.isPauseDashboardHiddenForTesting == false)
+        #expect(controller.isQuickBreakDashboardHiddenForTesting)
+    }
+
+    @Test("Quick Break 15m and 30m buttons in main view start expected pause durations")
+    @MainActor
+    func focusViewMainQuickBreakButtonsAdditionalDurations() {
+        let appState = isolatedAppState(name: "mainQuickBreakAdditionalDurations")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+
+        let fifteenButton = buttons(in: hosted).first { $0.title == "15m" }
+        let thirtyButton = buttons(in: hosted).first { $0.title == "30m" }
+        #expect(fifteenButton != nil)
+        #expect(thirtyButton != nil)
+
+        fifteenButton?.performClick(nil)
+        #expect(controller.pauseTimeTextForTesting == "15:00")
+
+        controller.cancelPause()
+        thirtyButton?.performClick(nil)
+        #expect(controller.pauseTimeTextForTesting == "30:00")
+    }
+
+    @Test("Quick Break custom value in main view starts pause session")
+    @MainActor
+    func focusViewMainQuickBreakCustomValue() {
+        let appState = isolatedAppState(name: "mainQuickBreakCustom")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+
+        let minutesField = hosted
+            .recursiveSubviews()
+            .compactMap { $0 as? NSTextField }
+            .first { $0.placeholderString == "Minutes" }
+        minutesField?.stringValue = "12"
+
+        let customButton = buttons(in: hosted).first { $0.title == "Start" }
+        #expect(customButton != nil)
+        customButton?.performClick(nil)
+
+        #expect(appState.isPaused)
+        #expect(controller.pauseTimeTextForTesting == "12:00")
+        #expect(controller.isQuickBreakDashboardHiddenForTesting)
+    }
+
+    @Test("Quick Break custom start ignores non-numeric value")
+    @MainActor
+    func focusViewMainQuickBreakCustomValueInvalidInput() {
+        let appState = isolatedAppState(name: "mainQuickBreakCustomInvalid")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+        controller.quickBreakCustomMinutesField.stringValue = "abc"
+
+        controller.startCustomQuickBreak()
+
+        #expect(appState.isPaused == false)
+        #expect(controller.isQuickBreakDashboardHiddenForTesting == false)
+    }
+
+    @Test("Quick Break custom field accepts only digits and max 3 characters")
+    @MainActor
+    func focusViewMainQuickBreakCustomFieldSanitization() {
+        let appState = isolatedAppState(name: "mainQuickBreakCustomFieldSanitization")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+
+        controller.quickBreakCustomMinutesField.stringValue = "ab12x3459"
+        controller.controlTextDidChange(
+            Notification(
+                name: NSControl.textDidChangeNotification,
+                object: controller.quickBreakCustomMinutesField
+            )
+        )
+        #expect(controller.quickBreakCustomMinutesField.stringValue == "123")
+    }
+
+    @Test("Quick Break custom field ignores unrelated text-change notifications")
+    @MainActor
+    func focusViewMainQuickBreakCustomFieldIgnoresUnrelatedNotifications() {
+        let appState = isolatedAppState(name: "mainQuickBreakFieldUnrelatedNotification")
+        appState.isTrusted = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+        controller.quickBreakCustomMinutesField.stringValue = "789"
+
+        let unrelated = NSTextField(string: "a1b2")
+        controller.controlTextDidChange(
+            Notification(name: NSControl.textDidChangeNotification, object: unrelated)
+        )
+
+        #expect(controller.quickBreakCustomMinutesField.stringValue == "789")
+
+        controller.controlTextDidChange(
+            Notification(name: NSControl.textDidChangeNotification, object: NSView())
+        )
+        #expect(controller.quickBreakCustomMinutesField.stringValue == "789")
+    }
+
+    @Test("Quick Break controls are locked when Unblockable mode is active")
+    @MainActor
+    func focusViewMainQuickBreakLockedInUnblockableMode() {
+        let appState = isolatedAppState(name: "mainQuickBreakLockedUnblockable")
+        appState.isTrusted = true
+        appState.isBlocking = true
+        appState.isUnblockable = true
+
+        let controller = makeController(appState: appState, section: .all)
+        let hosted = host(controller)
+
+        let quickBreakButton = buttons(in: hosted).first { $0.title == "5m" }
+        let customButton = buttons(in: hosted).first { $0.title == "Start" }
+        let minutesField = hosted
+            .recursiveSubviews()
+            .compactMap { $0 as? NSTextField }
+            .first { $0.placeholderString == "Minutes" }
+
+        #expect(quickBreakButton?.isEnabled == false)
+        #expect(customButton?.isEnabled == false)
+        #expect(minutesField?.isEditable == false)
+    }
+
     @Test("Focus schedules widget reload keeps existing view when signature is unchanged")
     @MainActor
     func focusSchedulesWidgetKeepExistingReload() {
@@ -724,5 +876,11 @@ struct FocusViewTests {
 
         #expect(controller.currentWidgetViewTypeForTesting == "FocusAllowedWebsitesWidgetView")
         #expect(controller.widgetViewIdentifierForTesting == initialIdentifier)
+    }
+}
+
+private extension NSView {
+    func recursiveSubviews() -> [NSView] {
+        [self] + subviews.flatMap { $0.recursiveSubviews() }
     }
 }

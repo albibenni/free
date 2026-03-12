@@ -6,8 +6,12 @@ struct AppStateScheduleCoordinator {
         events: [ExternalEvent],
         shouldImportCalendarEvents: Bool,
         suppressedImportedCalendarEventKeys: Set<String>,
+        focusTitleRules: [String],
+        breakTitleRules: [String],
+        calendarImportedScheduleRuleSetId: UUID? = nil,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
+        weekStartsOnMonday: Bool,
         preservedImportedByKey: [String: Schedule] = [:]
     ) -> [Schedule]? {
         let resolvedPreservedImportedByKey = AppStateScheduleCoordinator.preservedImportedByKey(
@@ -20,8 +24,12 @@ struct AppStateScheduleCoordinator {
             events: events,
             shouldImportCalendarEvents: shouldImportCalendarEvents,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
+            focusTitleRules: focusTitleRules,
+            breakTitleRules: breakTitleRules,
+            calendarImportedScheduleRuleSetId: calendarImportedScheduleRuleSetId,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
+            weekStartsOnMonday: weekStartsOnMonday,
             preservedImportedByKey: resolvedPreservedImportedByKey
         )
 

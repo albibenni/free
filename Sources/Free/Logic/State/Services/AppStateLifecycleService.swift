@@ -41,9 +41,14 @@ enum AppStateLifecycleService {
             weekStartsOnMonday: snapshot.weekStartsOnMonday,
             accentColorIndex: snapshot.accentColorIndex,
             appearanceMode: snapshot.appearanceMode,
+            calendarImportFocusTitleRules: snapshot.calendarImportFocusTitleRules,
+            calendarImportBreakTitleRules: snapshot.calendarImportBreakTitleRules,
+            calendarImportedScheduleRuleSetId: snapshot.calendarImportedScheduleRuleSetId,
             blockNewTabs: snapshot.blockNewTabs,
             blockDeveloperHosts: snapshot.blockDeveloperHosts,
-            blockLocalNetworkHosts: snapshot.blockLocalNetworkHosts
+            blockLocalNetworkHosts: snapshot.blockLocalNetworkHosts,
+            allowSearchEngineWebsites: snapshot.allowSearchEngineWebsites,
+            allowAIProviderWebsites: snapshot.allowAIProviderWebsites
         ),
             pomodoro: AppPomodoroDomainState(
             status: .none,

@@ -48,6 +48,18 @@ extension FocusSectionViewController {
 
         pauseDashboardView.isHidden = sharedState.isPauseDashboardHidden
         pauseTimeLabel.stringValue = sharedState.pauseTimeText
+
+        let quickBreakEnabled =
+            appState.isBlocking
+            && !appState.isStrictActive
+            && !appState.isUnblockable
+            && !appState.isPaused
+        [quickBreakFiveButton, quickBreakFifteenButton, quickBreakThirtyButton, quickBreakCustomButton].forEach {
+            $0.isEnabled = quickBreakEnabled
+        }
+        quickBreakCustomMinutesField.isEditable = quickBreakEnabled
+        quickBreakCustomMinutesField.textColor = quickBreakEnabled ? .labelColor : .secondaryLabelColor
+        quickBreakDashboardView.isHidden = section != .all || appState.isPaused
     }
 
     func beginPomodoroWidgetInteraction() {

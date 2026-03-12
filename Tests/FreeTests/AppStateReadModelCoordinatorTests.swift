@@ -23,11 +23,18 @@ struct AppStateReadModelCoordinatorTests {
             pomodoroRuleSetId: nil,
             isPomodoroFocus: false,
             isBlocking: true,
-            wasStartedBySchedule: false
+            wasStartedBySchedule: false,
+            allowSearchEngineWebsites: true,
+            allowAIProviderWebsites: true
         )
 
         #expect(AppStateReadModelCoordinator.currentPrimaryRuleSetId(context: context) == second.id)
         #expect(AppStateReadModelCoordinator.currentPrimaryRuleSetName(context: context) == "Two")
-        #expect(AppStateReadModelCoordinator.allowedRules(context: context) == ["two.com"])
+        let allowedRules = Set(AppStateReadModelCoordinator.allowedRules(context: context))
+        #expect(allowedRules.contains("two.com"))
+        #expect(allowedRules.contains("google.com"))
+        #expect(allowedRules.contains("duckduckgo.com"))
+        #expect(allowedRules.contains("chatgpt.com"))
+        #expect(allowedRules.contains("claude.ai"))
     }
 }

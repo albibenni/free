@@ -60,6 +60,12 @@ struct SectionCoordinatorsTests {
                 action: .next
             ) == 3
         )
+        #expect(
+            SchedulesSheetPresentationCoordinator.weekOffset(
+                current: -1,
+                action: .previous
+            ) == -1
+        )
     }
 
     @Test("Focus widget coordinator classifies pomodoro widget reuse actions")

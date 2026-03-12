@@ -1,6 +1,11 @@
 import Foundation
 
 extension AppState {
+    var manualBlockingEnabled: Bool {
+        get { internalState.manualBlockingEnabled }
+        set { internalState.manualBlockingEnabled = newValue }
+    }
+
     var wasStartedBySchedule: Bool {
         get { internalState.wasStartedBySchedule }
         set { internalState.wasStartedBySchedule = newValue }
@@ -29,5 +34,10 @@ extension AppState {
     func setWasStartedBySchedule(_ value: Bool) {
         wasStartedBySchedule = value
         settingsStore.setWasStartedBySchedule(value)
+    }
+
+    func setManualBlockingEnabled(_ value: Bool) {
+        manualBlockingEnabled = value
+        settingsStore.setManualBlockingEnabled(value)
     }
 }

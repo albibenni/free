@@ -74,7 +74,7 @@ final class FocusSchedulesWidgetView: AppKitCardView {
         indicator.layer?.backgroundColor = (
             schedule.type == .focus
                 ? accentColor
-                : FocusColor.nsColor(for: schedule.colorIndex)
+                : appKitEmphasizedUnfocusColor(FocusColor.nsColor(for: schedule.colorIndex))
         ).cgColor
         indicator.layer?.cornerRadius = AppKitUIConstants.CornerRadius.badge / 2
         indicator.translatesAutoresizingMaskIntoConstraints = false

@@ -1,6 +1,8 @@
 import Foundation
 
 enum SchedulesSheetPresentationCoordinator {
+    private static let minimumWeekOffset = -1
+
     enum WeekNavigationAction {
         case previous
         case current
@@ -19,7 +21,7 @@ enum SchedulesSheetPresentationCoordinator {
     ) -> Int {
         switch action {
         case .previous:
-            current - 1
+            max(current - 1, minimumWeekOffset)
         case .current:
             0
         case .next:

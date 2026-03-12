@@ -21,6 +21,13 @@ final class FocusSectionViewController: NSViewController {
     let pauseTitleLabel = NSTextField(labelWithString: "On Break")
     let pauseTimeLabel = NSTextField(labelWithString: "")
     let pauseEndButton = ActionButton(title: "End Break & Focus")
+    let quickBreakDashboardView = AppKitDynamicView()
+    let quickBreakTitleLabel = NSTextField(labelWithString: "Quick Break")
+    let quickBreakFiveButton = ActionButton(title: "5m")
+    let quickBreakFifteenButton = ActionButton(title: "15m")
+    let quickBreakThirtyButton = ActionButton(title: "30m")
+    let quickBreakCustomMinutesField = NSTextField(string: "")
+    let quickBreakCustomButton = ActionButton(title: "Start")
     let overviewCardView = AppKitDynamicView()
     let overviewTitleLabel = NSTextField(labelWithString: "Live Overview")
     let overviewRowsStack = NSStackView()
@@ -66,11 +73,20 @@ final class FocusSectionViewController: NSViewController {
         configurePermissionWarning()
         configureHeaderCard()
         configurePauseDashboard()
+        configureQuickBreakDashboard()
         configureOverview()
         configureWidgetContainer()
 
         let stack = scrollContainer.stackView
-        [permissionWarningView, headerCardView, unblockableWarningLabel, pauseDashboardView, overviewCardView, widgetContainer].forEach {
+        [
+            permissionWarningView,
+            headerCardView,
+            unblockableWarningLabel,
+            pauseDashboardView,
+            quickBreakDashboardView,
+            overviewCardView,
+            widgetContainer,
+        ].forEach {
             stack.addArrangedSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
             $0.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true

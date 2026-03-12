@@ -374,6 +374,102 @@ struct WeeklyCalendarSurfaceTests {
     }
 
     @MainActor
+    @Test("Weekly calendar schedule block draw covers enabled unfocus color emphasis branch")
+    func weeklyCalendarScheduleBlockUnfocusDrawCoverage() {
+        let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let targetDay = Calendar.current.component(.weekday, from: weekRange[0])
+        var schedule = makeSchedule(name: "Break", day: targetDay)
+        schedule.type = .unfocus
+        schedule.isEnabled = true
+        schedule.colorIndex = 2
+
+        let placement = WeeklyCalendarSupport.SchedulePlacement(
+            id: "unfocus",
+            day: targetDay,
+            startDate: makeDate(hour: 12),
+            endDate: makeDate(hour: 13)
+        )
+        let entry = WeeklyCalendarSupport.PositionedSchedule(
+            id: "unfocus",
+            schedule: schedule,
+            placement: placement,
+            laneIndex: 0,
+            laneCount: 1
+        )
+
+        let block = WeeklyCalendarSurfaceScheduleBlockNSView(frame: NSRect(x: 0, y: 0, width: 120, height: 88))
+        block.configure(
+            entry: entry,
+            frame: block.frame,
+            columnWidth: 100,
+            originalColumnIndex: 0,
+            calendarAreaX: 70,
+            dayCount: 7,
+            weekRange: weekRange,
+            hourHeight: 80,
+            edgeHeight: 18,
+            onOpenSchedule: { _, _ in },
+            onUpdateSchedule: { _, _, _, _, _, _ in },
+            onInteractionDidBegin: { _ in },
+            onInteractionDidEnd: { _ in }
+        )
+
+        let image = NSImage(size: block.bounds.size)
+        image.lockFocus()
+        block.draw(block.bounds)
+        image.unlockFocus()
+        #expect(block.bounds.width == 120)
+    }
+
+    @MainActor
+    @Test("Weekly calendar schedule block draw covers enabled focus raw color branch")
+    func weeklyCalendarScheduleBlockFocusDrawCoverage() {
+        let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let targetDay = Calendar.current.component(.weekday, from: weekRange[0])
+        var schedule = makeSchedule(name: "Focus", day: targetDay)
+        schedule.type = .focus
+        schedule.isEnabled = true
+        schedule.colorIndex = 3
+
+        let placement = WeeklyCalendarSupport.SchedulePlacement(
+            id: "focus",
+            day: targetDay,
+            startDate: makeDate(hour: 14),
+            endDate: makeDate(hour: 15)
+        )
+        let entry = WeeklyCalendarSupport.PositionedSchedule(
+            id: "focus",
+            schedule: schedule,
+            placement: placement,
+            laneIndex: 0,
+            laneCount: 1
+        )
+
+        let block = WeeklyCalendarSurfaceScheduleBlockNSView(frame: NSRect(x: 0, y: 0, width: 120, height: 88))
+        block.configure(
+            entry: entry,
+            frame: block.frame,
+            columnWidth: 100,
+            originalColumnIndex: 0,
+            calendarAreaX: 70,
+            dayCount: 7,
+            weekRange: weekRange,
+            hourHeight: 80,
+            edgeHeight: 18,
+            onOpenSchedule: { _, _ in },
+            onUpdateSchedule: { _, _, _, _, _, _ in },
+            onInteractionDidBegin: { _ in },
+            onInteractionDidEnd: { _ in }
+        )
+
+        let image = NSImage(size: block.bounds.size)
+        image.lockFocus()
+        block.draw(block.bounds)
+        image.unlockFocus()
+        #expect(block.bounds.height == 88)
+    }
+
+    @MainActor
     @Test("Weekly calendar schedule block guard branches handle unconfigured state")
     func weeklyCalendarScheduleBlockUnconfiguredGuards() throws {
         let block = WeeklyCalendarSurfaceScheduleBlockNSView()

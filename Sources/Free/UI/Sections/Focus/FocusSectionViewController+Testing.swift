@@ -5,6 +5,7 @@ extension FocusSectionViewController {
     var isPermissionWarningHiddenForTesting: Bool { permissionWarningView.isHidden }
     var isUnblockableWarningHiddenForTesting: Bool { unblockableWarningLabel.isHidden }
     var isPauseDashboardHiddenForTesting: Bool { pauseDashboardView.isHidden }
+    var isQuickBreakDashboardHiddenForTesting: Bool { quickBreakDashboardView.isHidden }
     var pauseTimeTextForTesting: String { pauseTimeLabel.stringValue }
     var currentWidgetViewTypeForTesting: String? {
         widgetView.map { String(describing: type(of: $0)) }

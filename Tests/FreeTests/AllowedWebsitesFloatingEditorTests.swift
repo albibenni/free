@@ -407,6 +407,18 @@ struct AllowedWebsitesFloatingEditorTests {
         #expect(first?.textField?.stringValue == "a.com")
         let second = controller.tableView(table, viewFor: table.tableColumns.first, row: 1) as? NSTableCellView
         #expect(second?.textField?.stringValue == "b.com")
-        _ = controller.tableView(table, viewFor: table.tableColumns.first, row: 3)
+        let outOfBounds = controller.tableView(
+            table,
+            viewFor: table.tableColumns.first,
+            row: 3
+        ) as? NSTableCellView
+        #expect(outOfBounds?.textField?.stringValue == "")
+
+        let rowView = controller.tableView(table, rowViewForRow: 0)
+        #expect(rowView != nil)
+        rowView?.selectionHighlightStyle = .none
+        rowView?.drawSelection(in: rowView?.bounds ?? .zero)
+        rowView?.selectionHighlightStyle = .regular
+        rowView?.drawSelection(in: rowView?.bounds ?? .zero)
     }
 }

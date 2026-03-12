@@ -1,6 +1,7 @@
 enum MainContentSection: String, CaseIterable, Identifiable {
     case focus = "Focus"
     case schedules = "Schedules"
+    case calendar = "Calendar"
     case pomodoro = "Pomodoro"
     case allowedWebsites = "Allowed Websites"
     case settings = "Settings"
@@ -13,6 +14,8 @@ enum MainContentSection: String, CaseIterable, Identifiable {
             return AppKitUISymbols.Name.focus
         case .schedules:
             return AppKitUISymbols.Name.schedules
+        case .calendar:
+            return AppKitUISymbols.Name.calendar
         case .allowedWebsites:
             return AppKitUISymbols.Name.allowedWebsites
         case .pomodoro:

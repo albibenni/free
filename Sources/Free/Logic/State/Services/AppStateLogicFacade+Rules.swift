@@ -66,7 +66,9 @@ extension AppStateLogicFacade {
         pomodoroRuleSetId: UUID?,
         isPomodoroFocus: Bool,
         isBlocking: Bool,
-        wasStartedBySchedule: Bool
+        wasStartedBySchedule: Bool,
+        allowSearchEngineWebsites: Bool,
+        allowAIProviderWebsites: Bool
     ) -> RuleContext {
         RuleContext(
             ruleSets: ruleSets,
@@ -75,7 +77,9 @@ extension AppStateLogicFacade {
             pomodoroRuleSetId: pomodoroRuleSetId,
             isPomodoroFocus: isPomodoroFocus,
             isBlocking: isBlocking,
-            wasStartedBySchedule: wasStartedBySchedule
+            wasStartedBySchedule: wasStartedBySchedule,
+            allowSearchEngineWebsites: allowSearchEngineWebsites,
+            allowAIProviderWebsites: allowAIProviderWebsites
         )
     }
 

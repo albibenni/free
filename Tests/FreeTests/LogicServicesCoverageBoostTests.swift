@@ -247,6 +247,7 @@ struct LogicServicesCoverageBoostTests {
         #expect(merged.count == 2)
         let importedA = merged.first(where: { $0.importedCalendarEventKey == eventA.id })
         #expect(importedA?.id == existingImportedA.id)
+        #expect(importedA?.name == eventA.title)
         #expect(importedA?.isEnabled == false)
         #expect(importedA?.colorIndex == 3)
         #expect(importedA?.type == .unfocus)
@@ -262,6 +263,7 @@ struct LogicServicesCoverageBoostTests {
         )
         let importedB = mergedWithPreserved.first(where: { $0.importedCalendarEventKey == eventB.id })
         #expect(importedB?.id == preservedImportedB.id)
+        #expect(importedB?.name == eventB.title)
         #expect(importedB?.colorIndex == preservedImportedB.colorIndex)
 
         let defaultSet = RuleSet.defaultSet()
@@ -279,6 +281,46 @@ struct LogicServicesCoverageBoostTests {
         #expect(importedC?.colorIndex == 0)
         #expect(importedC?.type == .focus)
         #expect(importedC?.ruleSetId == defaultSet.id)
+
+        let mergedWithDefaultsAgain = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
+            schedules: [manual],
+            events: [eventC],
+            shouldImportCalendarEvents: true,
+            suppressedImportedCalendarEventKeys: [],
+            activeRuleSetId: defaultSet.id,
+            ruleSets: [defaultSet],
+            preservedImportedByKey: [:]
+        )
+        let importedCAgain = mergedWithDefaultsAgain.first(where: { $0.importedCalendarEventKey == eventC.id })
+        #expect(importedCAgain?.id == importedC?.id)
+
+        let eventD = ExternalEvent(
+            id: "event-d",
+            title: "Team Lunch",
+            startDate: baseStart.addingTimeInterval(3_000),
+            endDate: baseEnd.addingTimeInterval(3_000)
+        )
+        let eventE = ExternalEvent(
+            id: "event-e",
+            title: "Deep Work Session",
+            startDate: baseStart.addingTimeInterval(4_000),
+            endDate: baseEnd.addingTimeInterval(4_000)
+        )
+        let mergedWithTitleRules = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
+            schedules: [manual],
+            events: [eventD, eventE],
+            shouldImportCalendarEvents: true,
+            suppressedImportedCalendarEventKeys: [],
+            focusTitleRules: ["deep work"],
+            breakTitleRules: ["lunch"],
+            activeRuleSetId: defaultSet.id,
+            ruleSets: [defaultSet],
+            preservedImportedByKey: [:]
+        )
+        let importedD = mergedWithTitleRules.first(where: { $0.importedCalendarEventKey == eventD.id })
+        let importedE = mergedWithTitleRules.first(where: { $0.importedCalendarEventKey == eventE.id })
+        #expect(importedD?.type == .unfocus)
+        #expect(importedE?.type == .focus)
 
         let signatures = CalendarImportService.legacyImportedEventSignatures(from: [eventA, eventB])
         #expect(signatures.count == 2)
@@ -348,6 +390,88 @@ struct LogicServicesCoverageBoostTests {
                 suppressedKeys: &suppressed
             ) == false
         )
+
+        let calendar = Calendar(identifier: .gregorian)
+        let referenceNow = Date(timeIntervalSince1970: 1_700_000_000)
+        let oldOneOff = Schedule(
+            name: "Old one-off",
+            days: [2],
+            date: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60),
+            startTime: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60),
+            endTime: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60 + 600),
+            type: .focus
+        )
+        let retainedOneOff = Schedule(
+            name: "Retained one-off",
+            days: [2],
+            date: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60),
+            startTime: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60),
+            endTime: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60 + 600),
+            type: .focus
+        )
+        let retainedRecurring = Schedule(
+            name: "Recurring",
+            days: [2],
+            date: nil,
+            startTime: referenceNow,
+            endTime: referenceNow.addingTimeInterval(600),
+            type: .focus
+        )
+        let prunedSchedules = CalendarImportService.pruneSchedulesOlderThanPreviousWeek(
+            schedules: [oldOneOff, retainedOneOff, retainedRecurring],
+            weekStartsOnMonday: false,
+            now: referenceNow,
+            calendar: calendar
+        )
+        #expect(prunedSchedules.contains(where: { $0.id == oldOneOff.id }) == false)
+        #expect(prunedSchedules.contains(where: { $0.id == retainedOneOff.id }))
+        #expect(prunedSchedules.contains(where: { $0.id == retainedRecurring.id }))
+
+        let staleEvent = ExternalEvent(
+            id: "stale-event",
+            title: "Stale Event",
+            startDate: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60),
+            endDate: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60 + 300)
+        )
+        let retainedEvent = ExternalEvent(
+            id: "retained-event",
+            title: "Retained Event",
+            startDate: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60),
+            endDate: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60 + 300)
+        )
+        let crossingCutoffEvent = ExternalEvent(
+            id: "crossing-cutoff-event",
+            title: "Crossing Cutoff Event",
+            startDate: referenceNow.addingTimeInterval(-22 * 24 * 60 * 60),
+            endDate: referenceNow.addingTimeInterval(-2 * 24 * 60 * 60)
+        )
+        let prunedEvents = CalendarImportService.pruneCalendarEventsOlderThanPreviousWeek(
+            events: [staleEvent, retainedEvent, crossingCutoffEvent],
+            weekStartsOnMonday: false,
+            now: referenceNow,
+            calendar: calendar
+        )
+        #expect(prunedEvents.contains(where: { $0.id == staleEvent.id }) == false)
+        #expect(prunedEvents.contains(where: { $0.id == retainedEvent.id }))
+        #expect(prunedEvents.contains(where: { $0.id == crossingCutoffEvent.id }) == false)
+
+        let fallbackBoundarySchedule = Schedule(
+            name: "Fallback boundary",
+            days: [2],
+            date: referenceNow,
+            startTime: referenceNow,
+            endTime: referenceNow.addingTimeInterval(600),
+            type: .focus
+        )
+        CalendarImportService.weekDateProvider = { _, _, _, _ in [] }
+        defer { CalendarImportService.resetWeekDateProviderForTesting() }
+        let fallbackPruned = CalendarImportService.pruneSchedulesOlderThanPreviousWeek(
+            schedules: [fallbackBoundarySchedule],
+            weekStartsOnMonday: false,
+            now: referenceNow,
+            calendar: calendar
+        )
+        #expect(fallbackPruned.contains(where: { $0.id == fallbackBoundarySchedule.id }))
     }
 
     @Test("ScheduleEngine covers imported guard and save existing with nil initial-day")
@@ -470,6 +594,28 @@ struct LogicServicesCoverageBoostTests {
         #expect(ids == [focusId])
     }
 
+    @Test("RuleSetService allowedRules pomodoro path can include search and AI provider defaults")
+    func ruleSetServiceAllowedRulesPomodoroKnownProviders() {
+        let set = RuleSet(name: "Focus", urls: ["example.com"])
+        let urls = Set(
+            RuleSetService.allowedRules(
+                ruleSets: [set],
+                schedules: [],
+                activeRuleSetId: set.id,
+                pomodoroRuleSetId: nil,
+                isPomodoroFocus: true,
+                isBlocking: true,
+                wasStartedBySchedule: false,
+                allowSearchEngineWebsites: true,
+                allowAIProviderWebsites: true
+            )
+        )
+
+        #expect(urls.contains("example.com"))
+        #expect(urls.contains("google.com"))
+        #expect(urls.contains("chatgpt.com"))
+    }
+
     @Test("ScheduleEngine updateScheduleOccurrence searches through non-matching IDs")
     func scheduleEngineUpdateOccurrenceFirstIndexClosureCoverage() {
         let start = Date()
@@ -587,5 +733,109 @@ struct LogicServicesCoverageBoostTests {
         #expect(removed == nil)
         #expect(schedules.count == 1)
         #expect(schedules[0].id == schedule.id)
+    }
+
+    @Test("CalendarImportService previous-week fallback uses current day when provider returns empty")
+    func calendarImportServicePreviousWeekFallback() {
+        let now = Date(timeIntervalSince1970: 2_000_000)
+        let calendar = Calendar(identifier: .gregorian)
+        let todayStart = calendar.startOfDay(for: now)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: todayStart)!
+        let todayPlusOneHour = calendar.date(byAdding: .hour, value: 1, to: todayStart)!
+
+        CalendarImportService.weekDateProvider = { _, _, _, _ in [] }
+        defer { CalendarImportService.resetWeekDateProviderForTesting() }
+
+        let schedules = [
+            Schedule(
+                name: "Old One-Off",
+                days: [],
+                date: yesterday,
+                startTime: yesterday,
+                endTime: todayPlusOneHour,
+                type: .focus
+            ),
+            Schedule(
+                name: "Today One-Off",
+                days: [],
+                date: todayStart,
+                startTime: todayStart,
+                endTime: todayPlusOneHour,
+                type: .focus
+            ),
+        ]
+        let events = [
+            ExternalEvent(id: "old", title: "Old", startDate: yesterday, endDate: todayStart),
+            ExternalEvent(id: "today", title: "Today", startDate: todayStart, endDate: todayPlusOneHour),
+        ]
+
+        let prunedSchedules = CalendarImportService.pruneSchedulesOlderThanPreviousWeek(
+            schedules: schedules,
+            weekStartsOnMonday: true,
+            now: now,
+            calendar: calendar
+        )
+        let prunedEvents = CalendarImportService.pruneCalendarEventsOlderThanPreviousWeek(
+            events: events,
+            weekStartsOnMonday: true,
+            now: now,
+            calendar: calendar
+        )
+
+        #expect(prunedSchedules.count == 1)
+        #expect(prunedSchedules.first?.name == "Today One-Off")
+        #expect(prunedEvents.map(\.id) == ["today"])
+    }
+
+    @Test("CalendarImportService title-rule normalization covers duplicate/empty guards")
+    func calendarImportServiceTitleRuleNormalizationGuards() {
+        let event = ExternalEvent(
+            id: "norm-1",
+            title: "   ",
+            startDate: Date(timeIntervalSince1970: 3_000_000),
+            endDate: Date(timeIntervalSince1970: 3_000_600)
+        )
+        let defaultSet = RuleSet.defaultSet()
+
+        let merged = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
+            schedules: [],
+            events: [event],
+            shouldImportCalendarEvents: true,
+            suppressedImportedCalendarEventKeys: [],
+            focusTitleRules: ["focus", "focus", " ", "\n"],
+            breakTitleRules: ["break", "break", "", "  "],
+            activeRuleSetId: defaultSet.id,
+            ruleSets: [defaultSet],
+            preservedImportedByKey: [:]
+        )
+
+        #expect(merged.count == 1)
+        #expect(merged[0].type == .focus)
+    }
+
+    @Test("CalendarImportService imported schedule id uses UUID event id when parsable")
+    func calendarImportServiceUsesParsableUUIDEventId() {
+        let parsedID = UUID()
+        let event = ExternalEvent(
+            id: parsedID.uuidString,
+            title: "UUID Event",
+            startDate: Date(timeIntervalSince1970: 4_000_000),
+            endDate: Date(timeIntervalSince1970: 4_000_600)
+        )
+        let defaultSet = RuleSet.defaultSet()
+
+        let merged = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
+            schedules: [],
+            events: [event],
+            shouldImportCalendarEvents: true,
+            suppressedImportedCalendarEventKeys: [],
+            activeRuleSetId: defaultSet.id,
+            ruleSets: [defaultSet],
+            preservedImportedByKey: [:]
+        )
+
+        #expect(merged.count == 1)
+        #expect(merged[0].importedCalendarEventKey == parsedID.uuidString)
+        #expect(merged[0].id == parsedID)
     }
 }

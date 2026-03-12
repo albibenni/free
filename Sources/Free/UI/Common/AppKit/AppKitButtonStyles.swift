@@ -390,6 +390,33 @@ func applyAppKitSecondaryButtonStyle(
     button.contentTintColor = color
 }
 
+func applyAppKitListActionButtonStyle(
+    _ button: ActionButton,
+    title: String,
+    color: NSColor
+) {
+    button.image = nil
+    button.title = title
+    button.isBordered = false
+    button.focusRingType = .none
+    button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
+    button.setGradientBackground(
+        colors: [
+            color.withAlphaComponent(0.14),
+            color.withAlphaComponent(0.08),
+        ],
+        borderColor: color.withAlphaComponent(0.28)
+    )
+    button.attributedTitle = NSAttributedString(
+        string: title,
+        attributes: [
+            .font: AppKitUIConstants.Typography.buttonLabel,
+            .foregroundColor: color,
+        ]
+    )
+    button.contentTintColor = color
+}
+
 func applyAppKitNeutralButtonStyle(
     _ button: ActionButton,
     title: String

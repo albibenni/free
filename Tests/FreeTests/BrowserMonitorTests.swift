@@ -623,4 +623,19 @@ struct BrowserMonitorTests {
 
         #expect(mock.prompts.isEmpty == false)
     }
+
+    @Test("BrowserMonitor blocks prefixed new-tab URLs via hasPrefix branch")
+    func blocksPrefixedNewTabWhenEnabled() {
+        let appState = isolatedAppState(name: "blocksPrefixedNewTabWhenEnabled")
+        appState.isBlocking = true
+        appState.blockNewTabs = true
+
+        let mock = MockBrowserAutomator()
+        mock.activeUrl = "chrome://newtab/page"
+        let monitor = makeMonitor(appState: appState, mock: mock)
+
+        monitor.checkActiveTab()
+
+        #expect(mock.redirectedUrls == ["http://localhost:10000"])
+    }
 }

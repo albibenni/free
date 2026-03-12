@@ -4,6 +4,8 @@ enum AppStateCalendarSyncMutationService {
     struct Context {
         let schedule: AppScheduleDomainState
         let rules: AppRulesDomainState
+        let settings: AppSettingsDomainState
+        let weekStartsOnMonday: Bool
         let events: [ExternalEvent]
     }
 
@@ -24,8 +26,12 @@ enum AppStateCalendarSyncMutationService {
                 calendarImportsBlockTime: context.schedule.calendarImportsBlockTime,
                 suppressedImportedCalendarEventKeys: context.schedule
                     .suppressedImportedCalendarEventKeys,
+                focusTitleRules: context.settings.calendarImportFocusTitleRules,
+                breakTitleRules: context.settings.calendarImportBreakTitleRules,
+                calendarImportedScheduleRuleSetId: context.settings.calendarImportedScheduleRuleSetId,
                 activeRuleSetId: context.rules.activeRuleSetId,
                 ruleSets: context.rules.ruleSets,
+                weekStartsOnMonday: context.weekStartsOnMonday,
                 preservedImportedByKey: preservedImportedByKey
             )
         else { return nil }
@@ -51,8 +57,12 @@ enum AppStateCalendarSyncMutationService {
                 calendarImportsBlockTime: context.schedule.calendarImportsBlockTime,
                 suppressedImportedCalendarEventKeys: context.schedule
                     .suppressedImportedCalendarEventKeys,
+                focusTitleRules: context.settings.calendarImportFocusTitleRules,
+                breakTitleRules: context.settings.calendarImportBreakTitleRules,
+                calendarImportedScheduleRuleSetId: context.settings.calendarImportedScheduleRuleSetId,
                 activeRuleSetId: context.rules.activeRuleSetId,
                 ruleSets: context.rules.ruleSets,
+                weekStartsOnMonday: context.weekStartsOnMonday,
                 preservedImportedByKey: preservedImportedByKey
             )
         else { return nil }

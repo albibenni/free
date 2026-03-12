@@ -27,10 +27,10 @@ build:
 	@$(SWIFT) build
 
 test:
-	@$(SWIFT) test
+	@$(SWIFT) test --no-parallel
 
 test-verbose:
-	@$(SWIFT) test -v
+	@$(SWIFT) test --no-parallel -v
 
 coverage:
 	@rm -rf .build/coverage-home .build/coverage-main .build/coverage-merged
@@ -84,9 +84,9 @@ ui-gate:
 	awk "BEGIN { exit !($$actual >= $(UI_REGION_GATE)) }"
 
 regression-tests:
-	@$(SWIFT) test --filter FocusViewTests
-	@$(SWIFT) test --filter WeeklyCalendarSurfaceTests
-	@$(SWIFT) test --filter AllowedWebsitesFloatingEditorTests
+	@$(SWIFT) test --no-parallel --filter FocusViewTests
+	@$(SWIFT) test --no-parallel --filter WeeklyCalendarSurfaceTests
+	@$(SWIFT) test --no-parallel --filter AllowedWebsitesFloatingEditorTests
 
 coverage-gates: coverage logic-gate ui-gate
 

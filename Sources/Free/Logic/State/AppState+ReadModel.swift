@@ -9,6 +9,17 @@ extension AppState {
         )
     }
 
+    var isPomodoroWithinStrictGracePeriod: Bool {
+        guard isUnblockable, pomodoroStatus != .none, let startedAt = pomodoroStartedAt else {
+            return false
+        }
+        return !PomodoroEngine.isLocked(
+            isUnblockable: isUnblockable,
+            status: pomodoroStatus,
+            startedAt: startedAt
+        )
+    }
+
     var isStrictActive: Bool { isBlocking && isUnblockable }
 
     var currentPrimaryRuleSetId: UUID? {

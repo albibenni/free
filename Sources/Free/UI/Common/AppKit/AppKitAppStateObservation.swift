@@ -75,9 +75,15 @@ enum AppKitAppStateObservation {
             appState.$weekStartsOnMonday.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarImportsBlockTime.map { _ in () }.eraseToAnyPublisher(),
+            appState.$calendarImportFocusTitleRules.map { _ in () }.eraseToAnyPublisher(),
+            appState.$calendarImportBreakTitleRules.map { _ in () }.eraseToAnyPublisher(),
+            appState.$calendarImportedScheduleRuleSetId.map { _ in () }.eraseToAnyPublisher(),
+            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
             appState.$blockNewTabs.map { _ in () }.eraseToAnyPublisher(),
             appState.$blockDeveloperHosts.map { _ in () }.eraseToAnyPublisher(),
             appState.$blockLocalNetworkHosts.map { _ in () }.eraseToAnyPublisher(),
+            appState.$allowSearchEngineWebsites.map { _ in () }.eraseToAnyPublisher(),
+            appState.$allowAIProviderWebsites.map { _ in () }.eraseToAnyPublisher(),
             appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
             appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
         ])
@@ -138,9 +144,10 @@ enum AppKitAppStateObservation {
     }
 
     static func shellAppearancePublisher(appState: AppState) -> VoidPublisher {
-        appState.$accentColorIndex
-            .map { _ in () }
-            .eraseToAnyPublisher()
+        merge([
+            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
+            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
+        ])
     }
 
     private static func merge(_ publishers: [VoidPublisher]) -> VoidPublisher {

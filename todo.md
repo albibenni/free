@@ -4,6 +4,7 @@
 - [x] caldendar schedule can personalize color
 - [] light mode:
   - [ ] background color not white
+- [ ] better ui tbd
 
 ### TOPBAR
 
@@ -36,12 +37,13 @@
 - [x] lock/unlock new tabs
 - [x] fully test code
 - [x] add list selection in pomodoro mode - default on selected from allowed lists
-- [ ] allow with toggle search engines searches
+- [x] allow with toggle search engines searches
 - [x] add git steps
   - [x] build and tests
-- [ ] breaks allowed or not base on settings toggle
-  - [ ] pomodoro setting for it
-  - [ ] calendar setting for it
+- [x] breaks allowed or not base on settings toggle
+  - [x] breaks only in first view - mode there from pomodoro
+  - [x] pomodoro setting for it
+  - [x] calendar setting for it
 
 ### Allowed list
 
@@ -62,14 +64,14 @@
       - [x] who manage break or focus
       - [x] if the other is longer keep it in memory after end
 
-- [ ] rule for calendar imports - if title contain `*study*` or `*work*`
-  - [ ] allow personalization on this rule with settings
-  - [ ] allow imports to be all focus
-  - [ ] allow personal imports rule about title search and focus time
-- [ ] cannot delete imported schdule
-  - [ ] future impl: allow modification to calendar if flag is toggled
-- [ ] delete multiple scheduled day pop alert out
-- [ ] define in setting which allowed list should be used for imported schedule
+- [x] rule for calendar imports - if title contain `*study*` or `*work*`
+  - [x] allow personalization on this rule with settings
+  - [x] allow imports to be all focus
+  - [x] allow personal imports rule about title search and focus time
+- [x] cannot delete imported schdule
+  - [x] future impl: allow modification to calendar if flag is toggled
+- [x] delete multiple scheduled day pop alert out
+- [x] define in setting which allowed list should be used for imported schedule
 
 ## Bug
 
@@ -78,9 +80,9 @@
 - [x] should be closable if not in strict mode
 - [x] should work with selected list on the schedule
 - [x] change to break doesn't work for imported schedules
-- [ ] ci-cd running weird - on wrong branch
-- [ ] merge allowed on ci-cd failed
-- [ ] ci-cd fix tests failing
+- [x] ci-cd running weird - on wrong branch
+- [x] merge allowed on ci-cd failed
+- [x] ci-cd fix tests failing
 
 ### Regression appkit
 
@@ -103,8 +105,8 @@
 - [x] pomodoro timer can be changed during focus via preset click, it shouldn't be possible
 - [x] end break and focus button don't work - the one in pomodoro widget
 
-- [ ] redo tests
-  - [ ] coverage
+- [x] redo tests
+  - [x] coverage
 
 ## Performance check
 
@@ -115,3 +117,7 @@
 ## Simplify issues
 
 - [ ] any in LaunchAtLoginService.swift
+
+## Future features
+
+- [ ] block apps

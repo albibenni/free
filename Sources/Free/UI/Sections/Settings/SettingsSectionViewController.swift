@@ -4,13 +4,104 @@ import Combine
 final class SettingsSectionViewController: NSViewController {
     typealias AlertFactory = () -> NSAlert
     typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+    typealias CalendarSettingsOpener = () -> Void
+    typealias URLOpener = (URL) -> Void
+    typealias AsyncAfterScheduler = (TimeInterval, @escaping () -> Void) -> Void
+    typealias TestProcessDetector = () -> Bool
 
-    static var makeStrictModeAlert: AlertFactory = { NSAlert() }
-    static var runStrictModeAlert: AlertRunner = { alert in
+    private static func defaultMakeStrictModeAlert() -> NSAlert { NSAlert() }
+    private static func defaultRunStrictModeAlert(_ alert: NSAlert) -> NSApplication.ModalResponse {
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             return .alertSecondButtonReturn
         }
         return alert.runModal()
+    }
+    private static func defaultMakeCalendarPermissionAlert() -> NSAlert { NSAlert() }
+    private static func defaultRunCalendarPermissionAlert(
+        _ alert: NSAlert
+    ) -> NSApplication.ModalResponse {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            return .alertSecondButtonReturn
+        }
+        return alert.runModal()
+    }
+    private static func defaultWorkspaceURLOpener(_ url: URL) {
+        if let injectedWorkspaceURLOpener {
+            injectedWorkspaceURLOpener(url)
+            return
+        }
+        platformWorkspaceURLOpener(url)
+    }
+    private static func defaultScheduleAfter(_ delay: TimeInterval, _ work: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    }
+    private static func defaultOpenCalendarPrivacySettings() {
+        openCalendarPrivacySettingsIfPossible(
+            urlString: calendarPrivacySettingsURLString,
+            openURL: workspaceURLOpener
+        )
+    }
+
+    static var makeStrictModeAlert: AlertFactory = defaultMakeStrictModeAlert
+    static var runStrictModeAlert: AlertRunner = defaultRunStrictModeAlert
+    private static var _makeCalendarPermissionAlert: AlertFactory?
+    private static var _runCalendarPermissionAlert: AlertRunner?
+    private static var _platformWorkspaceURLOpener: URLOpener?
+    private static var _workspaceURLOpener: URLOpener?
+    private static var _scheduleAfter: AsyncAfterScheduler?
+    private static var _openCalendarPrivacySettings: CalendarSettingsOpener?
+    private static var _isRunningInTestProcess: TestProcessDetector?
+    private static var _nativeWorkspaceURLOpener: URLOpener?
+    static var makeCalendarPermissionAlert: AlertFactory {
+        get { _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
+        set { _makeCalendarPermissionAlert = newValue }
+    }
+    static var runCalendarPermissionAlert: AlertRunner {
+        get { _runCalendarPermissionAlert ?? defaultRunCalendarPermissionAlert }
+        set { _runCalendarPermissionAlert = newValue }
+    }
+    static var injectedWorkspaceURLOpener: URLOpener?
+    static var isRunningInTestProcess: TestProcessDetector {
+        get { _isRunningInTestProcess ?? { AppDelegate.isRunningInTestProcess() } }
+        set { _isRunningInTestProcess = newValue }
+    }
+    static var nativeWorkspaceURLOpener: URLOpener {
+        get { _nativeWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
+        set { _nativeWorkspaceURLOpener = newValue }
+    }
+    static var platformWorkspaceURLOpener: URLOpener {
+        get {
+            _platformWorkspaceURLOpener ?? { url in
+                if url.scheme == "x-free-test" || isRunningInTestProcess() {
+                    return
+                }
+                nativeWorkspaceURLOpener(url)
+            }
+        }
+        set { _platformWorkspaceURLOpener = newValue }
+    }
+    static var calendarPrivacySettingsURLString =
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
+    static var workspaceURLOpener: URLOpener {
+        get { _workspaceURLOpener ?? defaultWorkspaceURLOpener }
+        set { _workspaceURLOpener = newValue }
+    }
+    static var scheduleAfter: AsyncAfterScheduler {
+        get { _scheduleAfter ?? defaultScheduleAfter }
+        set { _scheduleAfter = newValue }
+    }
+    static var openCalendarPrivacySettings: CalendarSettingsOpener {
+        get { _openCalendarPrivacySettings ?? defaultOpenCalendarPrivacySettings }
+        set { _openCalendarPrivacySettings = newValue }
+    }
+    static var calendarPermissionFallbackDelay: TimeInterval = 0.6
+
+    private static func openCalendarPrivacySettingsIfPossible(
+        urlString: String,
+        openURL: URLOpener
+    ) {
+        guard let url = URL(string: urlString), url.scheme != nil else { return }
+        openURL(url)
     }
 
     private struct ObservationSignature: Equatable {
@@ -23,6 +114,8 @@ final class SettingsSectionViewController: NSViewController {
         let blockNewTabs: Bool
         let blockDeveloperHosts: Bool
         let blockLocalNetworkHosts: Bool
+        let allowSearchEngineWebsites: Bool
+        let allowAIProviderWebsites: Bool
         let appearanceMode: AppearanceMode
         let accentColorIndex: Int
         let launchAtLoginEnabled: Bool
@@ -37,6 +130,8 @@ final class SettingsSectionViewController: NSViewController {
             blockNewTabs: false,
             blockDeveloperHosts: false,
             blockLocalNetworkHosts: false,
+            allowSearchEngineWebsites: false,
+            allowAIProviderWebsites: false,
             appearanceMode: .system,
             accentColorIndex: 0,
             launchAtLoginEnabled: false
@@ -60,8 +155,11 @@ final class SettingsSectionViewController: NSViewController {
     private let blockNewTabsSwitch = AppKitToggleSwitch()
     private let blockDeveloperHostsSwitch = AppKitToggleSwitch()
     private let blockLocalNetworkHostsSwitch = AppKitToggleSwitch()
+    private let allowSearchEngineWebsitesSwitch = AppKitToggleSwitch()
+    private let allowAIProviderWebsitesSwitch = AppKitToggleSwitch()
     private var appearanceModeControl: AppKitSelectionButtonGroup<AppearanceMode>?
     private var accentButtons: [NSButton] = []
+    private var pendingCalendarPermissionFallback = false
 
     init(appState: AppState) {
         self.appState = appState
@@ -93,8 +191,6 @@ final class SettingsSectionViewController: NSViewController {
 
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Strict Mode"))
         addFullWidthSection(makeStrictSection())
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Calendar"))
-        addFullWidthSection(makeCalendarSection())
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Startup"))
         addFullWidthSection(makeStartupSection())
         scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Browser"))
@@ -122,6 +218,8 @@ final class SettingsSectionViewController: NSViewController {
                     blockNewTabs: appState.blockNewTabs,
                     blockDeveloperHosts: appState.blockDeveloperHosts,
                     blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
+                    allowSearchEngineWebsites: appState.allowSearchEngineWebsites,
+                    allowAIProviderWebsites: appState.allowAIProviderWebsites,
                     appearanceMode: appState.appearanceMode,
                     accentColorIndex: appState.accentColorIndex,
                     launchAtLoginEnabled: appState.launchAtLoginStatus()
@@ -175,38 +273,6 @@ final class SettingsSectionViewController: NSViewController {
         return strictSection
     }
 
-    private func makeCalendarSection() -> NSView {
-        let section = makeCardSection()
-        weekStartsMondaySwitch.target = self
-        weekStartsMondaySwitch.action = #selector(toggleWeekStartsMonday)
-        calendarIntegrationSwitch.target = self
-        calendarIntegrationSwitch.action = #selector(toggleCalendarIntegration)
-        calendarImportsSwitch.target = self
-        calendarImportsSwitch.action = #selector(toggleCalendarImports)
-        resyncButton.target = self
-        resyncButton.action = #selector(resyncImportedSchedules)
-
-        [
-            makeToggleRow(
-                title: "Start week on Monday",
-                descriptionLabel: nil,
-                toggle: weekStartsMondaySwitch
-            ),
-            makeToggleRow(
-                title: "Enable Calendar Integration",
-                descriptionLabel: makeDescriptionLabel("Use macOS Calendar events for scheduling."),
-                toggle: calendarIntegrationSwitch
-            ),
-            makeToggleRow(
-                title: "Calendar Imports Block Time",
-                descriptionLabel: makeDescriptionLabel("Imported calendar events can act as blocking sessions."),
-                toggle: calendarImportsSwitch
-            ),
-            resyncButton,
-        ].forEach { section.addArrangedSubview($0) }
-        return section
-    }
-
     private func makeStartupSection() -> NSView {
         let section = makeCardSection()
         launchAtLoginSwitch.target = self
@@ -229,6 +295,10 @@ final class SettingsSectionViewController: NSViewController {
         blockDeveloperHostsSwitch.action = #selector(toggleBlockDeveloperHosts)
         blockLocalNetworkHostsSwitch.target = self
         blockLocalNetworkHostsSwitch.action = #selector(toggleBlockLocalNetworkHosts)
+        allowSearchEngineWebsitesSwitch.target = self
+        allowSearchEngineWebsitesSwitch.action = #selector(toggleAllowSearchEngineWebsites)
+        allowAIProviderWebsitesSwitch.target = self
+        allowAIProviderWebsitesSwitch.action = #selector(toggleAllowAIProviderWebsites)
 
         [
             makeToggleRow(
@@ -245,6 +315,16 @@ final class SettingsSectionViewController: NSViewController {
                 title: "Block Local Network IPs",
                 descriptionLabel: makeDescriptionLabel("When off, private-network IPs are allowed."),
                 toggle: blockLocalNetworkHostsSwitch
+            ),
+            makeToggleRow(
+                title: "Allow Search Engines",
+                descriptionLabel: makeDescriptionLabel("Always allow popular search websites while blocking."),
+                toggle: allowSearchEngineWebsitesSwitch
+            ),
+            makeToggleRow(
+                title: "Allow AI Providers",
+                descriptionLabel: makeDescriptionLabel("Always allow popular AI provider websites while blocking."),
+                toggle: allowAIProviderWebsitesSwitch
             ),
         ].forEach { section.addArrangedSubview($0) }
         return section
@@ -386,6 +466,8 @@ final class SettingsSectionViewController: NSViewController {
         blockNewTabsSwitch.state = appState.blockNewTabs ? .on : .off
         blockDeveloperHostsSwitch.state = appState.blockDeveloperHosts ? .on : .off
         blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .on : .off
+        allowSearchEngineWebsitesSwitch.state = appState.allowSearchEngineWebsites ? .on : .off
+        allowAIProviderWebsitesSwitch.state = appState.allowAIProviderWebsites ? .on : .off
 
         for (index, button) in accentButtons.enumerated() {
             button.layer?.borderWidth = appState.accentColorIndex == index ? 2 : 0
@@ -405,6 +487,8 @@ final class SettingsSectionViewController: NSViewController {
             blockNewTabsSwitch,
             blockDeveloperHostsSwitch,
             blockLocalNetworkHostsSwitch,
+            allowSearchEngineWebsitesSwitch,
+            allowAIProviderWebsitesSwitch,
         ]
     }
 
@@ -417,17 +501,64 @@ final class SettingsSectionViewController: NSViewController {
     private func disableStrictMode() {
         let alert = Self.makeStrictModeAlert()
         alert.messageText = "Emergency Unlock"
-        alert.informativeText = "Type the phrase exactly to disable Unblockable Mode:\n\n\"\(AppState.challengePhrase)\""
-        let input = NSTextField(string: "")
-        input.placeholderString = "Type the phrase exactly"
-        input.frame = CGRect(x: 0, y: 0, width: 420, height: 24)
-        alert.accessoryView = input
+        alert.informativeText = ""
+        let (accessoryView, input) = makeStrictModeUnlockAccessoryView()
+        alert.accessoryView = accessoryView
         alert.addButton(withTitle: "Unlock")
         alert.addButton(withTitle: "Cancel")
         let response = Self.runStrictModeAlert(alert)
         if response == .alertFirstButtonReturn {
             _ = appState.disableUnblockableWithChallenge(phrase: input.stringValue)
         }
+    }
+
+    private func makeStrictModeUnlockAccessoryView() -> (NSView, NSTextField) {
+        let containerWidth: CGFloat = 340
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: containerWidth, height: 104))
+        container.translatesAutoresizingMaskIntoConstraints = false
+
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        let instruction = NSTextField(wrappingLabelWithString: "Type the phrase exactly to disable Unblockable Mode:")
+        instruction.font = .systemFont(ofSize: 13, weight: .semibold)
+        instruction.textColor = .labelColor
+        instruction.lineBreakMode = .byWordWrapping
+        instruction.translatesAutoresizingMaskIntoConstraints = false
+
+        let phrase = NSTextField(
+            wrappingLabelWithString:
+                "\"\(AppState.challengePhrase)\""
+        )
+        phrase.font = .systemFont(ofSize: 13)
+        phrase.textColor = .secondaryLabelColor
+        phrase.lineBreakMode = .byWordWrapping
+        phrase.translatesAutoresizingMaskIntoConstraints = false
+
+        let input = NSTextField(string: "")
+        input.placeholderString = "Type the phrase exactly"
+        input.translatesAutoresizingMaskIntoConstraints = false
+        input.controlSize = .regular
+
+        stack.addArrangedSubview(instruction)
+        stack.addArrangedSubview(phrase)
+        stack.addArrangedSubview(input)
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            instruction.widthAnchor.constraint(equalTo: container.widthAnchor),
+            phrase.widthAnchor.constraint(equalTo: container.widthAnchor),
+            input.widthAnchor.constraint(equalTo: container.widthAnchor),
+            input.heightAnchor.constraint(equalToConstant: 24),
+        ])
+        container.layoutSubtreeIfNeeded()
+        return (container, input)
     }
 
     @objc
@@ -447,7 +578,40 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func resyncImportedSchedules() {
+        guard appState.calendarProvider.isAuthorized else {
+            appState.calendarProvider.requestAccess()
+            scheduleCalendarPermissionFallbackIfNeeded()
+            return
+        }
         appState.resyncImportedCalendarSchedules()
+    }
+
+    private func scheduleCalendarPermissionFallbackIfNeeded() {
+        guard pendingCalendarPermissionFallback == false else { return }
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            presentCalendarPermissionAlert()
+            return
+        }
+        pendingCalendarPermissionFallback = true
+
+        Self.scheduleAfter(Self.calendarPermissionFallbackDelay) { [weak self] in
+            guard let self else { return }
+            self.pendingCalendarPermissionFallback = false
+            guard self.appState.calendarProvider.isAuthorized == false else { return }
+            self.presentCalendarPermissionAlert()
+        }
+    }
+
+    private func presentCalendarPermissionAlert() {
+        let alert = Self.makeCalendarPermissionAlert()
+        alert.messageText = "Calendar Access Needed"
+        alert.informativeText =
+            "Free could not access your calendars. Allow access in System Settings > Privacy & Security > Calendars."
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Cancel")
+        if Self.runCalendarPermissionAlert(alert) == .alertFirstButtonReturn {
+            Self.openCalendarPrivacySettings()
+        }
     }
 
     @objc
@@ -471,6 +635,16 @@ final class SettingsSectionViewController: NSViewController {
     @objc
     private func toggleBlockLocalNetworkHosts() {
         appState.blockLocalNetworkHosts = blockLocalNetworkHostsSwitch.state == .on
+    }
+
+    @objc
+    private func toggleAllowSearchEngineWebsites() {
+        appState.allowSearchEngineWebsites = allowSearchEngineWebsitesSwitch.state == .on
+    }
+
+    @objc
+    private func toggleAllowAIProviderWebsites() {
+        appState.allowAIProviderWebsites = allowAIProviderWebsitesSwitch.state == .on
     }
 
     @objc
@@ -548,6 +722,18 @@ extension SettingsSectionViewController {
         reloadSettings()
     }
 
+    func setAllowSearchEngineWebsitesForTesting(_ enabled: Bool) {
+        allowSearchEngineWebsitesSwitch.state = enabled ? .on : .off
+        toggleAllowSearchEngineWebsites()
+        reloadSettings()
+    }
+
+    func setAllowAIProviderWebsitesForTesting(_ enabled: Bool) {
+        allowAIProviderWebsitesSwitch.state = enabled ? .on : .off
+        toggleAllowAIProviderWebsites()
+        reloadSettings()
+    }
+
     func selectAppearanceModeForTesting(_ mode: AppearanceMode) {
         appearanceModeControl?.onSelection?(mode)
         appearanceModeControl?.selectedValue = mode
@@ -555,17 +741,28 @@ extension SettingsSectionViewController {
     }
 
     static func resetStrictModeAlertHooksForTesting() {
-        makeStrictModeAlert = { NSAlert() }
-        runStrictModeAlert = { alert in
-            if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
-                return .alertSecondButtonReturn
-            }
-            return alert.runModal()
-        }
+        calendarPrivacySettingsURLString =
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
+        injectedWorkspaceURLOpener = nil
+        _platformWorkspaceURLOpener = nil
+        _isRunningInTestProcess = nil
+        _nativeWorkspaceURLOpener = nil
+        _workspaceURLOpener = nil
+        _scheduleAfter = nil
+        makeStrictModeAlert = defaultMakeStrictModeAlert
+        runStrictModeAlert = defaultRunStrictModeAlert
+        _makeCalendarPermissionAlert = nil
+        _runCalendarPermissionAlert = nil
+        _openCalendarPrivacySettings = nil
+        calendarPermissionFallbackDelay = 0.6
     }
 
     func invokeDisableStrictModeModalForTesting() {
         disableStrictMode()
         reloadSettings()
+    }
+
+    func invokeCalendarPermissionAlertForTesting() {
+        presentCalendarPermissionAlert()
     }
 }

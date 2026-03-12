@@ -73,8 +73,12 @@ extension AppStateLogicFacade {
         events: [ExternalEvent],
         calendarImportsBlockTime: Bool,
         suppressedImportedCalendarEventKeys: Set<String>,
+        focusTitleRules: [String],
+        breakTitleRules: [String],
+        calendarImportedScheduleRuleSetId: UUID? = nil,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
+        weekStartsOnMonday: Bool,
         preservedImportedByKey: [String: Schedule]
     ) -> [Schedule]? {
         AppStateCalendarSyncCoordinator.rebuildForResync(
@@ -83,8 +87,12 @@ extension AppStateLogicFacade {
             events: events,
             calendarImportsBlockTime: calendarImportsBlockTime,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
+            focusTitleRules: focusTitleRules,
+            breakTitleRules: breakTitleRules,
+            calendarImportedScheduleRuleSetId: calendarImportedScheduleRuleSetId,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
+            weekStartsOnMonday: weekStartsOnMonday,
             preservedImportedByKey: preservedImportedByKey
         )
     }
@@ -96,8 +104,12 @@ extension AppStateLogicFacade {
         calendarIntegrationEnabled: Bool,
         calendarImportsBlockTime: Bool,
         suppressedImportedCalendarEventKeys: Set<String>,
+        focusTitleRules: [String],
+        breakTitleRules: [String],
+        calendarImportedScheduleRuleSetId: UUID? = nil,
         activeRuleSetId: UUID?,
         ruleSets: [RuleSet],
+        weekStartsOnMonday: Bool,
         preservedImportedByKey: [String: Schedule]
     ) -> [Schedule]? {
         AppStateCalendarSyncCoordinator.rebuildForScheduleCheck(
@@ -107,8 +119,12 @@ extension AppStateLogicFacade {
             calendarIntegrationEnabled: calendarIntegrationEnabled,
             calendarImportsBlockTime: calendarImportsBlockTime,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys,
+            focusTitleRules: focusTitleRules,
+            breakTitleRules: breakTitleRules,
+            calendarImportedScheduleRuleSetId: calendarImportedScheduleRuleSetId,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
+            weekStartsOnMonday: weekStartsOnMonday,
             preservedImportedByKey: preservedImportedByKey
         )
     }

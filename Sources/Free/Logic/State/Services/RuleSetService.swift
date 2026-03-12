@@ -1,6 +1,28 @@
 import Foundation
 
 struct RuleSetService {
+    static let knownSearchEngineRules = [
+        "google.com",
+        "bing.com",
+        "duckduckgo.com",
+        "yahoo.com",
+        "search.brave.com",
+        "ecosia.org",
+        "startpage.com",
+        "qwant.com",
+    ]
+    static let knownAIProviderRules = [
+        "chatgpt.com",
+        "openai.com",
+        "claude.ai",
+        "anthropic.com",
+        "gemini.google.com",
+        "copilot.microsoft.com",
+        "perplexity.ai",
+        "poe.com",
+        "grok.com",
+    ]
+
     static func normalizeRuleSetId(_ id: UUID?, in ruleSets: [RuleSet]) -> UUID? {
         if let id, ruleSets.contains(where: { $0.id == id }) {
             return id
@@ -75,10 +97,19 @@ struct RuleSetService {
         pomodoroRuleSetId: UUID?,
         isPomodoroFocus: Bool,
         isBlocking: Bool,
-        wasStartedBySchedule: Bool
+        wasStartedBySchedule: Bool,
+        allowSearchEngineWebsites: Bool,
+        allowAIProviderWebsites: Bool
     ) -> [String] {
         if isPomodoroFocus {
-            return ruleSet(for: pomodoroRuleSetId ?? activeRuleSetId, in: ruleSets)?.urls ?? []
+            var urls = Set(ruleSet(for: pomodoroRuleSetId ?? activeRuleSetId, in: ruleSets)?.urls ?? [])
+            if allowSearchEngineWebsites {
+                urls.formUnion(knownSearchEngineRules)
+            }
+            if allowAIProviderWebsites {
+                urls.formUnion(knownAIProviderRules)
+            }
+            return Array(urls)
         }
 
         var urls = Set<String>()
@@ -98,6 +129,13 @@ struct RuleSetService {
 
         if urls.isEmpty && isBlocking, let firstSet = ruleSets.first {
             urls.formUnion(firstSet.urls)
+        }
+
+        if allowSearchEngineWebsites {
+            urls.formUnion(knownSearchEngineRules)
+        }
+        if allowAIProviderWebsites {
+            urls.formUnion(knownAIProviderRules)
         }
 
         return Array(urls)

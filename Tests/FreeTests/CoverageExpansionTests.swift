@@ -42,6 +42,7 @@ struct CoverageExpansionTests {
             endTime: now.addingTimeInterval(3600),
             type: .focus
         )
+        let importedRuleSetId = UUID()
         let setId = UUID()
 
         appState.applySettingsDomainState(
@@ -49,17 +50,27 @@ struct CoverageExpansionTests {
                 weekStartsOnMonday: true,
                 accentColorIndex: 3,
                 appearanceMode: .dark,
+                calendarImportFocusTitleRules: ["focus"],
+                calendarImportBreakTitleRules: ["break"],
+                calendarImportedScheduleRuleSetId: importedRuleSetId,
                 blockNewTabs: true,
                 blockDeveloperHosts: true,
-                blockLocalNetworkHosts: true
+                blockLocalNetworkHosts: true,
+                allowSearchEngineWebsites: true,
+                allowAIProviderWebsites: true
             )
         )
         #expect(appState.settingsDomainState.weekStartsOnMonday)
         #expect(appState.settingsDomainState.accentColorIndex == 3)
         #expect(appState.settingsDomainState.appearanceMode == .dark)
+        #expect(appState.settingsDomainState.calendarImportFocusTitleRules == ["focus"])
+        #expect(appState.settingsDomainState.calendarImportBreakTitleRules == ["break"])
+        #expect(appState.settingsDomainState.calendarImportedScheduleRuleSetId == importedRuleSetId)
         #expect(appState.settingsDomainState.blockNewTabs)
         #expect(appState.settingsDomainState.blockDeveloperHosts)
         #expect(appState.settingsDomainState.blockLocalNetworkHosts)
+        #expect(appState.settingsDomainState.allowSearchEngineWebsites)
+        #expect(appState.settingsDomainState.allowAIProviderWebsites)
 
         appState.applyScheduleDomainState(
             .init(
@@ -165,6 +176,19 @@ struct CoverageExpansionTests {
                 ruleSets: [ruleSet],
                 activeRuleSetId: ruleSet.id
             ),
+            settings: AppSettingsDomainState(
+                weekStartsOnMonday: false,
+                accentColorIndex: 0,
+                appearanceMode: .system,
+                calendarImportFocusTitleRules: [],
+                calendarImportBreakTitleRules: [],
+                blockNewTabs: false,
+                blockDeveloperHosts: false,
+                blockLocalNetworkHosts: false,
+                allowSearchEngineWebsites: false,
+                allowAIProviderWebsites: false
+            ),
+            weekStartsOnMonday: false,
             events: [event]
         )
 

@@ -96,6 +96,30 @@ struct AppStateTests {
         #expect(!appState.isPomodoroLocked, "Pomodoro should NOT be locked during grace period")
     }
 
+    @Test("Pomodoro strict grace period read model handles guard and lock branches")
+    func pomodoroStrictGracePeriodReadModelCoverage() {
+        let appState = isolatedAppState(name: "pomodoroStrictGracePeriodReadModelCoverage")
+
+        appState.isUnblockable = false
+        appState.pomodoroStatus = .focus
+        appState.pomodoroStartedAt = Date()
+        #expect(appState.isPomodoroWithinStrictGracePeriod == false)
+
+        appState.isUnblockable = true
+        appState.pomodoroStatus = .none
+        #expect(appState.isPomodoroWithinStrictGracePeriod == false)
+
+        appState.pomodoroStatus = .focus
+        appState.pomodoroStartedAt = nil
+        #expect(appState.isPomodoroWithinStrictGracePeriod == false)
+
+        appState.pomodoroStartedAt = Date()
+        #expect(appState.isPomodoroWithinStrictGracePeriod == true)
+
+        appState.pomodoroStartedAt = Date().addingTimeInterval(-100)
+        #expect(appState.isPomodoroWithinStrictGracePeriod == false)
+    }
+
     @Test("Strict Mode (Unblockable) activation logic")
     func strictActive() {
         let appState = isolatedAppState(name: "strictActive")
@@ -106,6 +130,23 @@ struct AppStateTests {
 
         appState.isUnblockable = false
         #expect(!appState.isStrictActive)
+    }
+
+    @Test("applySessionState clears manual blocking when resulting session is not manual")
+    func applySessionStateClearsManualBlocking() {
+        let appState = isolatedAppState(name: "applySessionStateClearsManualBlocking")
+        appState.setManualBlockingEnabled(true)
+        #expect(appState.manualBlockingEnabled)
+
+        appState.applySessionState(
+            AppStateLogicFacade.SessionState(
+                isBlocking: false,
+                wasStartedBySchedule: false,
+                manuallyPausedScheduleIds: []
+            )
+        )
+
+        #expect(appState.manualBlockingEnabled == false)
     }
 
     @Test("Allowed rules aggregation from multiple sources")
@@ -120,6 +161,40 @@ struct AppStateTests {
 
         #expect(appState.allowedRules.contains("url1.com"))
         #expect(!appState.allowedRules.contains("url2.com"))
+    }
+
+    @Test("Search-engine allow toggle augments effective allowed rules")
+    func searchEngineAllowToggleAffectsAllowedRules() {
+        let appState = isolatedAppState(name: "searchEngineAllowToggleAffectsAllowedRules")
+        let ruleSet = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
+        appState.ruleSets = [ruleSet]
+        appState.activeRuleSetId = ruleSet.id
+        appState.isBlocking = true
+
+        appState.allowSearchEngineWebsites = false
+        #expect(appState.allowedRules.contains("google.com") == false)
+
+        appState.allowSearchEngineWebsites = true
+        #expect(appState.allowedRules.contains("google.com"))
+        #expect(appState.allowedRules.contains("duckduckgo.com"))
+        #expect(appState.allowedRules.contains("url1.com"))
+    }
+
+    @Test("AI-provider allow toggle augments effective allowed rules")
+    func aiProviderAllowToggleAffectsAllowedRules() {
+        let appState = isolatedAppState(name: "aiProviderAllowToggleAffectsAllowedRules")
+        let ruleSet = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
+        appState.ruleSets = [ruleSet]
+        appState.activeRuleSetId = ruleSet.id
+        appState.isBlocking = true
+
+        appState.allowAIProviderWebsites = false
+        #expect(appState.allowedRules.contains("chatgpt.com") == false)
+
+        appState.allowAIProviderWebsites = true
+        #expect(appState.allowedRules.contains("chatgpt.com"))
+        #expect(appState.allowedRules.contains("claude.ai"))
+        #expect(appState.allowedRules.contains("url1.com"))
     }
 
     @Test("Break schedule overrides Focus schedule")
@@ -214,6 +289,7 @@ struct AppStateTests {
         defaults.removePersistentDomain(forName: suite)
         defaults.set(true, forKey: "IsBlocking")
         defaults.set(false, forKey: "WasStartedBySchedule")
+        defaults.set(true, forKey: "ManualBlockingEnabled")
 
         let appState = AppState(defaults: defaults, isTesting: true)
 
@@ -486,9 +562,9 @@ struct AppStateTests {
         #expect(imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.ruleSetId == setId)
     }
 
-    @Test("Disabling calendar import blocking removes mirrored imported schedules")
-    func calendarImportDisableRemovesMirroredSchedules() {
-        let appState = isolatedAppState(name: "calendarImportDisableRemovesMirroredSchedules")
+    @Test("Disabling calendar import blocking keeps mirrored schedules while integration remains enabled")
+    func calendarImportDisableKeepsMirroredSchedulesWhenIntegrated() {
+        let appState = isolatedAppState(name: "calendarImportDisableKeepsMirroredSchedulesWhenIntegrated")
         appState.calendarIntegrationEnabled = true
         appState.calendarImportsBlockTime = true
 
@@ -506,7 +582,77 @@ struct AppStateTests {
 
         appState.calendarImportsBlockTime = false
         appState.checkSchedules()
-        #expect(!appState.schedules.contains(where: { $0.importedCalendarEventKey != nil }))
+        #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-remove" }))
+    }
+
+    @Test("Calendar sync prunes schedules and imports older than previous week")
+    func calendarSyncPrunesOlderThanPreviousWeek() {
+        let appState = isolatedAppState(name: "calendarSyncPrunesOlderThanPreviousWeek")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+
+        let now = Date()
+        let staleOneOffDate = now.addingTimeInterval(-21 * 24 * 60 * 60)
+        let recentOneOffDate = now.addingTimeInterval(-2 * 24 * 60 * 60)
+
+        let staleOneOff = Schedule(
+            name: "Stale One-Off",
+            days: [Calendar.current.component(.weekday, from: staleOneOffDate)],
+            date: staleOneOffDate,
+            startTime: staleOneOffDate,
+            endTime: staleOneOffDate.addingTimeInterval(600),
+            type: .focus
+        )
+        let recentOneOff = Schedule(
+            name: "Recent One-Off",
+            days: [Calendar.current.component(.weekday, from: recentOneOffDate)],
+            date: recentOneOffDate,
+            startTime: recentOneOffDate,
+            endTime: recentOneOffDate.addingTimeInterval(600),
+            type: .focus
+        )
+
+        appState.schedules = [staleOneOff, recentOneOff]
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "stale-calendar-import",
+                title: "Stale Imported",
+                startDate: now.addingTimeInterval(-22 * 24 * 60 * 60),
+                endDate: now.addingTimeInterval(-22 * 24 * 60 * 60 + 900)
+            ),
+            ExternalEvent(
+                id: "crossing-calendar-import",
+                title: "Crossing Imported",
+                startDate: now.addingTimeInterval(-22 * 24 * 60 * 60),
+                endDate: now.addingTimeInterval(-2 * 24 * 60 * 60)
+            ),
+            ExternalEvent(
+                id: "recent-calendar-import",
+                title: "Recent Imported",
+                startDate: now.addingTimeInterval(1800),
+                endDate: now.addingTimeInterval(3600)
+            ),
+        ]
+
+        appState.checkSchedules()
+
+        #expect(appState.schedules.contains(where: { $0.id == staleOneOff.id }) == false)
+        #expect(appState.schedules.contains(where: { $0.id == recentOneOff.id }))
+        #expect(
+            appState.schedules.contains(where: {
+                $0.importedCalendarEventKey == "stale-calendar-import"
+            }) == false
+        )
+        #expect(
+            appState.schedules.contains(where: {
+                $0.importedCalendarEventKey == "crossing-calendar-import"
+            }) == false
+        )
+        #expect(
+            appState.schedules.contains(where: {
+                $0.importedCalendarEventKey == "recent-calendar-import"
+            })
+        )
     }
 
     @Test("Deleting imported schedule suppresses re-import while source event remains present")
@@ -525,16 +671,20 @@ struct AppStateTests {
 
         appState.calendarProvider.events = [event]
         appState.checkSchedules()
+        // Drain async calendar publisher callbacks queued by MockCalendarManager objectWillChange.
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
         let imported = appState.schedules.first(where: { $0.importedCalendarEventKey == "event-suppress" })
         #expect(imported != nil)
 
         if let imported {
             appState.deleteSchedule(id: imported.id, modifyAllDays: true, initialDay: nil)
+            #expect(appState.suppressedImportedCalendarEventKeys.contains("event-suppress"))
         } else {
             Issue.record("Expected imported schedule to exist before delete")
         }
 
         appState.checkSchedules()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
         #expect(!appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-suppress" }))
     }
 
@@ -563,6 +713,34 @@ struct AppStateTests {
         let imported = appState.schedules.first(where: { $0.importedCalendarEventKey == "event-default-list" })
         #expect(imported != nil)
         #expect(imported?.ruleSetId == secondSet.id)
+    }
+
+    @Test("Imported calendar schedules use calendar-configured allowed list when set")
+    func calendarImportUsesConfiguredImportedRuleSet() {
+        let appState = isolatedAppState(name: "calendarImportUsesConfiguredImportedRuleSet")
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = true
+
+        let defaultSet = appState.ruleSets[0]
+        let secondSet = RuleSet(name: "Second", urls: ["example.com"])
+        appState.ruleSets = [defaultSet, secondSet]
+        appState.activeRuleSetId = secondSet.id
+        appState.calendarImportedScheduleRuleSetId = defaultSet.id
+
+        let now = Date()
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "event-configured-list",
+                title: "Imported Configured",
+                startDate: now.addingTimeInterval(-300),
+                endDate: now.addingTimeInterval(300)
+            )
+        ]
+        appState.checkSchedules()
+
+        let imported = appState.schedules.first(where: { $0.importedCalendarEventKey == "event-configured-list" })
+        #expect(imported != nil)
+        #expect(imported?.ruleSetId == defaultSet.id)
     }
 
     @Test("Resync imported schedules removes legacy duplicates and rebuilds mirrored entries")

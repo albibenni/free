@@ -90,6 +90,16 @@ enum ScheduleEditorSupport {
         return existingSchedule.importedCalendarEventKey == nil
     }
 
+    static func shouldConfirmDeleteForMultiDayRecurring(
+        existingSchedule: Schedule?,
+        modifyAllDays: Bool
+    ) -> Bool {
+        guard let existingSchedule else { return false }
+        guard modifyAllDays else { return false }
+        guard existingSchedule.date == nil else { return false }
+        return existingSchedule.days.count > 1
+    }
+
     static func canEditImportedScheduleDetails(existingSchedule: Schedule?) -> Bool {
         !isImportedSchedule(existingSchedule)
     }
