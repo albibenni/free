@@ -282,6 +282,18 @@ struct LogicServicesCoverageBoostTests {
         #expect(importedC?.type == .focus)
         #expect(importedC?.ruleSetId == defaultSet.id)
 
+        let mergedWithDefaultsAgain = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
+            schedules: [manual],
+            events: [eventC],
+            shouldImportCalendarEvents: true,
+            suppressedImportedCalendarEventKeys: [],
+            activeRuleSetId: defaultSet.id,
+            ruleSets: [defaultSet],
+            preservedImportedByKey: [:]
+        )
+        let importedCAgain = mergedWithDefaultsAgain.first(where: { $0.importedCalendarEventKey == eventC.id })
+        #expect(importedCAgain?.id == importedC?.id)
+
         let eventD = ExternalEvent(
             id: "event-d",
             title: "Team Lunch",
