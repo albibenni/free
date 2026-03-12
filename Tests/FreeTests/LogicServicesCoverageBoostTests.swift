@@ -812,4 +812,30 @@ struct LogicServicesCoverageBoostTests {
         #expect(merged.count == 1)
         #expect(merged[0].type == .focus)
     }
+
+    @Test("CalendarImportService imported schedule id uses UUID event id when parsable")
+    func calendarImportServiceUsesParsableUUIDEventId() {
+        let parsedID = UUID()
+        let event = ExternalEvent(
+            id: parsedID.uuidString,
+            title: "UUID Event",
+            startDate: Date(timeIntervalSince1970: 4_000_000),
+            endDate: Date(timeIntervalSince1970: 4_000_600)
+        )
+        let defaultSet = RuleSet.defaultSet()
+
+        let merged = CalendarImportService.mergedSchedulesWithImportedCalendarEvents(
+            schedules: [],
+            events: [event],
+            shouldImportCalendarEvents: true,
+            suppressedImportedCalendarEventKeys: [],
+            activeRuleSetId: defaultSet.id,
+            ruleSets: [defaultSet],
+            preservedImportedByKey: [:]
+        )
+
+        #expect(merged.count == 1)
+        #expect(merged[0].importedCalendarEventKey == parsedID.uuidString)
+        #expect(merged[0].id == parsedID)
+    }
 }

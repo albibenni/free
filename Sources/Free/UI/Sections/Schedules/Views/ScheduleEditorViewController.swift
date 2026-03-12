@@ -6,6 +6,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
 
     private static var _makeDeleteConfirmationAlert: AlertFactory?
     private static var _runDeleteConfirmationAlert: AlertRunner?
+    private static var _isRunningInTestProcess: (() -> Bool)?
     static var makeDeleteConfirmationAlert: AlertFactory {
         get { _makeDeleteConfirmationAlert ?? defaultMakeDeleteConfirmationAlert }
         set { _makeDeleteConfirmationAlert = newValue }
@@ -19,13 +20,13 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     private static func defaultRunDeleteConfirmationAlert(
         _ alert: NSAlert
     ) -> NSApplication.ModalResponse {
-        if AppDelegate.isRunningInTestProcess() {
+        if isRunningUnderXCTest {
             return .alertFirstButtonReturn
         }
         return alert.runModal()
     }
     private static var isRunningUnderXCTest: Bool {
-        AppDelegate.isRunningInTestProcess()
+        (_isRunningInTestProcess ?? { AppDelegate.isRunningInTestProcess() })()
     }
 
     private let appState: AppState
@@ -252,18 +253,19 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     private func makeAllowedListSection() -> NSView {
         let section = makeSectionContainer(title: "ALLOWED LIST")
         let popup = NSPopUpButton()
-        popup.removeAllItems()
+        let menu = NSMenu(title: "AllowedListMenu")
+        popup.menu = menu
         if ScheduleEditorSupport.shouldShowAllowedList(for: sessionType) {
             popup.target = self
             popup.action = #selector(changeRuleSet(_:))
             popup.isEnabled = true
 
-            popup.addItem(withTitle: "None")
-            popup.lastItem?.representedObject = Optional<UUID>.none
+            menu.addItem(NSMenuItem(title: "None", action: nil, keyEquivalent: ""))
 
             for set in appState.ruleSets {
-                popup.addItem(withTitle: set.name)
-                popup.lastItem?.representedObject = UUID?.some(set.id)
+                let item = NSMenuItem(title: set.name, action: nil, keyEquivalent: "")
+                item.representedObject = set.id
+                menu.addItem(item)
             }
 
             let desiredSelection = ruleSetId
@@ -617,10 +619,13 @@ extension ScheduleEditorViewController {
 
     func selectRuleSetIndexForTesting(_ index: Int) {
         let popup = NSPopUpButton()
-        popup.addItem(withTitle: "None")
+        let menu = NSMenu(title: "AllowedListMenu.Test")
+        popup.menu = menu
+        menu.addItem(NSMenuItem(title: "None", action: nil, keyEquivalent: ""))
         for set in appState.ruleSets {
-            popup.addItem(withTitle: set.name)
-            popup.lastItem?.representedObject = UUID?.some(set.id)
+            let item = NSMenuItem(title: set.name, action: nil, keyEquivalent: "")
+            item.representedObject = set.id
+            menu.addItem(item)
         }
         popup.selectItem(at: max(0, min(index, popup.numberOfItems - 1)))
         changeRuleSet(popup)
@@ -661,5 +666,10 @@ extension ScheduleEditorViewController {
     static func resetDeleteConfirmationHooksForTesting() {
         _makeDeleteConfirmationAlert = nil
         _runDeleteConfirmationAlert = nil
+        _isRunningInTestProcess = nil
+    }
+
+    static func setRunningInTestProcessHookForTesting(_ hook: (() -> Bool)?) {
+        _isRunningInTestProcess = hook
     }
 }

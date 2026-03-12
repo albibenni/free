@@ -616,6 +616,26 @@ struct UIComponentTests {
         #expect(missingColor == nil)
     }
 
+    @Test("Dynamic AppKit color helpers cover appearance branch and unfocus emphasis helper")
+    func dynamicAppKitColorHelperCoverage() {
+        let appearance = NSAppearance(named: .darkAqua)
+        let resolved = resolvedAppKitCGColor(NSColor.systemGreen, appearance: appearance)
+        #expect(NSColor(cgColor: resolved) != nil)
+
+        let emphasized = appKitEmphasizedUnfocusColor(.systemBlue)
+        #expect(emphasized != .systemBlue)
+
+        // Pattern colors generally cannot convert to deviceRGB; this covers the fallback guard path.
+        let image = NSImage(size: NSSize(width: 2, height: 2))
+        image.lockFocus()
+        NSColor.systemOrange.setFill()
+        NSBezierPath(rect: NSRect(x: 0, y: 0, width: 2, height: 2)).fill()
+        image.unlockFocus()
+        let pattern = NSColor(patternImage: image)
+        let fallback = appKitEmphasizedUnfocusColor(pattern)
+        #expect(fallback != .clear)
+    }
+
     @Test("Main sidebar selection callback routes to expected section controller")
     @MainActor
     func mainSidebarSelectionRoutesToExpectedController() {

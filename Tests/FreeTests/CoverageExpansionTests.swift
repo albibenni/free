@@ -42,6 +42,7 @@ struct CoverageExpansionTests {
             endTime: now.addingTimeInterval(3600),
             type: .focus
         )
+        let importedRuleSetId = UUID()
         let setId = UUID()
 
         appState.applySettingsDomainState(
@@ -51,6 +52,7 @@ struct CoverageExpansionTests {
                 appearanceMode: .dark,
                 calendarImportFocusTitleRules: ["focus"],
                 calendarImportBreakTitleRules: ["break"],
+                calendarImportedScheduleRuleSetId: importedRuleSetId,
                 blockNewTabs: true,
                 blockDeveloperHosts: true,
                 blockLocalNetworkHosts: true,
@@ -63,6 +65,7 @@ struct CoverageExpansionTests {
         #expect(appState.settingsDomainState.appearanceMode == .dark)
         #expect(appState.settingsDomainState.calendarImportFocusTitleRules == ["focus"])
         #expect(appState.settingsDomainState.calendarImportBreakTitleRules == ["break"])
+        #expect(appState.settingsDomainState.calendarImportedScheduleRuleSetId == importedRuleSetId)
         #expect(appState.settingsDomainState.blockNewTabs)
         #expect(appState.settingsDomainState.blockDeveloperHosts)
         #expect(appState.settingsDomainState.blockLocalNetworkHosts)

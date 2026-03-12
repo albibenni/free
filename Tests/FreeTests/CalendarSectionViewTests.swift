@@ -144,12 +144,32 @@ struct CalendarSectionViewTests {
         controller.setImportedScheduleRuleSetSelectionIndexForTesting(2)
         #expect(appState.calendarImportedScheduleRuleSetId == selected.id)
 
+        let rows = selectableRowButtons(in: hosted)
+        rows.first(where: { $0.displayedTitleForTesting == "Use Active Allowed List" })?.performClick(nil)
+        #expect(appState.calendarImportedScheduleRuleSetId == nil)
+        rows.first(where: { $0.displayedTitleForTesting == "Imported List" })?.performClick(nil)
+        #expect(appState.calendarImportedScheduleRuleSetId == selected.id)
+
         controller.setCalendarIntegrationForTesting(false)
         #expect(
             selectableRowButtons(in: hosted)
                 .first(where: { $0.displayedTitleForTesting == "Use Active Allowed List" })?
                 .isEnabled == false
         )
+    }
+
+    @Test("Calendar section imported allowed-list index guard keeps nil selection when no lists exist")
+    @MainActor
+    func calendarSectionImportedRuleSetEmptyListGuard() {
+        let appState = isolatedAppState(name: "importedRuleSetEmptyListGuard")
+        appState.ruleSets = []
+        appState.calendarIntegrationEnabled = true
+
+        let controller = CalendarSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setImportedScheduleRuleSetSelectionIndexForTesting(99)
+        #expect(appState.calendarImportedScheduleRuleSetId == nil)
     }
 
     @Test("Calendar section add/remove rules covers parsing, dedupe and selection")
@@ -504,9 +524,9 @@ struct CalendarSectionViewTests {
     @Test("Calendar section table callbacks cover weak-self nil and out-of-bounds rule guards")
     @MainActor
     func calendarSectionTableCallbackGuards() {
-        var controller: CalendarSectionViewController? = CalendarSectionViewController(
-            appState: isolatedAppState(name: "tableCallbackGuards")
-        )
+        let appState = isolatedAppState(name: "tableCallbackGuards")
+        appState.calendarImportBreakTitleRules = ["break-0"]
+        var controller: CalendarSectionViewController? = CalendarSectionViewController(appState: appState)
         let hosted = host(controller!)
         let tables = tableViews(in: hosted)
         guard tables.count >= 2 else {
@@ -520,6 +540,8 @@ struct CalendarSectionViewTests {
         let breakDelegate = tables[1].delegate
         #expect(focusDataSource?.numberOfRows?(in: tables[0]) ?? -1 >= 0)
         _ = focusDelegate?.tableView?(tables[0], viewFor: tables[0].tableColumns.first, row: 999)
+        _ = breakDataSource?.numberOfRows?(in: tables[1])
+        _ = breakDelegate?.tableView?(tables[1], viewFor: tables[1].tableColumns.first, row: 0)
         _ = breakDelegate?.tableView?(tables[1], viewFor: tables[1].tableColumns.first, row: 999)
 
         weak let weakController = controller

@@ -5,6 +5,12 @@ import Foundation
 
 @Suite(.serialized)
 struct AddScheduleViewTests {
+    private final class TestDeleteAlert: NSAlert {
+        override func runModal() -> NSApplication.ModalResponse {
+            .alertSecondButtonReturn
+        }
+    }
+
     private func isolatedAppState(name: String) -> AppState {
         let suite = "AddScheduleViewTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
@@ -139,6 +145,48 @@ struct AddScheduleViewTests {
         #expect(!ScheduleEditorSupport.canDeleteSchedule(existingSchedule: nil))
 
         #expect(ScheduleEditorSupport.dayName(for: 1) == Calendar.current.weekdaySymbols[0])
+
+        #expect(
+            ScheduleEditorSupport.shouldConfirmDeleteForMultiDayRecurring(
+                existingSchedule: existing,
+                modifyAllDays: true
+            )
+        )
+        #expect(
+            !ScheduleEditorSupport.shouldConfirmDeleteForMultiDayRecurring(
+                existingSchedule: existing,
+                modifyAllDays: false
+            )
+        )
+        #expect(
+            !ScheduleEditorSupport.shouldConfirmDeleteForMultiDayRecurring(
+                existingSchedule: Schedule(
+                    name: "One-Off",
+                    days: [2, 3],
+                    date: Date(),
+                    startTime: Date(),
+                    endTime: Date().addingTimeInterval(600)
+                ),
+                modifyAllDays: true
+            )
+        )
+        #expect(
+            !ScheduleEditorSupport.shouldConfirmDeleteForMultiDayRecurring(
+                existingSchedule: Schedule(
+                    name: "Single Day",
+                    days: [2],
+                    startTime: Date(),
+                    endTime: Date().addingTimeInterval(600)
+                ),
+                modifyAllDays: true
+            )
+        )
+        #expect(
+            !ScheduleEditorSupport.shouldConfirmDeleteForMultiDayRecurring(
+                existingSchedule: nil,
+                modifyAllDays: true
+            )
+        )
     }
 
     @Test("Schedule editor support save payload maps recurring and one-off correctly")
@@ -430,6 +478,68 @@ struct AddScheduleViewTests {
         #expect(alertShown == 2)
         #expect(!appState.schedules.contains(where: { $0.id == schedule.id }))
         #expect(closeCount == 1)
+    }
+
+    @Test("ScheduleEditorViewController delete uses XCTest fast path when confirmation hooks are not overridden")
+    func addScheduleViewDeleteUsesXCTestFastPathWithoutAlertHooks() {
+        defer { ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting() }
+        let appState = isolatedAppState(name: "deleteUsesXCTestFastPathWithoutAlertHooks")
+        let schedule = Schedule(
+            name: "Recurring Focus",
+            days: [2, 3, 4],
+            startTime: Date(),
+            endTime: Date().addingTimeInterval(3600),
+            colorIndex: 0,
+            type: .focus
+        )
+        appState.schedules = [schedule]
+
+        var closeCount = 0
+        let controller = makeController(
+            appState: appState,
+            context: ScheduleEditorContext(
+                day: 2,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                schedule: schedule
+            ),
+            onClose: { closeCount += 1 }
+        )
+
+        ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting()
+        controller.deleteScheduleForTesting()
+        #expect(appState.schedules.contains(where: { $0.id == schedule.id }) == false)
+        #expect(closeCount == 1)
+    }
+
+    @Test("ScheduleEditorViewController delete confirmation hooks expose default and override paths")
+    @MainActor
+    func addScheduleViewDeleteConfirmationHookCoverage() {
+        defer { ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting() }
+        ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting()
+
+        let defaultFactory = ScheduleEditorViewController.makeDeleteConfirmationAlert
+        let defaultRunner = ScheduleEditorViewController.runDeleteConfirmationAlert
+        #expect(type(of: defaultFactory()) == NSAlert.self)
+        #expect(defaultRunner(NSAlert()) == .alertFirstButtonReturn)
+
+        ScheduleEditorViewController.setRunningInTestProcessHookForTesting { false }
+        #expect(defaultRunner(TestDeleteAlert()) == .alertSecondButtonReturn)
+
+        var customFactoryCalled = false
+        var customRunnerCalled = false
+        ScheduleEditorViewController.makeDeleteConfirmationAlert = {
+            customFactoryCalled = true
+            return NSAlert()
+        }
+        ScheduleEditorViewController.runDeleteConfirmationAlert = { _ in
+            customRunnerCalled = true
+            return .alertFirstButtonReturn
+        }
+        _ = ScheduleEditorViewController.makeDeleteConfirmationAlert()
+        _ = ScheduleEditorViewController.runDeleteConfirmationAlert(NSAlert())
+        #expect(customFactoryCalled)
+        #expect(customRunnerCalled)
     }
 
     @Test("ScheduleEditorViewController control handlers update editor state")
