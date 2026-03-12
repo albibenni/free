@@ -57,6 +57,7 @@ extension FocusSectionViewController {
         [quickBreakFiveButton, quickBreakFifteenButton, quickBreakThirtyButton, quickBreakCustomButton].forEach {
             $0.isEnabled = quickBreakEnabled
         }
+        quickBreakCustomMinutesField.isEnabled = quickBreakEnabled
         quickBreakCustomMinutesField.isEditable = quickBreakEnabled
         applyQuickBreakFieldStateAppearance(isEnabled: quickBreakEnabled)
         quickBreakDashboardView.isHidden = section != .all || appState.isPaused
@@ -73,10 +74,16 @@ extension FocusSectionViewController {
         } else {
             applyAppKitInputFieldStyle(
                 quickBreakCustomMinutesField,
-                backgroundOpacity: 0.36,
-                borderOpacity: 0.36,
-                textOpacity: 0.52
+                backgroundOpacity: 0.28,
+                borderOpacity: 0.30,
+                textOpacity: 0.58
             )
+            // Match disabled pill/button neutral tone more closely.
+            quickBreakCustomMinutesField.backgroundColor = NSColor.labelColor.withAlphaComponent(0.08)
+            quickBreakCustomMinutesField.layer?.borderColor =
+                NSColor.separatorColor.withAlphaComponent(0.30).cgColor
+            quickBreakCustomMinutesField.textColor =
+                NSColor.tertiaryLabelColor.withAlphaComponent(0.95)
         }
     }
 
