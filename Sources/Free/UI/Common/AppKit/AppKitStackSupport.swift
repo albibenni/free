@@ -63,6 +63,9 @@ final class VerticalStackScrollContainer: NSScrollView {
     private let documentContainer = StackFlippedContentView()
     let stackView = NSStackView()
     private let stackInsets: NSEdgeInsets
+    var maxContentWidth: CGFloat? {
+        didSet { needsLayout = true }
+    }
 
     init(contentInsets: NSEdgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)) {
         stackInsets = contentInsets
@@ -89,7 +92,10 @@ final class VerticalStackScrollContainer: NSScrollView {
     override func layout() {
         super.layout()
         let width = max(contentSize.width, 1)
-        let stackWidth = max(width - stackInsets.left - stackInsets.right, 1)
+        let availableWidth = max(width - stackInsets.left - stackInsets.right, 1)
+        let cappedWidth = maxContentWidth.map { min(availableWidth, max($0, 1)) } ?? availableWidth
+        let stackWidth = max(cappedWidth, 1)
+        let horizontalInset = stackInsets.left + max((availableWidth - stackWidth) / 2, 0)
         let fittingSize = stackView.fittingSize
         let stackHeight = max(fittingSize.height, 1)
 
@@ -103,7 +109,7 @@ final class VerticalStackScrollContainer: NSScrollView {
             )
         )
         stackView.frame = CGRect(
-            x: stackInsets.left,
+            x: horizontalInset,
             y: stackInsets.top,
             width: stackWidth,
             height: stackHeight

@@ -143,6 +143,8 @@ final class CalendarSectionViewController: NSViewController {
         view = rootView
 
         scrollContainer.translatesAutoresizingMaskIntoConstraints = false
+        scrollContainer.maxContentWidth = 980
+        scrollContainer.stackView.spacing = 18
         view.addSubview(scrollContainer)
         NSLayoutConstraint.activate([
             scrollContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -154,10 +156,6 @@ final class CalendarSectionViewController: NSViewController {
         let titleLabel = NSTextField(labelWithString: "Calendar")
         titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
         scrollContainer.stackView.addArrangedSubview(titleLabel)
-
-        let integrationTitle = NSTextField(labelWithString: "Integration")
-        integrationTitle.font = .systemFont(ofSize: 18, weight: .semibold)
-        scrollContainer.stackView.addArrangedSubview(integrationTitle)
 
         let integrationSection = makeCardSection()
         weekStartsMondaySwitch.target = self
@@ -188,11 +186,7 @@ final class CalendarSectionViewController: NSViewController {
             $0.translatesAutoresizingMaskIntoConstraints = false
             $0.widthAnchor.constraint(equalTo: integrationSection.widthAnchor).isActive = true
         }
-        addFullWidthSection(integrationSection)
-
-        let sectionTitle = NSTextField(labelWithString: "Import Rules")
-        sectionTitle.font = .systemFont(ofSize: 18, weight: .semibold)
-        scrollContainer.stackView.addArrangedSubview(sectionTitle)
+        addSectionBlock(title: "Integration", content: integrationSection)
 
         let section = makeCardSection()
         let focusRuleRow = makeRuleListRow(
@@ -218,7 +212,7 @@ final class CalendarSectionViewController: NSViewController {
             $0.translatesAutoresizingMaskIntoConstraints = false
             $0.widthAnchor.constraint(equalTo: section.widthAnchor).isActive = true
         }
-        addFullWidthSection(section)
+        addSectionBlock(title: "Import Rules", content: section)
 
         configureRuleField(
             focusRuleField,
@@ -303,6 +297,19 @@ final class CalendarSectionViewController: NSViewController {
         scrollContainer.stackView.addArrangedSubview(section)
         section.translatesAutoresizingMaskIntoConstraints = false
         section.widthAnchor.constraint(equalTo: scrollContainer.stackView.widthAnchor).isActive = true
+    }
+
+    private func addSectionBlock(title: String, content: NSView) {
+        let label = NSTextField(labelWithString: title)
+        label.font = .systemFont(ofSize: 18, weight: .semibold)
+        let block = makeAppKitVerticalStack(
+            views: [label, content],
+            alignment: .leading,
+            spacing: 8
+        )
+        content.translatesAutoresizingMaskIntoConstraints = false
+        content.widthAnchor.constraint(equalTo: block.widthAnchor).isActive = true
+        addFullWidthSection(block)
     }
 
     private func makeCardSection() -> NSStackView {

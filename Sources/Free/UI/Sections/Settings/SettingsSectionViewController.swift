@@ -177,6 +177,8 @@ final class SettingsSectionViewController: NSViewController {
         view = rootView
 
         scrollContainer.translatesAutoresizingMaskIntoConstraints = false
+        scrollContainer.maxContentWidth = 980
+        scrollContainer.stackView.spacing = 18
         view.addSubview(scrollContainer)
         NSLayoutConstraint.activate([
             scrollContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -189,16 +191,11 @@ final class SettingsSectionViewController: NSViewController {
         titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
         scrollContainer.stackView.addArrangedSubview(titleLabel)
 
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Strict Mode"))
-        addFullWidthSection(makeStrictSection())
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Startup"))
-        addFullWidthSection(makeStartupSection())
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Browser"))
-        addFullWidthSection(makeBrowserSection())
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Appearance"))
-        addFullWidthSection(makeAppearanceSection())
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("About"))
-        addFullWidthSection(makeAboutSection())
+        addSectionBlock(title: "Strict Mode", content: makeStrictSection())
+        addSectionBlock(title: "Startup", content: makeStartupSection())
+        addSectionBlock(title: "Browser", content: makeBrowserSection())
+        addSectionBlock(title: "Appearance", content: makeAppearanceSection())
+        addSectionBlock(title: "About", content: makeAboutSection())
     }
 
     override func viewDidLoad() {
@@ -243,6 +240,18 @@ final class SettingsSectionViewController: NSViewController {
         scrollContainer.stackView.addArrangedSubview(section)
         section.translatesAutoresizingMaskIntoConstraints = false
         section.widthAnchor.constraint(equalTo: scrollContainer.stackView.widthAnchor).isActive = true
+    }
+
+    private func addSectionBlock(title: String, content: NSView) {
+        let heading = makeSectionTitle(title)
+        let block = makeAppKitVerticalStack(
+            views: [heading, content],
+            alignment: .leading,
+            spacing: 8
+        )
+        content.translatesAutoresizingMaskIntoConstraints = false
+        content.widthAnchor.constraint(equalTo: block.widthAnchor).isActive = true
+        addFullWidthSection(block)
     }
 
     private func makeStrictSection() -> NSView {

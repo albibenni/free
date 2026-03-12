@@ -12,6 +12,8 @@
   - [ ] add calendar schedule, next one
   - [ ] add active list
   - [ ] add if unbreakable mode is on
+  - [ ] pomodoro timer - break or focus what's left
+- [ ] open app
 
 ## Logic
 
