@@ -441,6 +441,9 @@ final class CalendarSectionViewController: NSViewController {
     ) -> NSView {
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        titleLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
 
         let labelStack = makeAppKitVerticalStack(
             views: [],
@@ -449,16 +452,22 @@ final class CalendarSectionViewController: NSViewController {
         )
         labelStack.addArrangedSubview(titleLabel)
         if let descriptionLabel {
+            descriptionLabel.lineBreakMode = .byTruncatingTail
+            descriptionLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
             labelStack.addArrangedSubview(descriptionLabel)
         }
 
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
         let row = makeAppKitHorizontalRow(
-            views: [labelStack, NSView(), toggle],
+            views: [labelStack, spacer, toggle],
             alignment: .centerY,
             spacing: 12
         )
         row.translatesAutoresizingMaskIntoConstraints = false
-        labelStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        labelStack.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
