@@ -82,6 +82,7 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
         headerRow.translatesAutoresizingMaskIntoConstraints = false
 
         components.urlField.placeholderString = "Add URL to allow..."
+        applyAppKitInputFieldStyle(components.urlField)
         components.urlField.target = target
         components.urlField.action = #selector(AllowedWebsitesFloatingEditorViewController.handleAddRuleFromField(_:))
         components.urlField.translatesAutoresizingMaskIntoConstraints = false

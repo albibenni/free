@@ -178,6 +178,7 @@ enum FocusSectionLayoutBuilder {
 
         quickBreakCustomMinutesField.placeholderString = "Minutes"
         quickBreakCustomMinutesField.alignment = .right
+        applyAppKitInputFieldStyle(quickBreakCustomMinutesField, backgroundOpacity: 0.68, borderOpacity: 0.82)
         quickBreakCustomMinutesField.translatesAutoresizingMaskIntoConstraints = false
         quickBreakCustomMinutesField.widthAnchor.constraint(equalToConstant: 72).isActive = true
 

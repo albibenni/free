@@ -328,6 +328,7 @@ final class CalendarSectionViewController: NSViewController {
         action: Selector
     ) {
         textField.placeholderString = placeholder
+        applyAppKitInputFieldStyle(textField)
         textField.target = self
         textField.action = action
         if let cell = textField.cell as? NSTextFieldCell {
@@ -373,6 +374,8 @@ final class CalendarSectionViewController: NSViewController {
 
     private func makeImportedRuleSetRow() -> NSView {
         importedRuleSetScrollView.stackView.alignment = .width
+        importedRuleSetScrollView.stackView.spacing = 6
+        importedRuleSetScrollView.stackView.edgeInsets = NSEdgeInsets(top: 2, left: 0, bottom: 2, right: 0)
         importedRuleSetScrollView.drawsBackground = false
         importedRuleSetScrollView.borderType = .noBorder
         importedRuleSetScrollView.hasVerticalScroller = true
@@ -389,14 +392,14 @@ final class CalendarSectionViewController: NSViewController {
 
         let listContainer = AppKitDynamicView()
         listContainer.backgroundColorProvider = {
-            NSColor.controlBackgroundColor.withAlphaComponent(0.35)
+            NSColor.controlBackgroundColor.withAlphaComponent(0.45)
         }
         listContainer.borderColorProvider = {
-            NSColor.separatorColor.withAlphaComponent(0.45)
+            NSColor.separatorColor.withAlphaComponent(0.62)
         }
         listContainer.borderWidthValue = 1
         listContainer.wantsLayer = true
-        listContainer.layer?.cornerRadius = 8
+        listContainer.layer?.cornerRadius = 10
         listContainer.translatesAutoresizingMaskIntoConstraints = false
         listContainer.addSubview(importedRuleSetScrollView)
         NSLayoutConstraint.activate([
@@ -494,14 +497,14 @@ final class CalendarSectionViewController: NSViewController {
 
         let listContainer = AppKitDynamicView()
         listContainer.backgroundColorProvider = {
-            NSColor.controlBackgroundColor.withAlphaComponent(0.35)
+            NSColor.controlBackgroundColor.withAlphaComponent(0.45)
         }
         listContainer.borderColorProvider = {
-            NSColor.separatorColor.withAlphaComponent(0.45)
+            NSColor.separatorColor.withAlphaComponent(0.62)
         }
         listContainer.borderWidthValue = 1
         listContainer.wantsLayer = true
-        listContainer.layer?.cornerRadius = 8
+        listContainer.layer?.cornerRadius = 10
         listContainer.translatesAutoresizingMaskIntoConstraints = false
 
         listContainer.addSubview(tableScrollView)
@@ -516,7 +519,7 @@ final class CalendarSectionViewController: NSViewController {
         let stack = makeAppKitVerticalStack(
             views: [titleLabel, descriptionLabel, inputRow, listContainer, removeRow],
             alignment: .leading,
-            spacing: 4
+            spacing: 8
         )
         stack.translatesAutoresizingMaskIntoConstraints = false
         inputField.widthAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
