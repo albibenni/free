@@ -503,7 +503,15 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func toggleStrictMode() {
-        appState.isUnblockable = strictToggle.state == .on
+        let wantsEnabled = strictToggle.state == .on
+        if wantsEnabled {
+            appState.isUnblockable = true
+        } else {
+            guard appState.isUnblockable else { return }
+            disableStrictMode()
+        }
+        // Keep control state aligned even when unlock is cancelled or phrase is wrong.
+        strictToggle.state = appState.isUnblockable ? .on : .off
     }
 
     @objc

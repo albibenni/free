@@ -308,9 +308,15 @@ struct SettingsViewTests {
         let appState = isolatedAppState(name: "toggleActionCoverage")
         let controller = SettingsSectionViewController(appState: appState)
         _ = host(controller)
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         controller.setStrictModeForTesting(true)
         #expect(appState.isUnblockable)
+        SettingsSectionViewController.makeStrictModeAlert = { NSAlert() }
+        SettingsSectionViewController.runStrictModeAlert = { alert in
+            firstEditableTextField(in: alert.accessoryView)?.stringValue = AppState.challengePhrase
+            return .alertFirstButtonReturn
+        }
         controller.setStrictModeForTesting(false)
         #expect(appState.isUnblockable == false)
 
