@@ -544,7 +544,8 @@ struct CalendarSectionViewTests {
         _ = breakDelegate?.tableView?(tables[1], viewFor: tables[1].tableColumns.first, row: 0)
         _ = breakDelegate?.tableView?(tables[1], viewFor: tables[1].tableColumns.first, row: 999)
 
-        weak let weakController = controller
+        weak var weakController = controller
+        weakController = controller
         controller = nil
         #expect(weakController == nil)
 
