@@ -26,7 +26,7 @@ final class FocusSectionViewController: NSViewController {
     let quickBreakFiveButton = ActionButton(title: "5m")
     let quickBreakFifteenButton = ActionButton(title: "15m")
     let quickBreakThirtyButton = ActionButton(title: "30m")
-    let quickBreakCustomMinutesField = NSTextField(string: "")
+    let quickBreakCustomMinutesField = VerticallyCenteredTextField(string: "")
     let quickBreakCustomButton = ActionButton(title: "Start")
     let overviewCardView = AppKitDynamicView()
     let overviewTitleLabel = NSTextField(labelWithString: "Live Overview")

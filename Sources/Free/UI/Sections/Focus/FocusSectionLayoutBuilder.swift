@@ -177,10 +177,16 @@ enum FocusSectionLayoutBuilder {
         quickBreakCustomButton.onAction = startCustomBreak
 
         quickBreakCustomMinutesField.placeholderString = "Minutes"
-        quickBreakCustomMinutesField.alignment = .right
-        applyAppKitInputFieldStyle(quickBreakCustomMinutesField, backgroundOpacity: 0.68, borderOpacity: 0.82)
+        quickBreakCustomMinutesField.alignment = .left
+        applyAppKitInputFieldStyle(
+            quickBreakCustomMinutesField,
+            backgroundOpacity: 0.56,
+            borderOpacity: 0.60,
+            textOpacity: 0.80
+        )
         quickBreakCustomMinutesField.translatesAutoresizingMaskIntoConstraints = false
-        quickBreakCustomMinutesField.widthAnchor.constraint(equalToConstant: 72).isActive = true
+        quickBreakCustomMinutesField.widthAnchor.constraint(equalToConstant: 88).isActive = true
+        quickBreakCustomMinutesField.heightAnchor.constraint(equalToConstant: 28).isActive = true
 
         let customRow = NSStackView()
         customRow.orientation = .horizontal

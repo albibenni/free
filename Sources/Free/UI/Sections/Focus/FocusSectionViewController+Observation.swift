@@ -58,8 +58,26 @@ extension FocusSectionViewController {
             $0.isEnabled = quickBreakEnabled
         }
         quickBreakCustomMinutesField.isEditable = quickBreakEnabled
-        quickBreakCustomMinutesField.textColor = quickBreakEnabled ? .labelColor : .secondaryLabelColor
+        applyQuickBreakFieldStateAppearance(isEnabled: quickBreakEnabled)
         quickBreakDashboardView.isHidden = section != .all || appState.isPaused
+    }
+
+    private func applyQuickBreakFieldStateAppearance(isEnabled: Bool) {
+        if isEnabled {
+            applyAppKitInputFieldStyle(
+                quickBreakCustomMinutesField,
+                backgroundOpacity: 0.56,
+                borderOpacity: 0.60,
+                textOpacity: 0.80
+            )
+        } else {
+            applyAppKitInputFieldStyle(
+                quickBreakCustomMinutesField,
+                backgroundOpacity: 0.36,
+                borderOpacity: 0.36,
+                textOpacity: 0.52
+            )
+        }
     }
 
     func beginPomodoroWidgetInteraction() {
