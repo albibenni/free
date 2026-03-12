@@ -776,11 +776,13 @@ struct ModalAndShellCoverageTests {
 
         controller.update(
             statusText: "Focus Mode: Active",
+            topBarText: "Focus: On",
             isQuitDisabled: true,
             iconColor: .systemGreen
         )
         controller.update(
             statusText: "Focus Mode: Inactive",
+            topBarText: "Focus: Off",
             isQuitDisabled: false,
             iconColor: .labelColor
         )
@@ -796,6 +798,7 @@ struct ModalAndShellCoverageTests {
             NSStatusBar.system.removeStatusItem(statusItem)
             controller.update(
                 statusText: "Focus Mode: Inactive",
+                topBarText: "Focus: Off",
                 isQuitDisabled: false,
                 iconColor: .labelColor
             )
@@ -805,6 +808,7 @@ struct ModalAndShellCoverageTests {
         controller.setStatusButtonProviderForTesting { nil }
         controller.update(
             statusText: "Focus Mode: Inactive",
+            topBarText: "Focus: Off",
             isQuitDisabled: false,
             iconColor: .labelColor
         )

@@ -75,7 +75,7 @@ struct FreeAppTests {
             appState.isBlocking = false
             let app = FreeApp(appState: appState)
 
-            #expect(app.menuStatusText == "Focus Mode: Inactive")
+            #expect(app.menuStatusText.hasPrefix("Focus Mode: Inactive"))
             #expect(app.isQuitDisabled == false)
             #expect(app.menuIconColor == .labelColor)
         }
@@ -89,9 +89,75 @@ struct FreeAppTests {
             appState.isBlocking = true
             let app = FreeApp(appState: appState)
 
-            #expect(app.menuStatusText == "Focus Mode: Active")
+            #expect(app.menuStatusText.hasPrefix("Focus Mode: Active"))
             #expect(app.isQuitDisabled == true)
             #expect(app.menuIconColor == .systemGreen)
+        }
+    }
+
+    @MainActor
+    @Test("FreeApp menu status summary includes focus, calendar, list, unbreakable and pomodoro details")
+    func menuStatusSummaryIncludesRequestedSignals() {
+        withIsolatedAppKitState {
+            let suite = "FreeAppTests.topBarStatusSummaryIncludesRequestedSignals"
+            let defaults = UserDefaults(suiteName: suite)!
+            defaults.removePersistentDomain(forName: suite)
+            let calendar = MockCalendarManager()
+            let now = Date()
+            calendar.events = [
+                ExternalEvent(
+                    id: "active-calendar-event",
+                    title: "Deep Work",
+                    startDate: now.addingTimeInterval(-300),
+                    endDate: now.addingTimeInterval(900)
+                )
+            ]
+
+            let appState = AppState(defaults: defaults, calendar: calendar, isTesting: true)
+            let list = RuleSet(name: "Default", urls: ["https://example.com/*"])
+            appState.ruleSets = [list]
+            appState.activeRuleSetId = list.id
+            appState.isBlocking = true
+            appState.calendarIntegrationEnabled = true
+            appState.isUnblockable = true
+            appState.pomodoroStatus = .focus
+            appState.pomodoroRemaining = 120
+
+            let app = FreeApp(appState: appState)
+            let menu = app.menuStatusText
+
+            #expect(menu.contains("Focus Mode: Active"))
+            #expect(menu.contains("Calendar: Active"))
+            #expect(menu.contains("List:"))
+            #expect(menu.contains("Unbreakable"))
+            #expect(menu.contains("Pomodoro: Focus"))
+            #expect(app.topBarStatusText.isEmpty)
+        }
+    }
+
+    @MainActor
+    @Test("FreeApp menu status summary shows next calendar schedule when no event is currently active")
+    func menuStatusSummaryShowsNextCalendarEvent() {
+        withIsolatedAppKitState {
+            let suite = "FreeAppTests.topBarStatusSummaryShowsNextCalendarEvent"
+            let defaults = UserDefaults(suiteName: suite)!
+            defaults.removePersistentDomain(forName: suite)
+            let calendar = MockCalendarManager()
+            calendar.events = [
+                ExternalEvent(
+                    id: "next-calendar-event",
+                    title: "Planning",
+                    startDate: Date().addingTimeInterval(1800),
+                    endDate: Date().addingTimeInterval(3600)
+                )
+            ]
+
+            let appState = AppState(defaults: defaults, calendar: calendar, isTesting: true)
+            appState.calendarIntegrationEnabled = true
+            let app = FreeApp(appState: appState)
+
+            #expect(app.menuStatusText.contains("Calendar: Next"))
+            #expect(app.topBarStatusText.isEmpty)
         }
     }
 
@@ -171,10 +237,7 @@ struct FreeAppTests {
     func defaultInitializerBuildsAppController() {
         withIsolatedAppKitState {
             let app = FreeApp()
-            #expect(
-                app.menuStatusText == "Focus Mode: Active"
-                    || app.menuStatusText == "Focus Mode: Inactive"
-            )
+            #expect(app.menuStatusText.hasPrefix("Focus Mode:"))
         }
     }
 
@@ -202,7 +265,7 @@ struct FreeAppTests {
                 appState: appState,
                 appDelegate: AppDelegate()
             )
-            #expect(app.menuStatusText == "Focus Mode: Inactive")
+            #expect(app.menuStatusText.hasPrefix("Focus Mode: Inactive"))
         }
     }
 

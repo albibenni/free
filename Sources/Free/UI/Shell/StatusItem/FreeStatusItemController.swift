@@ -4,6 +4,8 @@ final class FreeStatusItemController: NSObject {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let statusMenu = NSMenu()
     private let statusLabelItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private var statusDetailItems: [NSMenuItem] = []
+    private let statusSeparatorItem = NSMenuItem.separator()
     private let quitItem = NSMenuItem(title: "Quit", action: nil, keyEquivalent: "q")
     private let onQuit: () -> Void
     private var statusButtonProvider: () -> NSStatusBarButton?
@@ -18,13 +20,27 @@ final class FreeStatusItemController: NSObject {
         quitItem.action = #selector(handleQuit)
 
         statusMenu.addItem(statusLabelItem)
-        statusMenu.addItem(.separator())
+        statusMenu.addItem(statusSeparatorItem)
         statusMenu.addItem(quitItem)
         statusItem.menu = statusMenu
     }
 
-    func update(statusText: String, isQuitDisabled: Bool, iconColor: NSColor) {
-        statusLabelItem.title = statusText
+    func update(statusText: String, topBarText: String, isQuitDisabled: Bool, iconColor: NSColor) {
+        let statusLines = statusText
+            .split(whereSeparator: \.isNewline)
+            .map { String($0) }
+            .filter { !$0.isEmpty }
+        statusLabelItem.title = statusLines.first ?? statusText
+        statusDetailItems.forEach { statusMenu.removeItem($0) }
+        statusDetailItems.removeAll()
+        if statusLines.count > 1 {
+            for line in statusLines.dropFirst() {
+                let item = NSMenuItem(title: line, action: nil, keyEquivalent: "")
+                item.isEnabled = false
+                statusMenu.insertItem(item, at: statusMenu.index(of: statusSeparatorItem))
+                statusDetailItems.append(item)
+            }
+        }
         quitItem.isEnabled = !isQuitDisabled
 
         guard let button = statusButtonProvider() else { return }
@@ -32,6 +48,8 @@ final class FreeStatusItemController: NSObject {
         image?.isTemplate = false
         button.image = image
         button.contentTintColor = iconColor
+        button.title = topBarText
+        button.imagePosition = topBarText.isEmpty ? .imageOnly : .imageLeading
     }
 
     @objc
