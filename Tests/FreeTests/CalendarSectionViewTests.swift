@@ -587,7 +587,8 @@ struct CalendarSectionViewTests {
         controller?.resyncImportedSchedulesForTesting()
         #expect(scheduledClosures.count == 1)
 
-        weak let weakController = controller
+        weak var weakController = controller
+        weakController = controller
         controller = nil
         #expect(weakController == nil)
 
