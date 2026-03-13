@@ -76,7 +76,9 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         onDialInteractionDidEnd: (() -> Void)? = nil
     ) {
         self.appState = appState
-        self.accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        self.accentColor = appKitAccentPrimaryColor(
+            for: FocusColor.nsColor(for: appState.accentColorIndex)
+        )
         self.onDialInteractionDidBegin = onDialInteractionDidBegin
         self.onDialInteractionDidEnd = onDialInteractionDidEnd
         super.init(frame: .zero)

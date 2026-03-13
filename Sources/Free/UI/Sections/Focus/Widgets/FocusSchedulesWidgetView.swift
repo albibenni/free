@@ -4,7 +4,9 @@ final class FocusSchedulesWidgetView: AppKitCardView {
     init(appState: AppState, shellState: FreeShellState) {
         super.init(frame: .zero)
 
-        let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        let accentColor = appKitAccentPrimaryColor(
+            for: FocusColor.nsColor(for: appState.accentColorIndex)
+        )
         contentStack.addArrangedSubview(
             makeAppKitHeaderRow(
                 title: "Focus Schedules",
@@ -73,7 +75,7 @@ final class FocusSchedulesWidgetView: AppKitCardView {
         indicator.wantsLayer = true
         indicator.layer?.backgroundColor = (
             schedule.type == .focus
-                ? accentColor
+                ? appKitAccentPrimaryColor(for: accentColor)
                 : appKitEmphasizedUnfocusColor(FocusColor.nsColor(for: schedule.colorIndex))
         ).cgColor
         indicator.layer?.cornerRadius = AppKitUIConstants.CornerRadius.badge / 2
