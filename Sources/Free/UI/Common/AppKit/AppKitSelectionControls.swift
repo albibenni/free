@@ -149,6 +149,7 @@ final class AppKitToggleSwitch: NSControl {
     }
 
     private let knobView = NSView()
+    private let trackGradientLayer = CAGradientLayer()
     private var knobLeadingConstraint: NSLayoutConstraint?
 
     var accentColor: NSColor = .controlAccentColor {
@@ -172,6 +173,11 @@ final class AppKitToggleSwitch: NSControl {
 
         wantsLayer = true
         layer?.cornerCurve = .continuous
+
+        trackGradientLayer.startPoint = CGPoint(x: 0, y: 0.5)
+        trackGradientLayer.endPoint = CGPoint(x: 1, y: 0.5)
+        trackGradientLayer.isHidden = true
+        layer?.insertSublayer(trackGradientLayer, at: 0)
 
         knobView.wantsLayer = true
         knobView.layer?.cornerCurve = .continuous
@@ -207,6 +213,8 @@ final class AppKitToggleSwitch: NSControl {
     override func layout() {
         super.layout()
         layer?.cornerRadius = bounds.height / 2
+        trackGradientLayer.frame = bounds
+        trackGradientLayer.cornerRadius = bounds.height / 2
         knobView.layer?.cornerRadius = knobView.bounds.height / 2
         updateKnobPosition()
     }
@@ -247,13 +255,24 @@ final class AppKitToggleSwitch: NSControl {
     }
 
     private func updateAppearance() {
-        let resolvedAccent = isEnabled
-            ? accentColor
-            : accentColor.withAlphaComponent(0.35)
+        let resolvedAccent = appKitAccentToggleOnColor(for: accentColor, isEnabled: isEnabled)
+        let isRainbow = FocusColor.isRainbowAccentColor(accentColor)
         let offColor = isEnabled
             ? NSColor.tertiaryLabelColor.withAlphaComponent(0.45)
             : NSColor.tertiaryLabelColor.withAlphaComponent(0.22)
-        layer?.backgroundColor = (state == .on ? resolvedAccent : offColor).cgColor
+        if state == .on, isRainbow {
+            let gradientColors = appKitAccentGradientColors(
+                for: accentColor,
+                topAlpha: isEnabled ? 0.95 : 0.35,
+                bottomAlpha: isEnabled ? 0.95 : 0.35
+            )
+            trackGradientLayer.colors = gradientColors.map { $0.cgColor }
+            trackGradientLayer.isHidden = false
+            layer?.backgroundColor = nil
+        } else {
+            trackGradientLayer.isHidden = true
+            layer?.backgroundColor = (state == .on ? resolvedAccent : offColor).cgColor
+        }
         knobView.layer?.backgroundColor = (isEnabled ? NSColor.white : NSColor.white.withAlphaComponent(0.7)).cgColor
         updateKnobPosition()
         needsLayout = true
