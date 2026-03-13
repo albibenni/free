@@ -109,8 +109,22 @@ struct AppKitSystemBridgeLiveSystemTests {
 
         AppKitSystemBridgeLiveSystem.setIsRunningInTestProcessForTesting { false }
         AppKitSystemBridgeLiveSystem.setWorkspaceOpenForTesting(nil)
+        AppKitSystemBridgeLiveSystem.setNativeWorkspaceOpenForTesting { _ in false }
         let url = URL(fileURLWithPath: "/__free_coverage_nonexistent__/path")
         _ = AppKitSystemBridgeLiveSystem.liveWorkspaceOpen(url)
+    }
+
+    @Test("AppKitSystemBridgeLiveSystem default workspace native fallback path executes")
+    @MainActor
+    func defaultWorkspaceNativeFallbackPathExecutes() {
+        defer { AppKitSystemBridgeLiveSystem.resetForTesting() }
+
+        AppKitSystemBridgeLiveSystem.setIsRunningInTestProcessForTesting { false }
+        AppKitSystemBridgeLiveSystem.setIsRunningUnderXCTestForTesting { true }
+        AppKitSystemBridgeLiveSystem.setWorkspaceOpenForTesting(nil)
+        AppKitSystemBridgeLiveSystem.setNativeWorkspaceOpenForTesting(nil)
+        let url = URL(fileURLWithPath: "/tmp")
+        #expect(AppKitSystemBridgeLiveSystem.liveWorkspaceOpen(url) == false)
     }
 
     @Test("AppKitSystemBridgeLiveSystem default runModal fallback executes")
@@ -120,6 +134,83 @@ struct AppKitSystemBridgeLiveSystemTests {
 
         AppKitSystemBridgeLiveSystem.setIsRunningInTestProcessForTesting { false }
         AppKitSystemBridgeLiveSystem.setRunModalForTesting(nil)
+        AppKitSystemBridgeLiveSystem.setNativeRunModalForTesting { _ in .alertSecondButtonReturn }
+        #expect(AppKitSystemBridgeLiveSystem.liveRunModal(NSAlert()) == .alertSecondButtonReturn)
+    }
+
+    @Test("AppKitSystemBridgeLiveSystem default runModal native fallback path executes")
+    @MainActor
+    func defaultRunModalNativeFallbackPathExecutes() {
+        defer { AppKitSystemBridgeLiveSystem.resetForTesting() }
+
+        AppKitSystemBridgeLiveSystem.setIsRunningInTestProcessForTesting { false }
+        AppKitSystemBridgeLiveSystem.setRunModalForTesting(nil)
+        AppKitSystemBridgeLiveSystem.setNativeRunModalForTesting(nil)
         #expect(AppKitSystemBridgeLiveSystem.liveRunModal(ModalTestAlert()) == .alertSecondButtonReturn)
+    }
+
+    @Test("AppKitSystemBridgeLiveSystemRuntime uses injected native workspace opener")
+    @MainActor
+    func runtimeUsesInjectedNativeWorkspaceOpener() {
+        defer { AppKitSystemBridgeLiveSystemRuntime.resetForTesting() }
+
+        var openedURL: URL?
+        AppKitSystemBridgeLiveSystemRuntime.setNativeWorkspaceOpenForTesting { url in
+            openedURL = url
+            return true
+        }
+        let url = URL(fileURLWithPath: "/__free_runtime_injected__/path")
+        #expect(AppKitSystemBridgeLiveSystemRuntime.nativeWorkspaceOpen(url) == true)
+        #expect(openedURL == url)
+    }
+
+    @Test("AppKitSystemBridgeLiveSystemRuntime returns false when XCTest runtime is forced")
+    @MainActor
+    func runtimeReturnsFalseWhenXCTestForced() {
+        defer { AppKitSystemBridgeLiveSystemRuntime.resetForTesting() }
+
+        AppKitSystemBridgeLiveSystemRuntime.setNativeWorkspaceOpenForTesting(nil)
+        AppKitSystemBridgeLiveSystemRuntime.setIsRunningUnderXCTestForTesting { true }
+        let url = URL(fileURLWithPath: "/tmp")
+        #expect(AppKitSystemBridgeLiveSystemRuntime.nativeWorkspaceOpen(url) == false)
+    }
+
+    @Test("AppKitSystemBridgeLiveSystemRuntime reset clears overrides")
+    @MainActor
+    func runtimeResetClearsOverrides() {
+        defer { AppKitSystemBridgeLiveSystemRuntime.resetForTesting() }
+
+        AppKitSystemBridgeLiveSystemRuntime.setNativeWorkspaceOpenForTesting { _ in true }
+        AppKitSystemBridgeLiveSystemRuntime.setIsRunningUnderXCTestForTesting { false }
+        #expect(AppKitSystemBridgeLiveSystemRuntime.nativeWorkspaceOpen(URL(fileURLWithPath: "/tmp")) == true)
+
+        AppKitSystemBridgeLiveSystemRuntime.resetForTesting()
+        AppKitSystemBridgeLiveSystemRuntime.setIsRunningUnderXCTestForTesting { true }
+        #expect(AppKitSystemBridgeLiveSystemRuntime.nativeWorkspaceOpen(URL(fileURLWithPath: "/tmp")) == false)
+    }
+
+    @Test("AppKitSystemBridgeLiveSystemRuntime non-XCTest fallback executes native open path")
+    @MainActor
+    func runtimeNonXCTestFallbackExecutesNativeOpenPath() {
+        defer { AppKitSystemBridgeLiveSystemRuntime.resetForTesting() }
+
+        AppKitSystemBridgeLiveSystemRuntime.setNativeWorkspaceOpenForTesting(nil)
+        AppKitSystemBridgeLiveSystemRuntime.setIsRunningUnderXCTestForTesting { false }
+        // Non-existent path is expected to return false and avoids opening Finder.
+        let url = URL(fileURLWithPath: "/__free_runtime_nonexistent__/path")
+        #expect(AppKitSystemBridgeLiveSystemRuntime.nativeWorkspaceOpen(url) == false)
+    }
+
+    @Test("AppKitSystemBridgeLiveSystemRuntime uses ProcessInfo XCTest fallback when hook is nil")
+    @MainActor
+    func runtimeUsesProcessInfoXCTestFallbackWhenHookNil() {
+        defer { AppKitSystemBridgeLiveSystemRuntime.resetForTesting() }
+
+        AppKitSystemBridgeLiveSystemRuntime.setNativeWorkspaceOpenForTesting(nil)
+        AppKitSystemBridgeLiveSystemRuntime.setIsRunningUnderXCTestForTesting(nil)
+        // Non-existent path keeps this deterministic and side-effect free regardless of whether
+        // XCTestConfigurationFilePath is present in this runner.
+        let url = URL(fileURLWithPath: "/__free_runtime_processinfo_fallback__/missing")
+        #expect(AppKitSystemBridgeLiveSystemRuntime.nativeWorkspaceOpen(url) == false)
     }
 }
