@@ -212,6 +212,13 @@ final class FreeApp {
         if statusItemController == nil {
             statusItemController = makeStatusItemController(Self.quitAction())
         }
+        statusItemController?.setOpenAppHandler { [weak self, weak application] in
+            guard let self, let application else { return }
+            self.mainWindowController?.showWindow(nil)
+            self.mainWindowController?.window?.makeKeyAndOrderFront(nil)
+            self.mainWindowController?.window?.orderFrontRegardless()
+            application.activate(ignoringOtherApps: true)
+        }
 
         bindStateIfNeeded()
         applyMacOSAppearance(appState.appearanceMode)

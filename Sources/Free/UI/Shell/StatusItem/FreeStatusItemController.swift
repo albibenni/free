@@ -6,8 +6,10 @@ final class FreeStatusItemController: NSObject {
     private let statusLabelItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private var statusDetailItems: [NSMenuItem] = []
     private let statusSeparatorItem = NSMenuItem.separator()
+    private let openAppItem = NSMenuItem(title: "Open App", action: nil, keyEquivalent: "")
     private let quitItem = NSMenuItem(title: "Quit", action: nil, keyEquivalent: "q")
     private let onQuit: () -> Void
+    private var onOpenApp: () -> Void = {}
     private var statusButtonProvider: () -> NSStatusBarButton?
 
     init(onQuit: @escaping () -> Void) {
@@ -16,11 +18,14 @@ final class FreeStatusItemController: NSObject {
         super.init()
 
         statusLabelItem.isEnabled = false
+        openAppItem.target = self
+        openAppItem.action = #selector(handleOpenApp)
         quitItem.target = self
         quitItem.action = #selector(handleQuit)
 
         statusMenu.addItem(statusLabelItem)
         statusMenu.addItem(statusSeparatorItem)
+        statusMenu.addItem(openAppItem)
         statusMenu.addItem(quitItem)
         statusItem.menu = statusMenu
     }
@@ -53,12 +58,21 @@ final class FreeStatusItemController: NSObject {
     }
 
     @objc
+    private func handleOpenApp() {
+        onOpenApp()
+    }
+
+    @objc
     private func handleQuit() {
         onQuit()
     }
 }
 
 extension FreeStatusItemController {
+    func setOpenAppHandler(_ handler: @escaping () -> Void) {
+        onOpenApp = handler
+    }
+
     func setStatusButtonProviderForTesting(_ provider: @escaping () -> NSStatusBarButton?) {
         statusButtonProvider = provider
     }

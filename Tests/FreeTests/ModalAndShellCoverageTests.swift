@@ -770,8 +770,12 @@ struct ModalAndShellCoverageTests {
     @Test("Status item controller updates menu state and executes quit callback")
     func freeStatusItemController() {
         var didQuit = false
+        var didOpenApp = false
         let controller = FreeStatusItemController {
             didQuit = true
+        }
+        controller.setOpenAppHandler {
+            didOpenApp = true
         }
 
         controller.update(
@@ -804,6 +808,12 @@ struct ModalAndShellCoverageTests {
         }
 
         let quitItem: NSMenuItem? = mirrorValue(named: "quitItem", in: controller)
+        let openAppItem: NSMenuItem? = mirrorValue(named: "openAppItem", in: controller)
+        #expect(openAppItem != nil)
+        if let openAppItem, let action = openAppItem.action {
+            _ = NSApp.sendAction(action, to: openAppItem.target, from: openAppItem)
+        }
+        #expect(didOpenApp)
         #expect(quitItem != nil)
         if let quitItem, let action = quitItem.action {
             _ = NSApp.sendAction(action, to: quitItem.target, from: quitItem)
