@@ -45,10 +45,19 @@ func appKitAccentGradientColors(
     bottomAlpha: CGFloat
 ) -> [NSColor] {
     if FocusColor.isRainbowAccentColor(accentColor) {
-        return [
-            NSColor.systemPink.withAlphaComponent(topAlpha),
-            NSColor.systemBlue.withAlphaComponent(bottomAlpha),
-        ]
+        let base = FocusColor.rainbowGradient
+        guard base.isEmpty == false else {
+            return [
+                NSColor.systemPink.withAlphaComponent(topAlpha),
+                NSColor.systemBlue.withAlphaComponent(bottomAlpha),
+            ]
+        }
+        let lastIndex = max(base.count - 1, 1)
+        return base.enumerated().map { index, color in
+            let t = CGFloat(index) / CGFloat(lastIndex)
+            let alpha = topAlpha + ((bottomAlpha - topAlpha) * t)
+            return color.withAlphaComponent(alpha)
+        }
     }
     return [
         accentColor.withAlphaComponent(topAlpha),
@@ -58,7 +67,7 @@ func appKitAccentGradientColors(
 
 func appKitAccentBorderColor(for accentColor: NSColor, alpha: CGFloat) -> NSColor {
     if FocusColor.isRainbowAccentColor(accentColor) {
-        return NSColor.systemPurple.withAlphaComponent(alpha)
+        return NSColor.white.withAlphaComponent(max(0.18, alpha))
     }
     return accentColor.withAlphaComponent(alpha)
 }
