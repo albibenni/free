@@ -1,3 +1,5 @@
+# TODO
+
 ## UI
 
 - [x] personalize accent color
@@ -6,9 +8,9 @@
   - [ ] background color not white
 - [ ] better ui tbd
   - [x] try smoky ui
-- [ ] gray on smoke become purple
-- [ ] reduce animation size
-- [ ] move html code to separated file
+- [x] gray on smoke become purple
+- [x] reduce animation size - SPLAT_RADIUS
+- [ ] a bit of opacity on the animation
 - [ ] toggle disable animation
 
 ### TOPBAR
