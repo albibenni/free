@@ -24,7 +24,8 @@ final class FreeMainViewController: NSViewController {
     private let sidebarView: MainSidebarView
     private let contentDivider = AppKitDynamicView()
     private let contentHostView = MainContentHostView()
-    private let cursorFluidOverlayView = AppKitCursorFluidOverlayView.makeIfSupported()
+    private var cursorFluidOverlayView: AppKitCursorFluidOverlayView?
+    private var cursorFluidOverlayConstraints: [NSLayoutConstraint] = []
     private let bindings = MainShellBindings()
     private lazy var sheetPresenter = MainSheetPresenter(
         appState: appState,
@@ -146,9 +147,6 @@ final class FreeMainViewController: NSViewController {
         contentDivider.backgroundColorProvider = { NSColor.separatorColor }
         view.addSubview(contentDivider)
         view.addSubview(contentHostView)
-        if let cursorFluidOverlayView {
-            view.addSubview(cursorFluidOverlayView)
-        }
 
         NSLayoutConstraint.activate([
             sidebarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -166,14 +164,6 @@ final class FreeMainViewController: NSViewController {
             contentHostView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
 
-        if let cursorFluidOverlayView {
-            NSLayoutConstraint.activate([
-                cursorFluidOverlayView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                cursorFluidOverlayView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                cursorFluidOverlayView.topAnchor.constraint(equalTo: view.topAnchor),
-                cursorFluidOverlayView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            ])
-        }
     }
 
     private func bindShellState() {
@@ -219,7 +209,34 @@ final class FreeMainViewController: NSViewController {
     }
 
     private func updateCursorOverlayVisibility() {
-        cursorFluidOverlayView?.isHidden = !appState.cursorFluidAnimationEnabled
+        if appState.cursorFluidAnimationEnabled {
+            installCursorOverlayIfNeeded()
+            cursorFluidOverlayView?.setAccentColorIndex(appState.accentColorIndex)
+        } else {
+            removeCursorOverlay()
+        }
+    }
+
+    private func installCursorOverlayIfNeeded() {
+        guard cursorFluidOverlayView == nil else { return }
+        guard let overlay = AppKitCursorFluidOverlayView.makeIfSupported() else { return }
+        cursorFluidOverlayView = overlay
+        view.addSubview(overlay)
+        cursorFluidOverlayConstraints = [
+            overlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            overlay.topAnchor.constraint(equalTo: view.topAnchor),
+            overlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ]
+        NSLayoutConstraint.activate(cursorFluidOverlayConstraints)
+    }
+
+    private func removeCursorOverlay() {
+        guard let overlay = cursorFluidOverlayView else { return }
+        NSLayoutConstraint.deactivate(cursorFluidOverlayConstraints)
+        cursorFluidOverlayConstraints.removeAll()
+        overlay.removeFromSuperview()
+        cursorFluidOverlayView = nil
     }
 
     private func updateCalendarTabAvailability() {
