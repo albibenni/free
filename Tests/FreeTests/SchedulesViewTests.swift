@@ -117,6 +117,40 @@ struct SchedulesViewTests {
         #expect(controller.editorContextForTesting != nil)
     }
 
+    @Test("Schedules sheet blocks schedule mutations while unblockable mode is enabled")
+    @MainActor
+    func schedulesViewBlocksMutationsWhenUnblockable() {
+        let appState = isolatedAppState(name: "blocksMutationsWhenUnblockable")
+        let schedule = sampleSchedule(name: "Locked")
+        appState.schedules = [schedule]
+        appState.isUnblockable = true
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: {},
+            initialViewMode: 0
+        )
+        _ = host(controller)
+
+        controller.openAddScheduleForTesting()
+        #expect(controller.editorContextForTesting == nil)
+
+        controller.quickAddForTesting(day: 2, hour: 10)
+        #expect(controller.editorContextForTesting == nil)
+
+        controller.openSelectionEditorForTesting(day: 2, startHour: 9.0, endHour: 10.0)
+        #expect(controller.editorContextForTesting == nil)
+
+        controller.openScheduleEditorForTesting(day: 2, schedule: schedule)
+        #expect(controller.editorContextForTesting == nil)
+
+        controller.setScheduleEnabledForTesting(scheduleId: schedule.id, isEnabled: false)
+        #expect(appState.schedules.first?.isEnabled == true)
+
+        controller.deleteScheduleForTesting(scheduleId: schedule.id)
+        #expect(appState.schedules.contains(where: { $0.id == schedule.id }))
+    }
+
     @Test("Schedules sheet controller does not delete imported schedules from row or swipe actions")
     @MainActor
     func schedulesViewPreventsImportedDeletion() {
@@ -579,6 +613,7 @@ struct SchedulesViewTests {
                 schedules: [sampleSchedule(name: "One")],
                 accentColor: .systemGreen,
                 accentColorIndex: appState.accentColorIndex,
+                canModifySchedules: true,
                 appState: appState,
                 editorContext: nil,
                 calendarViewConfiguration: sampleCalendarConfiguration(),
@@ -625,6 +660,7 @@ struct SchedulesViewTests {
             schedules: [sampleSchedule(name: "Editor Host")],
             accentColor: .systemGreen,
             accentColorIndex: appState.accentColorIndex,
+            canModifySchedules: true,
             appState: appState,
             editorContext: editorContext,
             calendarViewConfiguration: sampleCalendarConfiguration(),
@@ -654,6 +690,7 @@ struct SchedulesViewTests {
             schedules: [sampleSchedule(name: "Editor Host")],
             accentColor: .systemGreen,
             accentColorIndex: appState.accentColorIndex,
+            canModifySchedules: true,
             appState: appState,
             editorContext: nil,
             calendarViewConfiguration: sampleCalendarConfiguration(),

@@ -6,6 +6,7 @@ struct SchedulesAppKitConfiguration {
     let schedules: [Schedule]
     let accentColor: NSColor
     let accentColorIndex: Int
+    let canModifySchedules: Bool
     let appState: AppState
     let editorContext: ScheduleEditorContext?
     let calendarViewConfiguration: WeeklyCalendarSurfaceConfiguration

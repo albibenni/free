@@ -92,6 +92,8 @@ final class SchedulesContainerNSView: NSView {
 
         applyAddButtonStyle(accentColor: configuration.accentColor)
         applyToolbarStyle(accentColor: configuration.accentColor)
+        addButton.isEnabled = configuration.canModifySchedules
+        addButton.alphaValue = configuration.canModifySchedules ? 1.0 : 0.55
         titleLabel.stringValue = configuration.viewMode == 1 ? configuration.monthTitle : "Schedules"
         titleLabel.isHidden = false
         viewModeLabel.isHidden = false

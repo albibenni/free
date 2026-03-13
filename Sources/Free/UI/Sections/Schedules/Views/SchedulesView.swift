@@ -128,6 +128,10 @@ final class SchedulesSheetViewController: NSViewController {
         appState.calendarIntegrationEnabled && !appState.calendarImportsBlockTime
     }
 
+    private var canModifySchedules: Bool {
+        !appState.isUnblockable
+    }
+
     private func refreshConfiguration(force: Bool = true) {
         if !force {
             let nextSignature = RenderSignature(appState: appState, viewMode: viewMode)
@@ -179,6 +183,7 @@ final class SchedulesSheetViewController: NSViewController {
             schedules: appState.schedules,
             accentColor: accentColor,
             accentColorIndex: appState.accentColorIndex,
+            canModifySchedules: canModifySchedules,
             appState: appState,
             editorContext: editorContext,
             calendarViewConfiguration: WeeklyCalendarSurfaceConfiguration(
@@ -222,8 +227,9 @@ final class SchedulesSheetViewController: NSViewController {
                 self?.refreshConfiguration()
             },
             onSelectSchedule: { [weak self] schedule in
-                self?.editorContext = ScheduleEditorContext(schedule: schedule)
-                self?.refreshConfiguration()
+                guard let self, self.canModifySchedules else { return }
+                self.editorContext = ScheduleEditorContext(schedule: schedule)
+                self.refreshConfiguration()
             },
             onDeleteSchedule: { [weak self] scheduleId in
                 self?.deleteSchedule(scheduleId: scheduleId)
@@ -252,6 +258,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func setScheduleEnabled(scheduleId: UUID, isEnabled: Bool) {
+        guard canModifySchedules else { return }
         guard let index = appState.schedules.firstIndex(where: { $0.id == scheduleId }) else {
             return
         }
@@ -283,6 +290,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func quickAdd(day: Int, hour: Int) {
+        guard canModifySchedules else { return }
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: hour, minute: 0))
         let end = calendar.date(from: DateComponents(hour: hour + 1, minute: 0))
@@ -298,6 +306,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openSelectionEditor(day: Int, startHour: CGFloat, endHour: CGFloat) {
+        guard canModifySchedules else { return }
         let result = WeeklyCalendarSupport.calculateDragSelection(
             startHour: startHour,
             endHour: endHour
@@ -314,6 +323,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openScheduleEditor(day: Int, schedule: Schedule) {
+        guard canModifySchedules else { return }
         editorContext = ScheduleEditorContext(
             day: day,
             schedule: schedule,
@@ -323,6 +333,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func deleteSchedule(scheduleId: UUID) {
+        guard canModifySchedules else { return }
         guard let schedule = appState.schedules.first(where: { $0.id == scheduleId }) else {
             return
         }
@@ -331,6 +342,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openAddSchedule() {
+        guard canModifySchedules else { return }
         editorContext = ScheduleEditorContext()
         refreshConfiguration()
     }
