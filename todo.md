@@ -9,9 +9,11 @@
 ### TOPBAR
 
 - [ ] add infos
-  - [ ] add calendar schedule, next one
-  - [ ] add active list
-  - [ ] add if unbreakable mode is on
+  - [x] add calendar schedule, next one
+  - [x] add active list
+  - [x] add if unbreakable mode is on
+  - [x] pomodoro timer - break or focus what's left
+- [x] open app
 
 ## Logic
 
@@ -44,6 +46,7 @@
   - [x] breaks only in first view - mode there from pomodoro
   - [x] pomodoro setting for it
   - [x] calendar setting for it
+- [x] with unblockable mode on schedule cannot be modified
 
 ### Allowed list
 
@@ -110,7 +113,7 @@
 
 ## Performance check
 
-- [ ] auto remove previous calendar imports - if they are in the past week
+- [x] auto remove previous calendar imports - if they are in the past week
 - [ ] cpu usage
 - [ ] ram usage
 

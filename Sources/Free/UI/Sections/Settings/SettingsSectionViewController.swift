@@ -48,6 +48,7 @@ final class SettingsSectionViewController: NSViewController {
     private static var _runCalendarPermissionAlert: AlertRunner?
     private static var _platformWorkspaceURLOpener: URLOpener?
     private static var _workspaceURLOpener: URLOpener?
+    private static var _workspaceNativeOpenURLOpener: URLOpener?
     private static var _scheduleAfter: AsyncAfterScheduler?
     private static var _openCalendarPrivacySettings: CalendarSettingsOpener?
     private static var _isRunningInTestProcess: TestProcessDetector?
@@ -66,8 +67,11 @@ final class SettingsSectionViewController: NSViewController {
         set { _isRunningInTestProcess = newValue }
     }
     static var nativeWorkspaceURLOpener: URLOpener {
-        get { _nativeWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
+        get { _nativeWorkspaceURLOpener ?? { url in workspaceNativeOpenURLOpener(url) } }
         set { _nativeWorkspaceURLOpener = newValue }
+    }
+    private static var workspaceNativeOpenURLOpener: URLOpener {
+        _workspaceNativeOpenURLOpener ?? AppKitSystemBridges.openURL
     }
     static var platformWorkspaceURLOpener: URLOpener {
         get {
@@ -157,6 +161,10 @@ final class SettingsSectionViewController: NSViewController {
     private let blockLocalNetworkHostsSwitch = AppKitToggleSwitch()
     private let allowSearchEngineWebsitesSwitch = AppKitToggleSwitch()
     private let allowAIProviderWebsitesSwitch = AppKitToggleSwitch()
+    private let browserLockNotice = NSTextField(
+        wrappingLabelWithString:
+            "Unblockable mode is active. Browser blocking settings cannot be changed."
+    )
     private var appearanceModeControl: AppKitSelectionButtonGroup<AppearanceMode>?
     private var accentButtons: [NSButton] = []
     private var pendingCalendarPermissionFallback = false
@@ -177,6 +185,8 @@ final class SettingsSectionViewController: NSViewController {
         view = rootView
 
         scrollContainer.translatesAutoresizingMaskIntoConstraints = false
+        scrollContainer.maxContentWidth = 980
+        scrollContainer.stackView.spacing = 18
         view.addSubview(scrollContainer)
         NSLayoutConstraint.activate([
             scrollContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -189,16 +199,11 @@ final class SettingsSectionViewController: NSViewController {
         titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
         scrollContainer.stackView.addArrangedSubview(titleLabel)
 
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Strict Mode"))
-        addFullWidthSection(makeStrictSection())
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Startup"))
-        addFullWidthSection(makeStartupSection())
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Browser"))
-        addFullWidthSection(makeBrowserSection())
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("Appearance"))
-        addFullWidthSection(makeAppearanceSection())
-        scrollContainer.stackView.addArrangedSubview(makeSectionTitle("About"))
-        addFullWidthSection(makeAboutSection())
+        addSectionBlock(title: "Strict Mode", content: makeStrictSection())
+        addSectionBlock(title: "Startup", content: makeStartupSection())
+        addSectionBlock(title: "Browser", content: makeBrowserSection())
+        addSectionBlock(title: "Appearance", content: makeAppearanceSection())
+        addSectionBlock(title: "About", content: makeAboutSection())
     }
 
     override func viewDidLoad() {
@@ -243,6 +248,18 @@ final class SettingsSectionViewController: NSViewController {
         scrollContainer.stackView.addArrangedSubview(section)
         section.translatesAutoresizingMaskIntoConstraints = false
         section.widthAnchor.constraint(equalTo: scrollContainer.stackView.widthAnchor).isActive = true
+    }
+
+    private func addSectionBlock(title: String, content: NSView) {
+        let heading = makeSectionTitle(title)
+        let block = makeAppKitVerticalStack(
+            views: [heading, content],
+            alignment: .leading,
+            spacing: 8
+        )
+        content.translatesAutoresizingMaskIntoConstraints = false
+        content.widthAnchor.constraint(equalTo: block.widthAnchor).isActive = true
+        addFullWidthSection(block)
     }
 
     private func makeStrictSection() -> NSView {
@@ -326,7 +343,11 @@ final class SettingsSectionViewController: NSViewController {
                 descriptionLabel: makeDescriptionLabel("Always allow popular AI provider websites while blocking."),
                 toggle: allowAIProviderWebsitesSwitch
             ),
+            browserLockNotice,
         ].forEach { section.addArrangedSubview($0) }
+        browserLockNotice.font = .systemFont(ofSize: 13, weight: .medium)
+        browserLockNotice.textColor = .systemOrange
+        browserLockNotice.isHidden = true
         return section
     }
 
@@ -468,6 +489,13 @@ final class SettingsSectionViewController: NSViewController {
         blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .on : .off
         allowSearchEngineWebsitesSwitch.state = appState.allowSearchEngineWebsites ? .on : .off
         allowAIProviderWebsitesSwitch.state = appState.allowAIProviderWebsites ? .on : .off
+        let browserLocked = appState.isUnblockable
+        blockNewTabsSwitch.isEnabled = !browserLocked
+        blockDeveloperHostsSwitch.isEnabled = !browserLocked
+        blockLocalNetworkHostsSwitch.isEnabled = !browserLocked
+        allowSearchEngineWebsitesSwitch.isEnabled = !browserLocked
+        allowAIProviderWebsitesSwitch.isEnabled = !browserLocked
+        browserLockNotice.isHidden = !browserLocked
 
         for (index, button) in accentButtons.enumerated() {
             button.layer?.borderWidth = appState.accentColorIndex == index ? 2 : 0
@@ -494,7 +522,15 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func toggleStrictMode() {
-        appState.isUnblockable = strictToggle.state == .on
+        let wantsEnabled = strictToggle.state == .on
+        if wantsEnabled {
+            appState.isUnblockable = true
+        } else {
+            guard appState.isUnblockable else { return }
+            disableStrictMode()
+        }
+        // Keep control state aligned even when unlock is cancelled or phrase is wrong.
+        strictToggle.state = appState.isUnblockable ? .on : .off
     }
 
     @objc
@@ -624,26 +660,31 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func toggleBlockNewTabs() {
+        guard !appState.isUnblockable else { return }
         appState.blockNewTabs = blockNewTabsSwitch.state == .on
     }
 
     @objc
     private func toggleBlockDeveloperHosts() {
+        guard !appState.isUnblockable else { return }
         appState.blockDeveloperHosts = blockDeveloperHostsSwitch.state == .on
     }
 
     @objc
     private func toggleBlockLocalNetworkHosts() {
+        guard !appState.isUnblockable else { return }
         appState.blockLocalNetworkHosts = blockLocalNetworkHostsSwitch.state == .on
     }
 
     @objc
     private func toggleAllowSearchEngineWebsites() {
+        guard !appState.isUnblockable else { return }
         appState.allowSearchEngineWebsites = allowSearchEngineWebsitesSwitch.state == .on
     }
 
     @objc
     private func toggleAllowAIProviderWebsites() {
+        guard !appState.isUnblockable else { return }
         appState.allowAIProviderWebsites = allowAIProviderWebsitesSwitch.state == .on
     }
 
@@ -656,6 +697,7 @@ final class SettingsSectionViewController: NSViewController {
 extension SettingsSectionViewController {
     var shouldShowStrictDisableButtonForTesting: Bool { !strictDisableButton.isHidden }
     var calendarControlsLockedForTesting: Bool { !calendarIntegrationSwitch.isEnabled }
+    var browserControlsLockedForTesting: Bool { !blockNewTabsSwitch.isEnabled }
     var launchAtLoginEnabledForTesting: Bool { launchAtLoginSwitch.state == .on }
     var appearanceSelectionColorForTesting: NSColor? { appearanceModeControl?.selectedButtonTintColor }
 
@@ -747,6 +789,7 @@ extension SettingsSectionViewController {
         _platformWorkspaceURLOpener = nil
         _isRunningInTestProcess = nil
         _nativeWorkspaceURLOpener = nil
+        _workspaceNativeOpenURLOpener = nil
         _workspaceURLOpener = nil
         _scheduleAfter = nil
         makeStrictModeAlert = defaultMakeStrictModeAlert
@@ -764,5 +807,9 @@ extension SettingsSectionViewController {
 
     func invokeCalendarPermissionAlertForTesting() {
         presentCalendarPermissionAlert()
+    }
+
+    static func setWorkspaceNativeOpenURLOpenerForTesting(_ opener: URLOpener?) {
+        _workspaceNativeOpenURLOpener = opener
     }
 }

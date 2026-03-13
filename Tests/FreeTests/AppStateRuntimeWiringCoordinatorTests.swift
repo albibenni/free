@@ -72,7 +72,7 @@ struct AppStateRuntimeWiringCoordinatorTests {
             dispatchToMain: { $0() }
         )
 
-        #expect(scheduler.intervals == [60])
+        #expect(scheduler.intervals == [600])
         scheduler.fire(at: 0)
         #expect(scheduleTickCount == 1)
 

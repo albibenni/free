@@ -1,8 +1,14 @@
 import AppKit
 
 final class VerticallyCenteredTextFieldCell: NSTextFieldCell {
+    private let horizontalInset: CGFloat = 8
+
     override func drawingRect(forBounds rect: NSRect) -> NSRect {
         var adjustedRect = super.drawingRect(forBounds: rect)
+        if adjustedRect.width > (horizontalInset * 2) {
+            adjustedRect.origin.x += horizontalInset
+            adjustedRect.size.width -= horizontalInset * 2
+        }
         let textSize = cellSize(forBounds: rect)
         let delta = floor((adjustedRect.height - textSize.height) / 2)
         if delta > 0 {

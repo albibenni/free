@@ -770,22 +770,50 @@ struct ModalAndShellCoverageTests {
     @Test("Status item controller updates menu state and executes quit callback")
     func freeStatusItemController() {
         var didQuit = false
+        var didOpenApp = false
         let controller = FreeStatusItemController {
             didQuit = true
+        }
+        controller.setOpenAppHandler {
+            didOpenApp = true
         }
 
         controller.update(
             statusText: "Focus Mode: Active",
+            topBarText: "Focus: On",
             isQuitDisabled: true,
             iconColor: .systemGreen
         )
         controller.update(
             statusText: "Focus Mode: Inactive",
+            topBarText: "Focus: Off",
             isQuitDisabled: false,
             iconColor: .labelColor
         )
+        controller.update(
+            statusText: "Focus Mode: Active\nCalendar: Active\nUnbreakable",
+            topBarText: "",
+            isQuitDisabled: true,
+            iconColor: .systemGreen
+        )
+        controller.update(
+            statusText: "\n\n",
+            topBarText: "",
+            isQuitDisabled: false,
+            iconColor: .labelColor
+        )
+        if let statusMenu: NSMenu = mirrorValue(named: "statusMenu", in: controller) {
+            #expect(statusMenu.items.count >= 3)
+            #expect(statusMenu.items[1].isSeparatorItem)
+        }
 
         let quitItem: NSMenuItem? = mirrorValue(named: "quitItem", in: controller)
+        let openAppItem: NSMenuItem? = mirrorValue(named: "openAppItem", in: controller)
+        #expect(openAppItem != nil)
+        if let openAppItem, let action = openAppItem.action {
+            _ = NSApp.sendAction(action, to: openAppItem.target, from: openAppItem)
+        }
+        #expect(didOpenApp)
         #expect(quitItem != nil)
         if let quitItem, let action = quitItem.action {
             _ = NSApp.sendAction(action, to: quitItem.target, from: quitItem)
@@ -793,9 +821,11 @@ struct ModalAndShellCoverageTests {
         #expect(didQuit)
 
         if let statusItem: NSStatusItem = mirrorValue(named: "statusItem", in: controller) {
+            #expect(statusItem.button?.imagePosition == .imageOnly)
             NSStatusBar.system.removeStatusItem(statusItem)
             controller.update(
                 statusText: "Focus Mode: Inactive",
+                topBarText: "Focus: Off",
                 isQuitDisabled: false,
                 iconColor: .labelColor
             )
@@ -805,6 +835,7 @@ struct ModalAndShellCoverageTests {
         controller.setStatusButtonProviderForTesting { nil }
         controller.update(
             statusText: "Focus Mode: Inactive",
+            topBarText: "Focus: Off",
             isQuitDisabled: false,
             iconColor: .labelColor
         )

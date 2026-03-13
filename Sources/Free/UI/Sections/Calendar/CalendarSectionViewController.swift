@@ -113,6 +113,10 @@ final class CalendarSectionViewController: NSViewController {
     private let integrationNotice = NSTextField(
         wrappingLabelWithString: "Enable Calendar Integration to use calendar title rules."
     )
+    private let strictLockNotice = NSTextField(
+        wrappingLabelWithString:
+            "Unblockable mode is active. You cannot change Calendar integration settings while Focus Mode is active."
+    )
     private let focusRuleField = VerticallyCenteredTextField(string: "")
     private let breakRuleField = VerticallyCenteredTextField(string: "")
     private let focusRulesTableView = NSTableView()
@@ -143,6 +147,8 @@ final class CalendarSectionViewController: NSViewController {
         view = rootView
 
         scrollContainer.translatesAutoresizingMaskIntoConstraints = false
+        scrollContainer.maxContentWidth = 980
+        scrollContainer.stackView.spacing = 18
         view.addSubview(scrollContainer)
         NSLayoutConstraint.activate([
             scrollContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -154,10 +160,6 @@ final class CalendarSectionViewController: NSViewController {
         let titleLabel = NSTextField(labelWithString: "Calendar")
         titleLabel.font = .systemFont(ofSize: 22, weight: .bold)
         scrollContainer.stackView.addArrangedSubview(titleLabel)
-
-        let integrationTitle = NSTextField(labelWithString: "Integration")
-        integrationTitle.font = .systemFont(ofSize: 18, weight: .semibold)
-        scrollContainer.stackView.addArrangedSubview(integrationTitle)
 
         let integrationSection = makeCardSection()
         weekStartsMondaySwitch.target = self
@@ -179,6 +181,7 @@ final class CalendarSectionViewController: NSViewController {
                 descriptionLabel: makeDescriptionLabel("Use macOS Calendar events for scheduling."),
                 toggle: calendarIntegrationSwitch
             ),
+            strictLockNotice,
             makeImportedRuleSetRow(),
             makeAppKitDividerView(),
             resyncButton,
@@ -188,11 +191,7 @@ final class CalendarSectionViewController: NSViewController {
             $0.translatesAutoresizingMaskIntoConstraints = false
             $0.widthAnchor.constraint(equalTo: integrationSection.widthAnchor).isActive = true
         }
-        addFullWidthSection(integrationSection)
-
-        let sectionTitle = NSTextField(labelWithString: "Import Rules")
-        sectionTitle.font = .systemFont(ofSize: 18, weight: .semibold)
-        scrollContainer.stackView.addArrangedSubview(sectionTitle)
+        addSectionBlock(title: "Integration", content: integrationSection)
 
         let section = makeCardSection()
         let focusRuleRow = makeRuleListRow(
@@ -218,7 +217,7 @@ final class CalendarSectionViewController: NSViewController {
             $0.translatesAutoresizingMaskIntoConstraints = false
             $0.widthAnchor.constraint(equalTo: section.widthAnchor).isActive = true
         }
-        addFullWidthSection(section)
+        addSectionBlock(title: "Import Rules", content: section)
 
         configureRuleField(
             focusRuleField,
@@ -274,6 +273,9 @@ final class CalendarSectionViewController: NSViewController {
 
         integrationNotice.font = .systemFont(ofSize: 12, weight: .medium)
         integrationNotice.textColor = .secondaryLabelColor
+        strictLockNotice.font = .systemFont(ofSize: 13, weight: .medium)
+        strictLockNotice.textColor = .systemOrange
+        strictLockNotice.isHidden = true
     }
 
     override func viewDidLoad() {
@@ -305,6 +307,19 @@ final class CalendarSectionViewController: NSViewController {
         section.widthAnchor.constraint(equalTo: scrollContainer.stackView.widthAnchor).isActive = true
     }
 
+    private func addSectionBlock(title: String, content: NSView) {
+        let label = NSTextField(labelWithString: title)
+        label.font = .systemFont(ofSize: 18, weight: .semibold)
+        let block = makeAppKitVerticalStack(
+            views: [label, content],
+            alignment: .leading,
+            spacing: 8
+        )
+        content.translatesAutoresizingMaskIntoConstraints = false
+        content.widthAnchor.constraint(equalTo: block.widthAnchor).isActive = true
+        addFullWidthSection(block)
+    }
+
     private func makeCardSection() -> NSStackView {
         let section = AppKitCardStackView()
         section.orientation = .vertical
@@ -321,6 +336,7 @@ final class CalendarSectionViewController: NSViewController {
         action: Selector
     ) {
         textField.placeholderString = placeholder
+        applyAppKitInputFieldStyle(textField)
         textField.target = self
         textField.action = action
         if let cell = textField.cell as? NSTextFieldCell {
@@ -366,6 +382,8 @@ final class CalendarSectionViewController: NSViewController {
 
     private func makeImportedRuleSetRow() -> NSView {
         importedRuleSetScrollView.stackView.alignment = .width
+        importedRuleSetScrollView.stackView.spacing = 6
+        importedRuleSetScrollView.stackView.edgeInsets = NSEdgeInsets(top: 2, left: 0, bottom: 2, right: 0)
         importedRuleSetScrollView.drawsBackground = false
         importedRuleSetScrollView.borderType = .noBorder
         importedRuleSetScrollView.hasVerticalScroller = true
@@ -382,14 +400,14 @@ final class CalendarSectionViewController: NSViewController {
 
         let listContainer = AppKitDynamicView()
         listContainer.backgroundColorProvider = {
-            NSColor.controlBackgroundColor.withAlphaComponent(0.35)
+            NSColor.controlBackgroundColor.withAlphaComponent(0.45)
         }
         listContainer.borderColorProvider = {
-            NSColor.separatorColor.withAlphaComponent(0.45)
+            NSColor.separatorColor.withAlphaComponent(0.62)
         }
         listContainer.borderWidthValue = 1
         listContainer.wantsLayer = true
-        listContainer.layer?.cornerRadius = 8
+        listContainer.layer?.cornerRadius = 10
         listContainer.translatesAutoresizingMaskIntoConstraints = false
         listContainer.addSubview(importedRuleSetScrollView)
         NSLayoutConstraint.activate([
@@ -431,6 +449,9 @@ final class CalendarSectionViewController: NSViewController {
     ) -> NSView {
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        titleLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
 
         let labelStack = makeAppKitVerticalStack(
             views: [],
@@ -439,16 +460,22 @@ final class CalendarSectionViewController: NSViewController {
         )
         labelStack.addArrangedSubview(titleLabel)
         if let descriptionLabel {
+            descriptionLabel.lineBreakMode = .byTruncatingTail
+            descriptionLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
             labelStack.addArrangedSubview(descriptionLabel)
         }
 
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
         let row = makeAppKitHorizontalRow(
-            views: [labelStack, NSView(), toggle],
+            views: [labelStack, spacer, toggle],
             alignment: .centerY,
             spacing: 12
         )
         row.translatesAutoresizingMaskIntoConstraints = false
-        labelStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        labelStack.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         let container = NSView()
         container.translatesAutoresizingMaskIntoConstraints = false
@@ -487,14 +514,14 @@ final class CalendarSectionViewController: NSViewController {
 
         let listContainer = AppKitDynamicView()
         listContainer.backgroundColorProvider = {
-            NSColor.controlBackgroundColor.withAlphaComponent(0.35)
+            NSColor.controlBackgroundColor.withAlphaComponent(0.45)
         }
         listContainer.borderColorProvider = {
-            NSColor.separatorColor.withAlphaComponent(0.45)
+            NSColor.separatorColor.withAlphaComponent(0.62)
         }
         listContainer.borderWidthValue = 1
         listContainer.wantsLayer = true
-        listContainer.layer?.cornerRadius = 8
+        listContainer.layer?.cornerRadius = 10
         listContainer.translatesAutoresizingMaskIntoConstraints = false
 
         listContainer.addSubview(tableScrollView)
@@ -509,7 +536,7 @@ final class CalendarSectionViewController: NSViewController {
         let stack = makeAppKitVerticalStack(
             views: [titleLabel, descriptionLabel, inputRow, listContainer, removeRow],
             alignment: .leading,
-            spacing: 4
+            spacing: 8
         )
         stack.translatesAutoresizingMaskIntoConstraints = false
         inputField.widthAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
@@ -534,6 +561,7 @@ final class CalendarSectionViewController: NSViewController {
 
     private func reload() {
         let enabled = appState.calendarIntegrationEnabled
+        let canEditRules = canEditCalendarTitleRules
         let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
         [weekStartsMondaySwitch, calendarIntegrationSwitch].forEach {
             $0.accentColor = accentColor
@@ -541,6 +569,7 @@ final class CalendarSectionViewController: NSViewController {
         weekStartsMondaySwitch.state = appState.weekStartsOnMonday ? .on : .off
         calendarIntegrationSwitch.state = enabled ? .on : .off
         calendarIntegrationSwitch.isEnabled = !appState.isStrictActive
+        strictLockNotice.isHidden = !appState.isStrictActive
         resyncButton.isEnabled = enabled
         applyAppKitSecondaryButtonStyle(
             resyncButton,
@@ -563,17 +592,17 @@ final class CalendarSectionViewController: NSViewController {
             title: "Remove Selected",
             color: accentColor
         )
-        integrationNotice.isHidden = enabled
-        focusRuleField.isEnabled = enabled
-        breakRuleField.isEnabled = enabled
-        addFocusRuleButton.isEnabled = enabled
-        addBreakRuleButton.isEnabled = enabled
-        focusRulesTableView.isEnabled = enabled
-        breakRulesTableView.isEnabled = enabled
+        integrationNotice.isHidden = enabled || appState.isStrictActive
+        focusRuleField.isEnabled = canEditRules
+        breakRuleField.isEnabled = canEditRules
+        addFocusRuleButton.isEnabled = canEditRules
+        addBreakRuleButton.isEnabled = canEditRules
+        focusRulesTableView.isEnabled = canEditRules
+        breakRulesTableView.isEnabled = canEditRules
         focusRulesTableView.reloadData()
         breakRulesTableView.reloadData()
-        removeFocusRuleButton.isEnabled = enabled && focusRulesTableView.numberOfSelectedRows > 0
-        removeBreakRuleButton.isEnabled = enabled && breakRulesTableView.numberOfSelectedRows > 0
+        removeFocusRuleButton.isEnabled = canEditRules && focusRulesTableView.numberOfSelectedRows > 0
+        removeBreakRuleButton.isEnabled = canEditRules && breakRulesTableView.numberOfSelectedRows > 0
     }
 
     private func reloadImportedRuleSetButtons(accentColor: NSColor, isEnabled: Bool) {
@@ -667,13 +696,13 @@ final class CalendarSectionViewController: NSViewController {
     @objc
     private func handleFocusSelectionChange() {
         removeFocusRuleButton.isEnabled =
-            appState.calendarIntegrationEnabled && focusRulesTableView.numberOfSelectedRows > 0
+            canEditCalendarTitleRules && focusRulesTableView.numberOfSelectedRows > 0
     }
 
     @objc
     private func handleBreakSelectionChange() {
         removeBreakRuleButton.isEnabled =
-            appState.calendarIntegrationEnabled && breakRulesTableView.numberOfSelectedRows > 0
+            canEditCalendarTitleRules && breakRulesTableView.numberOfSelectedRows > 0
     }
 
     @objc
@@ -700,6 +729,7 @@ final class CalendarSectionViewController: NSViewController {
         from field: NSTextField,
         into keyPath: ReferenceWritableKeyPath<AppState, [String]>
     ) {
+        guard canEditCalendarTitleRules else { return }
         let parsed = Self.parseRules(field.stringValue)
         guard !parsed.isEmpty else { return }
         var rules = appState[keyPath: keyPath]
@@ -716,6 +746,7 @@ final class CalendarSectionViewController: NSViewController {
 
     @objc
     private func removeSelectedFocusRule() {
+        guard canEditCalendarTitleRules else { return }
         let rows = selectedRows(in: focusRulesTableView)
         guard !rows.isEmpty else { return }
         appState.calendarImportFocusTitleRules = removeRules(
@@ -727,6 +758,7 @@ final class CalendarSectionViewController: NSViewController {
 
     @objc
     private func removeSelectedBreakRule() {
+        guard canEditCalendarTitleRules else { return }
         let rows = selectedRows(in: breakRulesTableView)
         guard !rows.isEmpty else { return }
         appState.calendarImportBreakTitleRules = removeRules(
@@ -754,6 +786,10 @@ final class CalendarSectionViewController: NSViewController {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { $0.isEmpty == false }
             .filter { seen.insert($0.lowercased()).inserted }
+    }
+
+    private var canEditCalendarTitleRules: Bool {
+        appState.calendarIntegrationEnabled && !appState.isUnblockable
     }
 }
 

@@ -253,6 +253,91 @@ struct CalendarSectionViewTests {
         #expect(removeButtons[0].isEnabled == false)
         #expect(removeButtons[1].isEnabled == false)
         #expect(controller.calendarControlsLockedForTesting)
+        #expect(
+            visibleText(in: hosted).contains(
+                "Unblockable mode is active. You cannot change Calendar integration settings while Focus Mode is active."
+            )
+        )
+    }
+
+    @Test("Calendar section blocks break/focus title rule edits when unblockable mode is on")
+    @MainActor
+    func calendarSectionRuleEditsLockedWhileUnblockable() {
+        let appState = isolatedAppState(name: "ruleEditsLockedWhileUnblockable")
+        appState.calendarIntegrationEnabled = true
+        appState.isUnblockable = true
+        appState.calendarImportFocusTitleRules = ["focus"]
+        appState.calendarImportBreakTitleRules = ["break"]
+
+        let controller = CalendarSectionViewController(appState: appState)
+        let hosted = host(controller)
+
+        guard
+            let focusField = textField(withPlaceholder: "Add focus title rule...", in: hosted),
+            let breakField = textField(withPlaceholder: "Add break title rule...", in: hosted)
+        else {
+            Issue.record("Expected calendar rule input fields")
+            return
+        }
+
+        let addButtons = buttons(titled: "Add", in: hosted)
+        let removeButtons = buttons(titled: "Remove Selected", in: hosted)
+        let tables = tableViews(in: hosted)
+        guard addButtons.count >= 2, removeButtons.count >= 2, tables.count >= 2 else {
+            Issue.record("Expected focus/break add/remove buttons and tables")
+            return
+        }
+
+        #expect(focusField.isEnabled == false)
+        #expect(breakField.isEnabled == false)
+        #expect(addButtons[0].isEnabled == false)
+        #expect(addButtons[1].isEnabled == false)
+        #expect(tables[0].isEnabled == false)
+        #expect(tables[1].isEnabled == false)
+        #expect(removeButtons[0].isEnabled == false)
+        #expect(removeButtons[1].isEnabled == false)
+
+        focusField.stringValue = "new focus rule"
+        breakField.stringValue = "new break rule"
+        addButtons[0].performClick(nil)
+        addButtons[1].performClick(nil)
+        #expect(appState.calendarImportFocusTitleRules == ["focus"])
+        #expect(appState.calendarImportBreakTitleRules == ["break"])
+    }
+
+    @Test("Calendar section private rule actions early-return when calendar title rule editing is locked")
+    @MainActor
+    func calendarSectionRuleActionGuardsWhenEditingLocked() {
+        let appState = isolatedAppState(name: "ruleActionGuardsWhenEditingLocked")
+        appState.calendarIntegrationEnabled = true
+        appState.isUnblockable = true
+        appState.calendarImportFocusTitleRules = ["keep-focus"]
+        appState.calendarImportBreakTitleRules = ["keep-break"]
+
+        let controller = CalendarSectionViewController(appState: appState)
+        let hosted = host(controller)
+        guard
+            let focusField = textField(withPlaceholder: "Add focus title rule...", in: hosted),
+            let breakField = textField(withPlaceholder: "Add break title rule...", in: hosted),
+            let focusTable = tableViews(in: hosted).first,
+            tableViews(in: hosted).count >= 2
+        else {
+            Issue.record("Expected focus/break controls for lock guard test")
+            return
+        }
+        let breakTable = tableViews(in: hosted)[1]
+
+        focusField.stringValue = "new-focus"
+        breakField.stringValue = "new-break"
+        focusTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        breakTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+
+        _ = controller.perform(NSSelectorFromString("addFocusRule"))
+        _ = controller.perform(NSSelectorFromString("removeSelectedFocusRule"))
+        _ = controller.perform(NSSelectorFromString("removeSelectedBreakRule"))
+
+        #expect(appState.calendarImportFocusTitleRules == ["keep-focus"])
+        #expect(appState.calendarImportBreakTitleRules == ["keep-break"])
     }
 
     @Test("Calendar section resync requests access and falls back to permission alert in test runtime")

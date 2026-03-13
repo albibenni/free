@@ -9,6 +9,7 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
         let addButton: ActionButton
         let importOpenTabsButton: ActionButton
         let removeButton: ActionButton
+        let strictModeWarningLabel: NSTextField
         let rulesTableView: NSTableView
         let tableScrollView: NSScrollView
         let emptyLabel: NSTextField
@@ -82,6 +83,7 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
         headerRow.translatesAutoresizingMaskIntoConstraints = false
 
         components.urlField.placeholderString = "Add URL to allow..."
+        applyAppKitInputFieldStyle(components.urlField)
         components.urlField.target = target
         components.urlField.action = #selector(AllowedWebsitesFloatingEditorViewController.handleAddRuleFromField(_:))
         components.urlField.translatesAutoresizingMaskIntoConstraints = false
@@ -109,6 +111,11 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
             spacing: 10
         )
         addRow.translatesAutoresizingMaskIntoConstraints = false
+
+        components.strictModeWarningLabel.translatesAutoresizingMaskIntoConstraints = false
+        components.strictModeWarningLabel.alignment = .left
+        components.strictModeWarningLabel.lineBreakMode = .byWordWrapping
+        components.strictModeWarningLabel.maximumNumberOfLines = 2
 
         let ruleColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("AllowedRule"))
         ruleColumn.title = "Allowed Websites"
@@ -178,7 +185,7 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
         let divider = makeAppKitDividerView()
         divider.translatesAutoresizingMaskIntoConstraints = false
 
-        [headerRow, listContainer, addRow, divider, tableContainer, footerRow].forEach {
+        [headerRow, listContainer, addRow, components.strictModeWarningLabel, divider, tableContainer, footerRow].forEach {
             rootView.addSubview($0)
         }
 
@@ -195,9 +202,13 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
             addRow.trailingAnchor.constraint(equalTo: rootView.trailingAnchor, constant: -14),
             addRow.topAnchor.constraint(equalTo: listContainer.bottomAnchor, constant: 12),
 
+            components.strictModeWarningLabel.leadingAnchor.constraint(equalTo: rootView.leadingAnchor, constant: 14),
+            components.strictModeWarningLabel.trailingAnchor.constraint(equalTo: rootView.trailingAnchor, constant: -14),
+            components.strictModeWarningLabel.topAnchor.constraint(equalTo: addRow.bottomAnchor, constant: 8),
+
             divider.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
             divider.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
-            divider.topAnchor.constraint(equalTo: addRow.bottomAnchor, constant: 12),
+            divider.topAnchor.constraint(equalTo: components.strictModeWarningLabel.bottomAnchor, constant: 10),
 
             tableContainer.leadingAnchor.constraint(equalTo: rootView.leadingAnchor, constant: 14),
             tableContainer.trailingAnchor.constraint(equalTo: rootView.trailingAnchor, constant: -14),

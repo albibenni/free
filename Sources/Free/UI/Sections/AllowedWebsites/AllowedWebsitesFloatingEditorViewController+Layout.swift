@@ -12,6 +12,7 @@ extension AllowedWebsitesFloatingEditorViewController {
                 addButton: addButton,
                 importOpenTabsButton: importOpenTabsButton,
                 removeButton: removeButton,
+                strictModeWarningLabel: strictModeWarningLabel,
                 rulesTableView: rulesTableView,
                 tableScrollView: tableScrollView,
                 emptyLabel: emptyLabel
@@ -33,6 +34,9 @@ extension AllowedWebsitesFloatingEditorViewController {
         )
         applyAppKitListActionButtonStyle(removeButton, title: "Remove Selected", color: accentColor)
         styleHeaderIconButtons(color: accentColor)
+        strictModeWarningLabel.textColor = .systemOrange
+        strictModeWarningLabel.font = .systemFont(ofSize: 12, weight: .regular)
+        strictModeWarningLabel.isHidden = !appState.isStrictActive
     }
 
     private func styleHeaderIconButtons(color _: NSColor) {

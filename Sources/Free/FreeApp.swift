@@ -39,7 +39,9 @@ final class FreeApp {
     }
 
     var menuStatusText: String {
-        appState.isBlocking ? "Focus Mode: Active" : "Focus Mode: Inactive"
+        let focusState = appState.isBlocking ? "Active" : "Inactive"
+        let details = menuDetailSegments(now: Date())
+        return (["Focus Mode: \(focusState)"] + details).joined(separator: "\n")
     }
 
     var isQuitDisabled: Bool {
@@ -48,6 +50,10 @@ final class FreeApp {
 
     var menuIconColor: NSColor {
         appState.isBlocking ? .systemGreen : .labelColor
+    }
+
+    var topBarStatusText: String {
+        ""
     }
 
     static func quitAction() -> () -> Void {
@@ -206,6 +212,13 @@ final class FreeApp {
         if statusItemController == nil {
             statusItemController = makeStatusItemController(Self.quitAction())
         }
+        statusItemController?.setOpenAppHandler { [weak self, weak application] in
+            guard let self, let application else { return }
+            self.mainWindowController?.showWindow(nil)
+            self.mainWindowController?.window?.makeKeyAndOrderFront(nil)
+            self.mainWindowController?.window?.orderFrontRegardless()
+            application.activate(ignoringOtherApps: true)
+        }
 
         bindStateIfNeeded()
         applyMacOSAppearance(appState.appearanceMode)
@@ -236,6 +249,23 @@ final class FreeApp {
             }
             .store(in: &cancellables)
 
+        Publishers.MergeMany(
+            appState.$isUnblockable.map { _ in () }.eraseToAnyPublisher(),
+            appState.$isPaused.map { _ in () }.eraseToAnyPublisher(),
+            appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
+            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
+            appState.$activeRuleSetId.map { _ in () }.eraseToAnyPublisher(),
+            appState.$pomodoroStatus.map { _ in () }.eraseToAnyPublisher(),
+            appState.$pomodoroRemaining.map { _ in () }.eraseToAnyPublisher(),
+            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
+            appState.calendarProvider.objectWillChange.map { _ in () }.eraseToAnyPublisher()
+        )
+        .receive(on: RunLoop.main)
+        .sink { [weak self] _ in
+            self?.updateStatusItem()
+        }
+        .store(in: &cancellables)
+
         appState.$appearanceMode
             .receive(on: RunLoop.main)
             .sink { [weak self] mode in
@@ -247,10 +277,50 @@ final class FreeApp {
     private func updateStatusItem() {
         statusItemController?.update(
             statusText: menuStatusText,
+            topBarText: topBarStatusText,
             isQuitDisabled: isQuitDisabled,
             iconColor: menuIconColor
         )
     }
+
+    private func menuDetailSegments(now: Date) -> [String] {
+        var segments: [String] = [calendarSegment(now: now)]
+
+        if appState.isBlocking {
+            segments.append("Allowed List: \(appState.currentPrimaryRuleSetName)")
+        }
+
+        if appState.isUnblockable {
+            segments.append("Unbreakable")
+        }
+
+        if appState.pomodoroStatus != .none {
+            let phase = appState.pomodoroStatus == .focus ? "Focus" : "Break"
+            segments.append("Pomodoro: \(phase) \(appState.timeString(time: appState.pomodoroRemaining))")
+        }
+
+        return segments
+    }
+
+    private func calendarSegment(now: Date) -> String {
+        guard appState.calendarIntegrationEnabled else { return "Calendar: Off" }
+
+        let events = appState.calendarProvider.events.sorted { $0.startDate < $1.startDate }
+        if events.contains(where: { $0.isActive(at: now) }) {
+            return "Calendar: Active"
+        }
+        if let nextEvent = events.first(where: { $0.startDate > now }) {
+            return "Calendar: Next \(Self.statusTimeFormatter.string(from: nextEvent.startDate))"
+        }
+        return "Calendar: None"
+    }
+
+    private static let statusTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter
+    }()
 }
 
 #if !SWIFT_PACKAGE

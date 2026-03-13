@@ -37,6 +37,7 @@ enum ScheduleEditorLayoutBuilder {
         let field = NSTextField(string: text)
         field.placeholderString = placeholder
         field.font = .systemFont(ofSize: 18, weight: .regular)
+        applyAppKitInputFieldStyle(field, backgroundOpacity: 0.66, borderOpacity: 0.8)
         field.delegate = delegate
         field.isEditable = editable
         field.isEnabled = editable

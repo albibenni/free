@@ -105,3 +105,23 @@ class AppKitCardView: AppKitFlippedView {
         fatalError("init(coder:) has not been implemented")
     }
 }
+
+func applyAppKitInputFieldStyle(
+    _ textField: NSTextField,
+    backgroundOpacity: CGFloat = 0.62,
+    borderOpacity: CGFloat = 0.78,
+    cornerRadius: CGFloat = 8,
+    textOpacity: CGFloat = 0.88
+) {
+    textField.isBezeled = false
+    textField.isBordered = false
+    textField.drawsBackground = true
+    textField.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(backgroundOpacity)
+    textField.textColor = NSColor.labelColor.withAlphaComponent(textOpacity)
+    textField.focusRingType = .default
+    textField.wantsLayer = true
+    textField.layer?.cornerRadius = cornerRadius
+    textField.layer?.borderWidth = 1
+    textField.layer?.borderColor = NSColor.separatorColor.withAlphaComponent(borderOpacity).cgColor
+    textField.layer?.masksToBounds = true
+}

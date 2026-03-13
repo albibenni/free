@@ -27,7 +27,7 @@ enum AppStateRuntimeWiringCoordinator {
             dispatchToMain(onCalendarChange)
         }
 
-        let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 60, onScheduleTick)
+        let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 10 * 60, onScheduleTick)
         timerCoordinator.replaceScheduleTimer(with: timer)
         return calendarCancellable
     }

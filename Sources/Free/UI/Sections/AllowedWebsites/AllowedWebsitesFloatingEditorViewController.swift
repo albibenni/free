@@ -27,6 +27,9 @@ final class AllowedWebsitesFloatingEditorViewController:
     let addButton = ActionButton(title: "Add")
     let importOpenTabsButton = ActionButton(title: "Import Open Tabs")
     let removeButton = ActionButton(title: "Remove Selected")
+    let strictModeWarningLabel = NSTextField(
+        labelWithString: "Unblockable mode is active. You cannot add websites to this list."
+    )
     let emptyLabel = NSTextField(labelWithString: "No allowed websites in this list yet.")
     let rulesTableView = NSTableView()
     let tableScrollView = NSScrollView()
