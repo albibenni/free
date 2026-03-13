@@ -14,6 +14,7 @@ enum AppKitFluid {
             width: 100dvw;
             height: 200dvh;
             margin: 0;
+            overflow: hidden;
           }
 
           #fluid {
@@ -50,7 +51,6 @@ enum AppKitFluid {
 
           const initFluid = () => {
 
-          // anim setup || in an active project you can set this to the html body. however ive found a bound box to the viewport looks + performs better
           const canvas = document.getElementById('fluid');
           resizeCanvas();
 
@@ -659,7 +659,7 @@ enum AppKitFluid {
           let divergence;
           let curl;
           let pressure;
-          // local placeholder texture instead of remote path
+
           let ditheringTexture = createTextureAsync('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/w8AAgMBgJ8L4YQAAAAASUVORK5CYII=');
 
           const blurProgram            = new Program(blurVertexShader, blurShader);
