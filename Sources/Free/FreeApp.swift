@@ -287,7 +287,7 @@ final class FreeApp {
         var segments: [String] = [calendarSegment(now: now)]
 
         if appState.isBlocking {
-            segments.append("List: \(appState.currentPrimaryRuleSetName)")
+            segments.append("Allowed List: \(appState.currentPrimaryRuleSetName)")
         }
 
         if appState.isUnblockable {

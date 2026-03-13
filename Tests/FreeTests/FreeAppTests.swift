@@ -128,7 +128,7 @@ struct FreeAppTests {
 
             #expect(menu.contains("Focus Mode: Active"))
             #expect(menu.contains("Calendar: Active"))
-            #expect(menu.contains("List:"))
+            #expect(menu.contains("Allowed List:"))
             #expect(menu.contains("Unbreakable"))
             #expect(menu.contains("Pomodoro: Focus"))
             #expect(app.topBarStatusText.isEmpty)
