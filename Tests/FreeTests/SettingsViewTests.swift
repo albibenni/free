@@ -325,8 +325,8 @@ struct SettingsViewTests {
         #expect(texts.contains("Block Local Network IPs"))
         #expect(texts.contains("Allow Search Engines"))
         #expect(texts.contains("Allow AI Providers"))
-        #expect(toggleFrames.count == 7)
-        #expect(toggleAccentColors.count == 7)
+        #expect(toggleFrames.count == 8)
+        #expect(toggleAccentColors.count == 8)
         if let referenceMaxX = toggleFrames.first?.maxX {
             for frame in toggleFrames {
                 #expect(abs(frame.maxX - referenceMaxX) <= 2)

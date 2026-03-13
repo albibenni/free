@@ -7,6 +7,7 @@ struct AppStateBootstrapService {
         let weekStartsOnMonday: Bool
         let accentColorIndex: Int
         let appearanceMode: AppearanceMode
+        let cursorFluidAnimationEnabled: Bool
         let calendarIntegrationEnabled: Bool
         let calendarImportsBlockTime: Bool
         let calendarImportFocusTitleRules: [String]
@@ -47,6 +48,7 @@ struct AppStateBootstrapService {
             weekStartsOnMonday: weekStartsOnMonday,
             accentColorIndex: settingsStore.accentColorIndex(),
             appearanceMode: appearanceMode,
+            cursorFluidAnimationEnabled: settingsStore.cursorFluidAnimationEnabled(),
             calendarIntegrationEnabled: settingsStore.calendarIntegrationEnabled(),
             calendarImportsBlockTime: settingsStore.calendarImportsBlockTime(),
             calendarImportFocusTitleRules: settingsStore.calendarImportFocusTitleRules(),

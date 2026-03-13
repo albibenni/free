@@ -26,6 +26,7 @@ class AppState: ObservableObject {
     @Published var weekStartsOnMonday = false
     @Published var accentColorIndex = 0
     @Published var appearanceMode: AppearanceMode = .system
+    @Published var cursorFluidAnimationEnabled = true
     @Published var calendarIntegrationEnabled = false {
         didSet {
             AppStatePropertyEffectsService.handleCalendarIntegrationEnabledDidChange(

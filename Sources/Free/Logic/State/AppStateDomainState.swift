@@ -48,6 +48,7 @@ struct AppSettingsDomainState: Equatable {
     var weekStartsOnMonday: Bool
     var accentColorIndex: Int
     var appearanceMode: AppearanceMode
+    var cursorFluidAnimationEnabled: Bool
     var calendarImportFocusTitleRules: [String]
     var calendarImportBreakTitleRules: [String]
     var calendarImportedScheduleRuleSetId: UUID? = nil

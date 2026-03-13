@@ -8,6 +8,7 @@ enum AppStatePersistenceCoordinator {
         let weekStartsOnMonday: AnyPublisher<Bool, Never>
         let accentColorIndex: AnyPublisher<Int, Never>
         let appearanceMode: AnyPublisher<AppearanceMode, Never>
+        let cursorFluidAnimationEnabled: AnyPublisher<Bool, Never>
         let calendarIntegrationEnabled: AnyPublisher<Bool, Never>
         let calendarImportsBlockTime: AnyPublisher<Bool, Never>
         let calendarImportFocusTitleRules: AnyPublisher<[String], Never>
@@ -60,6 +61,11 @@ enum AppStatePersistenceCoordinator {
         bindings.appearanceMode
             .dropFirst()
             .sink { settingsStore.setAppearanceModeRawValue($0.rawValue) }
+            .store(in: &cancellables)
+
+        bindings.cursorFluidAnimationEnabled
+            .dropFirst()
+            .sink { settingsStore.setCursorFluidAnimationEnabled($0) }
             .store(in: &cancellables)
 
         bindings.calendarIntegrationEnabled

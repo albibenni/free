@@ -10,7 +10,7 @@
   - [x] try smoky ui
 - [x] gray on smoke become purple
 - [x] reduce animation size - SPLAT_RADIUS
-- [ ] a bit of opacity on the animation
+- [x] a bit of opacity on the animation
 - [ ] toggle disable animation
 
 ### TOPBAR

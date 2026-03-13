@@ -7,6 +7,7 @@ final class SettingsStore {
         static let weekStartsOnMonday = "WeekStartsOnMonday"
         static let accentColorIndex = "AccentColorIndex"
         static let appearanceMode = "AppearanceMode"
+        static let cursorFluidAnimationEnabled = "CursorFluidAnimationEnabled"
         static let calendarIntegrationEnabled = "CalendarIntegrationEnabled"
         static let calendarImportsBlockTime = "CalendarImportsBlockTime"
         static let calendarImportFocusTitleRules = "CalendarImportFocusTitleRules"
@@ -48,6 +49,14 @@ final class SettingsStore {
 
     func appearanceModeRawValue() -> String? { defaults.string(forKey: Key.appearanceMode) }
     func setAppearanceModeRawValue(_ value: String) { defaults.set(value, forKey: Key.appearanceMode) }
+
+    func cursorFluidAnimationEnabled() -> Bool {
+        guard defaults.object(forKey: Key.cursorFluidAnimationEnabled) != nil else { return true }
+        return defaults.bool(forKey: Key.cursorFluidAnimationEnabled)
+    }
+    func setCursorFluidAnimationEnabled(_ value: Bool) {
+        defaults.set(value, forKey: Key.cursorFluidAnimationEnabled)
+    }
 
     func calendarIntegrationEnabled() -> Bool { defaults.bool(forKey: Key.calendarIntegrationEnabled) }
     func setCalendarIntegrationEnabled(_ value: Bool) {

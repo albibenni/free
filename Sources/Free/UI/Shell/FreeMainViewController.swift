@@ -102,6 +102,7 @@ final class FreeMainViewController: NSViewController {
         updateSidebarVisibility()
         updateSidebarSelection()
         updateCursorOverlayAccent()
+        updateCursorOverlayVisibility()
         updateCalendarTabAvailability()
         updateContentController()
     }
@@ -185,6 +186,7 @@ final class FreeMainViewController: NSViewController {
             },
             onAppStateChanged: { [weak self] in
                 self?.updateSidebarSelection()
+                self?.updateCursorOverlayVisibility()
                 self?.updateCalendarTabAvailability()
             },
             onShowRulesChanged: { [weak self] isShown in
@@ -214,6 +216,10 @@ final class FreeMainViewController: NSViewController {
 
     private func updateCursorOverlayAccent() {
         cursorFluidOverlayView?.setAccentColorIndex(appState.accentColorIndex)
+    }
+
+    private func updateCursorOverlayVisibility() {
+        cursorFluidOverlayView?.isHidden = !appState.cursorFluidAnimationEnabled
     }
 
     private func updateCalendarTabAvailability() {

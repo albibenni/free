@@ -122,6 +122,7 @@ final class SettingsSectionViewController: NSViewController {
         let allowAIProviderWebsites: Bool
         let appearanceMode: AppearanceMode
         let accentColorIndex: Int
+        let cursorFluidAnimationEnabled: Bool
         let launchAtLoginEnabled: Bool
 
         static let fallback = ObservationSignature(
@@ -138,6 +139,7 @@ final class SettingsSectionViewController: NSViewController {
             allowAIProviderWebsites: false,
             appearanceMode: .system,
             accentColorIndex: 0,
+            cursorFluidAnimationEnabled: true,
             launchAtLoginEnabled: false
         )
     }
@@ -161,6 +163,7 @@ final class SettingsSectionViewController: NSViewController {
     private let blockLocalNetworkHostsSwitch = AppKitToggleSwitch()
     private let allowSearchEngineWebsitesSwitch = AppKitToggleSwitch()
     private let allowAIProviderWebsitesSwitch = AppKitToggleSwitch()
+    private let cursorFluidAnimationSwitch = AppKitToggleSwitch()
     private let browserLockNotice = NSTextField(
         wrappingLabelWithString:
             "Unblockable mode is active. Browser blocking settings cannot be changed."
@@ -227,6 +230,7 @@ final class SettingsSectionViewController: NSViewController {
                     allowAIProviderWebsites: appState.allowAIProviderWebsites,
                     appearanceMode: appState.appearanceMode,
                     accentColorIndex: appState.accentColorIndex,
+                    cursorFluidAnimationEnabled: appState.cursorFluidAnimationEnabled,
                     launchAtLoginEnabled: appState.launchAtLoginStatus()
                 )
             },
@@ -373,6 +377,16 @@ final class SettingsSectionViewController: NSViewController {
             section.addArrangedSubview(appearanceModeControl)
         }
 
+        cursorFluidAnimationSwitch.target = self
+        cursorFluidAnimationSwitch.action = #selector(toggleCursorFluidAnimation)
+        section.addArrangedSubview(
+            makeToggleRow(
+                title: "Cursor Fluid Animation",
+                descriptionLabel: makeDescriptionLabel("Show or hide the cursor fluid overlay effect."),
+                toggle: cursorFluidAnimationSwitch
+            )
+        )
+
         let colorsRow = makeAppKitHorizontalRow(
             views: [],
             alignment: .centerY,
@@ -490,6 +504,7 @@ final class SettingsSectionViewController: NSViewController {
         blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .on : .off
         allowSearchEngineWebsitesSwitch.state = appState.allowSearchEngineWebsites ? .on : .off
         allowAIProviderWebsitesSwitch.state = appState.allowAIProviderWebsites ? .on : .off
+        cursorFluidAnimationSwitch.state = appState.cursorFluidAnimationEnabled ? .on : .off
         let browserLocked = appState.isUnblockable
         blockNewTabsSwitch.isEnabled = !browserLocked
         blockDeveloperHostsSwitch.isEnabled = !browserLocked
@@ -542,6 +557,7 @@ final class SettingsSectionViewController: NSViewController {
             blockLocalNetworkHostsSwitch,
             allowSearchEngineWebsitesSwitch,
             allowAIProviderWebsitesSwitch,
+            cursorFluidAnimationSwitch,
         ]
     }
 
@@ -714,6 +730,11 @@ final class SettingsSectionViewController: NSViewController {
     }
 
     @objc
+    private func toggleCursorFluidAnimation() {
+        appState.cursorFluidAnimationEnabled = cursorFluidAnimationSwitch.state == .on
+    }
+
+    @objc
     private func selectAccentColor(_ sender: NSButton) {
         appState.accentColorIndex = sender.tag
     }
@@ -798,6 +819,12 @@ extension SettingsSectionViewController {
     func setAllowAIProviderWebsitesForTesting(_ enabled: Bool) {
         allowAIProviderWebsitesSwitch.state = enabled ? .on : .off
         toggleAllowAIProviderWebsites()
+        reloadSettings()
+    }
+
+    func setCursorFluidAnimationForTesting(_ enabled: Bool) {
+        cursorFluidAnimationSwitch.state = enabled ? .on : .off
+        toggleCursorFluidAnimation()
         reloadSettings()
     }
 
