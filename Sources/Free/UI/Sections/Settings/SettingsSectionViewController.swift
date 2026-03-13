@@ -157,6 +157,10 @@ final class SettingsSectionViewController: NSViewController {
     private let blockLocalNetworkHostsSwitch = AppKitToggleSwitch()
     private let allowSearchEngineWebsitesSwitch = AppKitToggleSwitch()
     private let allowAIProviderWebsitesSwitch = AppKitToggleSwitch()
+    private let browserLockNotice = NSTextField(
+        wrappingLabelWithString:
+            "Unblockable mode is active. Browser blocking settings cannot be changed."
+    )
     private var appearanceModeControl: AppKitSelectionButtonGroup<AppearanceMode>?
     private var accentButtons: [NSButton] = []
     private var pendingCalendarPermissionFallback = false
@@ -335,7 +339,11 @@ final class SettingsSectionViewController: NSViewController {
                 descriptionLabel: makeDescriptionLabel("Always allow popular AI provider websites while blocking."),
                 toggle: allowAIProviderWebsitesSwitch
             ),
+            browserLockNotice,
         ].forEach { section.addArrangedSubview($0) }
+        browserLockNotice.font = .systemFont(ofSize: 13, weight: .medium)
+        browserLockNotice.textColor = .systemOrange
+        browserLockNotice.isHidden = true
         return section
     }
 
@@ -477,6 +485,13 @@ final class SettingsSectionViewController: NSViewController {
         blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .on : .off
         allowSearchEngineWebsitesSwitch.state = appState.allowSearchEngineWebsites ? .on : .off
         allowAIProviderWebsitesSwitch.state = appState.allowAIProviderWebsites ? .on : .off
+        let browserLocked = appState.isUnblockable
+        blockNewTabsSwitch.isEnabled = !browserLocked
+        blockDeveloperHostsSwitch.isEnabled = !browserLocked
+        blockLocalNetworkHostsSwitch.isEnabled = !browserLocked
+        allowSearchEngineWebsitesSwitch.isEnabled = !browserLocked
+        allowAIProviderWebsitesSwitch.isEnabled = !browserLocked
+        browserLockNotice.isHidden = !browserLocked
 
         for (index, button) in accentButtons.enumerated() {
             button.layer?.borderWidth = appState.accentColorIndex == index ? 2 : 0
@@ -641,26 +656,31 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func toggleBlockNewTabs() {
+        guard !appState.isUnblockable else { return }
         appState.blockNewTabs = blockNewTabsSwitch.state == .on
     }
 
     @objc
     private func toggleBlockDeveloperHosts() {
+        guard !appState.isUnblockable else { return }
         appState.blockDeveloperHosts = blockDeveloperHostsSwitch.state == .on
     }
 
     @objc
     private func toggleBlockLocalNetworkHosts() {
+        guard !appState.isUnblockable else { return }
         appState.blockLocalNetworkHosts = blockLocalNetworkHostsSwitch.state == .on
     }
 
     @objc
     private func toggleAllowSearchEngineWebsites() {
+        guard !appState.isUnblockable else { return }
         appState.allowSearchEngineWebsites = allowSearchEngineWebsitesSwitch.state == .on
     }
 
     @objc
     private func toggleAllowAIProviderWebsites() {
+        guard !appState.isUnblockable else { return }
         appState.allowAIProviderWebsites = allowAIProviderWebsitesSwitch.state == .on
     }
 
@@ -673,6 +693,7 @@ final class SettingsSectionViewController: NSViewController {
 extension SettingsSectionViewController {
     var shouldShowStrictDisableButtonForTesting: Bool { !strictDisableButton.isHidden }
     var calendarControlsLockedForTesting: Bool { !calendarIntegrationSwitch.isEnabled }
+    var browserControlsLockedForTesting: Bool { !blockNewTabsSwitch.isEnabled }
     var launchAtLoginEnabledForTesting: Bool { launchAtLoginSwitch.state == .on }
     var appearanceSelectionColorForTesting: NSColor? { appearanceModeControl?.selectedButtonTintColor }
 

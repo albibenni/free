@@ -250,6 +250,32 @@ struct SettingsViewTests {
         #expect(strict.calendarControlsLockedForTesting)
     }
 
+    @Test("Settings controller browser controls lock whenever unblockable mode is enabled")
+    @MainActor
+    func settingsControllerBrowserControlsLockState() {
+        let appState = isolatedAppState(name: "browserControlsLockState")
+        appState.isBlocking = false
+        appState.isUnblockable = false
+        let unlocked = SettingsSectionViewController(appState: appState)
+        let unlockedView = host(unlocked)
+        #expect(unlocked.browserControlsLockedForTesting == false)
+        #expect(
+            visibleText(in: unlockedView).contains(
+                "Unblockable mode is active. Browser blocking settings cannot be changed."
+            ) == false
+        )
+
+        appState.isUnblockable = true
+        let locked = SettingsSectionViewController(appState: appState)
+        let lockedView = host(locked)
+        #expect(locked.browserControlsLockedForTesting)
+        #expect(
+            visibleText(in: lockedView).contains(
+                "Unblockable mode is active. Browser blocking settings cannot be changed."
+            )
+        )
+    }
+
     @Test("Settings controller renders default toggle branch")
     @MainActor
     func settingsControllerRenderDefaultBranch() {

@@ -113,6 +113,10 @@ final class CalendarSectionViewController: NSViewController {
     private let integrationNotice = NSTextField(
         wrappingLabelWithString: "Enable Calendar Integration to use calendar title rules."
     )
+    private let strictLockNotice = NSTextField(
+        wrappingLabelWithString:
+            "Unblockable mode is active. You cannot change Calendar integration settings while Focus Mode is active."
+    )
     private let focusRuleField = VerticallyCenteredTextField(string: "")
     private let breakRuleField = VerticallyCenteredTextField(string: "")
     private let focusRulesTableView = NSTableView()
@@ -177,6 +181,7 @@ final class CalendarSectionViewController: NSViewController {
                 descriptionLabel: makeDescriptionLabel("Use macOS Calendar events for scheduling."),
                 toggle: calendarIntegrationSwitch
             ),
+            strictLockNotice,
             makeImportedRuleSetRow(),
             makeAppKitDividerView(),
             resyncButton,
@@ -268,6 +273,9 @@ final class CalendarSectionViewController: NSViewController {
 
         integrationNotice.font = .systemFont(ofSize: 12, weight: .medium)
         integrationNotice.textColor = .secondaryLabelColor
+        strictLockNotice.font = .systemFont(ofSize: 13, weight: .medium)
+        strictLockNotice.textColor = .systemOrange
+        strictLockNotice.isHidden = true
     }
 
     override func viewDidLoad() {
@@ -560,6 +568,7 @@ final class CalendarSectionViewController: NSViewController {
         weekStartsMondaySwitch.state = appState.weekStartsOnMonday ? .on : .off
         calendarIntegrationSwitch.state = enabled ? .on : .off
         calendarIntegrationSwitch.isEnabled = !appState.isStrictActive
+        strictLockNotice.isHidden = !appState.isStrictActive
         resyncButton.isEnabled = enabled
         applyAppKitSecondaryButtonStyle(
             resyncButton,
@@ -582,7 +591,7 @@ final class CalendarSectionViewController: NSViewController {
             title: "Remove Selected",
             color: accentColor
         )
-        integrationNotice.isHidden = enabled
+        integrationNotice.isHidden = enabled || appState.isStrictActive
         focusRuleField.isEnabled = enabled
         breakRuleField.isEnabled = enabled
         addFocusRuleButton.isEnabled = enabled

@@ -175,6 +175,41 @@ struct SchedulesViewTests {
         #expect(appState.schedules.first?.isEnabled == false)
     }
 
+    @Test("Schedules sheet shows lock alert when strict mode blocks modification")
+    @MainActor
+    func schedulesViewShowsStrictLockAlert() {
+        defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
+        var alertRunCount = 0
+        SchedulesSheetViewController.setScheduleModificationAlertHooksForTesting(
+            make: { NSAlert() },
+            run: { _ in
+                alertRunCount += 1
+                return .alertFirstButtonReturn
+            }
+        )
+
+        let appState = isolatedAppState(name: "showsStrictLockAlert")
+        appState.schedules = [sampleSchedule(name: "Locked")]
+        appState.isUnblockable = true
+        appState.isBlocking = true
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: {},
+            initialViewMode: 0
+        )
+        _ = host(controller)
+
+        controller.openAddScheduleForTesting()
+        #expect(alertRunCount == 1)
+        #expect(controller.editorContextForTesting == nil)
+
+        appState.isBlocking = false
+        controller.openAddScheduleForTesting()
+        #expect(alertRunCount == 1)
+        #expect(controller.editorContextForTesting != nil)
+    }
+
     @Test("Schedules sheet controller does not delete imported schedules from row or swipe actions")
     @MainActor
     func schedulesViewPreventsImportedDeletion() {

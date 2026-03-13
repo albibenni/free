@@ -46,7 +46,7 @@
   - [x] breaks only in first view - mode there from pomodoro
   - [x] pomodoro setting for it
   - [x] calendar setting for it
-- [ ] with unblockable mode on schedule cannot be modified
+- [x] with unblockable mode on schedule cannot be modified
 
 ### Allowed list
 

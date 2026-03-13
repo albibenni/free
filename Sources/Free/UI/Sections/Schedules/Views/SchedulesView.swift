@@ -2,6 +2,30 @@ import AppKit
 import Combine
 
 final class SchedulesSheetViewController: NSViewController {
+    typealias AlertFactory = () -> NSAlert
+    typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+
+    private static var _makeScheduleModificationBlockedAlert: AlertFactory?
+    private static var _runScheduleModificationBlockedAlert: AlertRunner?
+    static var makeScheduleModificationBlockedAlert: AlertFactory {
+        get { _makeScheduleModificationBlockedAlert ?? defaultMakeScheduleModificationBlockedAlert }
+        set { _makeScheduleModificationBlockedAlert = newValue }
+    }
+    static var runScheduleModificationBlockedAlert: AlertRunner {
+        get { _runScheduleModificationBlockedAlert ?? defaultRunScheduleModificationBlockedAlert }
+        set { _runScheduleModificationBlockedAlert = newValue }
+    }
+
+    private static func defaultMakeScheduleModificationBlockedAlert() -> NSAlert { NSAlert() }
+    private static func defaultRunScheduleModificationBlockedAlert(
+        _ alert: NSAlert
+    ) -> NSApplication.ModalResponse {
+        if AppDelegate.isRunningInTestProcess() {
+            return .alertFirstButtonReturn
+        }
+        return alert.runModal()
+    }
+
     private struct RenderSignature: Equatable {
         struct ExternalEventSnapshot: Equatable {
             let id: String
@@ -132,6 +156,16 @@ final class SchedulesSheetViewController: NSViewController {
         !appState.isStrictActive
     }
 
+    private func showScheduleModificationBlockedAlert() {
+        let alert = Self.makeScheduleModificationBlockedAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Schedule Editing Locked"
+        alert.informativeText =
+            "Schedule changes are disabled while Focus Mode and Unblockable Mode are both active."
+        alert.addButton(withTitle: "OK")
+        _ = Self.runScheduleModificationBlockedAlert(alert)
+    }
+
     private func refreshConfiguration(force: Bool = true) {
         if !force {
             let nextSignature = RenderSignature(appState: appState, viewMode: viewMode)
@@ -211,7 +245,12 @@ final class SchedulesSheetViewController: NSViewController {
                 onOpenSchedule: { [weak self] day, schedule in
                     self?.openScheduleEditor(day: day, schedule: schedule)
                 },
-                onUpdateSchedule: { [weak appState] scheduleId, originalDay, targetDay, targetDate, start, end in
+                onUpdateSchedule: { [weak self, weak appState] scheduleId, originalDay, targetDay, targetDate, start, end in
+                    guard let self else { return }
+                    guard self.canModifySchedules else {
+                        self.showScheduleModificationBlockedAlert()
+                        return
+                    }
                     appState?.updateScheduleOccurrence(
                         id: scheduleId,
                         originalDay: originalDay,
@@ -227,7 +266,11 @@ final class SchedulesSheetViewController: NSViewController {
                 self?.refreshConfiguration()
             },
             onSelectSchedule: { [weak self] schedule in
-                guard let self, self.canModifySchedules else { return }
+                guard let self else { return }
+                guard self.canModifySchedules else {
+                    self.showScheduleModificationBlockedAlert()
+                    return
+                }
                 self.editorContext = ScheduleEditorContext(schedule: schedule)
                 self.refreshConfiguration()
             },
@@ -258,7 +301,10 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func setScheduleEnabled(scheduleId: UUID, isEnabled: Bool) {
-        guard canModifySchedules else { return }
+        guard canModifySchedules else {
+            showScheduleModificationBlockedAlert()
+            return
+        }
         guard let index = appState.schedules.firstIndex(where: { $0.id == scheduleId }) else {
             return
         }
@@ -290,7 +336,10 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func quickAdd(day: Int, hour: Int) {
-        guard canModifySchedules else { return }
+        guard canModifySchedules else {
+            showScheduleModificationBlockedAlert()
+            return
+        }
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: hour, minute: 0))
         let end = calendar.date(from: DateComponents(hour: hour + 1, minute: 0))
@@ -306,7 +355,10 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openSelectionEditor(day: Int, startHour: CGFloat, endHour: CGFloat) {
-        guard canModifySchedules else { return }
+        guard canModifySchedules else {
+            showScheduleModificationBlockedAlert()
+            return
+        }
         let result = WeeklyCalendarSupport.calculateDragSelection(
             startHour: startHour,
             endHour: endHour
@@ -323,7 +375,10 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openScheduleEditor(day: Int, schedule: Schedule) {
-        guard canModifySchedules else { return }
+        guard canModifySchedules else {
+            showScheduleModificationBlockedAlert()
+            return
+        }
         editorContext = ScheduleEditorContext(
             day: day,
             schedule: schedule,
@@ -333,7 +388,10 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func deleteSchedule(scheduleId: UUID) {
-        guard canModifySchedules else { return }
+        guard canModifySchedules else {
+            showScheduleModificationBlockedAlert()
+            return
+        }
         guard let schedule = appState.schedules.first(where: { $0.id == scheduleId }) else {
             return
         }
@@ -342,7 +400,10 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openAddSchedule() {
-        guard canModifySchedules else { return }
+        guard canModifySchedules else {
+            showScheduleModificationBlockedAlert()
+            return
+        }
         editorContext = ScheduleEditorContext()
         refreshConfiguration()
     }
@@ -437,5 +498,18 @@ extension SchedulesSheetViewController {
 
     func invokeDismissForTesting() {
         onDismiss()
+    }
+
+    static func setScheduleModificationAlertHooksForTesting(
+        make: AlertFactory? = nil,
+        run: AlertRunner? = nil
+    ) {
+        _makeScheduleModificationBlockedAlert = make
+        _runScheduleModificationBlockedAlert = run
+    }
+
+    static func resetScheduleModificationAlertHooksForTesting() {
+        _makeScheduleModificationBlockedAlert = nil
+        _runScheduleModificationBlockedAlert = nil
     }
 }
