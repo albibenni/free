@@ -252,7 +252,9 @@ enum FocusSectionLayoutBuilder {
         availableWidth: CGFloat
     ) -> NSView {
         let icon = NSImageView(image: systemSymbolImageOrEmpty(iconName))
-        icon.contentTintColor = FocusColor.nsColor(for: accentColorIndex)
+        icon.contentTintColor = appKitAccentPrimaryColor(
+            for: FocusColor.nsColor(for: accentColorIndex)
+        )
 
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 13)

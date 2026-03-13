@@ -9,6 +9,7 @@
 - [ ] gray on smoke become purple
 - [ ] reduce animation size
 - [ ] move html code to separated file
+- [ ] toggle disable animation
 
 ### TOPBAR
 
