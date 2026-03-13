@@ -194,21 +194,34 @@ final class MainSidebarView: AppKitDynamicView {
         let accentColor = FocusColor.nsColor(for: accentColorIndex)
         let isEnabled = sectionEnabled[section] ?? true
         let isActivelySelected = isEnabled && isSelected
-        let backgroundColor =
+        let gradientColors =
             isActivelySelected
-            ? accentColor.withAlphaComponent(0.18)
-            : .clear
+            ? appKitAccentGradientColors(
+                for: accentColor,
+                topAlpha: 0.18,
+                bottomAlpha: 0.12
+            )
+            : [.clear, .clear]
         let titleColor =
             isActivelySelected
-            ? NSColor.labelColor
+            ? appKitAccentForegroundColor(for: accentColor)
             : (isEnabled ? NSColor.secondaryLabelColor : NSColor.tertiaryLabelColor)
         let iconColor =
             isActivelySelected
-            ? accentColor
+            ? appKitAccentForegroundColor(for: accentColor)
             : (isEnabled ? NSColor.secondaryLabelColor : NSColor.tertiaryLabelColor)
         let fontWeight: NSFont.Weight = isActivelySelected ? .semibold : .medium
 
-        button.layer?.backgroundColor = backgroundColor.cgColor
+        if let actionButton = button as? ActionButton {
+            actionButton.setGradientBackground(
+                colors: gradientColors,
+                borderColor: nil,
+                borderWidth: 0
+            )
+            button.layer?.backgroundColor = gradientColors.first?.cgColor
+        } else {
+            button.layer?.backgroundColor = (isActivelySelected ? gradientColors.first : .clear)?.cgColor
+        }
         button.isEnabled = isEnabled
         button.image = appKitSymbolImage(
             spec: AppKitUISymbolSpec(

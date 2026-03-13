@@ -38,3 +38,34 @@ func resolvedAppKitCGColor(
     }
     return resolvedColor
 }
+
+func appKitAccentGradientColors(
+    for accentColor: NSColor,
+    topAlpha: CGFloat,
+    bottomAlpha: CGFloat
+) -> [NSColor] {
+    if FocusColor.isRainbowAccentColor(accentColor) {
+        return [
+            NSColor.systemPink.withAlphaComponent(topAlpha),
+            NSColor.systemBlue.withAlphaComponent(bottomAlpha),
+        ]
+    }
+    return [
+        accentColor.withAlphaComponent(topAlpha),
+        accentColor.withAlphaComponent(bottomAlpha),
+    ]
+}
+
+func appKitAccentBorderColor(for accentColor: NSColor, alpha: CGFloat) -> NSColor {
+    if FocusColor.isRainbowAccentColor(accentColor) {
+        return NSColor.systemPurple.withAlphaComponent(alpha)
+    }
+    return accentColor.withAlphaComponent(alpha)
+}
+
+func appKitAccentForegroundColor(for accentColor: NSColor) -> NSColor {
+    if FocusColor.isRainbowAccentColor(accentColor) {
+        return NSColor.white.withAlphaComponent(0.95)
+    }
+    return accentColor
+}

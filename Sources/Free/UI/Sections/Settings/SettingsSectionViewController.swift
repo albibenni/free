@@ -378,13 +378,14 @@ final class SettingsSectionViewController: NSViewController {
             alignment: .centerY,
             spacing: 12
         )
-        accentButtons = FocusColor.all.enumerated().map { index, color in
+        accentButtons = (0..<FocusColor.accentOptionCount).map { index in
             let button = NSButton(title: "", target: self, action: #selector(selectAccentColor(_:)))
             button.tag = index
             button.isBordered = false
             button.wantsLayer = true
             button.layer?.cornerRadius = 12
-            button.layer?.backgroundColor = color.cgColor
+            button.layer?.masksToBounds = true
+            configureAccentButtonAppearance(button, index: index)
             button.translatesAutoresizingMaskIntoConstraints = false
             button.widthAnchor.constraint(equalToConstant: 24).isActive = true
             button.heightAnchor.constraint(equalToConstant: 24).isActive = true
@@ -497,12 +498,36 @@ final class SettingsSectionViewController: NSViewController {
         allowAIProviderWebsitesSwitch.isEnabled = !browserLocked
         browserLockNotice.isHidden = !browserLocked
 
-        for (index, button) in accentButtons.enumerated() {
-            button.layer?.borderWidth = appState.accentColorIndex == index ? 2 : 0
+        for button in accentButtons {
+            button.layer?.borderWidth = appState.accentColorIndex == button.tag ? 2 : 0
             button.layer?.borderColor = NSColor.labelColor.cgColor
         }
 
         scrollContainer.needsLayout = true
+    }
+
+    private func configureAccentButtonAppearance(_ button: NSButton, index: Int) {
+        button.layer?.sublayers?.forEach { $0.removeFromSuperlayer() }
+        if FocusColor.isRainbowAccentIndex(index) {
+            button.layer?.backgroundColor = NSColor.clear.cgColor
+            let gradient = CAGradientLayer()
+            gradient.colors = [
+                NSColor.systemRed.cgColor,
+                NSColor.systemOrange.cgColor,
+                NSColor.systemYellow.cgColor,
+                NSColor.systemGreen.cgColor,
+                NSColor.systemTeal.cgColor,
+                NSColor.systemBlue.cgColor,
+                NSColor.systemPurple.cgColor,
+            ]
+            gradient.startPoint = CGPoint(x: 0, y: 0.5)
+            gradient.endPoint = CGPoint(x: 1, y: 0.5)
+            gradient.cornerRadius = 12
+            gradient.frame = CGRect(x: 0, y: 0, width: 24, height: 24)
+            button.layer?.addSublayer(gradient)
+        } else {
+            button.layer?.backgroundColor = FocusColor.nsColor(for: index).cgColor
+        }
     }
 
     private var allToggleControls: [AppKitToggleSwitch] {

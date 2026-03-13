@@ -115,7 +115,11 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
             let isSelected = value == selectedValue
             button.setGradientBackground(
                 colors: isSelected
-                    ? [accentColor.withAlphaComponent(0.20), accentColor.withAlphaComponent(0.12)]
+                    ? appKitAccentGradientColors(
+                        for: accentColor,
+                        topAlpha: 0.20,
+                        bottomAlpha: 0.12
+                    )
                     : [NSColor.clear, NSColor.clear],
                 borderColor: nil,
                 borderWidth: 0
@@ -124,10 +128,14 @@ final class AppKitSelectionButtonGroup<Value: Hashable>: AppKitFlippedView {
                 string: button.title,
                 attributes: [
                     .font: AppKitUIConstants.Typography.regular,
-                    .foregroundColor: isSelected ? accentColor : NSColor.labelColor,
+                    .foregroundColor: isSelected
+                        ? appKitAccentForegroundColor(for: accentColor)
+                        : NSColor.labelColor,
                 ]
             )
-            button.contentTintColor = isSelected ? accentColor : .labelColor
+            button.contentTintColor = isSelected
+                ? appKitAccentForegroundColor(for: accentColor)
+                : .labelColor
         }
     }
 }

@@ -5,6 +5,9 @@
 - [] light mode:
   - [ ] background color not white
 - [ ] better ui tbd
+  - [ ] try smoky ui
+- [ ] gray on smoke become purple
+- [ ] reduce animation size
 
 ### TOPBAR
 

@@ -100,7 +100,11 @@ final class AppKitSelectableRowButton: ActionButton {
         isSelectedState = isSelected
         setGradientBackground(
             colors: isSelected
-                ? [accentColor.withAlphaComponent(0.14), accentColor.withAlphaComponent(0.08)]
+                ? appKitAccentGradientColors(
+                    for: accentColor,
+                    topAlpha: 0.14,
+                    bottomAlpha: 0.08
+                )
                 : [
                     NSColor.labelColor.withAlphaComponent(0.05),
                     NSColor.labelColor.withAlphaComponent(0.02),
@@ -112,7 +116,7 @@ final class AppKitSelectableRowButton: ActionButton {
             named: isSelected ? leadingSelectedSymbol : leadingUnselectedSymbol,
             pointSize: 13,
             weight: isSelected ? .semibold : .regular,
-            color: isSelected ? accentColor : .secondaryLabelColor
+            color: isSelected ? appKitAccentForegroundColor(for: accentColor) : .secondaryLabelColor
         )
         titleLabel.font = NSFont.systemFont(ofSize: 13, weight: isSelected ? .semibold : .regular)
         titleLabel.textColor = isSelected ? NSColor.labelColor : NSColor.secondaryLabelColor
@@ -122,7 +126,7 @@ final class AppKitSelectableRowButton: ActionButton {
                 named: $0,
                 pointSize: 11,
                 weight: .bold,
-                color: accentColor
+                color: appKitAccentForegroundColor(for: accentColor)
             )
         }
         trailingImageView.isHidden = !isSelected || trailingSelectedSymbol == nil
@@ -175,7 +179,11 @@ final class AppKitPillButton: ActionButton {
         isSelectedState = isSelected
         setGradientBackground(
             colors: isSelected
-                ? [selectedColor.withAlphaComponent(0.20), selectedColor.withAlphaComponent(0.12)]
+                ? appKitAccentGradientColors(
+                    for: selectedColor,
+                    topAlpha: 0.20,
+                    bottomAlpha: 0.12
+                )
                 : [
                     NSColor.labelColor.withAlphaComponent(0.08),
                     NSColor.labelColor.withAlphaComponent(0.04),
@@ -187,7 +195,9 @@ final class AppKitPillButton: ActionButton {
             string: baseTitle,
             attributes: [
                 .font: textFont,
-                .foregroundColor: isSelected ? selectedColor : unselectedTextColor,
+                .foregroundColor: isSelected
+                    ? appKitAccentForegroundColor(for: selectedColor)
+                    : unselectedTextColor,
             ]
         )
     }
@@ -340,20 +350,21 @@ func makeAppKitPrimaryButton(title: String, color: NSColor) -> ActionButton {
     button.isBordered = false
     button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
     button.setGradientBackground(
-        colors: [
-            color.withAlphaComponent(0.14),
-            color.withAlphaComponent(0.08),
-        ],
-        borderColor: color.withAlphaComponent(0.24)
+        colors: appKitAccentGradientColors(
+            for: color,
+            topAlpha: 0.14,
+            bottomAlpha: 0.08
+        ),
+        borderColor: appKitAccentBorderColor(for: color, alpha: 0.24)
     )
     button.attributedTitle = NSAttributedString(
         string: title,
         attributes: [
             .font: AppKitUIConstants.Typography.buttonLabel,
-            .foregroundColor: color,
+            .foregroundColor: appKitAccentForegroundColor(for: color),
         ]
     )
-    button.contentTintColor = color
+    button.contentTintColor = appKitAccentForegroundColor(for: color)
     button.heightAnchor.constraint(equalToConstant: 32).isActive = true
     return button
 }
@@ -374,20 +385,21 @@ func applyAppKitSecondaryButtonStyle(
     button.isBordered = false
     button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
     button.setGradientBackground(
-        colors: [
-            color.withAlphaComponent(0.14),
-            color.withAlphaComponent(0.08),
-        ],
-        borderColor: color.withAlphaComponent(0.28)
+        colors: appKitAccentGradientColors(
+            for: color,
+            topAlpha: 0.14,
+            bottomAlpha: 0.08
+        ),
+        borderColor: appKitAccentBorderColor(for: color, alpha: 0.28)
     )
     button.attributedTitle = NSAttributedString(
         string: title,
         attributes: [
             .font: AppKitUIConstants.Typography.regular,
-            .foregroundColor: color,
+            .foregroundColor: appKitAccentForegroundColor(for: color),
         ]
     )
-    button.contentTintColor = color
+    button.contentTintColor = appKitAccentForegroundColor(for: color)
 }
 
 func applyAppKitListActionButtonStyle(
@@ -401,20 +413,21 @@ func applyAppKitListActionButtonStyle(
     button.focusRingType = .none
     button.layer?.cornerRadius = AppKitUIConstants.CornerRadius.control
     button.setGradientBackground(
-        colors: [
-            color.withAlphaComponent(0.14),
-            color.withAlphaComponent(0.08),
-        ],
-        borderColor: color.withAlphaComponent(0.28)
+        colors: appKitAccentGradientColors(
+            for: color,
+            topAlpha: 0.14,
+            bottomAlpha: 0.08
+        ),
+        borderColor: appKitAccentBorderColor(for: color, alpha: 0.28)
     )
     button.attributedTitle = NSAttributedString(
         string: title,
         attributes: [
             .font: AppKitUIConstants.Typography.buttonLabel,
-            .foregroundColor: color,
+            .foregroundColor: appKitAccentForegroundColor(for: color),
         ]
     )
-    button.contentTintColor = color
+    button.contentTintColor = appKitAccentForegroundColor(for: color)
 }
 
 func applyAppKitNeutralButtonStyle(

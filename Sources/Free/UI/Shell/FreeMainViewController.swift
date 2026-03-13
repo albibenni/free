@@ -101,6 +101,7 @@ final class FreeMainViewController: NSViewController {
         configureLayout()
         updateSidebarVisibility()
         updateSidebarSelection()
+        updateCursorOverlayAccent()
         updateCalendarTabAvailability()
         updateContentController()
     }
@@ -208,6 +209,11 @@ final class FreeMainViewController: NSViewController {
             selectedSection: shellState.selectedSection,
             accentColorIndex: appState.accentColorIndex
         )
+        updateCursorOverlayAccent()
+    }
+
+    private func updateCursorOverlayAccent() {
+        cursorFluidOverlayView?.setAccentColorIndex(appState.accentColorIndex)
     }
 
     private func updateCalendarTabAvailability() {
