@@ -75,6 +75,8 @@ enum AppKitFluid {
           const fluidAccent = {
             hue: 0.36,
             rainbow: false,
+            saturation: 1.0,
+            grayLevel: 0.6,
           };
 
           function rgbToHue (r, g, b) {
@@ -95,8 +97,13 @@ enum AppKitFluid {
           }
 
           window.setFluidAccent = (r, g, b, rainbow) => {
+              const max = Math.max(r, g, b);
+              const min = Math.min(r, g, b);
+              const d = max - min;
               fluidAccent.hue = rgbToHue(r, g, b);
               fluidAccent.rainbow = !!rainbow;
+              fluidAccent.saturation = max > 0 ? d / max : 0;
+              fluidAccent.grayLevel = (r + g + b) / 3;
               pointers.forEach(p => { p.color = generateColor(); });
           };
 
@@ -1016,13 +1023,18 @@ enum AppKitFluid {
           function correctDeltaY (delta) { let aspectRatio = canvas.width / canvas.height; if (aspectRatio > 1) delta /= aspectRatio; return delta; }
 
           function generateColor () {
+              if (!fluidAccent.rainbow && fluidAccent.saturation < 0.10) {
+                  const v = Math.max(0.18, Math.min(0.82, fluidAccent.grayLevel));
+                  return { r: v * 0.16, g: v * 0.16, b: v * 0.16 };
+              }
               let hue;
               if (fluidAccent.rainbow) {
                   hue = Math.random();
               } else {
                   hue = wrap(fluidAccent.hue + (Math.random() - 0.5) * 0.06, 0, 1);
               }
-              let c = HSVtoRGB(hue, 1.0, 1.0);
+              let sat = fluidAccent.rainbow ? 1.0 : Math.max(0.55, fluidAccent.saturation);
+              let c = HSVtoRGB(hue, sat, 1.0);
               c.r *= 0.15; c.g *= 0.15; c.b *= 0.15;
               return c;
           }

@@ -5,7 +5,7 @@
 - [] light mode:
   - [ ] background color not white
 - [ ] better ui tbd
-  - [ ] try smoky ui
+  - [x] try smoky ui
 - [ ] gray on smoke become purple
 - [ ] reduce animation size
 - [ ] move html code to separated file
