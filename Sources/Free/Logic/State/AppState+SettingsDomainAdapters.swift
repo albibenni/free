@@ -6,6 +6,7 @@ extension AppState {
             weekStartsOnMonday: weekStartsOnMonday,
             accentColorIndex: accentColorIndex,
             appearanceMode: appearanceMode,
+            cursorFluidAnimationEnabled: cursorFluidAnimationEnabled,
             calendarImportFocusTitleRules: calendarImportFocusTitleRules,
             calendarImportBreakTitleRules: calendarImportBreakTitleRules,
             calendarImportedScheduleRuleSetId: calendarImportedScheduleRuleSetId,
@@ -23,6 +24,9 @@ extension AppState {
         }
         if accentColorIndex != state.accentColorIndex { accentColorIndex = state.accentColorIndex }
         if appearanceMode != state.appearanceMode { appearanceMode = state.appearanceMode }
+        if cursorFluidAnimationEnabled != state.cursorFluidAnimationEnabled {
+            cursorFluidAnimationEnabled = state.cursorFluidAnimationEnabled
+        }
         if calendarImportFocusTitleRules != state.calendarImportFocusTitleRules {
             calendarImportFocusTitleRules = state.calendarImportFocusTitleRules
         }

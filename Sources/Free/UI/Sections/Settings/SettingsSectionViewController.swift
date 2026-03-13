@@ -122,6 +122,7 @@ final class SettingsSectionViewController: NSViewController {
         let allowAIProviderWebsites: Bool
         let appearanceMode: AppearanceMode
         let accentColorIndex: Int
+        let cursorFluidAnimationEnabled: Bool
         let launchAtLoginEnabled: Bool
 
         static let fallback = ObservationSignature(
@@ -138,6 +139,7 @@ final class SettingsSectionViewController: NSViewController {
             allowAIProviderWebsites: false,
             appearanceMode: .system,
             accentColorIndex: 0,
+            cursorFluidAnimationEnabled: true,
             launchAtLoginEnabled: false
         )
     }
@@ -161,6 +163,7 @@ final class SettingsSectionViewController: NSViewController {
     private let blockLocalNetworkHostsSwitch = AppKitToggleSwitch()
     private let allowSearchEngineWebsitesSwitch = AppKitToggleSwitch()
     private let allowAIProviderWebsitesSwitch = AppKitToggleSwitch()
+    private let cursorFluidAnimationSwitch = AppKitToggleSwitch()
     private let browserLockNotice = NSTextField(
         wrappingLabelWithString:
             "Unblockable mode is active. Browser blocking settings cannot be changed."
@@ -227,6 +230,7 @@ final class SettingsSectionViewController: NSViewController {
                     allowAIProviderWebsites: appState.allowAIProviderWebsites,
                     appearanceMode: appState.appearanceMode,
                     accentColorIndex: appState.accentColorIndex,
+                    cursorFluidAnimationEnabled: appState.cursorFluidAnimationEnabled,
                     launchAtLoginEnabled: appState.launchAtLoginStatus()
                 )
             },
@@ -373,18 +377,29 @@ final class SettingsSectionViewController: NSViewController {
             section.addArrangedSubview(appearanceModeControl)
         }
 
+        cursorFluidAnimationSwitch.target = self
+        cursorFluidAnimationSwitch.action = #selector(toggleCursorFluidAnimation)
+        section.addArrangedSubview(
+            makeToggleRow(
+                title: "Cursor Fluid Animation",
+                descriptionLabel: makeDescriptionLabel("Show or hide the cursor fluid overlay effect."),
+                toggle: cursorFluidAnimationSwitch
+            )
+        )
+
         let colorsRow = makeAppKitHorizontalRow(
             views: [],
             alignment: .centerY,
             spacing: 12
         )
-        accentButtons = FocusColor.all.enumerated().map { index, color in
+        accentButtons = (0..<FocusColor.accentOptionCount).map { index in
             let button = NSButton(title: "", target: self, action: #selector(selectAccentColor(_:)))
             button.tag = index
             button.isBordered = false
             button.wantsLayer = true
             button.layer?.cornerRadius = 12
-            button.layer?.backgroundColor = color.cgColor
+            button.layer?.masksToBounds = true
+            configureAccentButtonAppearance(button, index: index)
             button.translatesAutoresizingMaskIntoConstraints = false
             button.widthAnchor.constraint(equalToConstant: 24).isActive = true
             button.heightAnchor.constraint(equalToConstant: 24).isActive = true
@@ -489,6 +504,7 @@ final class SettingsSectionViewController: NSViewController {
         blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .on : .off
         allowSearchEngineWebsitesSwitch.state = appState.allowSearchEngineWebsites ? .on : .off
         allowAIProviderWebsitesSwitch.state = appState.allowAIProviderWebsites ? .on : .off
+        cursorFluidAnimationSwitch.state = appState.cursorFluidAnimationEnabled ? .on : .off
         let browserLocked = appState.isUnblockable
         blockNewTabsSwitch.isEnabled = !browserLocked
         blockDeveloperHostsSwitch.isEnabled = !browserLocked
@@ -497,12 +513,36 @@ final class SettingsSectionViewController: NSViewController {
         allowAIProviderWebsitesSwitch.isEnabled = !browserLocked
         browserLockNotice.isHidden = !browserLocked
 
-        for (index, button) in accentButtons.enumerated() {
-            button.layer?.borderWidth = appState.accentColorIndex == index ? 2 : 0
+        for button in accentButtons {
+            button.layer?.borderWidth = appState.accentColorIndex == button.tag ? 2 : 0
             button.layer?.borderColor = NSColor.labelColor.cgColor
         }
 
         scrollContainer.needsLayout = true
+    }
+
+    private func configureAccentButtonAppearance(_ button: NSButton, index: Int) {
+        button.layer?.sublayers?.forEach { $0.removeFromSuperlayer() }
+        if FocusColor.isRainbowAccentIndex(index) {
+            button.layer?.backgroundColor = NSColor.clear.cgColor
+            let gradient = CAGradientLayer()
+            gradient.colors = [
+                NSColor.systemRed.cgColor,
+                NSColor.systemOrange.cgColor,
+                NSColor.systemYellow.cgColor,
+                NSColor.systemGreen.cgColor,
+                NSColor.systemTeal.cgColor,
+                NSColor.systemBlue.cgColor,
+                NSColor.systemPurple.cgColor,
+            ]
+            gradient.startPoint = CGPoint(x: 0, y: 0.5)
+            gradient.endPoint = CGPoint(x: 1, y: 0.5)
+            gradient.cornerRadius = 12
+            gradient.frame = CGRect(x: 0, y: 0, width: 24, height: 24)
+            button.layer?.addSublayer(gradient)
+        } else {
+            button.layer?.backgroundColor = FocusColor.nsColor(for: index).cgColor
+        }
     }
 
     private var allToggleControls: [AppKitToggleSwitch] {
@@ -517,6 +557,7 @@ final class SettingsSectionViewController: NSViewController {
             blockLocalNetworkHostsSwitch,
             allowSearchEngineWebsitesSwitch,
             allowAIProviderWebsitesSwitch,
+            cursorFluidAnimationSwitch,
         ]
     }
 
@@ -689,6 +730,11 @@ final class SettingsSectionViewController: NSViewController {
     }
 
     @objc
+    private func toggleCursorFluidAnimation() {
+        appState.cursorFluidAnimationEnabled = cursorFluidAnimationSwitch.state == .on
+    }
+
+    @objc
     private func selectAccentColor(_ sender: NSButton) {
         appState.accentColorIndex = sender.tag
     }
@@ -773,6 +819,12 @@ extension SettingsSectionViewController {
     func setAllowAIProviderWebsitesForTesting(_ enabled: Bool) {
         allowAIProviderWebsitesSwitch.state = enabled ? .on : .off
         toggleAllowAIProviderWebsites()
+        reloadSettings()
+    }
+
+    func setCursorFluidAnimationForTesting(_ enabled: Bool) {
+        cursorFluidAnimationSwitch.state = enabled ? .on : .off
+        toggleCursorFluidAnimation()
         reloadSettings()
     }
 

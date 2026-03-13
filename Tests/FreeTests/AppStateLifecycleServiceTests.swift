@@ -43,6 +43,7 @@ struct AppStateLifecycleServiceTests {
             weekStartsOnMonday: true,
             accentColorIndex: 3,
             appearanceMode: .dark,
+            cursorFluidAnimationEnabled: false,
             calendarIntegrationEnabled: true,
             calendarImportsBlockTime: true,
             calendarImportFocusTitleRules: ["Focus", "Deep Work"],
@@ -71,6 +72,7 @@ struct AppStateLifecycleServiceTests {
         #expect(projection.settings.weekStartsOnMonday)
         #expect(projection.settings.accentColorIndex == 3)
         #expect(projection.settings.appearanceMode == .dark)
+        #expect(projection.settings.cursorFluidAnimationEnabled == false)
         #expect(projection.settings.calendarImportFocusTitleRules == ["Focus", "Deep Work"])
         #expect(projection.settings.calendarImportBreakTitleRules == ["Break", "Lunch"])
         #expect(projection.settings.calendarImportedScheduleRuleSetId == importedRuleSetId)
@@ -209,6 +211,7 @@ struct AppStateLifecycleServiceTests {
             weekStartsOnMonday: Just(false).eraseToAnyPublisher(),
             accentColorIndex: Just(0).eraseToAnyPublisher(),
             appearanceMode: Just(.system).eraseToAnyPublisher(),
+            cursorFluidAnimationEnabled: Just(true).eraseToAnyPublisher(),
             calendarIntegrationEnabled: Just(false).eraseToAnyPublisher(),
             calendarImportsBlockTime: Just(false).eraseToAnyPublisher(),
             calendarImportFocusTitleRules: Just([]).eraseToAnyPublisher(),
@@ -229,6 +232,6 @@ struct AppStateLifecycleServiceTests {
             bindings: bindings,
             settingsStore: settingsStore
         )
-        #expect(cancellables.count == 19)
+        #expect(cancellables.count == 20)
     }
 }

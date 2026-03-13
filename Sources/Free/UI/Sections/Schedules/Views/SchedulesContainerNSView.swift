@@ -12,7 +12,7 @@ final class SchedulesContainerNSView: NSView {
     private let listDocumentView = SchedulesListDocumentNSView()
     private let calendarView = WeeklyCalendarSurfaceNSView()
     private let bottomDivider = AppKitDynamicView()
-    private let addButton = NSButton(title: "Add Schedule", target: nil, action: nil)
+    private let addButton = ActionButton(title: "Add Schedule")
     private var configuration: SchedulesAppKitConfiguration?
     private var editorSheetController: FreeSheetWindowController?
     private var presentedEditorContextId: UUID?
@@ -273,12 +273,20 @@ final class SchedulesContainerNSView: NSView {
     }
 
     private func applyAddButtonStyle(accentColor: NSColor) {
-        addButton.layer?.backgroundColor = accentColor.withAlphaComponent(0.12).cgColor
+        addButton.setGradientBackground(
+            colors: appKitAccentGradientColors(
+                for: accentColor,
+                topAlpha: 0.14,
+                bottomAlpha: 0.08
+            ),
+            borderColor: appKitAccentBorderColor(for: accentColor, alpha: 0.24),
+            borderWidth: 1
+        )
         addButton.attributedTitle = NSAttributedString(
             string: "Add Schedule",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 14, weight: .semibold),
-                .foregroundColor: accentColor,
+                .foregroundColor: appKitAccentForegroundColor(for: accentColor),
             ]
         )
     }

@@ -24,6 +24,8 @@ final class FreeMainViewController: NSViewController {
     private let sidebarView: MainSidebarView
     private let contentDivider = AppKitDynamicView()
     private let contentHostView = MainContentHostView()
+    private var cursorFluidOverlayView: AppKitCursorFluidOverlayView?
+    private var cursorFluidOverlayConstraints: [NSLayoutConstraint] = []
     private let bindings = MainShellBindings()
     private lazy var sheetPresenter = MainSheetPresenter(
         appState: appState,
@@ -100,6 +102,8 @@ final class FreeMainViewController: NSViewController {
         configureLayout()
         updateSidebarVisibility()
         updateSidebarSelection()
+        updateCursorOverlayAccent()
+        updateCursorOverlayVisibility()
         updateCalendarTabAvailability()
         updateContentController()
     }
@@ -159,6 +163,7 @@ final class FreeMainViewController: NSViewController {
             contentHostView.topAnchor.constraint(equalTo: view.topAnchor),
             contentHostView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+
     }
 
     private func bindShellState() {
@@ -171,6 +176,7 @@ final class FreeMainViewController: NSViewController {
             },
             onAppStateChanged: { [weak self] in
                 self?.updateSidebarSelection()
+                self?.updateCursorOverlayVisibility()
                 self?.updateCalendarTabAvailability()
             },
             onShowRulesChanged: { [weak self] isShown in
@@ -195,6 +201,42 @@ final class FreeMainViewController: NSViewController {
             selectedSection: shellState.selectedSection,
             accentColorIndex: appState.accentColorIndex
         )
+        updateCursorOverlayAccent()
+    }
+
+    private func updateCursorOverlayAccent() {
+        cursorFluidOverlayView?.setAccentColorIndex(appState.accentColorIndex)
+    }
+
+    private func updateCursorOverlayVisibility() {
+        if appState.cursorFluidAnimationEnabled {
+            installCursorOverlayIfNeeded()
+            cursorFluidOverlayView?.setAccentColorIndex(appState.accentColorIndex)
+        } else {
+            removeCursorOverlay()
+        }
+    }
+
+    private func installCursorOverlayIfNeeded() {
+        guard cursorFluidOverlayView == nil else { return }
+        guard let overlay = AppKitCursorFluidOverlayView.makeIfSupported() else { return }
+        cursorFluidOverlayView = overlay
+        view.addSubview(overlay)
+        cursorFluidOverlayConstraints = [
+            overlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            overlay.topAnchor.constraint(equalTo: view.topAnchor),
+            overlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ]
+        NSLayoutConstraint.activate(cursorFluidOverlayConstraints)
+    }
+
+    private func removeCursorOverlay() {
+        guard let overlay = cursorFluidOverlayView else { return }
+        NSLayoutConstraint.deactivate(cursorFluidOverlayConstraints)
+        cursorFluidOverlayConstraints.removeAll()
+        overlay.removeFromSuperview()
+        cursorFluidOverlayView = nil
     }
 
     private func updateCalendarTabAvailability() {

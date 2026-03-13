@@ -38,3 +38,61 @@ func resolvedAppKitCGColor(
     }
     return resolvedColor
 }
+
+func appKitAccentGradientColors(
+    for accentColor: NSColor,
+    topAlpha: CGFloat,
+    bottomAlpha: CGFloat
+) -> [NSColor] {
+    if FocusColor.isRainbowAccentColor(accentColor) {
+        // Match macOS "Multicolor" feel: subtle cool-spectrum tint, not full rainbow bars.
+        return [
+            NSColor.systemBlue.withAlphaComponent(topAlpha),
+            NSColor.systemTeal.withAlphaComponent((topAlpha + bottomAlpha) * 0.5),
+            NSColor.systemIndigo.withAlphaComponent(bottomAlpha),
+        ]
+    }
+    return [
+        accentColor.withAlphaComponent(topAlpha),
+        accentColor.withAlphaComponent(bottomAlpha),
+    ]
+}
+
+func appKitAccentBorderColor(for accentColor: NSColor, alpha: CGFloat) -> NSColor {
+    if FocusColor.isRainbowAccentColor(accentColor) {
+        return NSColor.systemBlue.withAlphaComponent(max(0.18, alpha))
+    }
+    return accentColor.withAlphaComponent(alpha)
+}
+
+func appKitAccentForegroundColor(for accentColor: NSColor) -> NSColor {
+    if FocusColor.isRainbowAccentColor(accentColor) {
+        return NSColor.white.withAlphaComponent(0.95)
+    }
+    return accentColor
+}
+
+func appKitAccentToggleOnColor(for accentColor: NSColor, isEnabled: Bool) -> NSColor {
+    if FocusColor.isRainbowAccentColor(accentColor) {
+        // Native macOS toggles are green when ON, independent from accent selection.
+        return (isEnabled ? NSColor.systemGreen : NSColor.systemGreen.withAlphaComponent(0.35))
+    }
+    return isEnabled ? accentColor : accentColor.withAlphaComponent(0.35)
+}
+
+func appKitAccentGradient(for accentColor: NSColor, alpha: CGFloat) -> NSGradient? {
+    guard FocusColor.isRainbowAccentColor(accentColor) else { return nil }
+    let colors = [
+        NSColor.systemBlue.withAlphaComponent(alpha),
+        NSColor.systemTeal.withAlphaComponent(alpha),
+        NSColor.systemIndigo.withAlphaComponent(alpha),
+    ]
+    return NSGradient(colors: colors)
+}
+
+func appKitAccentPrimaryColor(for accentColor: NSColor) -> NSColor {
+    if FocusColor.isRainbowAccentColor(accentColor) {
+        return .systemBlue
+    }
+    return accentColor
+}

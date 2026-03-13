@@ -81,8 +81,12 @@ final class WeeklyCalendarSurfaceHeaderNSView: NSView {
             )
             if isToday {
                 let badgePath = NSBezierPath(ovalIn: badgeRect)
-                accentColor.setFill()
-                badgePath.fill()
+                if let gradient = appKitAccentGradient(for: accentColor, alpha: 0.95) {
+                    gradient.draw(in: badgePath, angle: 0)
+                } else {
+                    accentColor.setFill()
+                    badgePath.fill()
+                }
             }
 
             let attributes = isToday ? todayAttributes : dayAttributes

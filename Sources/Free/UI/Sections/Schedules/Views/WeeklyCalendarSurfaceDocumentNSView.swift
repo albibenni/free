@@ -305,8 +305,12 @@ final class WeeklyCalendarSurfaceDocumentNSView: NSView {
         )
 
         let path = NSBezierPath(roundedRect: rect, xRadius: 6, yRadius: 6)
-        configuration.accentColor.withAlphaComponent(0.25).setFill()
-        path.fill()
+        if let gradient = appKitAccentGradient(for: configuration.accentColor, alpha: 0.25) {
+            gradient.draw(in: path, angle: 0)
+        } else {
+            configuration.accentColor.withAlphaComponent(0.25).setFill()
+            path.fill()
+        }
 
         let labels = WeeklyCalendarSupport.selectionPreviewLabels(
             startHour: startHour,
@@ -359,15 +363,27 @@ final class WeeklyCalendarSurfaceDocumentNSView: NSView {
             + CGFloat(dayIndex) * dayColumnWidth(configuration: configuration)
         let width = dayColumnWidth(configuration: configuration)
 
-        configuration.accentColor.setFill()
-        NSBezierPath(ovalIn: CGRect(x: x - 4, y: y - 4, width: 8, height: 8)).fill()
+        let dotRect = CGRect(x: x - 4, y: y - 4, width: 8, height: 8)
+        if let gradient = appKitAccentGradient(for: configuration.accentColor, alpha: 0.95) {
+            let dotPath = NSBezierPath(ovalIn: dotRect)
+            gradient.draw(in: dotPath, angle: 0)
+            appKitAccentPrimaryColor(for: configuration.accentColor).setStroke()
+            let line = NSBezierPath()
+            line.lineWidth = 1
+            line.move(to: CGPoint(x: x, y: y))
+            line.line(to: CGPoint(x: x + width, y: y))
+            line.stroke()
+        } else {
+            configuration.accentColor.setFill()
+            NSBezierPath(ovalIn: dotRect).fill()
 
-        configuration.accentColor.setStroke()
-        let line = NSBezierPath()
-        line.lineWidth = 1
-        line.move(to: CGPoint(x: x, y: y))
-        line.line(to: CGPoint(x: x + width, y: y))
-        line.stroke()
+            configuration.accentColor.setStroke()
+            let line = NSBezierPath()
+            line.lineWidth = 1
+            line.move(to: CGPoint(x: x, y: y))
+            line.line(to: CGPoint(x: x + width, y: y))
+            line.stroke()
+        }
     }
 
     private func calendarAreaX(configuration: WeeklyCalendarSurfaceConfiguration) -> CGFloat {

@@ -17,17 +17,18 @@ func createIcon(size: Int, scale: Int) {
     let path = NSBezierPath(
         roundedRect: rect.insetBy(dx: actualSize * 0.1, dy: actualSize * 0.1),
         xRadius: actualSize * 0.2, yRadius: actualSize * 0.2)
-    NSColor.systemGreen.setFill()
+    NSColor.black.setFill()
     path.fill()
 
     let config = NSImage.SymbolConfiguration(pointSize: actualSize * 0.5, weight: .bold)
+    let colorConfig = NSImage.SymbolConfiguration(hierarchicalColor: .systemGreen)
     if let symbol = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
-        .withSymbolConfiguration(config)
+        .withSymbolConfiguration(config)?
+        .withSymbolConfiguration(colorConfig)
     {
         let symbolRect = NSRect(
             x: actualSize * 0.25, y: actualSize * 0.25, width: actualSize * 0.5,
             height: actualSize * 0.5)
-        NSColor.white.set()
         symbol.draw(in: symbolRect)
     }
 

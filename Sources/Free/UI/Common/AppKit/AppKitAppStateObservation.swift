@@ -86,6 +86,7 @@ enum AppKitAppStateObservation {
             appState.$allowAIProviderWebsites.map { _ in () }.eraseToAnyPublisher(),
             appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
             appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
+            appState.$cursorFluidAnimationEnabled.map { _ in () }.eraseToAnyPublisher(),
         ])
     }
 
@@ -147,6 +148,7 @@ enum AppKitAppStateObservation {
         merge([
             appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
+            appState.$cursorFluidAnimationEnabled.map { _ in () }.eraseToAnyPublisher(),
         ])
     }
 

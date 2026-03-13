@@ -9,6 +9,7 @@ extension AppState {
             weekStartsOnMonday: $weekStartsOnMonday.eraseToAnyPublisher(),
             accentColorIndex: $accentColorIndex.eraseToAnyPublisher(),
             appearanceMode: $appearanceMode.eraseToAnyPublisher(),
+            cursorFluidAnimationEnabled: $cursorFluidAnimationEnabled.eraseToAnyPublisher(),
             calendarIntegrationEnabled: $calendarIntegrationEnabled.eraseToAnyPublisher(),
             calendarImportsBlockTime: $calendarImportsBlockTime.eraseToAnyPublisher(),
             calendarImportFocusTitleRules: $calendarImportFocusTitleRules.eraseToAnyPublisher(),
