@@ -17,7 +17,7 @@ extension AppState {
     }
 
     func deleteSchedule(id: UUID, modifyAllDays: Bool, initialDay: Int?) {
-        guard !isUnblockable else { return }
+        guard !isStrictActive else { return }
         guard let update = AppStateSchedulesMutationService.deleteSchedule(
             logicFacade: logicFacade,
             context: schedulesMutationContext,
@@ -41,7 +41,7 @@ extension AppState {
         modifyAllDays: Bool,
         initialDay: Int?
     ) {
-        guard !isUnblockable else { return }
+        guard !isStrictActive else { return }
         applySchedulesMutationUpdate(
             AppStateSchedulesMutationService.saveSchedule(
                 logicFacade: logicFacade,
@@ -69,7 +69,7 @@ extension AppState {
         start: Date,
         end: Date
     ) {
-        guard !isUnblockable else { return }
+        guard !isStrictActive else { return }
         applySchedulesMutationUpdate(
             AppStateSchedulesMutationService.updateScheduleOccurrence(
                 logicFacade: logicFacade,

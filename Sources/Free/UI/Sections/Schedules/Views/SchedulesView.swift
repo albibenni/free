@@ -129,7 +129,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private var canModifySchedules: Bool {
-        !appState.isUnblockable
+        !appState.isStrictActive
     }
 
     private func refreshConfiguration(force: Bool = true) {

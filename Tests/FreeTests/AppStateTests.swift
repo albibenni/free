@@ -1413,9 +1413,9 @@ struct AppStateTests {
         )
     }
 
-    @Test("schedule mutations are blocked while unblockable mode is enabled")
-    func scheduleMutationsBlockedByUnblockableMode() {
-        let appState = isolatedAppState(name: "scheduleMutationsBlockedByUnblockableMode")
+    @Test("schedule mutations are blocked only while strict mode is active")
+    func scheduleMutationsBlockedOnlyWhenStrictActive() {
+        let appState = isolatedAppState(name: "scheduleMutationsBlockedOnlyWhenStrictActive")
         let start = Date()
         let end = start.addingTimeInterval(3600)
         let original = Schedule(
@@ -1428,6 +1428,7 @@ struct AppStateTests {
         )
         appState.schedules = [original]
         appState.isUnblockable = true
+        appState.isBlocking = true
 
         appState.saveSchedule(
             name: "Should Not Save",
@@ -1459,6 +1460,41 @@ struct AppStateTests {
         appState.deleteSchedule(id: original.id, modifyAllDays: true, initialDay: nil)
         #expect(appState.schedules.count == 1)
         #expect(appState.schedules.first?.id == original.id)
+    }
+
+    @Test("schedule mutations are allowed when unblockable is on but focus is inactive")
+    func scheduleMutationsAllowedWhenUnblockableButNotBlocking() {
+        let appState = isolatedAppState(name: "scheduleMutationsAllowedWhenUnblockableButNotBlocking")
+        let start = Date()
+        let end = start.addingTimeInterval(3600)
+        let original = Schedule(
+            id: UUID(),
+            name: "Original",
+            days: [2],
+            startTime: start,
+            endTime: end,
+            type: .focus
+        )
+        appState.schedules = [original]
+        appState.isUnblockable = true
+        appState.isBlocking = false
+
+        appState.saveSchedule(
+            name: "Updated Allowed",
+            days: [2, 3],
+            date: nil,
+            start: start,
+            end: end,
+            color: 2,
+            type: .focus,
+            ruleSet: nil,
+            existingId: original.id,
+            modifyAllDays: true,
+            initialDay: nil
+        )
+        #expect(appState.schedules.count == 1)
+        #expect(appState.schedules.first?.name == "Updated Allowed")
+        #expect(appState.schedules.first?.days == [2, 3])
     }
 
     @Test("currentPrimaryRuleSetId priority logic")

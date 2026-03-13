@@ -117,13 +117,14 @@ struct SchedulesViewTests {
         #expect(controller.editorContextForTesting != nil)
     }
 
-    @Test("Schedules sheet blocks schedule mutations while unblockable mode is enabled")
+    @Test("Schedules sheet blocks schedule mutations while strict mode is active")
     @MainActor
-    func schedulesViewBlocksMutationsWhenUnblockable() {
-        let appState = isolatedAppState(name: "blocksMutationsWhenUnblockable")
+    func schedulesViewBlocksMutationsWhenStrictActive() {
+        let appState = isolatedAppState(name: "blocksMutationsWhenStrictActive")
         let schedule = sampleSchedule(name: "Locked")
         appState.schedules = [schedule]
         appState.isUnblockable = true
+        appState.isBlocking = true
 
         let controller = SchedulesSheetViewController(
             appState: appState,
@@ -149,6 +150,29 @@ struct SchedulesViewTests {
 
         controller.deleteScheduleForTesting(scheduleId: schedule.id)
         #expect(appState.schedules.contains(where: { $0.id == schedule.id }))
+    }
+
+    @Test("Schedules sheet allows schedule modifications when unblockable is on but focus is inactive")
+    @MainActor
+    func schedulesViewAllowsMutationsWhenUnblockableButNotBlocking() {
+        let appState = isolatedAppState(name: "allowsMutationsWhenUnblockableButNotBlocking")
+        let schedule = sampleSchedule(name: "Editable")
+        appState.schedules = [schedule]
+        appState.isUnblockable = true
+        appState.isBlocking = false
+
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: {},
+            initialViewMode: 0
+        )
+        _ = host(controller)
+
+        controller.openAddScheduleForTesting()
+        #expect(controller.editorContextForTesting != nil)
+
+        controller.setScheduleEnabledForTesting(scheduleId: schedule.id, isEnabled: false)
+        #expect(appState.schedules.first?.isEnabled == false)
     }
 
     @Test("Schedules sheet controller does not delete imported schedules from row or swipe actions")
