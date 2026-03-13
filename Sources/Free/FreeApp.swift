@@ -41,7 +41,6 @@ final class FreeApp {
     var menuStatusText: String {
         let focusState = appState.isBlocking ? "Active" : "Inactive"
         let details = menuDetailSegments(now: Date())
-        guard !details.isEmpty else { return "Focus Mode: \(focusState)" }
         return (["Focus Mode: \(focusState)"] + details).joined(separator: "\n")
     }
 

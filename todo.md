@@ -46,6 +46,7 @@
   - [x] breaks only in first view - mode there from pomodoro
   - [x] pomodoro setting for it
   - [x] calendar setting for it
+- [ ] with unblockable mode on schedule cannot be modified
 
 ### Allowed list
 
@@ -112,7 +113,7 @@
 
 ## Performance check
 
-- [ ] auto remove previous calendar imports - if they are in the past week
+- [x] auto remove previous calendar imports - if they are in the past week
 - [ ] cpu usage
 - [ ] ram usage
 

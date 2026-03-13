@@ -392,6 +392,26 @@ struct SettingsViewTests {
         #expect(appState.isUnblockable)
     }
 
+    @Test("Settings strict toggle-off no-ops without challenge when already disabled")
+    @MainActor
+    func settingsStrictToggleOffGuardCoverage() {
+        let appState = isolatedAppState(name: "strictToggleOffGuardCoverage")
+        appState.isUnblockable = false
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+        var modalCallCount = 0
+        SettingsSectionViewController.runStrictModeAlert = { _ in
+            modalCallCount += 1
+            return .alertSecondButtonReturn
+        }
+
+        controller.setStrictModeForTesting(false)
+        #expect(appState.isUnblockable == false)
+        #expect(modalCallCount == 0)
+    }
+
     @Test("Settings observation callback reloads after app-state changes")
     @MainActor
     func settingsControllerObservationReloadCoverage() {

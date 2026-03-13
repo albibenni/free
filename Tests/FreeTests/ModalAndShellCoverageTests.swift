@@ -786,6 +786,22 @@ struct ModalAndShellCoverageTests {
             isQuitDisabled: false,
             iconColor: .labelColor
         )
+        controller.update(
+            statusText: "Focus Mode: Active\nCalendar: Active\nUnbreakable",
+            topBarText: "",
+            isQuitDisabled: true,
+            iconColor: .systemGreen
+        )
+        controller.update(
+            statusText: "\n\n",
+            topBarText: "",
+            isQuitDisabled: false,
+            iconColor: .labelColor
+        )
+        if let statusMenu: NSMenu = mirrorValue(named: "statusMenu", in: controller) {
+            #expect(statusMenu.items.count >= 3)
+            #expect(statusMenu.items[1].isSeparatorItem)
+        }
 
         let quitItem: NSMenuItem? = mirrorValue(named: "quitItem", in: controller)
         #expect(quitItem != nil)
@@ -795,6 +811,7 @@ struct ModalAndShellCoverageTests {
         #expect(didQuit)
 
         if let statusItem: NSStatusItem = mirrorValue(named: "statusItem", in: controller) {
+            #expect(statusItem.button?.imagePosition == .imageOnly)
             NSStatusBar.system.removeStatusItem(statusItem)
             controller.update(
                 statusText: "Focus Mode: Inactive",

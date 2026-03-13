@@ -162,6 +162,74 @@ struct FreeAppTests {
     }
 
     @MainActor
+    @Test("FreeApp menu status summary chooses earliest upcoming calendar event from unsorted events")
+    func menuStatusSummarySortsCalendarEventsBeforePickingNext() {
+        withIsolatedAppKitState {
+            let suite = "FreeAppTests.menuStatusSummarySortsCalendarEventsBeforePickingNext"
+            let defaults = UserDefaults(suiteName: suite)!
+            defaults.removePersistentDomain(forName: suite)
+            let calendar = MockCalendarManager()
+            let now = Date()
+            let earliest = now.addingTimeInterval(900)
+            calendar.events = [
+                ExternalEvent(
+                    id: "later-calendar-event",
+                    title: "Later",
+                    startDate: now.addingTimeInterval(3600),
+                    endDate: now.addingTimeInterval(4200)
+                ),
+                ExternalEvent(
+                    id: "earliest-calendar-event",
+                    title: "Earliest",
+                    startDate: earliest,
+                    endDate: now.addingTimeInterval(1500)
+                ),
+            ]
+
+            let appState = AppState(defaults: defaults, calendar: calendar, isTesting: true)
+            appState.calendarIntegrationEnabled = true
+            let app = FreeApp(appState: appState)
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            formatter.dateStyle = .none
+            let expected = formatter.string(from: earliest)
+
+            #expect(app.menuStatusText.contains("Calendar: Next \(expected)"))
+        }
+    }
+
+    @MainActor
+    @Test("FreeApp menu status summary shows calendar none when integration is enabled with no events")
+    func menuStatusSummaryShowsCalendarNone() {
+        withIsolatedAppKitState {
+            let suite = "FreeAppTests.menuStatusSummaryShowsCalendarNone"
+            let defaults = UserDefaults(suiteName: suite)!
+            defaults.removePersistentDomain(forName: suite)
+            let calendar = MockCalendarManager()
+            calendar.events = []
+
+            let appState = AppState(defaults: defaults, calendar: calendar, isTesting: true)
+            appState.calendarIntegrationEnabled = true
+            let app = FreeApp(appState: appState)
+
+            #expect(app.menuStatusText.contains("Calendar: None"))
+        }
+    }
+
+    @MainActor
+    @Test("FreeApp menu status summary includes pomodoro break phase")
+    func menuStatusSummaryIncludesPomodoroBreak() {
+        withIsolatedAppKitState {
+            let appState = isolatedAppState(name: "menuStatusSummaryIncludesPomodoroBreak")
+            appState.pomodoroStatus = .breakTime
+            appState.pomodoroRemaining = 90
+            let app = FreeApp(appState: appState)
+
+            #expect(app.menuStatusText.contains("Pomodoro: Break"))
+        }
+    }
+
+    @MainActor
     @Test("FreeApp appearance mapping mirrors app settings")
     func appearanceMapping() {
         withIsolatedAppKitState {
@@ -350,6 +418,45 @@ struct FreeAppTests {
             RunLoop.main.run(until: Date().addingTimeInterval(0.05))
             appState.appearanceMode = .dark
             RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        }
+    }
+
+    @MainActor
+    @Test("FreeApp observes calendar provider publisher after interface binding")
+    func observesCalendarProviderPublisher() {
+        withIsolatedAppKitState {
+            let suite = "FreeAppTests.observesCalendarProviderPublisher"
+            let defaults = UserDefaults(suiteName: suite)!
+            defaults.removePersistentDomain(forName: suite)
+
+            let calendar = MockCalendarManager()
+            let appState = AppState(defaults: defaults, calendar: calendar, isTesting: true)
+            appState.calendarIntegrationEnabled = true
+
+            let app = FreeApp(
+                appState: appState,
+                appDelegate: AppDelegate(),
+                makeMainViewController: { FreeMainViewController(appState: $0) },
+                makeStatusItemController: { _ in
+                    let controller = FreeStatusItemController(onQuit: {})
+                    controller.setStatusButtonProviderForTesting { nil }
+                    return controller
+                },
+                presentMainWindow: { _, _ in }
+            )
+
+            app.startInterface(application: NSApplication.shared)
+            calendar.events = [
+                ExternalEvent(
+                    id: "calendar-publisher-observation",
+                    title: "Publisher",
+                    startDate: Date().addingTimeInterval(600),
+                    endDate: Date().addingTimeInterval(1200)
+                )
+            ]
+            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+
+            #expect(app.menuStatusText.contains("Calendar: Next"))
         }
     }
 
