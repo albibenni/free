@@ -24,6 +24,7 @@ final class FreeMainViewController: NSViewController {
     private let sidebarView: MainSidebarView
     private let contentDivider = AppKitDynamicView()
     private let contentHostView = MainContentHostView()
+    private let cursorFluidOverlayView = AppKitCursorFluidOverlayView.makeIfSupported()
     private let bindings = MainShellBindings()
     private lazy var sheetPresenter = MainSheetPresenter(
         appState: appState,
@@ -143,6 +144,9 @@ final class FreeMainViewController: NSViewController {
         contentDivider.backgroundColorProvider = { NSColor.separatorColor }
         view.addSubview(contentDivider)
         view.addSubview(contentHostView)
+        if let cursorFluidOverlayView {
+            view.addSubview(cursorFluidOverlayView)
+        }
 
         NSLayoutConstraint.activate([
             sidebarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -159,6 +163,15 @@ final class FreeMainViewController: NSViewController {
             contentHostView.topAnchor.constraint(equalTo: view.topAnchor),
             contentHostView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+
+        if let cursorFluidOverlayView {
+            NSLayoutConstraint.activate([
+                cursorFluidOverlayView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                cursorFluidOverlayView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                cursorFluidOverlayView.topAnchor.constraint(equalTo: view.topAnchor),
+                cursorFluidOverlayView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            ])
+        }
     }
 
     private func bindShellState() {
