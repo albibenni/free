@@ -48,7 +48,7 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
         webView.setValue(false, forKey: "drawsBackground")
-        webView.alphaValue = 0.92
+        webView.alphaValue = 0.5
 
         addSubview(webView)
         NSLayoutConstraint.activate([
