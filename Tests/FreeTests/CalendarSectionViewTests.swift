@@ -260,6 +260,51 @@ struct CalendarSectionViewTests {
         )
     }
 
+    @Test("Calendar section blocks break/focus title rule edits when unblockable mode is on")
+    @MainActor
+    func calendarSectionRuleEditsLockedWhileUnblockable() {
+        let appState = isolatedAppState(name: "ruleEditsLockedWhileUnblockable")
+        appState.calendarIntegrationEnabled = true
+        appState.isUnblockable = true
+        appState.calendarImportFocusTitleRules = ["focus"]
+        appState.calendarImportBreakTitleRules = ["break"]
+
+        let controller = CalendarSectionViewController(appState: appState)
+        let hosted = host(controller)
+
+        guard
+            let focusField = textField(withPlaceholder: "Add focus title rule...", in: hosted),
+            let breakField = textField(withPlaceholder: "Add break title rule...", in: hosted)
+        else {
+            Issue.record("Expected calendar rule input fields")
+            return
+        }
+
+        let addButtons = buttons(titled: "Add", in: hosted)
+        let removeButtons = buttons(titled: "Remove Selected", in: hosted)
+        let tables = tableViews(in: hosted)
+        guard addButtons.count >= 2, removeButtons.count >= 2, tables.count >= 2 else {
+            Issue.record("Expected focus/break add/remove buttons and tables")
+            return
+        }
+
+        #expect(focusField.isEnabled == false)
+        #expect(breakField.isEnabled == false)
+        #expect(addButtons[0].isEnabled == false)
+        #expect(addButtons[1].isEnabled == false)
+        #expect(tables[0].isEnabled == false)
+        #expect(tables[1].isEnabled == false)
+        #expect(removeButtons[0].isEnabled == false)
+        #expect(removeButtons[1].isEnabled == false)
+
+        focusField.stringValue = "new focus rule"
+        breakField.stringValue = "new break rule"
+        addButtons[0].performClick(nil)
+        addButtons[1].performClick(nil)
+        #expect(appState.calendarImportFocusTitleRules == ["focus"])
+        #expect(appState.calendarImportBreakTitleRules == ["break"])
+    }
+
     @Test("Calendar section resync requests access and falls back to permission alert in test runtime")
     @MainActor
     func calendarSectionResyncUnauthorizedPresentsFallback() {

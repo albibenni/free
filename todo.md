@@ -10,10 +10,10 @@
 
 - [ ] add infos
   - [x] add calendar schedule, next one
-  - [ ] add active list
+  - [x] add active list
   - [x] add if unbreakable mode is on
   - [x] pomodoro timer - break or focus what's left
-- [ ] open app
+- [x] open app
 
 ## Logic
 

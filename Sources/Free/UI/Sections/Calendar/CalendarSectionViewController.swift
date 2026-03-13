@@ -561,6 +561,7 @@ final class CalendarSectionViewController: NSViewController {
 
     private func reload() {
         let enabled = appState.calendarIntegrationEnabled
+        let canEditRules = canEditCalendarTitleRules
         let accentColor = FocusColor.nsColor(for: appState.accentColorIndex)
         [weekStartsMondaySwitch, calendarIntegrationSwitch].forEach {
             $0.accentColor = accentColor
@@ -592,16 +593,16 @@ final class CalendarSectionViewController: NSViewController {
             color: accentColor
         )
         integrationNotice.isHidden = enabled || appState.isStrictActive
-        focusRuleField.isEnabled = enabled
-        breakRuleField.isEnabled = enabled
-        addFocusRuleButton.isEnabled = enabled
-        addBreakRuleButton.isEnabled = enabled
-        focusRulesTableView.isEnabled = enabled
-        breakRulesTableView.isEnabled = enabled
+        focusRuleField.isEnabled = canEditRules
+        breakRuleField.isEnabled = canEditRules
+        addFocusRuleButton.isEnabled = canEditRules
+        addBreakRuleButton.isEnabled = canEditRules
+        focusRulesTableView.isEnabled = canEditRules
+        breakRulesTableView.isEnabled = canEditRules
         focusRulesTableView.reloadData()
         breakRulesTableView.reloadData()
-        removeFocusRuleButton.isEnabled = enabled && focusRulesTableView.numberOfSelectedRows > 0
-        removeBreakRuleButton.isEnabled = enabled && breakRulesTableView.numberOfSelectedRows > 0
+        removeFocusRuleButton.isEnabled = canEditRules && focusRulesTableView.numberOfSelectedRows > 0
+        removeBreakRuleButton.isEnabled = canEditRules && breakRulesTableView.numberOfSelectedRows > 0
     }
 
     private func reloadImportedRuleSetButtons(accentColor: NSColor, isEnabled: Bool) {
@@ -695,13 +696,13 @@ final class CalendarSectionViewController: NSViewController {
     @objc
     private func handleFocusSelectionChange() {
         removeFocusRuleButton.isEnabled =
-            appState.calendarIntegrationEnabled && focusRulesTableView.numberOfSelectedRows > 0
+            canEditCalendarTitleRules && focusRulesTableView.numberOfSelectedRows > 0
     }
 
     @objc
     private func handleBreakSelectionChange() {
         removeBreakRuleButton.isEnabled =
-            appState.calendarIntegrationEnabled && breakRulesTableView.numberOfSelectedRows > 0
+            canEditCalendarTitleRules && breakRulesTableView.numberOfSelectedRows > 0
     }
 
     @objc
@@ -728,6 +729,7 @@ final class CalendarSectionViewController: NSViewController {
         from field: NSTextField,
         into keyPath: ReferenceWritableKeyPath<AppState, [String]>
     ) {
+        guard canEditCalendarTitleRules else { return }
         let parsed = Self.parseRules(field.stringValue)
         guard !parsed.isEmpty else { return }
         var rules = appState[keyPath: keyPath]
@@ -744,6 +746,7 @@ final class CalendarSectionViewController: NSViewController {
 
     @objc
     private func removeSelectedFocusRule() {
+        guard canEditCalendarTitleRules else { return }
         let rows = selectedRows(in: focusRulesTableView)
         guard !rows.isEmpty else { return }
         appState.calendarImportFocusTitleRules = removeRules(
@@ -755,6 +758,7 @@ final class CalendarSectionViewController: NSViewController {
 
     @objc
     private func removeSelectedBreakRule() {
+        guard canEditCalendarTitleRules else { return }
         let rows = selectedRows(in: breakRulesTableView)
         guard !rows.isEmpty else { return }
         appState.calendarImportBreakTitleRules = removeRules(
@@ -782,6 +786,10 @@ final class CalendarSectionViewController: NSViewController {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { $0.isEmpty == false }
             .filter { seen.insert($0.lowercased()).inserted }
+    }
+
+    private var canEditCalendarTitleRules: Bool {
+        appState.calendarIntegrationEnabled && !appState.isUnblockable
     }
 }
 
