@@ -48,7 +48,8 @@ func appKitAccentGradientColors(
         // Match macOS "Multicolor" feel: subtle cool-spectrum tint, not full rainbow bars.
         return [
             NSColor.systemBlue.withAlphaComponent(topAlpha),
-            NSColor.systemPurple.withAlphaComponent(bottomAlpha),
+            NSColor.systemTeal.withAlphaComponent((topAlpha + bottomAlpha) * 0.5),
+            NSColor.systemIndigo.withAlphaComponent(bottomAlpha),
         ]
     }
     return [
@@ -83,7 +84,8 @@ func appKitAccentGradient(for accentColor: NSColor, alpha: CGFloat) -> NSGradien
     guard FocusColor.isRainbowAccentColor(accentColor) else { return nil }
     let colors = [
         NSColor.systemBlue.withAlphaComponent(alpha),
-        NSColor.systemPurple.withAlphaComponent(alpha),
+        NSColor.systemTeal.withAlphaComponent(alpha),
+        NSColor.systemIndigo.withAlphaComponent(alpha),
     ]
     return NSGradient(colors: colors)
 }
