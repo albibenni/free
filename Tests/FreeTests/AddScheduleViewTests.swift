@@ -353,6 +353,24 @@ struct AddScheduleViewTests {
         #expect(controller.areRecurringDayButtonsEnabledForTesting == false)
     }
 
+    @Test("ScheduleEditorViewController keeps save disabled in strict mode during recurring UI updates")
+    @MainActor
+    func addScheduleViewStrictModeDisablesSaveThroughRecurringRefresh() {
+        let appState = isolatedAppState(name: "strictModeDisablesSaveThroughRecurringRefresh")
+        appState.isUnblockable = true
+        appState.isBlocking = true
+
+        let controller = makeController(appState: appState)
+        let hosted = host(controller)
+
+        let initialSave = actionButtons(in: hosted).first(where: { $0.title.contains("Add") })
+        #expect(initialSave?.isEnabled == false)
+
+        controller.setRecurringForTesting(true)
+        let updatedSave = actionButtons(in: hosted).first(where: { $0.title.contains("Add") })
+        #expect(updatedSave?.isEnabled == false)
+    }
+
     @Test("ScheduleEditorViewController renders imported schedule editor with limited editable sections")
     @MainActor
     func addScheduleViewImportedPath() {
@@ -715,5 +733,45 @@ struct AddScheduleViewTests {
         #expect(dayButton != nil)
         dayButton?.performClick(nil)
         #expect(controller.daysForTesting != beforeDays)
+    }
+
+    @Test("Schedule editor save/delete are blocked while strict mode is active")
+    @MainActor
+    func addScheduleViewStrictModeBlocksSaveAndDelete() {
+        let appState = isolatedAppState(name: "strictModeBlocksSaveAndDelete")
+        var schedule = Schedule(
+            name: "Strict Existing",
+            days: [2],
+            startTime: Date(),
+            endTime: Date().addingTimeInterval(1800),
+            colorIndex: 2,
+            type: .focus
+        )
+        appState.schedules = [schedule]
+        appState.isUnblockable = true
+        appState.isBlocking = true
+
+        var closeCount = 0
+        let controller = makeController(
+            appState: appState,
+            context: ScheduleEditorContext(
+                day: 2,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                schedule: schedule
+            ),
+            onClose: { closeCount += 1 }
+        )
+        _ = host(controller)
+
+        let beforeSaveCount = appState.schedules.count
+        controller.saveScheduleForTesting()
+        #expect(appState.schedules.count == beforeSaveCount)
+        #expect(closeCount == 0)
+
+        schedule = appState.schedules[0]
+        controller.deleteScheduleForTesting()
+        #expect(appState.schedules.contains(where: { $0.id == schedule.id }))
+        #expect(closeCount == 0)
     }
 }

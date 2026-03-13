@@ -305,6 +305,41 @@ struct CalendarSectionViewTests {
         #expect(appState.calendarImportBreakTitleRules == ["break"])
     }
 
+    @Test("Calendar section private rule actions early-return when calendar title rule editing is locked")
+    @MainActor
+    func calendarSectionRuleActionGuardsWhenEditingLocked() {
+        let appState = isolatedAppState(name: "ruleActionGuardsWhenEditingLocked")
+        appState.calendarIntegrationEnabled = true
+        appState.isUnblockable = true
+        appState.calendarImportFocusTitleRules = ["keep-focus"]
+        appState.calendarImportBreakTitleRules = ["keep-break"]
+
+        let controller = CalendarSectionViewController(appState: appState)
+        let hosted = host(controller)
+        guard
+            let focusField = textField(withPlaceholder: "Add focus title rule...", in: hosted),
+            let breakField = textField(withPlaceholder: "Add break title rule...", in: hosted),
+            let focusTable = tableViews(in: hosted).first,
+            tableViews(in: hosted).count >= 2
+        else {
+            Issue.record("Expected focus/break controls for lock guard test")
+            return
+        }
+        let breakTable = tableViews(in: hosted)[1]
+
+        focusField.stringValue = "new-focus"
+        breakField.stringValue = "new-break"
+        focusTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        breakTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+
+        _ = controller.perform(NSSelectorFromString("addFocusRule"))
+        _ = controller.perform(NSSelectorFromString("removeSelectedFocusRule"))
+        _ = controller.perform(NSSelectorFromString("removeSelectedBreakRule"))
+
+        #expect(appState.calendarImportFocusTitleRules == ["keep-focus"])
+        #expect(appState.calendarImportBreakTitleRules == ["keep-break"])
+    }
+
     @Test("Calendar section resync requests access and falls back to permission alert in test runtime")
     @MainActor
     func calendarSectionResyncUnauthorizedPresentsFallback() {

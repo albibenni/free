@@ -7,6 +7,9 @@ final class SchedulesSheetViewController: NSViewController {
 
     private static var _makeScheduleModificationBlockedAlert: AlertFactory?
     private static var _runScheduleModificationBlockedAlert: AlertRunner?
+    private static var _nativeScheduleModificationBlockedAlertRunner: AlertRunner?
+    private static var _fallbackScheduleModificationBlockedAlertRunner: AlertRunner?
+    private static var _isRunningInTestProcess: (() -> Bool)?
     static var makeScheduleModificationBlockedAlert: AlertFactory {
         get { _makeScheduleModificationBlockedAlert ?? defaultMakeScheduleModificationBlockedAlert }
         set { _makeScheduleModificationBlockedAlert = newValue }
@@ -20,10 +23,14 @@ final class SchedulesSheetViewController: NSViewController {
     private static func defaultRunScheduleModificationBlockedAlert(
         _ alert: NSAlert
     ) -> NSApplication.ModalResponse {
-        if AppDelegate.isRunningInTestProcess() {
+        if (_isRunningInTestProcess?() ?? AppDelegate.isRunningInTestProcess()) {
             return .alertFirstButtonReturn
         }
-        return alert.runModal()
+        return (_nativeScheduleModificationBlockedAlertRunner
+            ?? fallbackScheduleModificationBlockedAlertRunner)(alert)
+    }
+    private static var fallbackScheduleModificationBlockedAlertRunner: AlertRunner {
+        _fallbackScheduleModificationBlockedAlertRunner ?? AppKitSystemBridges.runModal
     }
 
     private struct RenderSignature: Equatable {
@@ -502,14 +509,23 @@ extension SchedulesSheetViewController {
 
     static func setScheduleModificationAlertHooksForTesting(
         make: AlertFactory? = nil,
-        run: AlertRunner? = nil
+        run: AlertRunner? = nil,
+        nativeRun: AlertRunner? = nil,
+        fallbackRun: AlertRunner? = nil,
+        isRunningInTestProcess: (() -> Bool)? = nil
     ) {
         _makeScheduleModificationBlockedAlert = make
         _runScheduleModificationBlockedAlert = run
+        _nativeScheduleModificationBlockedAlertRunner = nativeRun
+        _fallbackScheduleModificationBlockedAlertRunner = fallbackRun
+        _isRunningInTestProcess = isRunningInTestProcess
     }
 
     static func resetScheduleModificationAlertHooksForTesting() {
         _makeScheduleModificationBlockedAlert = nil
         _runScheduleModificationBlockedAlert = nil
+        _nativeScheduleModificationBlockedAlertRunner = nil
+        _fallbackScheduleModificationBlockedAlertRunner = nil
+        _isRunningInTestProcess = nil
     }
 }

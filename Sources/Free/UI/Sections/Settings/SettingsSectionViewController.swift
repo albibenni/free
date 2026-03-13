@@ -48,6 +48,7 @@ final class SettingsSectionViewController: NSViewController {
     private static var _runCalendarPermissionAlert: AlertRunner?
     private static var _platformWorkspaceURLOpener: URLOpener?
     private static var _workspaceURLOpener: URLOpener?
+    private static var _workspaceNativeOpenURLOpener: URLOpener?
     private static var _scheduleAfter: AsyncAfterScheduler?
     private static var _openCalendarPrivacySettings: CalendarSettingsOpener?
     private static var _isRunningInTestProcess: TestProcessDetector?
@@ -66,8 +67,11 @@ final class SettingsSectionViewController: NSViewController {
         set { _isRunningInTestProcess = newValue }
     }
     static var nativeWorkspaceURLOpener: URLOpener {
-        get { _nativeWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
+        get { _nativeWorkspaceURLOpener ?? { url in workspaceNativeOpenURLOpener(url) } }
         set { _nativeWorkspaceURLOpener = newValue }
+    }
+    private static var workspaceNativeOpenURLOpener: URLOpener {
+        _workspaceNativeOpenURLOpener ?? AppKitSystemBridges.openURL
     }
     static var platformWorkspaceURLOpener: URLOpener {
         get {
@@ -785,6 +789,7 @@ extension SettingsSectionViewController {
         _platformWorkspaceURLOpener = nil
         _isRunningInTestProcess = nil
         _nativeWorkspaceURLOpener = nil
+        _workspaceNativeOpenURLOpener = nil
         _workspaceURLOpener = nil
         _scheduleAfter = nil
         makeStrictModeAlert = defaultMakeStrictModeAlert
@@ -802,5 +807,9 @@ extension SettingsSectionViewController {
 
     func invokeCalendarPermissionAlertForTesting() {
         presentCalendarPermissionAlert()
+    }
+
+    static func setWorkspaceNativeOpenURLOpenerForTesting(_ opener: URLOpener?) {
+        _workspaceNativeOpenURLOpener = opener
     }
 }

@@ -422,6 +422,68 @@ struct FreeAppTests {
     }
 
     @MainActor
+    @Test("FreeApp status-menu Open App action routes through the wired window activation handler")
+    func statusMenuOpenAppActionPath() {
+        withIsolatedAppKitState {
+            let appState = isolatedAppState(name: "statusMenuOpenAppActionPath")
+            let app = FreeApp(
+                appState: appState,
+                appDelegate: AppDelegate(),
+                presentMainWindow: { _, _ in }
+            )
+
+            app.startInterface(application: NSApplication.shared)
+            guard let statusController = app.statusItemController else {
+                Issue.record("Expected status item controller")
+                return
+            }
+
+            let openItem = Mirror(reflecting: statusController).children
+                .first(where: { $0.label == "openAppItem" })?
+                .value as? NSMenuItem
+            #expect(openItem != nil)
+            if let openItem, let action = openItem.action {
+                _ = NSApp.sendAction(action, to: openItem.target, from: openItem)
+            }
+
+            #expect(app.mainWindowController != nil)
+            #expect(app.mainWindowController?.window != nil)
+        }
+    }
+
+    @MainActor
+    @Test("FreeApp Open App handler safely no-ops when app instance is released")
+    func statusMenuOpenAppActionNoOpAfterAppReleased() {
+        withIsolatedAppKitState {
+            let appState = isolatedAppState(name: "statusMenuOpenAppActionNoOpAfterAppReleased")
+            var app: FreeApp? = FreeApp(
+                appState: appState,
+                appDelegate: AppDelegate(),
+                presentMainWindow: { _, _ in }
+            )
+            app?.startInterface(application: NSApplication.shared)
+
+            guard let statusController = app?.statusItemController else {
+                Issue.record("Expected status item controller")
+                return
+            }
+            let openItem = Mirror(reflecting: statusController).children
+                .first(where: { $0.label == "openAppItem" })?
+                .value as? NSMenuItem
+            #expect(openItem != nil)
+
+            weak var weakApp = app
+            weakApp = app
+            app = nil
+            #expect(weakApp == nil)
+
+            if let openItem, let action = openItem.action {
+                _ = NSApp.sendAction(action, to: openItem.target, from: openItem)
+            }
+        }
+    }
+
+    @MainActor
     @Test("FreeApp observes calendar provider publisher after interface binding")
     func observesCalendarProviderPublisher() {
         withIsolatedAppKitState {

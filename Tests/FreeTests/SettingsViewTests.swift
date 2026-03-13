@@ -276,6 +276,33 @@ struct SettingsViewTests {
         )
     }
 
+    @Test("Settings browser toggle handlers return early while unblockable is enabled")
+    @MainActor
+    func settingsControllerBrowserToggleGuardBranches() {
+        let appState = isolatedAppState(name: "browserToggleGuardBranches")
+        appState.isUnblockable = true
+        appState.blockNewTabs = false
+        appState.blockDeveloperHosts = false
+        appState.blockLocalNetworkHosts = false
+        appState.allowSearchEngineWebsites = false
+        appState.allowAIProviderWebsites = false
+
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setBlockNewTabsForTesting(true)
+        controller.setBlockDeveloperHostsForTesting(true)
+        controller.setBlockLocalNetworkHostsForTesting(true)
+        controller.setAllowSearchEngineWebsitesForTesting(true)
+        controller.setAllowAIProviderWebsitesForTesting(true)
+
+        #expect(appState.blockNewTabs == false)
+        #expect(appState.blockDeveloperHosts == false)
+        #expect(appState.blockLocalNetworkHosts == false)
+        #expect(appState.allowSearchEngineWebsites == false)
+        #expect(appState.allowAIProviderWebsites == false)
+    }
+
     @Test("Settings controller renders default toggle branch")
     @MainActor
     func settingsControllerRenderDefaultBranch() {
@@ -508,6 +535,14 @@ struct SettingsViewTests {
         )
     }
 
+    @Test("Settings native workspace opener default getter instantiates fallback closure")
+    @MainActor
+    func settingsNativeWorkspaceOpenerDefaultGetterCoverage() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        _ = SettingsSectionViewController.nativeWorkspaceURLOpener
+    }
+
     @Test("Settings strict-mode default hook falls back to NSAlert.runModal when XCTest env var is missing")
     @MainActor
     func settingsStrictModeDefaultAlertHooksRunModalPath() {
@@ -662,6 +697,37 @@ struct SettingsViewTests {
 
         // Getter-only coverage for default native opener closure creation.
         _ = SettingsSectionViewController.nativeWorkspaceURLOpener
+    }
+
+    @Test("Settings default native workspace opener closure executes through native open hook")
+    func settingsDefaultNativeWorkspaceOpenerClosureExecutionCoverage() {
+        defer {
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+            AppKitSystemBridges.setOpenURLForTesting(nil)
+        }
+
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        var opened: [URL] = []
+        SettingsSectionViewController.setWorkspaceNativeOpenURLOpenerForTesting { opened.append($0) }
+        let url = URL(string: "https://example.com/native-opener")!
+        SettingsSectionViewController.nativeWorkspaceURLOpener(url)
+        #expect(opened == [url])
+    }
+
+    @Test("Settings native opener default branch routes through AppKit system bridge")
+    func settingsNativeWorkspaceOpenerDefaultBranchCoverage() {
+        defer {
+            SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+            AppKitSystemBridges.setOpenURLForTesting(nil)
+        }
+
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        SettingsSectionViewController.setWorkspaceNativeOpenURLOpenerForTesting(nil)
+        var opened: [URL] = []
+        AppKitSystemBridges.setOpenURLForTesting { opened.append($0) }
+        let url = URL(string: "https://example.com/native-opener-default")!
+        SettingsSectionViewController.nativeWorkspaceURLOpener(url)
+        #expect(opened == [url])
     }
 
     @Test("Settings calendar fallback guard handles pending-true and authorization-restored branches")
