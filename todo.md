@@ -11,7 +11,7 @@
 - [x] gray on smoke become purple
 - [x] reduce animation size - SPLAT_RADIUS
 - [x] a bit of opacity on the animation
-- [ ] toggle disable animation
+- [x] toggle disable animation
 
 ### TOPBAR
 
