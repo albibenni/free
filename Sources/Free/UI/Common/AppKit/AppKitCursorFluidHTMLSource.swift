@@ -12,7 +12,7 @@ enum AppKitFluid {
           html, body {
             background: transparent !important;
             width: 100dvw;
-            height: 200dvh;
+            height: 100dvh;
             margin: 0;
             overflow: hidden;
           }

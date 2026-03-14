@@ -15,6 +15,14 @@ final class FreeApp {
     private var cancellables: Set<AnyCancellable> = []
     private var hasBoundState = false
     private var didBecomeActiveObserver: NSObjectProtocol?
+    private var lastStatusRenderState: StatusRenderState?
+
+    private struct StatusRenderState: Equatable {
+        let statusText: String
+        let topBarText: String
+        let isQuitDisabled: Bool
+        let isBlocking: Bool
+    }
 
     init(
         appState: AppState = AppState(defaults: .standard),
@@ -250,7 +258,6 @@ final class FreeApp {
             window.appearance = appearance
             window.contentView?.needsLayout = true
             window.contentView?.needsDisplay = true
-            window.contentView?.subviews.forEach { $0.needsDisplay = true }
         }
     }
 
@@ -291,11 +298,20 @@ final class FreeApp {
     }
 
     private func updateStatusItem() {
-        statusItemController?.update(
+        let nextState = StatusRenderState(
             statusText: menuStatusText,
             topBarText: topBarStatusText,
             isQuitDisabled: isQuitDisabled,
-            iconColor: menuIconColor
+            isBlocking: appState.isBlocking
+        )
+        guard nextState != lastStatusRenderState else { return }
+        lastStatusRenderState = nextState
+
+        statusItemController?.update(
+            statusText: nextState.statusText,
+            topBarText: nextState.topBarText,
+            isQuitDisabled: nextState.isQuitDisabled,
+            iconColor: nextState.isBlocking ? .systemGreen : .labelColor
         )
     }
 
@@ -321,11 +337,22 @@ final class FreeApp {
     private func calendarSegment(now: Date) -> String {
         guard appState.calendarIntegrationEnabled else { return "Calendar: Off" }
 
-        let events = appState.calendarProvider.events.sorted { $0.startDate < $1.startDate }
-        if events.contains(where: { $0.isActive(at: now) }) {
-            return "Calendar: Active"
+        var nextEvent: ExternalEvent?
+        for event in appState.calendarProvider.events {
+            if event.isActive(at: now) {
+                return "Calendar: Active"
+            }
+            if event.startDate > now {
+                if let currentNext = nextEvent {
+                    if event.startDate < currentNext.startDate {
+                        nextEvent = event
+                    }
+                } else {
+                    nextEvent = event
+                }
+            }
         }
-        if let nextEvent = events.first(where: { $0.startDate > now }) {
+        if let nextEvent {
             return "Calendar: Next \(Self.statusTimeFormatter.string(from: nextEvent.startDate))"
         }
         return "Calendar: None"

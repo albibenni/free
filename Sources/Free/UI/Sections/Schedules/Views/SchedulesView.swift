@@ -124,7 +124,7 @@ final class SchedulesSheetViewController: NSViewController {
         super.viewDidLoad()
 
         AppKitAppStateObservation.bind(
-            publisher: AppKitAppStateObservation.schedulesPublisher(appState: appState),
+            publisher: schedulesObservationPublisher(),
             signature: { [unowned self, appState] in
                 RenderSignature(appState: appState, viewMode: self.viewMode)
             },
@@ -132,6 +132,31 @@ final class SchedulesSheetViewController: NSViewController {
         ) { [weak self] nextSignature in
             self?.applyConfiguration(signature: nextSignature)
         }
+    }
+
+    private func schedulesObservationPublisher() -> AnyPublisher<Void, Never> {
+        let calendarModeOnly: (()) -> Bool = { [weak self] _ in
+            self?.viewMode == 1
+        }
+
+        return Publishers.MergeMany(
+            appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
+            appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
+            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
+            appState.$weekStartsOnMonday.map { _ in () }
+                .filter(calendarModeOnly)
+                .eraseToAnyPublisher(),
+            appState.$calendarIntegrationEnabled.map { _ in () }
+                .filter(calendarModeOnly)
+                .eraseToAnyPublisher(),
+            appState.$calendarImportsBlockTime.map { _ in () }
+                .filter(calendarModeOnly)
+                .eraseToAnyPublisher(),
+            appState.calendarProvider.objectWillChange.map { _ in () }
+                .filter(calendarModeOnly)
+                .eraseToAnyPublisher()
+        )
+        .eraseToAnyPublisher()
     }
 
     override func viewDidAppear() {

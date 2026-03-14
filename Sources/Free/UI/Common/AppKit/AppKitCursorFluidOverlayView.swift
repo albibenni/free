@@ -9,6 +9,8 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
     private var pendingAccentColor: NSColor = .systemGreen
     private var pendingRainbowAccent = false
     private var isAnimationActive = true
+    private var lastAppliedAccentKey: String?
+    private var lastAppliedAnimationState: Bool?
     private var didBecomeActiveObserver: NSObjectProtocol?
     private var didResignActiveObserver: NSObjectProtocol?
 
@@ -93,6 +95,16 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
         let r = max(0, min(1, srgb.redComponent))
         let g = max(0, min(1, srgb.greenComponent))
         let b = max(0, min(1, srgb.blueComponent))
+        let accentKey = String(
+            format: "%.4f-%.4f-%.4f-%@",
+            Double(r),
+            Double(g),
+            Double(b),
+            pendingRainbowAccent ? "1" : "0"
+        )
+        guard accentKey != lastAppliedAccentKey else { return }
+        lastAppliedAccentKey = accentKey
+
         let script = String(
             format: "window.setFluidAccent(%.6f, %.6f, %.6f, %@);",
             Double(r),
@@ -105,6 +117,8 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
 
     private func applyAnimationStateIfPossible() {
         guard didFinishInitialLoad else { return }
+        guard lastAppliedAnimationState != isAnimationActive else { return }
+        lastAppliedAnimationState = isAnimationActive
         webView.evaluateJavaScript(
             "window.setFluidRunning(\(isAnimationActive ? "true" : "false"));",
             completionHandler: nil
