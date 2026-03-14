@@ -17,4 +17,10 @@ struct FocusColorTests {
         #expect(FocusColor.nsColor(for: 100) == FocusColor.all[lastIndex])
         #expect(FocusColor.nsColor(for: -1) == .systemBlue)
     }
+
+    @Test("FocusColor rainbow detection returns false for non-deviceRGB colors")
+    func rainbowDetectionFallback() {
+        let pattern = NSColor(patternImage: NSImage(size: NSSize(width: 2, height: 2)))
+        #expect(FocusColor.isRainbowAccentColor(pattern) == false)
+    }
 }

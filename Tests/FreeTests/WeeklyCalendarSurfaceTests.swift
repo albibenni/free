@@ -34,6 +34,7 @@ struct WeeklyCalendarSurfaceTests {
         positionedSchedules: [WeeklyCalendarSupport.PositionedSchedule],
         externalEvents: [ExternalEvent] = [],
         showsExternalEvents: Bool = false,
+        accentColor: NSColor = .systemOrange,
         onQuickAdd: @escaping (Int, Int) -> Void = { _, _ in },
         onCreateSelection: @escaping (Int, CGFloat, CGFloat) -> Void = { _, _, _ in },
         onOpenSchedule: @escaping (Int, Schedule) -> Void = { _, _ in },
@@ -53,7 +54,7 @@ struct WeeklyCalendarSurfaceTests {
             dayHeaderHeight: 56,
             timeLabelWidth: 60,
             timeColumnGutter: 12,
-            accentColor: .systemOrange,
+            accentColor: accentColor,
             onQuickAdd: onQuickAdd,
             onCreateSelection: onCreateSelection,
             onOpenSchedule: onOpenSchedule,
@@ -556,6 +557,30 @@ struct WeeklyCalendarSurfaceTests {
             timeColumnGutter: 10
         )
         image = NSImage(size: header.bounds.size)
+        image.lockFocus()
+        header.draw(header.bounds)
+        image.unlockFocus()
+    }
+
+    @MainActor
+    @Test("Weekly calendar header supports rainbow accent draw and flipped coordinates")
+    func weeklyCalendarHeaderRainbowAndFlippedCoverage() {
+        let header = WeeklyCalendarSurfaceHeaderNSView(
+            frame: NSRect(x: 0, y: 0, width: 900, height: 64)
+        )
+        #expect(header.isFlipped)
+
+        let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
+        let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        header.configure(
+            dayOrder: dayOrder,
+            weekRange: weekRange,
+            accentColor: FocusColor.nsColor(for: FocusColor.rainbowAccentIndex),
+            timeLabelWidth: 60,
+            timeColumnGutter: 12
+        )
+
+        let image = NSImage(size: header.bounds.size)
         image.lockFocus()
         header.draw(header.bounds)
         image.unlockFocus()
@@ -1196,6 +1221,146 @@ struct WeeklyCalendarSurfaceTests {
             )
         )
         image = NSImage(size: document.bounds.size)
+        image.lockFocus()
+        document.draw(document.bounds)
+        image.unlockFocus()
+    }
+
+    @MainActor
+    @Test("Weekly calendar document deferred rebuild guard keeps blocks until immediate rebuild")
+    func weeklyCalendarDocumentDeferredRebuildGuardCoverage() throws {
+        let calendar = Calendar.current
+        let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
+        let weekBounds = WeeklyCalendarSupport.weekBounds(for: weekRange)
+        let targetDay = calendar.component(.weekday, from: weekRange[0])
+        let schedule = makeSchedule(name: "Deferred", day: targetDay)
+        let positioned = WeeklyCalendarSupport.positionedSchedules(
+            schedules: [schedule],
+            weekRange: weekRange
+        )
+        let document = WeeklyCalendarSurfaceDocumentNSView(
+            frame: NSRect(x: 0, y: 0, width: 920, height: 24 * 80)
+        )
+        document.configure(
+            with: makeConfiguration(
+                dayOrder: dayOrder,
+                weekRange: weekRange,
+                weekStart: weekBounds.0,
+                weekEnd: weekBounds.1,
+                positionedSchedules: positioned,
+                showsExternalEvents: false
+            )
+        )
+        #expect(document.scheduleBlockCountForTesting == 1)
+
+        guard let block = document.subviews.compactMap({ $0 as? WeeklyCalendarSurfaceScheduleBlockNSView }).first
+        else {
+            Issue.record("Expected schedule block for deferred rebuild branch")
+            return
+        }
+
+        let down = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDown,
+                location: NSPoint(x: 120, y: 730),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let up = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseUp,
+                location: NSPoint(x: 120, y: 730),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 1,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+
+        block.mouseDown(with: down)
+        document.configure(
+            with: makeConfiguration(
+                dayOrder: dayOrder,
+                weekRange: weekRange,
+                weekStart: weekBounds.0,
+                weekEnd: weekBounds.1,
+                positionedSchedules: [],
+                showsExternalEvents: false
+            )
+        )
+        document.scheduleInteractionDidEndForTesting(rebuildImmediately: false)
+        #expect(document.scheduleBlockCountForTesting == 1)
+
+        block.mouseUp(with: up)
+        #expect(document.scheduleBlockCountForTesting == 0)
+    }
+
+    @MainActor
+    @Test("Weekly calendar document draws rainbow gradient paths for selection preview and current-time indicator")
+    func weeklyCalendarDocumentRainbowGradientCoverage() throws {
+        let calendar = Calendar.current
+        let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
+        let weekBounds = WeeklyCalendarSupport.weekBounds(for: weekRange)
+        let document = WeeklyCalendarSurfaceDocumentNSView(
+            frame: NSRect(x: 0, y: 0, width: 920, height: 24 * 80)
+        )
+        document.configure(
+            with: makeConfiguration(
+                dayOrder: dayOrder,
+                weekRange: weekRange,
+                weekStart: weekBounds.0,
+                weekEnd: weekBounds.1,
+                positionedSchedules: [],
+                showsExternalEvents: false,
+                accentColor: FocusColor.nsColor(for: FocusColor.rainbowAccentIndex)
+            )
+        )
+
+        let weekday = calendar.component(.weekday, from: Date())
+        let dayIndex = dayOrder.firstIndex(of: weekday) ?? 0
+        let x = 60 + 12 + CGFloat(dayIndex) * ((document.bounds.width - 72) / 7) + 10
+
+        let down = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDown,
+                location: NSPoint(x: x, y: 240),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 0,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        let drag = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDragged,
+                location: NSPoint(x: x, y: 360),
+                modifierFlags: [],
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                eventNumber: 1,
+                clickCount: 1,
+                pressure: 1
+            )
+        )
+        document.mouseDown(with: down)
+        document.mouseDragged(with: drag)
+
+        let image = NSImage(size: document.bounds.size)
         image.lockFocus()
         document.draw(document.bounds)
         image.unlockFocus()

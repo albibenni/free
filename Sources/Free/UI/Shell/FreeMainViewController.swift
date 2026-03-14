@@ -10,6 +10,9 @@ final class FreeMainViewController: NSViewController {
     static var presentLaunchAtLoginAlert: LaunchAtLoginAlertPresenter = { alert, window, completion in
         alert.beginSheetModal(for: window, completionHandler: completion)
     }
+    private static var makeCursorFluidOverlay: () -> AppKitCursorFluidOverlayView? = {
+        AppKitCursorFluidOverlayView.makeIfSupported()
+    }
 
     private let appState: AppState
     private let shellState: FreeShellState
@@ -219,7 +222,7 @@ final class FreeMainViewController: NSViewController {
 
     private func installCursorOverlayIfNeeded() {
         guard cursorFluidOverlayView == nil else { return }
-        guard let overlay = AppKitCursorFluidOverlayView.makeIfSupported() else { return }
+        guard let overlay = Self.makeCursorFluidOverlay() else { return }
         cursorFluidOverlayView = overlay
         view.addSubview(overlay)
         cursorFluidOverlayConstraints = [
@@ -321,5 +324,14 @@ extension FreeMainViewController {
         presentLaunchAtLoginAlert = { alert, window, completion in
             alert.beginSheetModal(for: window, completionHandler: completion)
         }
+        makeCursorFluidOverlay = {
+            AppKitCursorFluidOverlayView.makeIfSupported()
+        }
+    }
+
+    static func setCursorFluidOverlayFactoryForTesting(
+        _ factory: @escaping () -> AppKitCursorFluidOverlayView?
+    ) {
+        makeCursorFluidOverlay = factory
     }
 }

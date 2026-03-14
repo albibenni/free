@@ -14,6 +14,7 @@ final class FreeApp {
 
     private var cancellables: Set<AnyCancellable> = []
     private var hasBoundState = false
+    private var didBecomeActiveObserver: NSObjectProtocol?
 
     init(
         appState: AppState = AppState(defaults: .standard),
@@ -212,6 +213,15 @@ final class FreeApp {
         if statusItemController == nil {
             statusItemController = makeStatusItemController(Self.quitAction())
         }
+        if didBecomeActiveObserver == nil {
+            didBecomeActiveObserver = NotificationCenter.default.addObserver(
+                forName: NSApplication.didBecomeActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.appState.monitor?.checkPermissions(prompt: false)
+            }
+        }
         statusItemController?.setOpenAppHandler { [weak self, weak application] in
             guard let self, let application else { return }
             self.mainWindowController?.showWindow(nil)
@@ -224,6 +234,12 @@ final class FreeApp {
         applyMacOSAppearance(appState.appearanceMode)
         updateStatusItem()
         application.activate(ignoringOtherApps: true)
+    }
+
+    deinit {
+        if let didBecomeActiveObserver {
+            NotificationCenter.default.removeObserver(didBecomeActiveObserver)
+        }
     }
 
     func applyMacOSAppearance(_ mode: AppearanceMode) {

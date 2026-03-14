@@ -18,6 +18,9 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
     struct BuildResult {
         let rootView: NSView
         let ruleSetListHeightConstraint: NSLayoutConstraint
+        let warningTopConstraint: NSLayoutConstraint
+        let warningToDividerConstraint: NSLayoutConstraint
+        let warningCollapsedHeightConstraint: NSLayoutConstraint
     }
 
     static func build(
@@ -189,6 +192,19 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
             rootView.addSubview($0)
         }
 
+        let warningTopConstraint = components.strictModeWarningLabel.topAnchor.constraint(
+            equalTo: addRow.bottomAnchor,
+            constant: 8
+        )
+        let warningToDividerConstraint = divider.topAnchor.constraint(
+            equalTo: components.strictModeWarningLabel.bottomAnchor,
+            constant: 10
+        )
+        let warningCollapsedHeightConstraint = components.strictModeWarningLabel.heightAnchor.constraint(
+            equalToConstant: 0
+        )
+        warningCollapsedHeightConstraint.isActive = false
+
         NSLayoutConstraint.activate([
             headerRow.leadingAnchor.constraint(equalTo: rootView.leadingAnchor, constant: 14),
             headerRow.trailingAnchor.constraint(equalTo: rootView.trailingAnchor, constant: -14),
@@ -204,11 +220,11 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
 
             components.strictModeWarningLabel.leadingAnchor.constraint(equalTo: rootView.leadingAnchor, constant: 14),
             components.strictModeWarningLabel.trailingAnchor.constraint(equalTo: rootView.trailingAnchor, constant: -14),
-            components.strictModeWarningLabel.topAnchor.constraint(equalTo: addRow.bottomAnchor, constant: 8),
+            warningTopConstraint,
 
             divider.leadingAnchor.constraint(equalTo: rootView.leadingAnchor),
             divider.trailingAnchor.constraint(equalTo: rootView.trailingAnchor),
-            divider.topAnchor.constraint(equalTo: components.strictModeWarningLabel.bottomAnchor, constant: 10),
+            warningToDividerConstraint,
 
             tableContainer.leadingAnchor.constraint(equalTo: rootView.leadingAnchor, constant: 14),
             tableContainer.trailingAnchor.constraint(equalTo: rootView.trailingAnchor, constant: -14),
@@ -223,7 +239,10 @@ enum AllowedWebsitesFloatingEditorLayoutBuilder {
 
         return BuildResult(
             rootView: rootView,
-            ruleSetListHeightConstraint: ruleSetListHeightConstraint
+            ruleSetListHeightConstraint: ruleSetListHeightConstraint,
+            warningTopConstraint: warningTopConstraint,
+            warningToDividerConstraint: warningToDividerConstraint,
+            warningCollapsedHeightConstraint: warningCollapsedHeightConstraint
         )
     }
 }

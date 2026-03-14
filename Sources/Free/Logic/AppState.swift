@@ -211,6 +211,9 @@ class AppState: ObservableObject {
             schedules: scheduleDomainState.schedules
         )
         applySessionState(updated)
+        if !wasBlocking && updated.isBlocking {
+            monitor?.checkPermissions(prompt: false)
+        }
         if !wasBlocking && updated.isBlocking && !updated.wasStartedBySchedule {
             setManualBlockingEnabled(true)
         } else if wasBlocking && !updated.isBlocking {

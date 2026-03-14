@@ -32,6 +32,17 @@ struct FreeAppKitShellTests {
         )
     }
 
+    private func mirrorValue<T>(_ name: String, in root: Any) -> T? {
+        var mirror: Mirror? = Mirror(reflecting: root)
+        while let current = mirror {
+            for child in current.children where child.label == name {
+                return child.value as? T
+            }
+            mirror = current.superclassMirror
+        }
+        return nil
+    }
+
     @Test("VerticalStackScrollContainer uses flipped document coordinates")
     func verticalStackScrollContainerUsesFlippedCoordinates() {
         let scrollView = VerticalStackScrollContainer()
@@ -296,5 +307,82 @@ struct FreeAppKitShellTests {
         // Cover guarded launch prompt path when window exists.
         controller.presentLaunchAtLoginPromptIfNeeded()
         RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+    }
+
+    @Test("FreeMainViewController installs and removes cursor overlay as setting changes")
+    func mainViewControllerCursorOverlayVisibilityCoverage() {
+        let appState = isolatedAppState(name: "cursorOverlayVisibility")
+        appState.cursorFluidAnimationEnabled = true
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+        controller.loadViewIfNeeded()
+
+        let initialOverlay: AppKitCursorFluidOverlayView? = mirrorValue(
+            "cursorFluidOverlayView",
+            in: controller
+        )
+        #expect(initialOverlay != nil)
+
+        appState.cursorFluidAnimationEnabled = false
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        let removedOverlay: AppKitCursorFluidOverlayView? = mirrorValue(
+            "cursorFluidOverlayView",
+            in: controller
+        )
+        #expect(removedOverlay == nil)
+
+        appState.cursorFluidAnimationEnabled = true
+        appState.accentColorIndex = FocusColor.rainbowAccentIndex
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        let restoredOverlay: AppKitCursorFluidOverlayView? = mirrorValue(
+            "cursorFluidOverlayView",
+            in: controller
+        )
+        #expect(restoredOverlay != nil)
+    }
+
+    @Test("FreeMainViewController starts without cursor overlay when animation is disabled")
+    func mainViewControllerCursorOverlayDisabledInitialStateCoverage() {
+        let appState = isolatedAppState(name: "cursorOverlayDisabledInitial")
+        appState.cursorFluidAnimationEnabled = false
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: false
+        )
+        controller.loadViewIfNeeded()
+
+        let overlay: AppKitCursorFluidOverlayView? = mirrorValue(
+            "cursorFluidOverlayView",
+            in: controller
+        )
+        #expect(overlay == nil)
+
+        controller.toggleSidebarForTesting()
+        #expect(controller.isSidebarVisibleForTesting)
+    }
+
+    @Test("FreeMainViewController handles unavailable cursor overlay factory")
+    func mainViewControllerCursorOverlayFactoryNilCoverage() {
+        defer { FreeMainViewController.resetLaunchAtLoginAlertPresenterForTesting() }
+        FreeMainViewController.setCursorFluidOverlayFactoryForTesting { nil }
+
+        let appState = isolatedAppState(name: "cursorOverlayFactoryNil")
+        appState.cursorFluidAnimationEnabled = true
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: true
+        )
+        controller.loadViewIfNeeded()
+
+        let overlay: AppKitCursorFluidOverlayView? = mirrorValue(
+            "cursorFluidOverlayView",
+            in: controller
+        )
+        #expect(overlay == nil)
     }
 }

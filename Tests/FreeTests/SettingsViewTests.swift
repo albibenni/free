@@ -798,4 +798,35 @@ struct SettingsViewTests {
         controller = nil
         scheduled.removeFirst()()
     }
+
+    @Test("Settings controller cursor fluid toggle updates app state and survives reset hooks")
+    @MainActor
+    func settingsCursorFluidToggleAndResetHooksCoverage() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        let appState = isolatedAppState(name: "cursorFluidToggle")
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        #expect(appState.cursorFluidAnimationEnabled)
+        controller.setCursorFluidAnimationForTesting(false)
+        #expect(appState.cursorFluidAnimationEnabled == false)
+        controller.setCursorFluidAnimationForTesting(true)
+        #expect(appState.cursorFluidAnimationEnabled)
+
+        SettingsSectionViewController.openCalendarPrivacySettings = {}
+        SettingsSectionViewController.scheduleAfter = { _, _ in }
+        SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+
+        SettingsSectionViewController.calendarPrivacySettingsURLString = "https://example.com/after-reset"
+        var opened: [URL] = []
+        SettingsSectionViewController.workspaceURLOpener = { opened.append($0) }
+        SettingsSectionViewController.openCalendarPrivacySettings()
+        #expect(opened.count == 1)
+
+        let rainbowIndex = FocusColor.rainbowAccentIndex
+        controller.reconfigureAccentButtonForTesting(index: -1)
+        controller.reconfigureAccentButtonForTesting(index: rainbowIndex)
+        controller.reconfigureAccentButtonForTesting(index: rainbowIndex)
+    }
 }

@@ -7,7 +7,7 @@ final class AllowedWebsitesFloatingEditorViewController:
     struct RenderSignature: Equatable {
         let ruleSets: [RuleSet]
         let activeRuleSetId: UUID?
-        let isStrictActive: Bool
+        let isUnblockable: Bool
         let accentColorIndex: Int
     }
 
@@ -20,6 +20,9 @@ final class AllowedWebsitesFloatingEditorViewController:
         contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
     )
     var ruleSetListHeightConstraint: NSLayoutConstraint?
+    var warningTopConstraint: NSLayoutConstraint?
+    var warningToDividerConstraint: NSLayoutConstraint?
+    var warningCollapsedHeightConstraint: NSLayoutConstraint?
     var ruleSetButtons: [UUID: AppKitSelectableRowButton] = [:]
     let createListButton = NSButton()
     let deleteListButton = NSButton()

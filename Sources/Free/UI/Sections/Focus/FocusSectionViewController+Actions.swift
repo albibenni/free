@@ -3,7 +3,11 @@ import AppKit
 extension FocusSectionViewController {
     @objc
     func grantAccessibility() {
-        grantAccessibilityActionFactory()()
+        if let monitor = appState.monitor {
+            monitor.checkPermissions(prompt: true)
+        } else {
+            grantAccessibilityActionFactory()()
+        }
     }
 
     @objc
