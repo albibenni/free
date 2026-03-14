@@ -55,16 +55,16 @@ enum AppKitFluid {
           resizeCanvas();
 
           let config = {
-            SIM_RESOLUTION: 128,
-            DYE_RESOLUTION: 1440,
+            SIM_RESOLUTION: 98,
+            DYE_RESOLUTION: 960,
             CAPTURE_RESOLUTION: 512,
             DENSITY_DISSIPATION: 3.5,
             VELOCITY_DISSIPATION: 2,
             PRESSURE: 0.1,
-            PRESSURE_ITERATIONS: 20,
+            PRESSURE_ITERATIONS: 16,
             CURL: 3,
-            SPLAT_RADIUS: 0.16,
-            SPLAT_FORCE: 6000,
+            SPLAT_RADIUS: 0.12,
+            SPLAT_FORCE: 4800,
             SHADING: true,
             COLOR_UPDATE_SPEED: 10,
             PAUSED: false,
@@ -78,6 +78,53 @@ enum AppKitFluid {
             saturation: 1.0,
             grayLevel: 0.6,
           };
+
+          let isAnimationEnabled = true;
+          let isPageVisible = !document.hidden;
+          let isReduceMotion = window.matchMedia
+              && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          let activeUntil = Date.now();
+          let frameTimeout = null;
+
+          function markInteraction() {
+              activeUntil = Date.now() + 900;
+          }
+
+          function isInteractionActive() {
+              return Date.now() < activeUntil;
+          }
+
+          function activeFrameIntervalMs() {
+              return isReduceMotion ? 50 : 16;
+          }
+
+          function idleFrameIntervalMs() {
+              return isReduceMotion ? 140 : 60;
+          }
+
+          function scheduleNextFrame(delayMs) {
+              if (frameTimeout !== null) {
+                  clearTimeout(frameTimeout);
+              }
+              frameTimeout = setTimeout(() => {
+                  requestAnimationFrame(update);
+              }, Math.max(12, delayMs));
+          }
+
+          window.setFluidRunning = (isRunning) => {
+              isAnimationEnabled = !!isRunning;
+              if (isAnimationEnabled) {
+                  markInteraction();
+              }
+          };
+
+          document.addEventListener('visibilitychange', () => {
+              isPageVisible = !document.hidden;
+              if (isPageVisible) {
+                  markInteraction();
+              }
+          });
+
 
           function rgbToHue (r, g, b) {
               const max = Math.max(r, g, b);
@@ -104,6 +151,7 @@ enum AppKitFluid {
               fluidAccent.rainbow = !!rainbow;
               fluidAccent.saturation = max > 0 ? d / max : 0;
               fluidAccent.grayLevel = (r + g + b) / 3;
+              markInteraction();
               pointers.forEach(p => { p.color = generateColor(); });
           };
 
@@ -128,6 +176,10 @@ enum AppKitFluid {
           if ( ! ext.supportLinearFiltering ) {
               config.DYE_RESOLUTION = 512;
               config.SHADING = false;
+          }
+
+          if ((window.devicePixelRatio || 1) > 1.6) {
+              config.DYE_RESOLUTION = Math.min(config.DYE_RESOLUTION, 720);
           }
 
           function getWebGLContext (canvas) {
@@ -779,19 +831,24 @@ enum AppKitFluid {
           let colorUpdateTimer = 0.0;
 
           function update () {
-              const dt = calcDeltaTime();
+              const shouldAnimate = isAnimationEnabled && isPageVisible;
+              const dt = calcDeltaTime(0.016666);
               if (resizeCanvas()) initFramebuffers();
-              updateColors(dt);
-              applyInputs();
-              step(dt);
-              render(null);
-              requestAnimationFrame(update);
+              if (shouldAnimate) {
+                  updateColors(dt);
+                  applyInputs();
+                  step(dt);
+                  render(null);
+                  requestAnimationFrame(update);
+                  return;
+              }
+              scheduleNextFrame(shouldAnimate ? activeFrameIntervalMs() : idleFrameIntervalMs());
           }
 
-          function calcDeltaTime () {
+          function calcDeltaTime (maxDelta){
               let now = Date.now();
               let dt = (now - lastUpdateTime) / 1000;
-              dt = Math.min(dt, 0.016666);
+              dt = Math.min(dt, maxDelta);
               lastUpdateTime = now;
               return dt;
           }
@@ -938,6 +995,7 @@ enum AppKitFluid {
           }
 
           window.addEventListener('mousedown', e => {
+              markInteraction();
               let pointer = pointers[0];
               let posX = scaleByPixelRatio(e.clientX);
               let posY = scaleByPixelRatio(e.clientY);
@@ -946,15 +1004,16 @@ enum AppKitFluid {
           });
 
           $('body').one('mousemove', e => {
+              markInteraction();
               let pointer = pointers[0];
               let posX = scaleByPixelRatio(e.clientX);
               let posY = scaleByPixelRatio(e.clientY);
               let color = generateColor();
-              update();
               updatePointerMoveData(pointer, posX, posY, color);
           });
 
           window.addEventListener('mousemove', e => {
+              markInteraction();
               let pointer = pointers[0];
               let posX = scaleByPixelRatio(e.clientX);
               let posY = scaleByPixelRatio(e.clientY);
@@ -962,17 +1021,18 @@ enum AppKitFluid {
           });
 
           $('body').one('touchstart', e => {
+              markInteraction();
               const touches = e.targetTouches;
               let pointer = pointers[0];
               for (let i = 0; i < touches.length; i++) {
                   let posX = scaleByPixelRatio(touches[i].clientX);
                   let posY = scaleByPixelRatio(touches[i].clientY);
-                  update();
                   updatePointerDownData(pointer, touches[i].identifier, posX, posY);
               }
           });
 
           window.addEventListener('touchstart', e => {
+              markInteraction();
               const touches = e.targetTouches;
               let pointer = pointers[0];
               for (let i = 0; i < touches.length; i++) {
@@ -997,6 +1057,9 @@ enum AppKitFluid {
               let pointer = pointers[0];
               for (let i = 0; i < touches.length; i++) updatePointerUpData(pointer);
           });
+
+          markInteraction();
+          scheduleNextFrame(activeFrameIntervalMs());
 
           function updatePointerDownData (pointer, id, posX, posY) {
               pointer.id = id; pointer.down = true; pointer.moved = false;

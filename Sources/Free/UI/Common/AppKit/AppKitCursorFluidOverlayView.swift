@@ -8,6 +8,9 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
     private var didFinishInitialLoad = false
     private var pendingAccentColor: NSColor = .systemGreen
     private var pendingRainbowAccent = false
+    private var isAnimationActive = true
+    private var didBecomeActiveObserver: NSObjectProtocol?
+    private var didResignActiveObserver: NSObjectProtocol?
 
     static func makeIfSupported() -> AppKitCursorFluidOverlayView? {
         AppKitCursorFluidOverlayView()
@@ -44,6 +47,7 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
         wantsLayer = true
         layer?.isOpaque = false
         layer?.backgroundColor = NSColor.clear.cgColor
+        observeAppLifecycle()
 
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
@@ -71,9 +75,15 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
         applyAccentIfPossible()
     }
 
+    func setAnimationActive(_ isActive: Bool) {
+        isAnimationActive = isActive
+        applyAnimationStateIfPossible()
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         didFinishInitialLoad = true
         applyAccentIfPossible()
+        applyAnimationStateIfPossible()
     }
 
     private func applyAccentIfPossible() {
@@ -92,6 +102,45 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
         )
         webView.evaluateJavaScript(script, completionHandler: nil)
     }
+
+    private func applyAnimationStateIfPossible() {
+        guard didFinishInitialLoad else { return }
+        webView.evaluateJavaScript(
+            "window.setFluidRunning(\(isAnimationActive ? "true" : "false"));",
+            completionHandler: nil
+        )
+    }
+
+    private func observeAppLifecycle() {
+        didBecomeActiveObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.setAnimationActive(true)
+            }
+        }
+        didResignActiveObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.setAnimationActive(false)
+            }
+        }
+        isAnimationActive = NSApp?.isActive ?? true
+    }
+
+    deinit {
+        if let didBecomeActiveObserver {
+            NotificationCenter.default.removeObserver(didBecomeActiveObserver)
+        }
+        if let didResignActiveObserver {
+            NotificationCenter.default.removeObserver(didResignActiveObserver)
+        }
+    }
 }
 
 extension AppKitCursorFluidOverlayView {
@@ -103,5 +152,14 @@ extension AppKitCursorFluidOverlayView {
 
     func applyAccentIfPossibleForTesting() {
         applyAccentIfPossible()
+    }
+
+    func setAnimationActiveForTesting(_ isActive: Bool, didFinishInitialLoad: Bool) {
+        isAnimationActive = isActive
+        self.didFinishInitialLoad = didFinishInitialLoad
+    }
+
+    func applyAnimationStateIfPossibleForTesting() {
+        applyAnimationStateIfPossible()
     }
 }

@@ -909,10 +909,15 @@ struct UIComponentTests {
         overlay.applyAccentIfPossibleForTesting()
         overlay.setPendingAccentForTesting(color: .systemPink, rainbow: true, didFinishInitialLoad: true)
         overlay.applyAccentIfPossibleForTesting()
+        overlay.setAnimationActiveForTesting(false, didFinishInitialLoad: false)
+        overlay.applyAnimationStateIfPossibleForTesting()
+        overlay.setAnimationActiveForTesting(true, didFinishInitialLoad: true)
+        overlay.applyAnimationStateIfPossibleForTesting()
         overlay.webView(WKWebView(), didFinish: nil)
 
         #expect(AppKitFluid.javascriptBootstrap.isEmpty == false)
         #expect(AppKitFluid.javascriptFluid.isEmpty == false)
+        #expect(AppKitFluid.javascriptFluid.contains("window.setFluidRunning"))
         #expect(AppKitFluid.firstOrEmptyForTesting(["x"]) == "x")
         #expect(AppKitFluid.firstOrEmptyForTesting([]) == "")
         #expect(
