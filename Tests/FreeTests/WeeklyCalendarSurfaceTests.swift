@@ -212,11 +212,17 @@ struct WeeklyCalendarSurfaceTests {
         let document = WeeklyCalendarSurfaceDocumentNSView(
             frame: NSRect(x: 0, y: 0, width: 320, height: 320)
         )
+        #expect((mirrorValue("timer", in: document) as Timer?) == nil)
 
+        document.startTimerMonitoringForTesting()
         let timer: Timer? = mirrorValue("timer", in: document)
         #expect(timer != nil)
         timer?.fire()
         #expect(timer?.isValid == true)
+
+        document.stopTimerMonitoringForTesting()
+        #expect(timer?.isValid == false)
+        #expect((mirrorValue("timer", in: document) as Timer?) == nil)
     }
 
     @MainActor
