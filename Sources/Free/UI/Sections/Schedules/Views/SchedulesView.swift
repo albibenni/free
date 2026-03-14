@@ -34,22 +34,15 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private struct RenderSignature: Equatable {
-        struct ExternalEventSnapshot: Equatable {
-            let id: String
-            let title: String
-            let startDate: Date
-            let endDate: Date
-        }
-
         let appearanceMode: AppearanceMode
         let accentColorIndex: Int
         let schedules: [Schedule]
         let weekStartsOnMonday: Bool
         let calendarIntegrationEnabled: Bool
         let calendarImportsBlockTime: Bool
-        let externalEvents: [ExternalEventSnapshot]
+        let externalEventsVersion: Int
 
-        init(appState: AppState, viewMode: Int) {
+        init(appState: AppState, viewMode: Int, calendarEventsVersion: Int) {
             appearanceMode = appState.appearanceMode
             accentColorIndex = appState.accentColorIndex
             schedules = appState.schedules
@@ -58,22 +51,14 @@ final class SchedulesSheetViewController: NSViewController {
                 weekStartsOnMonday = appState.weekStartsOnMonday
                 calendarIntegrationEnabled = appState.calendarIntegrationEnabled
                 calendarImportsBlockTime = appState.calendarImportsBlockTime
-                let shouldIncludeExternalEvents = appState.calendarIntegrationEnabled && !appState.calendarImportsBlockTime
-                externalEvents = shouldIncludeExternalEvents
-                    ? appState.calendarProvider.events.map {
-                        ExternalEventSnapshot(
-                            id: $0.id,
-                            title: $0.title,
-                            startDate: $0.startDate,
-                            endDate: $0.endDate
-                        )
-                    }
-                    : []
+                let shouldIncludeExternalEvents = appState.calendarIntegrationEnabled
+                    && !appState.calendarImportsBlockTime
+                externalEventsVersion = shouldIncludeExternalEvents ? calendarEventsVersion : 0
             } else {
                 weekStartsOnMonday = false
                 calendarIntegrationEnabled = false
                 calendarImportsBlockTime = false
-                externalEvents = []
+                externalEventsVersion = 0
             }
         }
     }
@@ -90,6 +75,7 @@ final class SchedulesSheetViewController: NSViewController {
     private var editorContext: ScheduleEditorContext?
     private var weekOffset: Int
     private var renderSignature: RenderSignature?
+    private var calendarEventsVersion = 0
     private var refreshGeneration = 0
     private var cancellables: Set<AnyCancellable> = []
 
@@ -126,7 +112,11 @@ final class SchedulesSheetViewController: NSViewController {
         AppKitAppStateObservation.bind(
             publisher: schedulesObservationPublisher(),
             signature: { [unowned self, appState] in
-                RenderSignature(appState: appState, viewMode: self.viewMode)
+                RenderSignature(
+                    appState: appState,
+                    viewMode: self.viewMode,
+                    calendarEventsVersion: self.calendarEventsVersion
+                )
             },
             cancellables: &cancellables
         ) { [weak self] nextSignature in
@@ -152,8 +142,12 @@ final class SchedulesSheetViewController: NSViewController {
             appState.$calendarImportsBlockTime.map { _ in () }
                 .filter(calendarModeOnly)
                 .eraseToAnyPublisher(),
-            appState.calendarProvider.objectWillChange.map { _ in () }
+            appState.calendarProvider.objectWillChange
                 .filter(calendarModeOnly)
+                .handleEvents(receiveOutput: { [weak self] _ in
+                    self?.calendarEventsVersion &+= 1
+                })
+                .map { _ in () }
                 .eraseToAnyPublisher()
         )
         .eraseToAnyPublisher()
@@ -200,7 +194,11 @@ final class SchedulesSheetViewController: NSViewController {
 
     private func refreshConfiguration(force: Bool = true) {
         if !force {
-            let nextSignature = RenderSignature(appState: appState, viewMode: viewMode)
+            let nextSignature = RenderSignature(
+                appState: appState,
+                viewMode: viewMode,
+                calendarEventsVersion: calendarEventsVersion
+            )
             guard renderSignature != nextSignature else { return }
             applyConfiguration(signature: nextSignature)
             return
@@ -209,7 +207,11 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func applyConfiguration(signature: RenderSignature?) {
-        renderSignature = signature ?? RenderSignature(appState: appState, viewMode: viewMode)
+        renderSignature = signature ?? RenderSignature(
+            appState: appState,
+            viewMode: viewMode,
+            calendarEventsVersion: calendarEventsVersion
+        )
         refreshGeneration += 1
         schedulesContainerView.configure(with: makeAppKitConfiguration())
         updateWindowTitle()
