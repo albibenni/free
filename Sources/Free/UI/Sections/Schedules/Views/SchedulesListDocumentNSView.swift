@@ -44,6 +44,7 @@ final class SchedulesListDocumentNSView: NSView {
     private func reconcileRows() {
         withAppKitSignpost("SchedulesListReconcileRows") {
             let desiredIds = Set(schedules.map(\.id))
+            let desiredRowIdentifiers = Set(schedules.compactMap { rowViews[$0.id] }.map(ObjectIdentifier.init))
 
             let idsToRemove = rowViews.keys.filter { !desiredIds.contains($0) }
             for id in idsToRemove {
@@ -70,12 +71,15 @@ final class SchedulesListDocumentNSView: NSView {
             }
 
             let orderedRows = schedules.compactMap { rowViews[$0.id] }
-            let hasDifferentOrder =
+            let staleSubviews = subviews.filter { !desiredRowIdentifiers.contains(ObjectIdentifier($0)) }
+            for staleSubview in staleSubviews {
+                staleSubview.removeFromSuperview()
+            }
+
+            let orderChanged =
                 subviews.count != orderedRows.count
-                || zip(subviews, orderedRows).contains { current, expected in
-                    current !== expected
-                }
-            if hasDifferentOrder {
+                || zip(subviews, orderedRows).contains { current, expected in current !== expected }
+            if orderChanged {
                 subviews = orderedRows
             }
 
