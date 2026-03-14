@@ -22,6 +22,9 @@ extension AllowedWebsitesFloatingEditorViewController {
         )
         view = result.rootView
         ruleSetListHeightConstraint = result.ruleSetListHeightConstraint
+        warningTopConstraint = result.warningTopConstraint
+        warningToDividerConstraint = result.warningToDividerConstraint
+        warningCollapsedHeightConstraint = result.warningCollapsedHeightConstraint
     }
 
     func applyButtonStyling() {
@@ -36,7 +39,11 @@ extension AllowedWebsitesFloatingEditorViewController {
         styleHeaderIconButtons(color: accentColor)
         strictModeWarningLabel.textColor = .systemOrange
         strictModeWarningLabel.font = .systemFont(ofSize: 12, weight: .regular)
-        strictModeWarningLabel.isHidden = !appState.isStrictActive
+        let showWarning = appState.isUnblockable
+        strictModeWarningLabel.isHidden = !showWarning
+        warningCollapsedHeightConstraint?.isActive = !showWarning
+        warningTopConstraint?.constant = showWarning ? 8 : 0
+        warningToDividerConstraint?.constant = showWarning ? 10 : 8
     }
 
     private func styleHeaderIconButtons(color _: NSColor) {

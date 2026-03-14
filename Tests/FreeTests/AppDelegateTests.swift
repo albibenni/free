@@ -238,11 +238,12 @@ struct AppDelegateTests {
         #expect(relaunchSystem.moveErrors.count == 1)
     }
 
-    @Test("AppDelegate prevents termination when blocking is active")
+    @Test("AppDelegate prevents termination whenever unblockable mode is enabled")
     func terminationPrevention() {
         let (delegate, _, defaults) = setupIsolatedDelegate(name: "terminationPrevention")
 
         defaults.set(false, forKey: "IsBlocking")
+        defaults.set(false, forKey: "IsUnblockable")
         #expect(delegate.shouldPreventTermination() == false)
         #expect(delegate.shouldConfirmTerminationWhileBlocking() == false)
 
@@ -251,12 +252,18 @@ struct AppDelegateTests {
         #expect(delegate.shouldPreventTermination() == false)
         #expect(delegate.shouldConfirmTerminationWhileBlocking() == true)
 
+        defaults.set(false, forKey: "IsBlocking")
+        defaults.set(true, forKey: "IsUnblockable")
+        #expect(delegate.shouldPreventTermination() == true)
+        #expect(delegate.shouldConfirmTerminationWhileBlocking() == false)
+
+        defaults.set(true, forKey: "IsBlocking")
         defaults.set(true, forKey: "IsUnblockable")
         #expect(delegate.shouldPreventTermination() == true)
         #expect(delegate.shouldConfirmTerminationWhileBlocking() == false)
     }
 
-    @Test("applicationShouldTerminate blocks strict mode quit and triggers custom alert")
+    @Test("applicationShouldTerminate blocks quit whenever unblockable mode is enabled and triggers custom alert")
     func applicationTerminationStrictReply() {
         let (delegate, system, defaults) = setupIsolatedDelegate(
             name: "applicationTerminationStrictReply")
@@ -268,6 +275,14 @@ struct AppDelegateTests {
         defaults.set(true, forKey: "IsUnblockable")
         let reply1 = delegate.applicationShouldTerminate(NSApplication.shared)
         #expect(reply1 == .terminateCancel)
+        #expect(alertWasShown == true)
+        #expect(system.confirmQuitCalls == 0)
+
+        alertWasShown = false
+        defaults.set(false, forKey: "IsBlocking")
+        defaults.set(true, forKey: "IsUnblockable")
+        let replyUnblockableOnly = delegate.applicationShouldTerminate(NSApplication.shared)
+        #expect(replyUnblockableOnly == .terminateCancel)
         #expect(alertWasShown == true)
         #expect(system.confirmQuitCalls == 0)
 
