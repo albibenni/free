@@ -110,7 +110,6 @@ class BrowserMonitor {
 
     func startMonitoring() {
         let repeatingTimer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: monitorInterval) { [weak self] in
-            self?.checkPermissions(prompt: false)
             self?.checkActiveTab()
         }
         replaceTimer(with: repeatingTimer)

@@ -484,7 +484,7 @@ struct BrowserMonitorTests {
         #expect(Set(mock.forwardedBrowsers) == supported)
     }
 
-    @Test("BrowserMonitor timer loop triggers permission and tab checks")
+    @Test("BrowserMonitor timer loop triggers tab checks without permission polling")
     func timerLoop() {
         let appState = isolatedAppState(name: "timerLoop")
         appState.isBlocking = true
@@ -508,7 +508,7 @@ struct BrowserMonitorTests {
 
         scheduler.fire(at: 0)
 
-        #expect(mock.checkedPermissions)
+        #expect(mock.checkedPermissions == false)
         #expect(mock.getActiveUrlCalls > 0)
         _ = monitor
     }
