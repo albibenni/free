@@ -275,4 +275,18 @@ extension MainSidebarView {
     func clearSectionEnabledForTesting(_ section: MainContentSection) {
         sectionEnabled.removeValue(forKey: section)
     }
+
+    func applySidebarButtonStyleForTesting(
+        _ button: NSButton,
+        section: MainContentSection,
+        isSelected: Bool,
+        accentColorIndex: Int
+    ) {
+        applySidebarButtonStyle(
+            button,
+            section: section,
+            isSelected: isSelected,
+            accentColorIndex: accentColorIndex
+        )
+    }
 }

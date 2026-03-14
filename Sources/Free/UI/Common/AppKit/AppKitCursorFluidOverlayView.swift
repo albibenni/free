@@ -78,7 +78,8 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
 
     private func applyAccentIfPossible() {
         guard didFinishInitialLoad else { return }
-        let srgb = pendingAccentColor.usingColorSpace(.deviceRGB) ?? pendingAccentColor
+        let srgb = pendingAccentColor.usingColorSpace(.deviceRGB)
+            ?? NSColor(deviceRed: 0.20, green: 0.80, blue: 0.30, alpha: 1.0)
         let r = max(0, min(1, srgb.redComponent))
         let g = max(0, min(1, srgb.greenComponent))
         let b = max(0, min(1, srgb.blueComponent))
@@ -90,5 +91,17 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
             pendingRainbowAccent ? "true" : "false"
         )
         webView.evaluateJavaScript(script, completionHandler: nil)
+    }
+}
+
+extension AppKitCursorFluidOverlayView {
+    func setPendingAccentForTesting(color: NSColor, rainbow: Bool, didFinishInitialLoad: Bool) {
+        pendingAccentColor = color
+        pendingRainbowAccent = rainbow
+        self.didFinishInitialLoad = didFinishInitialLoad
+    }
+
+    func applyAccentIfPossibleForTesting() {
+        applyAccentIfPossible()
     }
 }

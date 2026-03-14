@@ -828,6 +828,11 @@ extension SettingsSectionViewController {
         reloadSettings()
     }
 
+    func reconfigureAccentButtonForTesting(index: Int) {
+        guard accentButtons.indices.contains(index) else { return }
+        configureAccentButtonAppearance(accentButtons[index], index: index)
+    }
+
     func selectAppearanceModeForTesting(_ mode: AppearanceMode) {
         appearanceModeControl?.onSelection?(mode)
         appearanceModeControl?.selectedValue = mode

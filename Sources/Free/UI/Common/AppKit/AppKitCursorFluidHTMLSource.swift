@@ -1099,8 +1099,8 @@ enum AppKitFluid {
         in: sourceHTML
     )
 
-    static let javascriptBootstrap = javascriptBlocks.first ?? ""
-    static let javascriptFluid = javascriptBlocks.dropFirst().first ?? ""
+    static let javascriptBootstrap = firstOrEmpty(javascriptBlocks)
+    static let javascriptFluid = firstOrEmpty(Array(javascriptBlocks.dropFirst()))
 
     static let html = """
         <!doctype html>
@@ -1128,6 +1128,10 @@ enum AppKitFluid {
         extractAllMatches(pattern: pattern, in: text).first ?? ""
     }
 
+    private static func firstOrEmpty(_ values: [String]) -> String {
+        values.first ?? ""
+    }
+
     private static func extractAllMatches(pattern: String, in text: String) -> [String] {
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
             return []
@@ -1142,5 +1146,19 @@ enum AppKitFluid {
             }
             return String(text[range])
         }
+    }
+}
+
+extension AppKitFluid {
+    static func extractFirstMatchForTesting(pattern: String, in text: String) -> String {
+        extractFirstMatch(pattern: pattern, in: text)
+    }
+
+    static func extractAllMatchesForTesting(pattern: String, in text: String) -> [String] {
+        extractAllMatches(pattern: pattern, in: text)
+    }
+
+    static func firstOrEmptyForTesting(_ values: [String]) -> String {
+        firstOrEmpty(values)
     }
 }

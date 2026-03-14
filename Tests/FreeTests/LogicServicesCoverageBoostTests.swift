@@ -112,6 +112,18 @@ struct LogicServicesCoverageBoostTests {
         #expect(defaultPromptService.enable() == false)
     }
 
+    @Test("SettingsStore cursor fluid animation defaults to enabled when key is missing")
+    func settingsStoreCursorFluidDefaultEnabled() {
+        let suite = "LogicServicesCoverageBoostTests.settingsStoreCursorFluidDefaultEnabled"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let store = SettingsStore(defaults: defaults)
+
+        #expect(store.cursorFluidAnimationEnabled() == true)
+        store.setCursorFluidAnimationEnabled(false)
+        #expect(store.cursorFluidAnimationEnabled() == false)
+    }
+
     @Test("RuleSetCoordinator create and delete cover non-active create and strict delete guard")
     func ruleSetCoordinatorEdgeBranches() {
         var ruleSets = [RuleSet.defaultSet()]

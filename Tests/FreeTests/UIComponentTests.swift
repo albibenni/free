@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Testing
+import WebKit
 
 @testable import FreeLogic
 
@@ -543,6 +544,16 @@ struct UIComponentTests {
             toggle.mouseUp(with: mouseInside)
         }
         #expect(actionCount == 2)
+
+        toggle.accentColor = FocusColor.nsColor(for: FocusColor.rainbowAccentIndex)
+        toggle.state = .on
+        toggle.isEnabled = true
+        toggle.layoutSubtreeIfNeeded()
+        #expect(toggle.layer?.backgroundColor == nil)
+
+        toggle.isEnabled = false
+        toggle.layoutSubtreeIfNeeded()
+        #expect(toggle.layer?.backgroundColor == nil)
     }
 
     @Test("AppKit card stack view refreshes appearance colors on appearance changes")
@@ -831,5 +842,97 @@ struct UIComponentTests {
         // Cover default enabled fallback path when no explicit enabled state exists.
         sidebar.clearSectionEnabledForTesting(.focus)
         sidebar.updateSelection(selectedSection: .focus, accentColorIndex: 1)
+
+        let plain = NSButton(title: "Plain", target: nil, action: nil)
+        plain.wantsLayer = true
+        sidebar.applySidebarButtonStyleForTesting(
+            plain,
+            section: .focus,
+            isSelected: true,
+            accentColorIndex: FocusColor.rainbowAccentIndex
+        )
+        #expect(plain.layer?.backgroundColor != nil)
+        sidebar.applySidebarButtonStyleForTesting(
+            plain,
+            section: .focus,
+            isSelected: false,
+            accentColorIndex: 0
+        )
+        #expect(plain.layer?.backgroundColor != nil)
+    }
+
+    @Test("AppKit color helpers cover rainbow branches and non-rainbow fallback")
+    func appKitColorHelperRainbowCoverage() {
+        let rainbow = FocusColor.nsColor(for: FocusColor.rainbowAccentIndex)
+        let solid = NSColor.systemBlue
+
+        let rainbowGradients = appKitAccentGradientColors(for: rainbow, topAlpha: 0.8, bottomAlpha: 0.2)
+        #expect(rainbowGradients.count == 3)
+        let solidGradients = appKitAccentGradientColors(for: solid, topAlpha: 0.8, bottomAlpha: 0.2)
+        #expect(solidGradients.count == 2)
+
+        #expect(appKitAccentBorderColor(for: rainbow, alpha: 0.1).alphaComponent >= 0.18)
+        #expect(appKitAccentBorderColor(for: solid, alpha: 0.1).alphaComponent == 0.1)
+        #expect(appKitAccentForegroundColor(for: rainbow) != rainbow)
+        #expect(appKitAccentForegroundColor(for: solid) == solid)
+        #expect(appKitAccentToggleOnColor(for: rainbow, isEnabled: false) != rainbow)
+        #expect(appKitAccentGradient(for: rainbow, alpha: 0.7) != nil)
+        #expect(appKitAccentGradient(for: solid, alpha: 0.7) == nil)
+        #expect(appKitAccentPrimaryColor(for: rainbow) == .systemBlue)
+        #expect(appKitAccentPrimaryColor(for: solid) == solid)
+    }
+
+    @MainActor
+    @Test("Cursor fluid overlay and HTML source helpers cover test hooks and parser guards")
+    func cursorFluidOverlayAndHTMLSourceCoverage() {
+        let overlay = AppKitCursorFluidOverlayView()
+        #expect(overlay.isOpaque == false)
+        #expect(overlay.hitTest(NSPoint(x: 1, y: 1)) == nil)
+
+        overlay.setPendingAccentForTesting(
+            color: .systemBlue,
+            rainbow: false,
+            didFinishInitialLoad: false
+        )
+        overlay.applyAccentIfPossibleForTesting()
+        overlay.setPendingAccentForTesting(
+            color: .systemBlue,
+            rainbow: false,
+            didFinishInitialLoad: true
+        )
+        overlay.applyAccentIfPossibleForTesting()
+        overlay.setPendingAccentForTesting(
+            color: NSColor(patternImage: NSImage(size: NSSize(width: 2, height: 2))),
+            rainbow: false,
+            didFinishInitialLoad: true
+        )
+        overlay.applyAccentIfPossibleForTesting()
+        overlay.setPendingAccentForTesting(color: .systemPink, rainbow: true, didFinishInitialLoad: true)
+        overlay.applyAccentIfPossibleForTesting()
+        overlay.webView(WKWebView(), didFinish: nil)
+
+        #expect(AppKitFluid.javascriptBootstrap.isEmpty == false)
+        #expect(AppKitFluid.javascriptFluid.isEmpty == false)
+        #expect(AppKitFluid.firstOrEmptyForTesting(["x"]) == "x")
+        #expect(AppKitFluid.firstOrEmptyForTesting([]) == "")
+        #expect(
+            AppKitFluid.extractFirstMatchForTesting(
+                pattern: "<style>([\\s\\S]*?)</style>",
+                in: "<style>a</style>"
+            ) == "a"
+        )
+        #expect(
+            AppKitFluid.extractFirstMatchForTesting(
+                pattern: "(",
+                in: "<style>a</style>"
+            ) == ""
+        )
+        #expect(AppKitFluid.extractAllMatchesForTesting(pattern: "abc", in: "abc") == [])
+        #expect(
+            AppKitFluid.extractAllMatchesForTesting(
+                pattern: "<script>([\\s\\S]*?)</script>",
+                in: "<script>one</script><script>two</script>"
+            ) == ["one", "two"]
+        )
     }
 }

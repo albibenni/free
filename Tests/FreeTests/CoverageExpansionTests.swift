@@ -50,7 +50,7 @@ struct CoverageExpansionTests {
                 weekStartsOnMonday: true,
                 accentColorIndex: 3,
                 appearanceMode: .dark,
-                cursorFluidAnimationEnabled: true,
+                cursorFluidAnimationEnabled: false,
                 calendarImportFocusTitleRules: ["focus"],
                 calendarImportBreakTitleRules: ["break"],
                 calendarImportedScheduleRuleSetId: importedRuleSetId,
@@ -64,6 +64,7 @@ struct CoverageExpansionTests {
         #expect(appState.settingsDomainState.weekStartsOnMonday)
         #expect(appState.settingsDomainState.accentColorIndex == 3)
         #expect(appState.settingsDomainState.appearanceMode == .dark)
+        #expect(appState.settingsDomainState.cursorFluidAnimationEnabled == false)
         #expect(appState.settingsDomainState.calendarImportFocusTitleRules == ["focus"])
         #expect(appState.settingsDomainState.calendarImportBreakTitleRules == ["break"])
         #expect(appState.settingsDomainState.calendarImportedScheduleRuleSetId == importedRuleSetId)
@@ -136,6 +137,16 @@ struct CoverageExpansionTests {
 
         appState.setWasStartedBySchedule(false)
         #expect(appState.wasStartedBySchedule == false)
+    }
+
+    @Test("AppState settings domain adapter no-ops when values are unchanged")
+    func appStateSettingsDomainAdapterNoOpBranches() {
+        let appState = isolatedAppState(name: "appStateSettingsDomainAdapterNoOpBranches")
+        let original = appState.settingsDomainState
+
+        appState.applySettingsDomainState(original)
+
+        #expect(appState.settingsDomainState == original)
     }
 
     @Test("Calendar sync adapters no-op safely when sync is not needed")
