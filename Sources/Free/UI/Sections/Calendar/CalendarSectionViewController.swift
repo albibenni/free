@@ -282,7 +282,7 @@ final class CalendarSectionViewController: NSViewController {
         super.viewDidLoad()
         let appState = self.appState
         AppKitAppStateObservation.bind(
-            publisher: AppKitAppStateObservation.settingsPublisher(appState: appState),
+            publisher: AppKitAppStateObservation.calendarPublisher(appState: appState),
             signature: {
                 ObservationSignature(
                     weekStartsOnMonday: appState.weekStartsOnMonday,

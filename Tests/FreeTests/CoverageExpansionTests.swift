@@ -341,17 +341,15 @@ struct CoverageExpansionTests {
         appState.pomodoroStatus = .focus
         flushMainRunLoop()
         #expect(focusEvents >= 1)
-        let focusEventsBeforeCalendar = focusEvents
-        appState.calendarProvider.events = [
-            ExternalEvent(
-                id: "calendar-focus-publisher",
-                title: "Event 2",
-                startDate: Date(),
-                endDate: Date().addingTimeInterval(900)
-            )
-        ]
+
+        var calendarEvents = 0
+        AppKitAppStateObservation
+            .calendarPublisher(appState: appState)
+            .sink { calendarEvents += 1 }
+            .store(in: &cancellables)
+        appState.calendarImportFocusTitleRules.append("deep-work")
         flushMainRunLoop()
-        #expect(focusEvents > focusEventsBeforeCalendar)
+        #expect(calendarEvents >= 1)
 
         var shellEvents = 0
         AppKitAppStateObservation

@@ -137,10 +137,22 @@ enum AppKitAppStateObservation {
             appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
             appState.$activeRuleSetId.map { _ in () }.eraseToAnyPublisher(),
             appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
-            appState.$currentOpenUrls.map { _ in () }.eraseToAnyPublisher(),
             appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
             appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
-            appState.calendarProvider.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
+        ])
+    }
+
+    static func calendarPublisher(appState: AppState) -> VoidPublisher {
+        merge([
+            appState.$weekStartsOnMonday.map { _ in () }.eraseToAnyPublisher(),
+            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
+            appState.$calendarImportFocusTitleRules.map { _ in () }.eraseToAnyPublisher(),
+            appState.$calendarImportBreakTitleRules.map { _ in () }.eraseToAnyPublisher(),
+            appState.$calendarImportedScheduleRuleSetId.map { _ in () }.eraseToAnyPublisher(),
+            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
+            appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
+            appState.$isUnblockable.map { _ in () }.eraseToAnyPublisher(),
+            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
         ])
     }
 
