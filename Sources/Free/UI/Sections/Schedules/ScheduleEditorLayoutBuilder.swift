@@ -34,10 +34,11 @@ enum ScheduleEditorLayoutBuilder {
         delegate: NSTextFieldDelegate?
     ) -> NSView {
         let section = EditorSectionView(title: title)
-        let field = NSTextField(string: text)
+        let field = VerticallyCenteredTextField(string: text)
         field.placeholderString = placeholder
-        field.font = .systemFont(ofSize: 18, weight: .regular)
+        field.font = .systemFont(ofSize: 13, weight: .regular)
         applyAppKitInputFieldStyle(field, backgroundOpacity: 0.66, borderOpacity: 0.8)
+        field.heightAnchor.constraint(equalToConstant: 30).isActive = true
         field.delegate = delegate
         field.isEditable = editable
         field.isEnabled = editable
