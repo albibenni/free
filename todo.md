@@ -121,12 +121,8 @@
 ## Performance check
 
 - [x] auto remove previous calendar imports - if they are in the past week
-- [ ] cpu usage
-- [ ] ram usage
-
-## Simplify issues
-
-- [ ] any in LaunchAtLoginService.swift
+- [x] cpu usage
+- [x] ram usage
 
 ## Future features
 
