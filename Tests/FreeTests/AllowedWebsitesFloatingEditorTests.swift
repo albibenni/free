@@ -101,7 +101,37 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
-    @Test("floating editor create/delete list actions follow alert presenter and strict-mode guards")
+    @Test("floating editor allows rule edits when unblockable mode is on and focus is active")
+    func addRemoveAllowedWhenUnblockableAndBlocking() {
+        let appState = makeAppState(name: "addRemoveAllowedWhenUnblockableAndBlocking")
+        appState.isUnblockable = true
+        appState.isBlocking = true
+        let selectedSet = appState.ruleSets[0]
+        let controller = AllowedWebsitesFloatingEditorViewController(
+            appState: appState,
+            initialRuleSetId: selectedSet.id
+        )
+        controller.loadViewIfNeeded()
+
+        let baselineCount = controller.visibleRules.count
+        controller.urlField.stringValue = "https://focus-allowed.test"
+        controller.handleAddRule()
+        #expect(controller.visibleRules.contains("https://focus-allowed.test"))
+        #expect(controller.visibleRules.count == baselineCount + 1)
+
+        let insertedIndex = controller.visibleRules.firstIndex(of: "https://focus-allowed.test")
+        #expect(insertedIndex != nil)
+        controller.rulesTableView.selectRowIndexes(
+            IndexSet(integer: insertedIndex ?? 0),
+            byExtendingSelection: false
+        )
+        controller.handleRemoveSelected()
+        #expect(!controller.visibleRules.contains("https://focus-allowed.test"))
+        #expect(controller.visibleRules.count == baselineCount)
+    }
+
+    @MainActor
+    @Test("floating editor create/delete list actions follow unblockable lock rules")
     func createDeleteListActions() {
         let appState = makeAppState(name: "createDeleteListActions")
         let controller = AllowedWebsitesFloatingEditorViewController(
@@ -143,13 +173,21 @@ struct AllowedWebsitesFloatingEditorTests {
         controller.handleDeleteRuleSet()
         #expect(appState.ruleSets.count == originalCount + 1)
 
-        appState.isBlocking = true
+        appState.isBlocking = false
         appState.isUnblockable = true
         controller.handleCreateRuleSet()
         #expect(appState.ruleSets.count == originalCount + 1)
 
         controller.handleDeleteRuleSet()
         #expect(appState.ruleSets.count == originalCount + 1)
+
+        appState.isBlocking = true
+        AllowedWebsitesRuleSetAlertPresenter.runModal = { alert in
+            (alert.accessoryView as? NSTextField)?.stringValue = "UnlockedInFocus"
+            return .alertFirstButtonReturn
+        }
+        controller.handleCreateRuleSet()
+        #expect(appState.ruleSets.count == originalCount + 2)
     }
 
     @MainActor

@@ -1,17 +1,25 @@
 import AppKit
 
 extension AllowedWebsitesFloatingEditorViewController {
+    var isAllowedWebsitesEditingLocked: Bool {
+        appState.isUnblockable && !appState.isBlocking
+    }
+    var shouldBypassStrictRulesMutation: Bool {
+        appState.isUnblockable && appState.isBlocking
+    }
+
     @objc
     func handleCreateRuleSet() {
         guard AllowedWebsitesRuleSetActionsCoordinator.canCreateRuleSet(
-            isStrictActive: appState.isUnblockable
+            isStrictActive: isAllowedWebsitesEditingLocked
         ) else { return }
 
         guard let name = AllowedWebsitesRuleSetAlertPresenter.promptForNewRuleSetName() else { return }
 
         let newSet = AllowedWebsitesRuleSetActionsCoordinator.createRuleSet(
             appState: appState,
-            name: name
+            name: name,
+            ignoreStrictMode: shouldBypassStrictRulesMutation
         )
         selectedRuleSetId = newSet.id
         reloadContent()
@@ -19,7 +27,7 @@ extension AllowedWebsitesFloatingEditorViewController {
 
     @objc
     func handleDeleteRuleSet() {
-        guard !appState.isUnblockable else { return }
+        guard !isAllowedWebsitesEditingLocked else { return }
         guard appState.ruleSets.count > 1 else { return }
         let setId: UUID
         if let selectedRuleSetId {
@@ -38,7 +46,8 @@ extension AllowedWebsitesFloatingEditorViewController {
 
         AllowedWebsitesRuleSetActionsCoordinator.deleteRuleSet(
             appState: appState,
-            id: setId
+            id: setId,
+            ignoreStrictMode: shouldBypassStrictRulesMutation
         )
         selectedRuleSetId = resolvedRuleSetId(nil)
         reloadContent()
@@ -46,11 +55,15 @@ extension AllowedWebsitesFloatingEditorViewController {
 
     @objc
     func handleAddRule() {
-        guard !appState.isUnblockable else { return }
+        guard !isAllowedWebsitesEditingLocked else { return }
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
         guard let normalized = AllowedWebsitesRuleActionsCoordinator.normalizedRuleInput(urlField.stringValue)
         else { return }
-        appState.addRule(normalized, to: setId)
+        appState.addRule(
+            normalized,
+            to: setId,
+            ignoreStrictMode: shouldBypassStrictRulesMutation
+        )
         urlField.stringValue = ""
         reloadRulesOnly()
     }
@@ -62,7 +75,7 @@ extension AllowedWebsitesFloatingEditorViewController {
 
     @objc
     func handleRemoveSelected() {
-        guard !appState.isUnblockable else { return }
+        guard !isAllowedWebsitesEditingLocked else { return }
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
         let rulesToRemove = AllowedWebsitesSelectionCoordinator.selectedRules(
             indexes: rulesTableView.selectedRowIndexes,
@@ -70,7 +83,11 @@ extension AllowedWebsitesFloatingEditorViewController {
         )
         guard !rulesToRemove.isEmpty else { return }
         for rule in rulesToRemove {
-            appState.removeRule(rule, from: setId)
+            appState.removeRule(
+                rule,
+                from: setId,
+                ignoreStrictMode: shouldBypassStrictRulesMutation
+            )
         }
         reloadRulesOnly()
     }
@@ -102,14 +119,14 @@ extension AllowedWebsitesFloatingEditorViewController {
             in: ruleSetScrollView.stackView,
             rows: rows,
             accentColor: accentColor,
-            isRowSelectionEnabled: !appState.isUnblockable,
+            isRowSelectionEnabled: !isAllowedWebsitesEditingLocked,
             existingButtons: ruleSetButtons
         ) { [weak self] selectedId in
             guard let self else { return }
             self.selectedRuleSetId = AllowedWebsitesRuleSetActionsCoordinator.selectedRuleSetAfterRowTap(
                 tappedId: selectedId,
                 currentSelectedId: self.selectedRuleSetId,
-                isStrictActive: self.appState.isUnblockable
+                isStrictActive: self.isAllowedWebsitesEditingLocked
             )
             self.reloadRuleSetRows()
             self.reloadRulesOnly()
@@ -143,7 +160,7 @@ extension AllowedWebsitesFloatingEditorViewController {
     func updateControlStates() {
         let state = AllowedWebsitesPresentationCoordinator.controlState(
             selectedRuleSetId: resolvedRuleSetId(selectedRuleSetId),
-            isStrictActive: appState.isUnblockable,
+            isStrictActive: isAllowedWebsitesEditingLocked,
             selectedIndexes: rulesTableView.selectedRowIndexes,
             visibleRulesCount: visibleRules.count,
             ruleSetCount: appState.ruleSets.count

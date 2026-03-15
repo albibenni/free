@@ -361,7 +361,7 @@ struct ModalAndShellCoverageTests {
         }
 
         appState.isUnblockable = true
-        appState.isBlocking = true
+        appState.isBlocking = false
         controller.handleCreateRuleSet()
         #expect(appState.ruleSets.count == 1)
 
@@ -403,7 +403,7 @@ struct ModalAndShellCoverageTests {
     }
 
     @MainActor
-    @Test("Allowed websites editor action controller covers row taps, strict lock, and add/remove guards")
+    @Test("Allowed websites editor action controller covers row taps, unblockable lock, and add/remove guards")
     func allowedWebsitesEditorActionControllerPaths() {
         let appState = isolatedAppState(
             name: "allowedWebsitesEditorActionControllerPaths",
@@ -430,7 +430,7 @@ struct ModalAndShellCoverageTests {
         controller.ruleSetButtons[setA.id]?.performClick(nil)
         #expect(controller.selectedRuleSetId == setA.id)
 
-        appState.isBlocking = true
+        appState.isBlocking = false
         appState.isUnblockable = true
         controller.selectedRuleSetId = setA.id
         controller.reloadRuleSetRows()

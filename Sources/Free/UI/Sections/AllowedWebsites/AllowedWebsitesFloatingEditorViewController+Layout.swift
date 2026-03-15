@@ -39,7 +39,7 @@ extension AllowedWebsitesFloatingEditorViewController {
         styleHeaderIconButtons(color: accentColor)
         strictModeWarningLabel.textColor = .systemOrange
         strictModeWarningLabel.font = .systemFont(ofSize: 12, weight: .regular)
-        let showWarning = appState.isUnblockable
+        let showWarning = isAllowedWebsitesEditingLocked
         strictModeWarningLabel.isHidden = !showWarning
         warningCollapsedHeightConstraint?.isActive = !showWarning
         warningTopConstraint?.constant = showWarning ? 8 : 0
