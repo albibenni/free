@@ -248,9 +248,10 @@ final class AppKitToggleSwitch: NSControl {
     }
 
     private func updateKnobPosition() {
+        let trackWidth = bounds.width > 0 ? bounds.width : Metrics.width
         let knobWidth = knobView.bounds.width > 0 ? knobView.bounds.width : Metrics.knobSize
         knobLeadingConstraint?.constant = state == .on
-            ? max(bounds.width - knobWidth - Metrics.inset, Metrics.inset)
+            ? max(trackWidth - knobWidth - Metrics.inset, Metrics.inset)
             : Metrics.inset
     }
 
