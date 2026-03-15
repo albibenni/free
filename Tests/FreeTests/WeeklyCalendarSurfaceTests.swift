@@ -217,12 +217,54 @@ struct WeeklyCalendarSurfaceTests {
         document.startTimerMonitoringForTesting()
         let timer: Timer? = mirrorValue("timer", in: document)
         #expect(timer != nil)
+        document.startTimerMonitoringForTesting()
+        let secondTimer: Timer? = mirrorValue("timer", in: document)
+        #expect(secondTimer === timer)
         timer?.fire()
         #expect(timer?.isValid == true)
 
         document.stopTimerMonitoringForTesting()
         #expect(timer?.isValid == false)
         #expect((mirrorValue("timer", in: document) as Timer?) == nil)
+    }
+
+    @MainActor
+    @Test("Weekly calendar document interaction-end guard branch keeps pending refresh when not rebuilding immediately")
+    func weeklyCalendarDocumentInteractionEndGuardCoverage() {
+        let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
+        let bounds = WeeklyCalendarSupport.weekBounds(for: weekRange)
+        let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
+        let day = dayOrder[0]
+        let schedule = makeSchedule(name: "Guard", day: day)
+        let placement = WeeklyCalendarSupport.SchedulePlacement(
+            id: "guard-entry",
+            day: day,
+            startDate: makeDate(hour: 9),
+            endDate: makeDate(hour: 10)
+        )
+        let positioned = WeeklyCalendarSupport.PositionedSchedule(
+            id: "guard-entry",
+            schedule: schedule,
+            placement: placement,
+            laneIndex: 0,
+            laneCount: 1
+        )
+        let configuration = makeConfiguration(
+            dayOrder: dayOrder,
+            weekRange: weekRange,
+            weekStart: bounds.0,
+            weekEnd: bounds.1,
+            positionedSchedules: [positioned]
+        )
+
+        let document = WeeklyCalendarSurfaceDocumentNSView(
+            frame: NSRect(x: 0, y: 0, width: 900, height: 1200)
+        )
+        document.configure(with: configuration)
+        let countBefore = document.scheduleBlockCountForTesting
+        document.applyCurrentLayout()
+        document.scheduleInteractionDidEndForTesting(rebuildImmediately: false)
+        #expect(document.scheduleBlockCountForTesting == countBefore)
     }
 
     @MainActor

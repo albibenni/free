@@ -144,7 +144,7 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
                 self?.setAnimationActive(false)
             }
         }
-        isAnimationActive = NSApp?.isActive ?? true
+        isAnimationActive = NSApplication.shared.isActive
     }
 
     deinit {
