@@ -170,6 +170,46 @@ struct FocusViewTests {
         #expect(didInvoke)
     }
 
+    @Test("Focus section grant accessibility uses monitor permission check when available")
+    @MainActor
+    func focusGrantAccessibilityUsesMonitorBranch() {
+        final class PermissionAutomator: BrowserAutomator {
+            var checkCallCount = 0
+            func getActiveUrl(for _: NSRunningApplication) -> String? { nil }
+            func redirect(app _: NSRunningApplication, to _: String) {}
+            func getAllOpenUrls(browsers _: [String]) -> [String] { [] }
+            func checkPermissions(prompt _: Bool) -> Bool {
+                checkCallCount += 1
+                return true
+            }
+        }
+
+        let appState = isolatedAppState(name: "grantAccessibilityMonitorBranch")
+        let automator = PermissionAutomator()
+        let monitor = BrowserMonitor(
+            stateSnapshotProvider: { nil },
+            setTrustedState: { _ in },
+            server: nil,
+            automator: automator,
+            startTimer: false
+        )
+        appState.monitor = monitor
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+        var didInvokeFallbackFactory = false
+        controller.grantAccessibilityActionFactory = {
+            { didInvokeFallbackFactory = true }
+        }
+
+        let baselineCalls = automator.checkCallCount
+        controller.grantAccessibility()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+
+        #expect(automator.checkCallCount == baselineCalls + 1)
+        #expect(didInvokeFallbackFactory == false)
+    }
+
     @Test("Focus section cancelPause action clears pause state and keeps reload flags consistent")
     @MainActor
     func focusCancelPauseAction() {

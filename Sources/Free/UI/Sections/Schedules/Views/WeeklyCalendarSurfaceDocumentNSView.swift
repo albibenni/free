@@ -20,9 +20,7 @@ final class WeeklyCalendarSurfaceDocumentNSView: NSView {
             NSColor.windowBackgroundColor,
             appearance: effectiveAppearance
         )
-        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            self?.needsDisplay = true
-        }
+        updateTimerMonitoringState()
     }
 
     required init?(coder: NSCoder) {
@@ -30,7 +28,22 @@ final class WeeklyCalendarSurfaceDocumentNSView: NSView {
     }
 
     deinit {
-        timer?.invalidate()
+        stopTimerMonitoring()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateTimerMonitoringState()
+    }
+
+    override func viewDidHide() {
+        super.viewDidHide()
+        updateTimerMonitoringState()
+    }
+
+    override func viewDidUnhide() {
+        super.viewDidUnhide()
+        updateTimerMonitoringState()
     }
 
     func configure(with configuration: WeeklyCalendarSurfaceConfiguration) {
@@ -186,6 +199,30 @@ final class WeeklyCalendarSurfaceDocumentNSView: NSView {
         selectionDay = nil
         isSelecting = false
         needsDisplay = true
+    }
+
+    private func updateTimerMonitoringState() {
+        if shouldRunTimerMonitoring {
+            startTimerMonitoringIfNeeded()
+        } else {
+            stopTimerMonitoring()
+        }
+    }
+
+    private var shouldRunTimerMonitoring: Bool {
+        window != nil && !isHiddenOrHasHiddenAncestor
+    }
+
+    private func startTimerMonitoringIfNeeded() {
+        guard timer == nil else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            self?.needsDisplay = true
+        }
+    }
+
+    private func stopTimerMonitoring() {
+        timer?.invalidate()
+        timer = nil
     }
 
     private func drawHourGrid(configuration: WeeklyCalendarSurfaceConfiguration) {
@@ -409,5 +446,15 @@ final class WeeklyCalendarSurfaceDocumentNSView: NSView {
 
     func scheduleInteractionDidEndForTesting(rebuildImmediately: Bool) {
         scheduleInteractionDidEnd(rebuildImmediately: rebuildImmediately)
+    }
+}
+
+extension WeeklyCalendarSurfaceDocumentNSView {
+    func startTimerMonitoringForTesting() {
+        startTimerMonitoringIfNeeded()
+    }
+
+    func stopTimerMonitoringForTesting() {
+        stopTimerMonitoring()
     }
 }

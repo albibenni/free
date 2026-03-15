@@ -710,6 +710,7 @@ struct SchedulesViewTests {
     @MainActor
     func schedulesListRowViewInteractionCoverage() {
         let row = SchedulesListRowNSView(frame: NSRect(x: 0, y: 0, width: 420, height: 72))
+        #expect(row.scheduleId == nil)
         row.showsSeparator = false
         row.layoutSubtreeIfNeeded()
         let image = NSImage(size: row.bounds.size)
@@ -746,6 +747,7 @@ struct SchedulesViewTests {
             onDeleteSchedule: { deletedId = $0 },
             onToggleScheduleEnabled: { toggled = ($0, $1) }
         )
+        #expect(row.scheduleId == base.id)
         row.layoutSubtreeIfNeeded()
 
         if let mouseUp = NSEvent.mouseEvent(
@@ -802,6 +804,27 @@ struct SchedulesViewTests {
         image.lockFocus()
         row.draw(row.bounds)
         image.unlockFocus()
+    }
+
+    @Test("Schedules sheet testing helpers cover dismiss callback and non-forced refresh no-op")
+    @MainActor
+    func schedulesTestingHelpersDismissAndRefreshCoverage() {
+        let appState = isolatedAppState(name: "testingHelpersDismissAndRefreshCoverage")
+        appState.schedules = [sampleSchedule(name: "Seed")]
+        var dismissCount = 0
+        let controller = SchedulesSheetViewController(
+            appState: appState,
+            onDismiss: { dismissCount += 1 },
+            initialViewMode: 0
+        )
+        _ = host(controller)
+
+        let generationBefore = controller.refreshGenerationForTesting
+        controller.refreshConfigurationForTesting(force: false)
+        #expect(controller.refreshGenerationForTesting == generationBefore)
+
+        controller.invokeDismissForTesting()
+        #expect(dismissCount == 1)
     }
 
     @Test("Schedules list row and schedules sheet unavailable coder init paths return nil")
@@ -1050,6 +1073,18 @@ struct SchedulesViewTests {
             initialViewMode: 1
         )
         _ = host(controller)
+
+        let generationBeforeCalendarPublish = controller.refreshGenerationForTesting
+        appState.calendarProvider.events = [
+            ExternalEvent(
+                id: "event-2",
+                title: "Follow-up",
+                startDate: Date().addingTimeInterval(1800),
+                endDate: Date().addingTimeInterval(2400)
+            )
+        ]
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        #expect(controller.refreshGenerationForTesting > generationBeforeCalendarPublish)
 
         controller.refreshConfigurationForTesting(force: false)
         let config = controller.appKitConfigurationForTesting

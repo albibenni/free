@@ -12,6 +12,7 @@ final class SchedulesListRowNSView: NSView {
     private var onToggleScheduleEnabled: ((UUID, Bool) -> Void)?
     private let deleteButton = NSButton()
     private let toggleSwitch = NSSwitch()
+    var scheduleId: UUID? { schedule?.id }
 
     override var isFlipped: Bool { true }
 

@@ -101,7 +101,37 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
-    @Test("floating editor create/delete list actions follow alert presenter and strict-mode guards")
+    @Test("floating editor allows rule edits when unblockable mode is on and focus is not active")
+    func addRemoveAllowedWhenUnblockableAndNotBlocking() {
+        let appState = makeAppState(name: "addRemoveAllowedWhenUnblockableAndNotBlocking")
+        appState.isUnblockable = true
+        appState.isBlocking = false
+        let selectedSet = appState.ruleSets[0]
+        let controller = AllowedWebsitesFloatingEditorViewController(
+            appState: appState,
+            initialRuleSetId: selectedSet.id
+        )
+        controller.loadViewIfNeeded()
+
+        let baselineCount = controller.visibleRules.count
+        controller.urlField.stringValue = "https://focus-allowed.test"
+        controller.handleAddRule()
+        #expect(controller.visibleRules.contains("https://focus-allowed.test"))
+        #expect(controller.visibleRules.count == baselineCount + 1)
+
+        let insertedIndex = controller.visibleRules.firstIndex(of: "https://focus-allowed.test")
+        #expect(insertedIndex != nil)
+        controller.rulesTableView.selectRowIndexes(
+            IndexSet(integer: insertedIndex ?? 0),
+            byExtendingSelection: false
+        )
+        controller.handleRemoveSelected()
+        #expect(!controller.visibleRules.contains("https://focus-allowed.test"))
+        #expect(controller.visibleRules.count == baselineCount)
+    }
+
+    @MainActor
+    @Test("floating editor create/delete list actions follow unblockable lock rules")
     func createDeleteListActions() {
         let appState = makeAppState(name: "createDeleteListActions")
         let controller = AllowedWebsitesFloatingEditorViewController(
@@ -150,6 +180,14 @@ struct AllowedWebsitesFloatingEditorTests {
 
         controller.handleDeleteRuleSet()
         #expect(appState.ruleSets.count == originalCount + 1)
+
+        appState.isBlocking = false
+        AllowedWebsitesRuleSetAlertPresenter.runModal = { alert in
+            (alert.accessoryView as? NSTextField)?.stringValue = "UnlockedInFocus"
+            return .alertFirstButtonReturn
+        }
+        controller.handleCreateRuleSet()
+        #expect(appState.ruleSets.count == originalCount + 2)
     }
 
     @MainActor
@@ -274,6 +312,81 @@ struct AllowedWebsitesFloatingEditorTests {
 
         controller.handleImportOpenTabs()
         #expect(candidatesPresenterCalls == 0)
+    }
+
+    @MainActor
+    @Test("floating editor import is locked while unblockable mode is active with focus on")
+    func importLockedWhenStrictEditingLockIsActive() {
+        let appState = makeAppState(
+            name: "importLockedWhenStrictEditingLockIsActive",
+            openUrls: ["https://example.com"]
+        )
+        appState.isUnblockable = true
+        appState.isBlocking = true
+        let controller = AllowedWebsitesFloatingEditorViewController(
+            appState: appState,
+            initialRuleSetId: appState.ruleSets.first?.id
+        )
+        controller.loadViewIfNeeded()
+
+        var presenterCalls = 0
+        defer { AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting() }
+        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in
+            presenterCalls += 1
+            return nil
+        }
+
+        controller.handleImportOpenTabs()
+        #expect(presenterCalls == 0)
+    }
+
+    @MainActor
+    @Test("floating editor add/remove rule actions are locked while unblockable mode is active with focus on")
+    func addRemoveLockedWhenStrictEditingLockIsActive() {
+        let appState = makeAppState(name: "addRemoveLockedWhenStrictEditingLockIsActive")
+        appState.isUnblockable = true
+        appState.isBlocking = true
+        let controller = AllowedWebsitesFloatingEditorViewController(
+            appState: appState,
+            initialRuleSetId: appState.ruleSets.first?.id
+        )
+        controller.loadViewIfNeeded()
+
+        let baselineRules = controller.visibleRules
+        controller.urlField.stringValue = "https://locked.example.com"
+        controller.handleAddRule()
+        #expect(controller.visibleRules == baselineRules)
+
+        controller.rulesTableView.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+        controller.handleRemoveSelected()
+        #expect(controller.visibleRules == baselineRules)
+    }
+
+    @MainActor
+    @Test("floating editor styling toggles strict-mode warning constraints and header icons")
+    func layoutStylingStrictWarningBranches() {
+        let appState = makeAppState(name: "layoutStylingStrictWarningBranches")
+        let controller = AllowedWebsitesFloatingEditorViewController(
+            appState: appState,
+            initialRuleSetId: appState.ruleSets.first?.id
+        )
+        controller.loadViewIfNeeded()
+
+        appState.isUnblockable = false
+        appState.isBlocking = false
+        controller.applyButtonStyling()
+        #expect(controller.strictModeWarningLabel.isHidden == true)
+        #expect(controller.warningCollapsedHeightConstraint?.isActive == true)
+        #expect(controller.warningTopConstraint?.constant == 0)
+
+        appState.isUnblockable = true
+        appState.isBlocking = true
+        controller.applyButtonStyling()
+        #expect(controller.strictModeWarningLabel.isHidden == false)
+        #expect(controller.warningCollapsedHeightConstraint?.isActive == false)
+        #expect(controller.warningTopConstraint?.constant == 8)
+        #expect(controller.createListButton.image != nil)
+        #expect(controller.deleteListButton.image != nil)
     }
 
     @MainActor

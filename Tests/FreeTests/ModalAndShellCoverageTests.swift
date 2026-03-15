@@ -403,7 +403,7 @@ struct ModalAndShellCoverageTests {
     }
 
     @MainActor
-    @Test("Allowed websites editor action controller covers row taps, strict lock, and add/remove guards")
+    @Test("Allowed websites editor action controller covers row taps, unblockable lock, and add/remove guards")
     func allowedWebsitesEditorActionControllerPaths() {
         let appState = isolatedAppState(
             name: "allowedWebsitesEditorActionControllerPaths",

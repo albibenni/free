@@ -796,8 +796,20 @@ struct UIComponentTests {
 
         // Cover collapse/expand icon and hidden state branches.
         sidebar.setSidebarVisible(false)
+        let focusButtonCollapsed = findButton(
+            with: NSUserInterfaceItemIdentifier(MainContentSection.focus.rawValue),
+            in: sidebar
+        )
+        #expect(focusButtonCollapsed?.attributedTitle.string == "")
+        #expect(focusButtonCollapsed?.imagePosition == .imageOnly)
         sidebar.setSidebarVisible(true)
         #expect(sidebar.leadingInset(for: .focus) == 6)
+        let focusButtonExpanded = findButton(
+            with: NSUserInterfaceItemIdentifier(MainContentSection.focus.rawValue),
+            in: sidebar
+        )
+        #expect(focusButtonExpanded?.attributedTitle.string == MainContentSection.focus.rawValue)
+        #expect(focusButtonExpanded?.imagePosition == .imageLeading)
 
         var selectedSections: [MainContentSection] = []
         sidebar.onSelectSection = { section in
@@ -939,5 +951,28 @@ struct UIComponentTests {
                 in: "<script>one</script><script>two</script>"
             ) == ["one", "two"]
         )
+    }
+
+    @MainActor
+    @Test("Cursor fluid overlay lifecycle notifications and setters cover observer/task paths")
+    func cursorFluidOverlayLifecycleCoverage() {
+        let overlay = AppKitCursorFluidOverlayView.makeIfSupported()
+        #expect(overlay != nil)
+        guard let overlay else { return }
+
+        overlay.setAccentColorIndex(0)
+        overlay.setAccentColorIndex(FocusColor.rainbowAccentIndex)
+        overlay.setAnimationActive(true)
+        overlay.setAnimationActive(false)
+
+        NotificationCenter.default.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.03))
+        NotificationCenter.default.post(name: NSApplication.didResignActiveNotification, object: nil)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.03))
+
+        overlay.setAnimationActiveForTesting(false, didFinishInitialLoad: true)
+        overlay.applyAnimationStateIfPossibleForTesting()
+        overlay.setAnimationActiveForTesting(false, didFinishInitialLoad: true)
+        overlay.applyAnimationStateIfPossibleForTesting()
     }
 }

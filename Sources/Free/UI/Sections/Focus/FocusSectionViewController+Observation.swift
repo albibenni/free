@@ -20,10 +20,9 @@ extension FocusSectionViewController {
             pomodoroWidgetView.updateRuleSetSelection()
             pomodoroWidgetView.updateForStateChange()
             // Pause dashboard visibility can change while reusing pomodoro widget; force a layout pass
-            // so stack hit regions update immediately.
+            // without synchronously flushing layout on every observed tick.
             scrollContainer.needsLayout = true
             view.needsLayout = true
-            view.layoutSubtreeIfNeeded()
         case .reloadContent:
             reloadContent()
         }

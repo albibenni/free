@@ -523,6 +523,48 @@ struct FreeAppTests {
     }
 
     @MainActor
+    @Test("FreeApp didBecomeActive observer triggers monitor permission check without prompt")
+    func appDidBecomeActiveChecksPermissions() {
+        final class PermissionAutomator: BrowserAutomator {
+            var promptValues: [Bool] = []
+            func getActiveUrl(for _: NSRunningApplication) -> String? { nil }
+            func redirect(app _: NSRunningApplication, to _: String) {}
+            func getAllOpenUrls(browsers _: [String]) -> [String] { [] }
+            func checkPermissions(prompt: Bool) -> Bool {
+                promptValues.append(prompt)
+                return true
+            }
+        }
+
+        withIsolatedAppKitState {
+            let appState = isolatedAppState(name: "appDidBecomeActiveChecksPermissions")
+            let automator = PermissionAutomator()
+            let monitor = BrowserMonitor(
+                stateSnapshotProvider: { nil },
+                setTrustedState: { _ in },
+                server: nil,
+                automator: automator,
+                startTimer: false
+            )
+            appState.monitor = monitor
+            let baselineCallCount = automator.promptValues.count
+
+            let app = FreeApp(
+                appState: appState,
+                appDelegate: AppDelegate(),
+                presentMainWindow: { _, _ in }
+            )
+            app.startInterface(application: NSApplication.shared)
+
+            NotificationCenter.default.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+            RunLoop.main.run(until: Date().addingTimeInterval(0.03))
+
+            #expect(automator.promptValues.count == baselineCallCount + 1)
+            #expect(automator.promptValues.last == false)
+        }
+    }
+
+    @MainActor
     @Test("FreeApp launch callback safely no-ops when app is already released")
     func launchCallbackNoOpsAfterAppRelease() {
         withIsolatedAppKitState {
