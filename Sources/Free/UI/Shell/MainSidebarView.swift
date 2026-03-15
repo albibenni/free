@@ -45,8 +45,10 @@ final class MainSidebarView: AppKitDynamicView {
         isSidebarVisible = isVisible
         menuLabel.isHidden = !isVisible
         sectionButtonsStack.isHidden = false
-        sidebarDivider.isHidden = !isVisible
-        settingsDivider.isHidden = !isVisible
+        sidebarDivider.isHidden = false
+        settingsDivider.isHidden = false
+        sidebarDivider.alphaValue = isVisible ? 1 : 0
+        settingsDivider.alphaValue = isVisible ? 1 : 0
         sectionButtons[.settings]?.isHidden = false
         sidebarWidthConstraint?.constant = isVisible ? 180 : 56
         for (section, widthConstraint) in sectionButtonWidthConstraints {
