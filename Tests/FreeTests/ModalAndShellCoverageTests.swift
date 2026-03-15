@@ -361,7 +361,7 @@ struct ModalAndShellCoverageTests {
         }
 
         appState.isUnblockable = true
-        appState.isBlocking = false
+        appState.isBlocking = true
         controller.handleCreateRuleSet()
         #expect(appState.ruleSets.count == 1)
 
@@ -430,7 +430,7 @@ struct ModalAndShellCoverageTests {
         controller.ruleSetButtons[setA.id]?.performClick(nil)
         #expect(controller.selectedRuleSetId == setA.id)
 
-        appState.isBlocking = false
+        appState.isBlocking = true
         appState.isUnblockable = true
         controller.selectedRuleSetId = setA.id
         controller.reloadRuleSetRows()

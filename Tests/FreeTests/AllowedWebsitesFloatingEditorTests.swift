@@ -101,11 +101,11 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
-    @Test("floating editor allows rule edits when unblockable mode is on and focus is active")
-    func addRemoveAllowedWhenUnblockableAndBlocking() {
-        let appState = makeAppState(name: "addRemoveAllowedWhenUnblockableAndBlocking")
+    @Test("floating editor allows rule edits when unblockable mode is on and focus is not active")
+    func addRemoveAllowedWhenUnblockableAndNotBlocking() {
+        let appState = makeAppState(name: "addRemoveAllowedWhenUnblockableAndNotBlocking")
         appState.isUnblockable = true
-        appState.isBlocking = true
+        appState.isBlocking = false
         let selectedSet = appState.ruleSets[0]
         let controller = AllowedWebsitesFloatingEditorViewController(
             appState: appState,
@@ -173,7 +173,7 @@ struct AllowedWebsitesFloatingEditorTests {
         controller.handleDeleteRuleSet()
         #expect(appState.ruleSets.count == originalCount + 1)
 
-        appState.isBlocking = false
+        appState.isBlocking = true
         appState.isUnblockable = true
         controller.handleCreateRuleSet()
         #expect(appState.ruleSets.count == originalCount + 1)
@@ -181,7 +181,7 @@ struct AllowedWebsitesFloatingEditorTests {
         controller.handleDeleteRuleSet()
         #expect(appState.ruleSets.count == originalCount + 1)
 
-        appState.isBlocking = true
+        appState.isBlocking = false
         AllowedWebsitesRuleSetAlertPresenter.runModal = { alert in
             (alert.accessoryView as? NSTextField)?.stringValue = "UnlockedInFocus"
             return .alertFirstButtonReturn

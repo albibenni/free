@@ -56,11 +56,7 @@ extension AllowedWebsitesFloatingEditorViewController {
         guard let selectedRules = Self.presentImportCandidates(candidates, selectedSet.name) else { return }
 
         for rule in selectedRules {
-            appState.addSpecificRule(
-                rule,
-                to: setId,
-                ignoreStrictMode: shouldBypassStrictRulesMutation
-            )
+            appState.addSpecificRule(rule, to: setId)
         }
         reloadRulesOnly()
     }

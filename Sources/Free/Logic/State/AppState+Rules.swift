@@ -1,11 +1,11 @@
 import Foundation
 
 extension AppState {
-    private func rulesMutationContext(ignoringStrictMode: Bool) -> AppStateRulesMutationService.Context {
+    private var rulesMutationContext: AppStateRulesMutationService.Context {
         AppStateRulesMutationService.Context(
             ruleSets: ruleSets,
             activeRuleSetId: activeRuleSetId,
-            isStrictActive: isStrictActive && !ignoringStrictMode
+            isStrictActive: isStrictActive
         )
     }
 
@@ -18,11 +18,11 @@ extension AppState {
         }
     }
 
-    func addRule(_ rule: String, to setId: UUID, ignoreStrictMode: Bool = false) {
+    func addRule(_ rule: String, to setId: UUID) {
         applyRulesMutationUpdate(
             AppStateRulesMutationService.mutateRule(
                 logicFacade: logicFacade,
-                context: rulesMutationContext(ignoringStrictMode: ignoreStrictMode),
+                context: rulesMutationContext,
                 rule: rule,
                 setId: setId,
                 mutation: .add
@@ -30,11 +30,11 @@ extension AppState {
         )
     }
 
-    func addSpecificRule(_ rule: String, to setId: UUID, ignoreStrictMode: Bool = false) {
+    func addSpecificRule(_ rule: String, to setId: UUID) {
         applyRulesMutationUpdate(
             AppStateRulesMutationService.mutateRule(
                 logicFacade: logicFacade,
-                context: rulesMutationContext(ignoringStrictMode: ignoreStrictMode),
+                context: rulesMutationContext,
                 rule: rule,
                 setId: setId,
                 mutation: .addSpecific
@@ -42,11 +42,11 @@ extension AppState {
         )
     }
 
-    func removeRule(_ rule: String, from setId: UUID, ignoreStrictMode: Bool = false) {
+    func removeRule(_ rule: String, from setId: UUID) {
         applyRulesMutationUpdate(
             AppStateRulesMutationService.mutateRule(
                 logicFacade: logicFacade,
-                context: rulesMutationContext(ignoringStrictMode: ignoreStrictMode),
+                context: rulesMutationContext,
                 rule: rule,
                 setId: setId,
                 mutation: .remove
@@ -54,25 +54,21 @@ extension AppState {
         )
     }
 
-    func deleteSet(id: UUID, ignoreStrictMode: Bool = false) {
+    func deleteSet(id: UUID) {
         applyRulesMutationUpdate(
             AppStateRulesMutationService.deleteSet(
                 logicFacade: logicFacade,
-                context: rulesMutationContext(ignoringStrictMode: ignoreStrictMode),
+                context: rulesMutationContext,
                 id: id
             )
         )
     }
 
     @discardableResult
-    func createRuleSet(
-        name: String,
-        makeActive: Bool = false,
-        ignoreStrictMode: Bool = false
-    ) -> RuleSet {
+    func createRuleSet(name: String, makeActive: Bool = false) -> RuleSet {
         let result = AppStateRulesMutationService.createRuleSet(
             logicFacade: logicFacade,
-            context: rulesMutationContext(ignoringStrictMode: ignoreStrictMode),
+            context: rulesMutationContext,
             name: name,
             makeActive: makeActive
         )
@@ -80,11 +76,11 @@ extension AppState {
         return result.created
     }
 
-    func selectActiveRuleSet(_ id: UUID, ignoreStrictMode: Bool = false) {
+    func selectActiveRuleSet(_ id: UUID) {
         applyRulesMutationUpdate(
             AppStateRulesMutationService.selectActiveRuleSet(
                 logicFacade: logicFacade,
-                context: rulesMutationContext(ignoringStrictMode: ignoreStrictMode),
+                context: rulesMutationContext,
                 id: id
             )
         )

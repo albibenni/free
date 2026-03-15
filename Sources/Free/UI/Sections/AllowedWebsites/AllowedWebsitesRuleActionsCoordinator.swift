@@ -70,22 +70,16 @@ enum AllowedWebsitesRuleSetActionsCoordinator {
     @inline(never)
     static func createRuleSet(
         appState: AppState,
-        name: String,
-        ignoreStrictMode: Bool = false
+        name: String
     ) -> RuleSet {
-        appState.createRuleSet(
-            name: name,
-            makeActive: false,
-            ignoreStrictMode: ignoreStrictMode
-        )
+        appState.createRuleSet(name: name, makeActive: false)
     }
 
     @inline(never)
     static func deleteRuleSet(
         appState: AppState,
-        id: UUID,
-        ignoreStrictMode: Bool = false
+        id: UUID
     ) {
-        appState.deleteSet(id: id, ignoreStrictMode: ignoreStrictMode)
+        appState.deleteSet(id: id)
     }
 }

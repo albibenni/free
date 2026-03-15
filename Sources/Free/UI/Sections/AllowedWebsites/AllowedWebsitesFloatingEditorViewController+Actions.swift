@@ -2,9 +2,6 @@ import AppKit
 
 extension AllowedWebsitesFloatingEditorViewController {
     var isAllowedWebsitesEditingLocked: Bool {
-        appState.isUnblockable && !appState.isBlocking
-    }
-    var shouldBypassStrictRulesMutation: Bool {
         appState.isUnblockable && appState.isBlocking
     }
 
@@ -18,8 +15,7 @@ extension AllowedWebsitesFloatingEditorViewController {
 
         let newSet = AllowedWebsitesRuleSetActionsCoordinator.createRuleSet(
             appState: appState,
-            name: name,
-            ignoreStrictMode: shouldBypassStrictRulesMutation
+            name: name
         )
         selectedRuleSetId = newSet.id
         reloadContent()
@@ -46,8 +42,7 @@ extension AllowedWebsitesFloatingEditorViewController {
 
         AllowedWebsitesRuleSetActionsCoordinator.deleteRuleSet(
             appState: appState,
-            id: setId,
-            ignoreStrictMode: shouldBypassStrictRulesMutation
+            id: setId
         )
         selectedRuleSetId = resolvedRuleSetId(nil)
         reloadContent()
@@ -59,11 +54,7 @@ extension AllowedWebsitesFloatingEditorViewController {
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
         guard let normalized = AllowedWebsitesRuleActionsCoordinator.normalizedRuleInput(urlField.stringValue)
         else { return }
-        appState.addRule(
-            normalized,
-            to: setId,
-            ignoreStrictMode: shouldBypassStrictRulesMutation
-        )
+        appState.addRule(normalized, to: setId)
         urlField.stringValue = ""
         reloadRulesOnly()
     }
@@ -83,11 +74,7 @@ extension AllowedWebsitesFloatingEditorViewController {
         )
         guard !rulesToRemove.isEmpty else { return }
         for rule in rulesToRemove {
-            appState.removeRule(
-                rule,
-                from: setId,
-                ignoreStrictMode: shouldBypassStrictRulesMutation
-            )
+            appState.removeRule(rule, from: setId)
         }
         reloadRulesOnly()
     }
