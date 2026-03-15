@@ -9,6 +9,7 @@ final class MainSidebarView: AppKitDynamicView {
     private let sectionButtonsStack = NSStackView()
     private let settingsDivider = AppKitDynamicView()
     private var sidebarWidthConstraint: NSLayoutConstraint?
+    private var sectionButtonWidthConstraints: [MainContentSection: NSLayoutConstraint] = [:]
     private var sectionButtons: [MainContentSection: NSButton] = [:]
     private var sectionEnabled: [MainContentSection: Bool] = [:]
 
@@ -43,11 +44,15 @@ final class MainSidebarView: AppKitDynamicView {
     func setSidebarVisible(_ isVisible: Bool) {
         isSidebarVisible = isVisible
         menuLabel.isHidden = !isVisible
-        sectionButtonsStack.isHidden = !isVisible
+        sectionButtonsStack.isHidden = false
         sidebarDivider.isHidden = !isVisible
         settingsDivider.isHidden = !isVisible
-        sectionButtons[.settings]?.isHidden = !isVisible
+        sectionButtons[.settings]?.isHidden = false
         sidebarWidthConstraint?.constant = isVisible ? 180 : 56
+        for (section, widthConstraint) in sectionButtonWidthConstraints {
+            let isSettings = section == .settings
+            widthConstraint.constant = isVisible ? 156 : (isSettings ? 32 : 32)
+        }
         let symbolName = isVisible ? AppKitUISymbols.Name.sidebarLeft : AppKitUISymbols.Name.sidebarRight
         sidebarToggleButton.image = appKitSymbolImage(
             spec: AppKitUISymbolSpec(
@@ -57,6 +62,7 @@ final class MainSidebarView: AppKitDynamicView {
             ),
             color: .secondaryLabelColor
         )
+        updateSelection(selectedSection: selectedSection, accentColorIndex: accentColorIndex)
     }
 
     func updateSelection(selectedSection: MainContentSection, accentColorIndex: Int) {
@@ -170,6 +176,7 @@ final class MainSidebarView: AppKitDynamicView {
     private func sidebarButton(for section: MainContentSection) -> NSButton {
         let button = LeadingInsetActionButton(title: section.rawValue)
         button.identifier = NSUserInterfaceItemIdentifier(section.rawValue)
+        button.toolTip = section.rawValue
         button.target = self
         button.action = #selector(handleSidebarButton(_:))
         button.leadingInset = 6
@@ -180,7 +187,9 @@ final class MainSidebarView: AppKitDynamicView {
         button.imagePosition = .imageLeading
         button.alignment = .left
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.widthAnchor.constraint(equalToConstant: 156).isActive = true
+        let widthConstraint = button.widthAnchor.constraint(equalToConstant: 156)
+        widthConstraint.isActive = true
+        sectionButtonWidthConstraints[section] = widthConstraint
         button.heightAnchor.constraint(equalToConstant: 32).isActive = true
         return button
     }
@@ -231,13 +240,21 @@ final class MainSidebarView: AppKitDynamicView {
             ),
             color: iconColor
         )
+        let title = isSidebarVisible ? section.rawValue : ""
         button.attributedTitle = NSAttributedString(
-            string: section.rawValue,
+            string: title,
             attributes: [
                 .font: NSFont.systemFont(ofSize: 13, weight: fontWeight),
                 .foregroundColor: titleColor,
             ]
         )
+        if let leadingButton = button as? LeadingInsetActionButton {
+            leadingButton.leadingInset = isSidebarVisible ? 6 : 0
+            leadingButton.titleAdditionalInset = isSidebarVisible ? 6 : 0
+            leadingButton.imageSlotWidth = isSidebarVisible ? 16 : 32
+        }
+        button.imagePosition = isSidebarVisible ? .imageLeading : .imageOnly
+        button.alignment = isSidebarVisible ? .left : .center
         button.needsDisplay = true
     }
 

@@ -796,8 +796,20 @@ struct UIComponentTests {
 
         // Cover collapse/expand icon and hidden state branches.
         sidebar.setSidebarVisible(false)
+        let focusButtonCollapsed = findButton(
+            with: NSUserInterfaceItemIdentifier(MainContentSection.focus.rawValue),
+            in: sidebar
+        )
+        #expect(focusButtonCollapsed?.attributedTitle.string == "")
+        #expect(focusButtonCollapsed?.imagePosition == .imageOnly)
         sidebar.setSidebarVisible(true)
         #expect(sidebar.leadingInset(for: .focus) == 6)
+        let focusButtonExpanded = findButton(
+            with: NSUserInterfaceItemIdentifier(MainContentSection.focus.rawValue),
+            in: sidebar
+        )
+        #expect(focusButtonExpanded?.attributedTitle.string == MainContentSection.focus.rawValue)
+        #expect(focusButtonExpanded?.imagePosition == .imageLeading)
 
         var selectedSections: [MainContentSection] = []
         sidebar.onSelectSection = { section in
