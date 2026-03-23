@@ -602,25 +602,23 @@ final class SettingsSectionViewController: NSViewController {
 
     private func makeStrictModeUnlockAccessoryView() -> (NSView, NSTextField) {
         let containerWidth: CGFloat = 340
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: containerWidth, height: 104))
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: containerWidth, height: 140))
         container.translatesAutoresizingMaskIntoConstraints = false
 
         let stack = NSStackView()
         stack.orientation = .vertical
-        stack.alignment = .leading
+        stack.alignment = .centerX
         stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         let quote = NSTextField(
-            labelWithString:
+            wrappingLabelWithString:
                 "The moment you give up is the moment you let someone else win. — Kobe Bryant")
         quote.font = NSFontManager.shared.convert(
             NSFont.systemFont(ofSize: 13, weight: .heavy), toHaveTrait: .italicFontMask)
         quote.textColor = FocusColor.nsColor(for: appState.accentColorIndex)
-        quote.lineBreakMode = .byWordWrapping
+        quote.alignment = .center
         quote.translatesAutoresizingMaskIntoConstraints = false
-        quote.cell?.wraps = true
-        quote.usesSingleLineMode = false
 
         let instruction = NSTextField(
             wrappingLabelWithString: "Type the phrase exactly to disable Unblockable Mode:")
@@ -653,6 +651,7 @@ final class SettingsSectionViewController: NSViewController {
             stack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             stack.topAnchor.constraint(equalTo: container.topAnchor),
             stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            quote.widthAnchor.constraint(equalTo: container.widthAnchor),
             instruction.widthAnchor.constraint(equalTo: container.widthAnchor),
             phrase.widthAnchor.constraint(equalTo: container.widthAnchor),
             input.widthAnchor.constraint(equalTo: container.widthAnchor),
