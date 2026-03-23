@@ -179,7 +179,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private var canModifySchedules: Bool {
-        !appState.isStrictActive
+        !appState.isUnblockable
     }
 
     private func showScheduleModificationBlockedAlert() {
@@ -301,9 +301,12 @@ final class SchedulesSheetViewController: NSViewController {
             },
             onSelectSchedule: { [weak self] schedule in
                 guard let self else { return }
-                guard self.canModifySchedules else {
-                    self.showScheduleModificationBlockedAlert()
-                    return
+                if !self.canModifySchedules {
+                    guard StrictModeChallenge.run(
+                        title: "Modify Schedule",
+                        action: "modify this schedule",
+                        appState: self.appState
+                    ) else { return }
                 }
                 self.editorContext = ScheduleEditorContext(schedule: schedule)
                 self.refreshConfiguration()
@@ -409,9 +412,12 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openScheduleEditor(day: Int, schedule: Schedule) {
-        guard canModifySchedules else {
-            showScheduleModificationBlockedAlert()
-            return
+        if !canModifySchedules {
+            guard StrictModeChallenge.run(
+                title: "Modify Schedule",
+                action: "modify this schedule",
+                appState: appState
+            ) else { return }
         }
         editorContext = ScheduleEditorContext(
             day: day,
@@ -422,9 +428,12 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func deleteSchedule(scheduleId: UUID) {
-        guard canModifySchedules else {
-            showScheduleModificationBlockedAlert()
-            return
+        if !canModifySchedules {
+            guard StrictModeChallenge.run(
+                title: "Delete Schedule",
+                action: "delete this schedule",
+                appState: appState
+            ) else { return }
         }
         guard let schedule = appState.schedules.first(where: { $0.id == scheduleId }) else {
             return
@@ -434,9 +443,12 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openAddSchedule() {
-        guard canModifySchedules else {
-            showScheduleModificationBlockedAlert()
-            return
+        if !canModifySchedules {
+            guard StrictModeChallenge.run(
+                title: "Add Schedule",
+                action: "add a new schedule",
+                appState: appState
+            ) else { return }
         }
         editorContext = ScheduleEditorContext()
         refreshConfiguration()

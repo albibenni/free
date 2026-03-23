@@ -18,6 +18,13 @@ extension FocusSectionViewController {
     }
 
     func startQuickBreak(minutes: Double) {
+        if appState.isUnblockable {
+            guard StrictModeChallenge.run(
+                title: "Quick Break",
+                action: "start a quick break",
+                appState: appState
+            ) else { return }
+        }
         appState.startPause(minutes: minutes)
         needsReloadAfterPomodoroInteraction = false
         reloadContent()

@@ -568,7 +568,7 @@ final class CalendarSectionViewController: NSViewController {
         }
         weekStartsMondaySwitch.state = appState.weekStartsOnMonday ? .on : .off
         calendarIntegrationSwitch.state = enabled ? .on : .off
-        calendarIntegrationSwitch.isEnabled = !appState.isStrictActive
+        calendarIntegrationSwitch.isEnabled = true
         strictLockNotice.isHidden = !appState.isStrictActive
         resyncButton.isEnabled = enabled
         applyAppKitSecondaryButtonStyle(
@@ -647,6 +647,16 @@ final class CalendarSectionViewController: NSViewController {
 
     @objc
     private func toggleCalendarIntegration() {
+        if appState.isUnblockable {
+            guard StrictModeChallenge.run(
+                title: "Calendar Integration",
+                action: "change the calendar integration setting",
+                appState: appState
+            ) else {
+                calendarIntegrationSwitch.state = appState.calendarIntegrationEnabled ? .on : .off
+                return
+            }
+        }
         appState.calendarIntegrationEnabled = calendarIntegrationSwitch.state == .on
     }
 
@@ -657,6 +667,13 @@ final class CalendarSectionViewController: NSViewController {
 
     @objc
     private func resyncImportedSchedules() {
+        if appState.isUnblockable {
+            guard StrictModeChallenge.run(
+                title: "Resync Schedules",
+                action: "resync imported schedules",
+                appState: appState
+            ) else { return }
+        }
         guard appState.calendarProvider.isAuthorized else {
             appState.calendarProvider.requestAccess()
             scheduleCalendarPermissionFallbackIfNeeded()

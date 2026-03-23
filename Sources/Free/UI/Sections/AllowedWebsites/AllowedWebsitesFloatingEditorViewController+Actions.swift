@@ -2,7 +2,7 @@ import AppKit
 
 extension AllowedWebsitesFloatingEditorViewController {
     var isAllowedWebsitesEditingLocked: Bool {
-        appState.isUnblockable && appState.isBlocking
+        appState.isUnblockable
     }
 
     @objc
@@ -50,7 +50,13 @@ extension AllowedWebsitesFloatingEditorViewController {
 
     @objc
     func handleAddRule() {
-        guard !isAllowedWebsitesEditingLocked else { return }
+        if isAllowedWebsitesEditingLocked {
+            guard StrictModeChallenge.run(
+                title: "Add URL",
+                action: "add a URL to the allowed list",
+                appState: appState
+            ) else { return }
+        }
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
         guard let normalized = AllowedWebsitesRuleActionsCoordinator.normalizedRuleInput(urlField.stringValue)
         else { return }
@@ -66,7 +72,13 @@ extension AllowedWebsitesFloatingEditorViewController {
 
     @objc
     func handleRemoveSelected() {
-        guard !isAllowedWebsitesEditingLocked else { return }
+        if isAllowedWebsitesEditingLocked {
+            guard StrictModeChallenge.run(
+                title: "Remove URL",
+                action: "remove a URL from the allowed list",
+                appState: appState
+            ) else { return }
+        }
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
         let rulesToRemove = AllowedWebsitesSelectionCoordinator.selectedRules(
             indexes: rulesTableView.selectedRowIndexes,

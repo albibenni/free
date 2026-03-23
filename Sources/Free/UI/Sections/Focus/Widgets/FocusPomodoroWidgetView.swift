@@ -457,6 +457,13 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         stopButton.isEnabled = !appState.isPomodoroLocked
         stopButton.onAction = { [self] in
             guard !self.appState.isPomodoroLocked else { return }
+            if self.appState.isUnblockable {
+                guard StrictModeChallenge.run(
+                    title: "Stop Pomodoro",
+                    action: "stop the pomodoro session",
+                    appState: self.appState
+                ) else { return }
+            }
             self.appState.stopPomodoro()
         }
         self.stopButton = stopButton

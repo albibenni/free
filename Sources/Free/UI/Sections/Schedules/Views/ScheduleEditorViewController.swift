@@ -404,7 +404,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
             ),
             color: primaryButtonColor
         )
-        saveButton.isEnabled = !appState.isStrictActive && !ScheduleEditorSupport.isSaveDisabled(
+        saveButton.isEnabled = !appState.isUnblockable && !ScheduleEditorSupport.isSaveDisabled(
             days: days,
             modifyAllDays: modifyAllDays,
             isRecurring: isRecurring
@@ -457,7 +457,13 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     private func saveSchedule() {
-        guard !appState.isStrictActive else { return }
+        if appState.isUnblockable {
+            guard StrictModeChallenge.run(
+                title: "Save Schedule",
+                action: "save this schedule",
+                appState: appState
+            ) else { return }
+        }
         let payload = ScheduleEditorSupport.savePayload(
             days: days,
             isRecurring: isRecurring,
@@ -482,7 +488,13 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     private func deleteSchedule() {
-        guard !appState.isStrictActive else { return }
+        if appState.isUnblockable {
+            guard StrictModeChallenge.run(
+                title: "Delete Schedule",
+                action: "delete this schedule",
+                appState: appState
+            ) else { return }
+        }
         guard let existingSchedule else { return }
         if ScheduleEditorSupport.shouldConfirmDeleteForMultiDayRecurring(
             existingSchedule: existingSchedule,
@@ -559,14 +571,14 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
             modifyAllDays: modifyAllDays,
             isRecurring: isRecurring
         )
-        if appState.isStrictActive {
+        if appState.isUnblockable {
             saveButton?.isEnabled = false
         }
         scrollContainer.needsLayout = true
     }
 
     private func toggleSaveStateForCurrentRules() {
-        saveButton?.isEnabled = !appState.isStrictActive && !ScheduleEditorSupport.isSaveDisabled(
+        saveButton?.isEnabled = !appState.isUnblockable && !ScheduleEditorSupport.isSaveDisabled(
             days: days,
             modifyAllDays: modifyAllDays,
             isRecurring: isRecurring

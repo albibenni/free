@@ -135,4 +135,5 @@
 
 ## Future features
 
+- [ ] calendar should be calendar settings at the bottom - tab
 - [ ] block apps
