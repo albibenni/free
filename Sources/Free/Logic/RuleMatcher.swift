@@ -5,6 +5,21 @@ struct RuleMatcher {
         "about", "arc", "chrome", "brave", "edge", "viva", "vivaldi", "opera", "file",
     ]
 
+    // NSCache is thread-safe; keyed by the exact pattern string used in the LIKE[cd] format.
+    private static let predicateCache: NSCache<NSString, NSPredicate> = {
+        let c = NSCache<NSString, NSPredicate>()
+        c.countLimit = 500
+        return c
+    }()
+
+    private static func cachedPredicate(pattern: String) -> NSPredicate {
+        let key = pattern as NSString
+        if let cached = predicateCache.object(forKey: key) { return cached }
+        let predicate = NSPredicate(format: "SELF LIKE[cd] %@", pattern)
+        predicateCache.setObject(predicate, forKey: key)
+        return predicate
+    }
+
     static func isAllowed(_ url: String, rules: [String]) -> Bool {
         let cleanedUrl = url.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         if cleanedUrl.isEmpty { return true }
@@ -32,12 +47,10 @@ struct RuleMatcher {
                     return true
                 }
 
-                let predicate = NSPredicate(format: "SELF LIKE[cd] %@", normalize(cleanedRule))
-                if predicate.evaluate(with: normalizedUrl) { return true }
+                if cachedPredicate(pattern: normalize(cleanedRule)).evaluate(with: normalizedUrl) { return true }
 
                 if cleanedRule.contains("://") || cleanedRule.contains("www.") {
-                    let fullPredicate = NSPredicate(format: "SELF LIKE[cd] %@", cleanedRule)
-                    if fullPredicate.evaluate(with: cleanedUrl) { return true }
+                    if cachedPredicate(pattern: cleanedRule).evaluate(with: cleanedUrl) { return true }
                 }
             } else {
                 let normalizedRule = normalize(cleanedRule)

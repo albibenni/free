@@ -21,8 +21,8 @@ struct Schedule: Identifiable, Codable, Equatable {
     static func defaultSchedule() -> Schedule {
         let calendar = Calendar.current
         let now = Date()
-        let startDate = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now)!
-        let endDate = calendar.date(bySettingHour: 17, minute: 0, second: 0, of: now)!
+        let startDate = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now) ?? now
+        let endDate = calendar.date(bySettingHour: 17, minute: 0, second: 0, of: now) ?? now
 
         return Schedule(
             name: "Work Hours",

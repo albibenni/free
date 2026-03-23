@@ -40,7 +40,7 @@ extension AllowedWebsitesFloatingEditorViewController {
     func handleImportOpenTabs() {
         guard !isAllowedWebsitesEditingLocked else { return }
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
-        let selectedSet = appState.ruleSets.first(where: { $0.id == setId })!
+        guard let selectedSet = appState.ruleSets.first(where: { $0.id == setId }) else { return }
 
         appState.refreshCurrentOpenUrls()
         let candidates = AllowedWebsitesImportCoordinator.buildCandidates(

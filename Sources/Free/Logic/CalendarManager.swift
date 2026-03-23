@@ -61,9 +61,10 @@ class RealCalendarManager: CalendarProvider {
         guard isAuthorized else { return }
         let calendar = Calendar.current
         let now = nowProvider()
-        let startRange = calendar.date(
-            byAdding: .day, value: -7, to: calendar.startOfDay(for: now))!
-        let endRange = calendar.date(byAdding: .day, value: 7, to: calendar.startOfDay(for: now))!
+        guard
+            let startRange = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: now)),
+            let endRange = calendar.date(byAdding: .day, value: 7, to: calendar.startOfDay(for: now))
+        else { return }
 
         let snapshots = runtime.loadEvents(startRange, endRange)
 

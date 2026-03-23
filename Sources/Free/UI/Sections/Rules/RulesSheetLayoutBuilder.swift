@@ -232,7 +232,7 @@ enum RulesSheetLayoutBuilder {
         }
 
         for (index, rule) in rules.enumerated() {
-            let row = nextRows[rule]!
+            guard let row = nextRows[rule] else { continue }
             if row.superview !== stack {
                 stack.insertArrangedSubview(row, at: index)
                 continue
@@ -247,7 +247,7 @@ enum RulesSheetLayoutBuilder {
         }
 
         while stack.arrangedSubviews.count > rules.count {
-            let last = stack.arrangedSubviews.last!
+            guard let last = stack.arrangedSubviews.last else { break }
             stack.removeArrangedSubview(last)
             last.removeFromSuperview()
         }
@@ -287,7 +287,7 @@ enum RulesSheetLayoutBuilder {
         }
 
         for (index, suggestion) in suggestions.enumerated() {
-            let row = nextRows[suggestion]!
+            guard let row = nextRows[suggestion] else { continue }
             if row.superview !== stack {
                 stack.insertArrangedSubview(row, at: index)
                 continue
@@ -302,7 +302,7 @@ enum RulesSheetLayoutBuilder {
         }
 
         while stack.arrangedSubviews.count > suggestions.count {
-            let last = stack.arrangedSubviews.last!
+            guard let last = stack.arrangedSubviews.last else { break }
             stack.removeArrangedSubview(last)
             last.removeFromSuperview()
         }

@@ -120,7 +120,7 @@ enum WeeklyCalendarSupport {
             end = anchor
         }
         if end <= start {
-            end = calendar.date(byAdding: .day, value: 1, to: end)!
+            end = calendar.date(byAdding: .day, value: 1, to: end) ?? end.addingTimeInterval(86400)
         }
         return DateInterval(start: start, end: end)
     }

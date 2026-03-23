@@ -39,7 +39,7 @@ extension WeeklyCalendarSupport {
                         id: entry.placement.id,
                         schedule: entry.schedule,
                         placement: entry.placement,
-                        laneIndex: laneAssignments[entry.placement.id]!,
+                        laneIndex: laneAssignments[entry.placement.id] ?? 0,
                         laneCount: max(
                             1,
                             concurrentLaneCount(
@@ -76,7 +76,7 @@ extension WeeklyCalendarSupport {
     static func timeString(hour: Int) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "h a"
-        let date = Calendar.current.date(from: DateComponents(hour: hour))!
+        let date = Calendar.current.date(from: DateComponents(hour: hour)) ?? Date()
         return formatter.string(from: date)
     }
 
@@ -105,7 +105,7 @@ extension WeeklyCalendarSupport {
             return (.distantPast, .distantFuture)
         }
 
-        let weekEnd = calendar.date(byAdding: .day, value: 1, to: weekLast)!
+        let weekEnd = calendar.date(byAdding: .day, value: 1, to: weekLast) ?? weekLast.addingTimeInterval(86400)
         return (weekStart, weekEnd)
     }
 

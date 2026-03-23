@@ -35,6 +35,7 @@ class BrowserMonitor {
 
     private var timer: (any RepeatingTimer)?
     private let timerLock = NSLock()
+    private let redirectLock = NSLock()
     private let stateSnapshotProvider: () -> StateSnapshot?
     private let onEvent: (Event) -> Void
     private let server: LocalServer?
@@ -80,7 +81,7 @@ class BrowserMonitor {
         frontmostAppProvider: @escaping () -> NSRunningApplication? = { NSWorkspace.shared.frontmostApplication },
         bundleIdProvider: @escaping (NSRunningApplication) -> String? = { $0.bundleIdentifier },
         nowProvider: @escaping () -> Date = Date.init,
-        monitorInterval: TimeInterval = 1.0,
+        monitorInterval: TimeInterval = 1.5,
         timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
         startTimer: Bool = true
     ) {
@@ -134,34 +135,39 @@ class BrowserMonitor {
         else { return }
 
         let now = nowProvider()
-        if let lastRedirect = lastRedirectTime[bundleId], now.timeIntervalSince(lastRedirect) < 2.0 { return }
+
+        // Read lastRedirectTime under lock (background thread, timer can race with stopMonitoring).
+        redirectLock.lock()
+        let lastRedirect = lastRedirectTime[bundleId]
+        redirectLock.unlock()
+        if let lastRedirect, now.timeIntervalSince(lastRedirect) < 2.0 { return }
 
         if let currentURL = automator.getActiveUrl(for: frontApp) {
             if currentURL.contains("localhost:10000") { return }
 
             if Self.isNewTabLike(currentURL) {
                 guard snapshot.blockNewTabs else { return }
-                lastRedirectTime[bundleId] = now
+                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
                 return
             }
 
             if Self.isDeveloperLocalUrl(currentURL) {
                 guard snapshot.blockDeveloperHosts else { return }
-                lastRedirectTime[bundleId] = now
+                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
                 return
             }
 
             if Self.isPrivateNetworkUrl(currentURL) {
                 guard snapshot.blockLocalNetworkHosts else { return }
-                lastRedirectTime[bundleId] = now
+                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
                 return
             }
 
             if !RuleMatcher.isAllowed(currentURL, rules: snapshot.allowedRules) {
-                lastRedirectTime[bundleId] = now
+                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
             }
         }
