@@ -602,7 +602,7 @@ final class SettingsSectionViewController: NSViewController {
 
     private func makeStrictModeUnlockAccessoryView() -> (NSView, NSTextField) {
         let containerWidth: CGFloat = 340
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: containerWidth, height: 140))
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: containerWidth, height: 80))
         container.translatesAutoresizingMaskIntoConstraints = false
 
         let stack = NSStackView()
