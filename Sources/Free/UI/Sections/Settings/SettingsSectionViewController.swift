@@ -601,9 +601,9 @@ final class SettingsSectionViewController: NSViewController {
     }
 
     private func makeStrictModeUnlockAccessoryView() -> (NSView, NSTextField) {
-        let containerWidth: CGFloat = 340
+        let containerWidth: CGFloat = 300
         let container = NSView(frame: NSRect(x: 0, y: 0, width: containerWidth, height: 120))
-        container.translatesAutoresizingMaskIntoConstraints = false
+        container.translatesAutoresizingMaskIntoConstraints = true
 
         let stack = NSStackView()
         stack.orientation = .vertical
@@ -620,27 +620,21 @@ final class SettingsSectionViewController: NSViewController {
         quote.alignment = .center
         quote.translatesAutoresizingMaskIntoConstraints = false
 
-        let instruction = NSTextField(
-            wrappingLabelWithString: "Type the phrase")
-        instruction.font = .systemFont(ofSize: 13, weight: .semibold)
-        instruction.textColor = .labelColor
-        instruction.lineBreakMode = .byWordWrapping
-        instruction.translatesAutoresizingMaskIntoConstraints = false
+        let boldAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
+            .foregroundColor: NSColor.labelColor,
+        ]
+        let phraseAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 13),
+            .foregroundColor: NSColor.secondaryLabelColor,
+        ]
+        let instructionText = NSMutableAttributedString(string: "Type the phrase ", attributes: boldAttrs)
+        instructionText.append(NSAttributedString(string: "\"\(AppState.challengePhrase)\" ", attributes: phraseAttrs))
+        instructionText.append(NSAttributedString(string: "to disable Unblockable Mode:", attributes: boldAttrs))
 
-        let phrase = NSTextField(
-            wrappingLabelWithString:
-                "\"\(AppState.challengePhrase)\""
-        )
-        phrase.font = .systemFont(ofSize: 13)
-        phrase.textColor = .secondaryLabelColor
-        phrase.lineBreakMode = .byWordWrapping
-        phrase.translatesAutoresizingMaskIntoConstraints = false
-        let instruction2 = NSTextField(
-            wrappingLabelWithString: "to disable Unblockable Mode:")
-        instruction2.font = .systemFont(ofSize: 13, weight: .semibold)
-        instruction2.textColor = .labelColor
-        instruction2.lineBreakMode = .byWordWrapping
-        instruction2.translatesAutoresizingMaskIntoConstraints = false
+        let instruction = NSTextField(wrappingLabelWithString: "")
+        instruction.attributedStringValue = instructionText
+        instruction.translatesAutoresizingMaskIntoConstraints = false
 
         let input = NSTextField(string: "")
         input.placeholderString = "Type the phrase..."
@@ -648,13 +642,7 @@ final class SettingsSectionViewController: NSViewController {
         input.controlSize = .regular
 
         stack.addArrangedSubview(quote)
-        let hStack = NSStackView(views: [instruction, phrase, instruction2])
-        hStack.orientation = .horizontal
-        hStack.spacing = 4
-        hStack.alignment = .centerY
-        hStack.translatesAutoresizingMaskIntoConstraints = false
-
-        stack.addArrangedSubview(hStack)
+        stack.addArrangedSubview(instruction)
         stack.addArrangedSubview(input)
         container.addSubview(stack)
         NSLayoutConstraint.activate([
@@ -663,7 +651,7 @@ final class SettingsSectionViewController: NSViewController {
             stack.topAnchor.constraint(equalTo: container.topAnchor),
             stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             quote.widthAnchor.constraint(equalTo: container.widthAnchor),
-            hStack.widthAnchor.constraint(equalTo: container.widthAnchor),
+            instruction.widthAnchor.constraint(equalTo: container.widthAnchor),
             input.widthAnchor.constraint(equalTo: container.widthAnchor),
             input.heightAnchor.constraint(equalToConstant: 24),
         ])
