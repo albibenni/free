@@ -103,6 +103,8 @@ class AppState: ObservableObject {
     let launchAtLoginService: LaunchAtLoginService
     let timerCoordinator: AppStateTimerCoordinator
     private var persistenceCancellables = Set<AnyCancellable>()
+    private let scheduleCheckSubject = PassthroughSubject<Void, Never>()
+    private let isTesting: Bool
     var internalState = AppStateInternalState()
 
     init(
@@ -137,6 +139,7 @@ class AppState: ObservableObject {
         self.calendarProvider = dependencies.calendarProvider
         self.timerCoordinator = dependencies.timerCoordinator
         self.launchAtLoginService = dependencies.launchAtLoginService
+        self.isTesting = isTesting
 
         let snapshot = AppStateBootstrapService.snapshot(from: settingsStore)
         let bootstrapProjection = AppStateLifecycleService.makeBootstrapProjection(snapshot: snapshot)
@@ -150,6 +153,10 @@ class AppState: ObservableObject {
             bindings: persistenceBindings,
             settingsStore: settingsStore
         )
+        scheduleCheckSubject
+            .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
+            .sink { [weak self] in self?.performCheckSchedules() }
+            .store(in: &persistenceCancellables)
 
         // Migration for older builds that persisted IsBlocking but not its source.
         if let migration = AppStateLifecycleService.resolveLegacyBlockingMigration(
@@ -192,7 +199,7 @@ class AppState: ObservableObject {
         if isBlocking && !wasStartedBySchedule && !manualBlockingEnabled {
             isBlocking = false
         }
-        checkSchedules()
+        performCheckSchedules()
     }
 
     deinit {
@@ -222,6 +229,14 @@ class AppState: ObservableObject {
     }
 
     func checkSchedules() {
+        if isTesting {
+            performCheckSchedules()
+        } else {
+            scheduleCheckSubject.send()
+        }
+    }
+
+    private func performCheckSchedules() {
         synchronizeImportedCalendarSchedulesIfNeeded()
         let updated = logicFacade.checkSession(
             current: sessionState,
