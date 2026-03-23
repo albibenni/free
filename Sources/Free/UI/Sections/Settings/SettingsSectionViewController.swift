@@ -150,13 +150,15 @@ final class SettingsSectionViewController: NSViewController {
 
     private let strictSection = AppKitCardStackView()
     private let strictToggle = AppKitToggleSwitch()
-    private let strictDescriptionLabel = NSTextField(labelWithString: "When active, you cannot disable Focus Mode.")
+    private let strictDescriptionLabel = NSTextField(
+        labelWithString: "When active, you cannot disable Focus Mode.")
     private let strictDisableButton = NSButton(title: "Disable...", target: nil, action: nil)
     private let strictStatusLabel = NSTextField(labelWithString: "Active and Locking Focus Mode.")
     private let weekStartsMondaySwitch = AppKitToggleSwitch()
     private let calendarIntegrationSwitch = AppKitToggleSwitch()
     private let calendarImportsSwitch = AppKitToggleSwitch()
-    private let resyncButton = NSButton(title: "Resync Imported Schedules", target: nil, action: nil)
+    private let resyncButton = NSButton(
+        title: "Resync Imported Schedules", target: nil, action: nil)
     private let launchAtLoginSwitch = AppKitToggleSwitch()
     private let blockNewTabsSwitch = AppKitToggleSwitch()
     private let blockDeveloperHostsSwitch = AppKitToggleSwitch()
@@ -251,7 +253,8 @@ final class SettingsSectionViewController: NSViewController {
     private func addFullWidthSection(_ section: NSView) {
         scrollContainer.stackView.addArrangedSubview(section)
         section.translatesAutoresizingMaskIntoConstraints = false
-        section.widthAnchor.constraint(equalTo: scrollContainer.stackView.widthAnchor).isActive = true
+        section.widthAnchor.constraint(equalTo: scrollContainer.stackView.widthAnchor).isActive =
+            true
     }
 
     private func addSectionBlock(title: String, content: NSView) {
@@ -301,7 +304,8 @@ final class SettingsSectionViewController: NSViewController {
         section.addArrangedSubview(
             makeToggleRow(
                 title: "Launch at Login",
-                descriptionLabel: makeDescriptionLabel("Start Free automatically when you sign in."),
+                descriptionLabel: makeDescriptionLabel(
+                    "Start Free automatically when you sign in."),
                 toggle: launchAtLoginSwitch
             )
         )
@@ -324,27 +328,32 @@ final class SettingsSectionViewController: NSViewController {
         [
             makeToggleRow(
                 title: "Block New Tabs",
-                descriptionLabel: makeDescriptionLabel("When off, blank/new-tab pages are allowed by default."),
+                descriptionLabel: makeDescriptionLabel(
+                    "When off, blank/new-tab pages are allowed by default."),
                 toggle: blockNewTabsSwitch
             ),
             makeToggleRow(
                 title: "Block Localhost/Dev Ports",
-                descriptionLabel: makeDescriptionLabel("When off, localhost and loopback hosts are allowed."),
+                descriptionLabel: makeDescriptionLabel(
+                    "When off, localhost and loopback hosts are allowed."),
                 toggle: blockDeveloperHostsSwitch
             ),
             makeToggleRow(
                 title: "Block Local Network IPs",
-                descriptionLabel: makeDescriptionLabel("When off, private-network IPs are allowed."),
+                descriptionLabel: makeDescriptionLabel(
+                    "When off, private-network IPs are allowed."),
                 toggle: blockLocalNetworkHostsSwitch
             ),
             makeToggleRow(
                 title: "Allow Search Engines",
-                descriptionLabel: makeDescriptionLabel("Always allow popular search websites while blocking."),
+                descriptionLabel: makeDescriptionLabel(
+                    "Always allow popular search websites while blocking."),
                 toggle: allowSearchEngineWebsitesSwitch
             ),
             makeToggleRow(
                 title: "Allow AI Providers",
-                descriptionLabel: makeDescriptionLabel("Always allow popular AI provider websites while blocking."),
+                descriptionLabel: makeDescriptionLabel(
+                    "Always allow popular AI provider websites while blocking."),
                 toggle: allowAIProviderWebsitesSwitch
             ),
             browserLockNotice,
@@ -382,7 +391,8 @@ final class SettingsSectionViewController: NSViewController {
         section.addArrangedSubview(
             makeToggleRow(
                 title: "Cursor Fluid Animation",
-                descriptionLabel: makeDescriptionLabel("Show or hide the cursor fluid overlay effect."),
+                descriptionLabel: makeDescriptionLabel(
+                    "Show or hide the cursor fluid overlay effect."),
                 toggle: cursorFluidAnimationSwitch
             )
         )
@@ -495,7 +505,8 @@ final class SettingsSectionViewController: NSViewController {
         calendarIntegrationSwitch.state = appState.calendarIntegrationEnabled ? .on : .off
         calendarImportsSwitch.state = appState.calendarImportsBlockTime ? .on : .off
         calendarIntegrationSwitch.isEnabled = !appState.isStrictActive
-        calendarImportsSwitch.isEnabled = !appState.isStrictActive && appState.calendarIntegrationEnabled
+        calendarImportsSwitch.isEnabled =
+            !appState.isStrictActive && appState.calendarIntegrationEnabled
         resyncButton.isEnabled = appState.calendarIntegrationEnabled
 
         launchAtLoginSwitch.state = appState.launchAtLoginStatus() ? .on : .off
@@ -600,7 +611,19 @@ final class SettingsSectionViewController: NSViewController {
         stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
 
-        let instruction = NSTextField(wrappingLabelWithString: "Type the phrase exactly to disable Unblockable Mode:")
+        let quote = NSTextField(
+            labelWithString:
+                "The moment you give up is the moment you let someone else win. — Kobe Bryant")
+        quote.font = NSFontManager.shared.convert(
+            NSFont.systemFont(ofSize: 13, weight: .heavy), toHaveTrait: .italicFontMask)
+        quote.textColor = FocusColor.nsColor(for: appState.accentColorIndex)
+        quote.lineBreakMode = .byWordWrapping
+        quote.translatesAutoresizingMaskIntoConstraints = false
+        quote.cell?.wraps = true
+        quote.usesSingleLineMode = false
+
+        let instruction = NSTextField(
+            wrappingLabelWithString: "Type the phrase exactly to disable Unblockable Mode:")
         instruction.font = .systemFont(ofSize: 13, weight: .semibold)
         instruction.textColor = .labelColor
         instruction.lineBreakMode = .byWordWrapping
@@ -620,6 +643,7 @@ final class SettingsSectionViewController: NSViewController {
         input.translatesAutoresizingMaskIntoConstraints = false
         input.controlSize = .regular
 
+        stack.addArrangedSubview(quote)
         stack.addArrangedSubview(instruction)
         stack.addArrangedSubview(phrase)
         stack.addArrangedSubview(input)
@@ -745,7 +769,9 @@ extension SettingsSectionViewController {
     var calendarControlsLockedForTesting: Bool { !calendarIntegrationSwitch.isEnabled }
     var browserControlsLockedForTesting: Bool { !blockNewTabsSwitch.isEnabled }
     var launchAtLoginEnabledForTesting: Bool { launchAtLoginSwitch.state == .on }
-    var appearanceSelectionColorForTesting: NSColor? { appearanceModeControl?.selectedButtonTintColor }
+    var appearanceSelectionColorForTesting: NSColor? {
+        appearanceModeControl?.selectedButtonTintColor
+    }
 
     func selectAccentColorForTesting(index: Int) {
         let button = NSButton()
