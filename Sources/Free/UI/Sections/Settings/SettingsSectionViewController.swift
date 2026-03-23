@@ -602,7 +602,7 @@ final class SettingsSectionViewController: NSViewController {
 
     private func makeStrictModeUnlockAccessoryView() -> (NSView, NSTextField) {
         let containerWidth: CGFloat = 340
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: containerWidth, height: 80))
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: containerWidth, height: 120))
         container.translatesAutoresizingMaskIntoConstraints = false
 
         let stack = NSStackView()
@@ -621,7 +621,7 @@ final class SettingsSectionViewController: NSViewController {
         quote.translatesAutoresizingMaskIntoConstraints = false
 
         let instruction = NSTextField(
-            wrappingLabelWithString: "Type the phrase exactly to disable Unblockable Mode:")
+            wrappingLabelWithString: "Type the phrase")
         instruction.font = .systemFont(ofSize: 13, weight: .semibold)
         instruction.textColor = .labelColor
         instruction.lineBreakMode = .byWordWrapping
@@ -635,15 +635,26 @@ final class SettingsSectionViewController: NSViewController {
         phrase.textColor = .secondaryLabelColor
         phrase.lineBreakMode = .byWordWrapping
         phrase.translatesAutoresizingMaskIntoConstraints = false
+        let instruction2 = NSTextField(
+            wrappingLabelWithString: "to disable Unblockable Mode:")
+        instruction2.font = .systemFont(ofSize: 13, weight: .semibold)
+        instruction2.textColor = .labelColor
+        instruction2.lineBreakMode = .byWordWrapping
+        instruction2.translatesAutoresizingMaskIntoConstraints = false
 
         let input = NSTextField(string: "")
-        input.placeholderString = "Type the phrase exactly"
+        input.placeholderString = "Type the phrase..."
         input.translatesAutoresizingMaskIntoConstraints = false
         input.controlSize = .regular
 
         stack.addArrangedSubview(quote)
-        stack.addArrangedSubview(instruction)
-        stack.addArrangedSubview(phrase)
+        let hStack = NSStackView(views: [instruction, phrase, instruction2])
+        hStack.orientation = .horizontal
+        hStack.spacing = 4
+        hStack.alignment = .centerY
+        hStack.translatesAutoresizingMaskIntoConstraints = false
+
+        stack.addArrangedSubview(hStack)
         stack.addArrangedSubview(input)
         container.addSubview(stack)
         NSLayoutConstraint.activate([
@@ -652,8 +663,7 @@ final class SettingsSectionViewController: NSViewController {
             stack.topAnchor.constraint(equalTo: container.topAnchor),
             stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             quote.widthAnchor.constraint(equalTo: container.widthAnchor),
-            instruction.widthAnchor.constraint(equalTo: container.widthAnchor),
-            phrase.widthAnchor.constraint(equalTo: container.widthAnchor),
+            hStack.widthAnchor.constraint(equalTo: container.widthAnchor),
             input.widthAnchor.constraint(equalTo: container.widthAnchor),
             input.heightAnchor.constraint(equalToConstant: 24),
         ])
