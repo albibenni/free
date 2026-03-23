@@ -118,6 +118,10 @@
 - [x] redo tests
   - [x] coverage
 
+## Strict mode
+
+- [ ] don't allow to copy paste the challenge phrase
+
 ## Performance check
 
 - [x] auto remove previous calendar imports - if they are in the past week
