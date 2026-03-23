@@ -121,6 +121,11 @@
 ## Strict mode
 
 - [ ] don't allow to copy paste the challenge phrase
+- [ ] regression:
+  - [ ] can modify schedule with unblockable mode on
+    - [ ] dialog should show new quote and new challenge phrase
+  - [ ] check if pomodoro can be stop with unblockable mode on
+  - [ ] check if quick break can be used with unblockable mode on
 
 ## Performance check
 
