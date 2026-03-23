@@ -9,6 +9,10 @@ protocol BrowserAutomator {
 }
 
 class BrowserMonitor {
+    enum Event {
+        case trustedStateChanged(Bool)
+    }
+
     private enum TestRuntime {
         static func isActive() -> Bool {
             let environment = ProcessInfo.processInfo.environment
@@ -32,7 +36,7 @@ class BrowserMonitor {
     private var timer: (any RepeatingTimer)?
     private let timerLock = NSLock()
     private let stateSnapshotProvider: () -> StateSnapshot?
-    private let setTrustedState: (Bool) -> Void
+    private let onEvent: (Event) -> Void
     private let server: LocalServer?
     private let automator: BrowserAutomator
     private let timerScheduler: any RepeatingTimerScheduling
@@ -69,7 +73,7 @@ class BrowserMonitor {
 
     init(
         stateSnapshotProvider: @escaping () -> StateSnapshot?,
-        setTrustedState: @escaping (Bool) -> Void,
+        onEvent: @escaping (Event) -> Void,
         server: LocalServer? = LocalServer(),
         automator: BrowserAutomator = DefaultBrowserAutomator(),
         supportedBrowsers: Set<String> = BrowserMonitor.defaultBrowsers,
@@ -81,7 +85,7 @@ class BrowserMonitor {
         startTimer: Bool = true
     ) {
         self.stateSnapshotProvider = stateSnapshotProvider
-        self.setTrustedState = setTrustedState
+        self.onEvent = onEvent
         self.server = server
         self.automator = automator
         self.timerScheduler = timerScheduler
@@ -104,7 +108,7 @@ class BrowserMonitor {
     func checkPermissions(prompt: Bool = false) {
         let trusted = automator.checkPermissions(prompt: prompt)
         DispatchQueue.main.async { [weak self] in
-            self?.setTrustedState(trusted)
+            self?.onEvent(.trustedStateChanged(trusted))
         }
     }
 

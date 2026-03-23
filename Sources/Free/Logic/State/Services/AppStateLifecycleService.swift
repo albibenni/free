@@ -102,7 +102,7 @@ enum AppStateLifecycleService {
         calendarProvider: any CalendarProvider,
         timerCoordinator: AppStateTimerCoordinator,
         monitorStateSnapshotProvider: @escaping () -> BrowserMonitor.StateSnapshot?,
-        setTrustedState: @escaping (Bool) -> Void,
+        onMonitorEvent: @escaping (BrowserMonitor.Event) -> Void,
         onScheduleUpdate: @escaping () -> Void
     ) -> RuntimeBindings {
         let monitor = AppStateRuntimeWiringCoordinator.resolveMonitor(
@@ -111,7 +111,7 @@ enum AppStateLifecycleService {
         ) {
             AppStateRuntimeMonitorFactory.makeMonitor(
                 stateSnapshotProvider: monitorStateSnapshotProvider,
-                setTrustedState: setTrustedState
+                onEvent: onMonitorEvent
             )
         }
 

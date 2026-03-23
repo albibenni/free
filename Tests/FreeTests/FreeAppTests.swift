@@ -541,7 +541,7 @@ struct FreeAppTests {
             let automator = PermissionAutomator()
             let monitor = BrowserMonitor(
                 stateSnapshotProvider: { nil },
-                setTrustedState: { _ in },
+                onEvent: { _ in },
                 server: nil,
                 automator: automator,
                 startTimer: false

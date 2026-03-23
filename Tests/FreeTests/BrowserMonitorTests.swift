@@ -64,8 +64,8 @@ struct BrowserMonitorTests {
                     allowedRules: appState.allowedRules
                 )
             },
-            setTrustedState: { trusted in
-                appState.isTrusted = trusted
+            onEvent: { event in
+                if case .trustedStateChanged(let trusted) = event { appState.isTrusted = trusted }
             },
             server: nil,
             automator: mock,
@@ -105,8 +105,8 @@ struct BrowserMonitorTests {
                     allowedRules: appState.allowedRules
                 )
             },
-            setTrustedState: { trusted in
-                appState.isTrusted = trusted
+            onEvent: { event in
+                if case .trustedStateChanged(let trusted) = event { appState.isTrusted = trusted }
             },
             server: nil,
             automator: mock,
@@ -456,8 +456,8 @@ struct BrowserMonitorTests {
                     allowedRules: appState.allowedRules
                 )
             },
-            setTrustedState: { trusted in
-                appState.isTrusted = trusted
+            onEvent: { event in
+                if case .trustedStateChanged(let trusted) = event { appState.isTrusted = trusted }
             },
             server: nil,
             automator: mock,

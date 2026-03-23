@@ -17,7 +17,7 @@ struct AppStateRuntimeWiringCoordinatorTests {
                     allowedRules: []
                 )
             },
-            setTrustedState: { _ in },
+            onEvent: { _ in },
             server: nil,
             startTimer: startTimer
         )

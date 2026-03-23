@@ -501,7 +501,7 @@ struct CoverageExpansionTests {
 
         let monitor = BrowserMonitor(
             stateSnapshotProvider: { nil },
-            setTrustedState: { _ in },
+            onEvent: { _ in },
             server: nil,
             automator: ImportFlowAutomator(urls: ["https://example.com/path"]),
             startTimer: false

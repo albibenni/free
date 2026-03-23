@@ -3,11 +3,11 @@ import Foundation
 enum AppStateRuntimeMonitorFactory {
     static func makeMonitor(
         stateSnapshotProvider: @escaping () -> BrowserMonitor.StateSnapshot?,
-        setTrustedState: @escaping (Bool) -> Void
+        onEvent: @escaping (BrowserMonitor.Event) -> Void
     ) -> BrowserMonitor {
         BrowserMonitor(
             stateSnapshotProvider: stateSnapshotProvider,
-            setTrustedState: setTrustedState
+            onEvent: onEvent
         )
     }
 }

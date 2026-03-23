@@ -18,7 +18,7 @@ struct AppStateLifecycleServiceTests {
                     allowedRules: []
                 )
             },
-            setTrustedState: { _ in },
+            onEvent: { _ in },
             server: nil,
             startTimer: false
         )
@@ -143,7 +143,7 @@ struct AppStateLifecycleServiceTests {
             calendarProvider: calendar,
             timerCoordinator: timerCoordinator,
             monitorStateSnapshotProvider: { nil },
-            setTrustedState: { _ in },
+            onMonitorEvent: { _ in },
             onScheduleUpdate: { scheduleUpdateCount += 1 }
         )
 
@@ -180,7 +180,7 @@ struct AppStateLifecycleServiceTests {
             calendarProvider: calendar,
             timerCoordinator: timerCoordinator,
             monitorStateSnapshotProvider: { nil },
-            setTrustedState: { _ in },
+            onMonitorEvent: { _ in },
             onScheduleUpdate: {}
         )
 

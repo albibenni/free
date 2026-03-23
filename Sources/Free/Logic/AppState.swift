@@ -189,8 +189,11 @@ class AppState: ObservableObject {
                     )
                 }
             },
-            setTrustedState: { [weak self] trusted in
-                self?.isTrusted = trusted
+            onMonitorEvent: { [weak self] event in
+                switch event {
+                case .trustedStateChanged(let trusted):
+                    self?.isTrusted = trusted
+                }
             },
             onScheduleUpdate: { [weak self] in self?.checkSchedules() }
         )

@@ -34,7 +34,7 @@ struct ModalAndShellCoverageTests {
         defaults.removePersistentDomain(forName: suite)
         let monitor = BrowserMonitor(
             stateSnapshotProvider: { nil },
-            setTrustedState: { _ in },
+            onEvent: { _ in },
             server: nil,
             automator: ImportCoverageAutomator(openUrls: openUrls),
             startTimer: false
