@@ -319,7 +319,7 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func openStrictModeWiki() {
-        guard let url = URL(string: "https://github.com/albibenni/free/wiki/Strict-Mode") else { return }
+        guard let url = URL(string: "https://github.com/albibenni/free/blob/main/Docs/strict-mode.md") else { return }
         Self.workspaceURLOpener(url)
     }
 
