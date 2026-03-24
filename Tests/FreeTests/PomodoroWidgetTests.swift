@@ -181,7 +181,7 @@ struct PomodoroWidgetTests {
         #expect(breakDial.durationMinutesForTesting == 15)
     }
 
-    @Test("FocusPomodoroWidgetView disables quick-break controls when blocking is inactive or strict")
+    @Test("FocusPomodoroWidgetView disables quick-break controls when blocking is inactive; enables with challenge in strict mode")
     @MainActor
     func pomodoroWidgetQuickBreakDisabledStates() {
         let inactiveState = isolatedAppState(name: "inactiveQuickBreak")
@@ -192,13 +192,14 @@ struct PomodoroWidgetTests {
         #expect(buttons(in: inactiveHosted).first { $0.title == "5m" }?.isEnabled == false)
         #expect(buttons(in: inactiveHosted).first { $0.title == "Cust" }?.isEnabled == false)
 
+        // In strict+blocking mode, buttons are enabled — clicking them shows the challenge dialog
         let strictState = isolatedAppState(name: "strictQuickBreak")
         strictState.isBlocking = true
         strictState.isStrict = true
         let strictHosted = host(FocusPomodoroWidgetView(appState: strictState))
 
-        #expect(buttons(in: strictHosted).first { $0.title == "5m" }?.isEnabled == false)
-        #expect(buttons(in: strictHosted).first { $0.title == "Cust" }?.isEnabled == false)
+        #expect(buttons(in: strictHosted).first { $0.title == "5m" }?.isEnabled == true)
+        #expect(buttons(in: strictHosted).first { $0.title == "Cust" }?.isEnabled == true)
     }
 
     @Test("FocusPomodoroWidgetView selects rule sets and locks them during strict mode")

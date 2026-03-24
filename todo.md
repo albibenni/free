@@ -124,19 +124,22 @@
   - [x] can modify schedule with strict mode on
     - [x] dialog should show new quote and new challenge phrase
 
-- [ ] quick break cannot be pressed in strict mode
-  - [ ] should be a dialog challenge to start the break if strict mode is on
+- [x] quick break cannot be pressed in strict mode
+  - [x] should be a dialog challenge to start the break if strict mode is on
 
-- [ ] pomodoro stop button cannot be pressed in strict mode
-  - [ ] should be a dialog challenge to stop the pomodoro if strict mode is on
-- [ ] dialog vanished from add websites inside import open tabs
+- [x] pomodoro stop button cannot be pressed in strict mode
+  - [x] should be a dialog challenge to stop the pomodoro if strict mode is on
+- [x] dialog vanished from add websites inside import open tabs
 - [ ] dialog - challenge for blocked toggle if strict mode is on
-- [ ] dialog - challeng in schedule it pop up but on click, then the save button is blocked
-  - [ ] remove edit schedule dialog
-  - [ ] add dialog challenge when creating a schedule with strict mode on or clicking save on a schedule with strict mode on
+- [x] dialog - challeng in schedule it pop up but on click, then the save button is blocked
+  - [x] remove edit schedule dialog
+  - [x] add dialog challenge when creating a schedule with strict mode on or clicking save on a schedule with strict mode on
   - [x] delete schedule work as intended
-- [ ] toggle in settings disabled by strict mode should work with the dialog challenge
-- [ ] don't allow to copy paste the challenge phrase
+- [x] toggle in settings disabled by strict mode should work with the dialog challenge
+- [x] don't allow to copy paste the challenge phrase
+  - [ ] still allows right click copy paste - should be disabled
+  - [ ] remove the text selection on the dialog
+- [ ] on import open tabs - if strict mode is on the dialog should pop up once the website are selected and clicking the add button should trigger the dialog challenge
 
 ## Performance check
 

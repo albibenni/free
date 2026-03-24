@@ -1,5 +1,15 @@
 import AppKit
 
+private final class NoPasteTextField: NSTextField {
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.modifierFlags.contains(.command) {
+            let char = event.charactersIgnoringModifiers
+            if char == "v" { return true }
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+}
+
 enum StrictModeChallenge {
     typealias AlertFactory = () -> NSAlert
     typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
@@ -82,7 +92,7 @@ enum StrictModeChallenge {
         instruction.attributedStringValue = instructionText
         instruction.translatesAutoresizingMaskIntoConstraints = false
 
-        let input = NSTextField(string: "")
+        let input = NoPasteTextField(string: "")
         input.placeholderString = "Type the phrase..."
         input.translatesAutoresizingMaskIntoConstraints = false
         input.controlSize = .regular

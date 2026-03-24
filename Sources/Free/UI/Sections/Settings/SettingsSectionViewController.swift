@@ -504,9 +504,8 @@ final class SettingsSectionViewController: NSViewController {
         weekStartsMondaySwitch.state = appState.weekStartsOnMonday ? .on : .off
         calendarIntegrationSwitch.state = appState.calendarIntegrationEnabled ? .on : .off
         calendarImportsSwitch.state = appState.calendarImportsBlockTime ? .on : .off
-        calendarIntegrationSwitch.isEnabled = !appState.isStrictActive
-        calendarImportsSwitch.isEnabled =
-            !appState.isStrictActive && appState.calendarIntegrationEnabled
+        calendarIntegrationSwitch.isEnabled = true
+        calendarImportsSwitch.isEnabled = appState.calendarIntegrationEnabled
         resyncButton.isEnabled = appState.calendarIntegrationEnabled
 
         launchAtLoginSwitch.state = appState.launchAtLoginStatus() ? .on : .off
@@ -517,11 +516,11 @@ final class SettingsSectionViewController: NSViewController {
         allowAIProviderWebsitesSwitch.state = appState.allowAIProviderWebsites ? .on : .off
         cursorFluidAnimationSwitch.state = appState.cursorFluidAnimationEnabled ? .on : .off
         let browserLocked = appState.isStrict
-        blockNewTabsSwitch.isEnabled = !browserLocked
-        blockDeveloperHostsSwitch.isEnabled = !browserLocked
-        blockLocalNetworkHostsSwitch.isEnabled = !browserLocked
-        allowSearchEngineWebsitesSwitch.isEnabled = !browserLocked
-        allowAIProviderWebsitesSwitch.isEnabled = !browserLocked
+        blockNewTabsSwitch.isEnabled = true
+        blockDeveloperHostsSwitch.isEnabled = true
+        blockLocalNetworkHostsSwitch.isEnabled = true
+        allowSearchEngineWebsitesSwitch.isEnabled = true
+        allowAIProviderWebsitesSwitch.isEnabled = true
         browserLockNotice.isHidden = !browserLocked
 
         for button in accentButtons {
@@ -604,11 +603,31 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func toggleCalendarIntegration() {
+        if appState.isStrictActive {
+            guard StrictModeChallenge.run(
+                title: "Calendar Settings",
+                action: "change calendar settings",
+                appState: appState
+            ) else {
+                calendarIntegrationSwitch.state = appState.calendarIntegrationEnabled ? .on : .off
+                return
+            }
+        }
         appState.calendarIntegrationEnabled = calendarIntegrationSwitch.state == .on
     }
 
     @objc
     private func toggleCalendarImports() {
+        if appState.isStrictActive {
+            guard StrictModeChallenge.run(
+                title: "Calendar Settings",
+                action: "change calendar settings",
+                appState: appState
+            ) else {
+                calendarImportsSwitch.state = appState.calendarImportsBlockTime ? .on : .off
+                return
+            }
+        }
         appState.calendarImportsBlockTime = calendarImportsSwitch.state == .on
     }
 
@@ -660,31 +679,76 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func toggleBlockNewTabs() {
-        guard !appState.isStrict else { return }
+        if appState.isStrict {
+            guard StrictModeChallenge.run(
+                title: "Browser Settings",
+                action: "change browser settings",
+                appState: appState
+            ) else {
+                blockNewTabsSwitch.state = appState.blockNewTabs ? .on : .off
+                return
+            }
+        }
         appState.blockNewTabs = blockNewTabsSwitch.state == .on
     }
 
     @objc
     private func toggleBlockDeveloperHosts() {
-        guard !appState.isStrict else { return }
+        if appState.isStrict {
+            guard StrictModeChallenge.run(
+                title: "Browser Settings",
+                action: "change browser settings",
+                appState: appState
+            ) else {
+                blockDeveloperHostsSwitch.state = appState.blockDeveloperHosts ? .on : .off
+                return
+            }
+        }
         appState.blockDeveloperHosts = blockDeveloperHostsSwitch.state == .on
     }
 
     @objc
     private func toggleBlockLocalNetworkHosts() {
-        guard !appState.isStrict else { return }
+        if appState.isStrict {
+            guard StrictModeChallenge.run(
+                title: "Browser Settings",
+                action: "change browser settings",
+                appState: appState
+            ) else {
+                blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .on : .off
+                return
+            }
+        }
         appState.blockLocalNetworkHosts = blockLocalNetworkHostsSwitch.state == .on
     }
 
     @objc
     private func toggleAllowSearchEngineWebsites() {
-        guard !appState.isStrict else { return }
+        if appState.isStrict {
+            guard StrictModeChallenge.run(
+                title: "Browser Settings",
+                action: "change browser settings",
+                appState: appState
+            ) else {
+                allowSearchEngineWebsitesSwitch.state = appState.allowSearchEngineWebsites ? .on : .off
+                return
+            }
+        }
         appState.allowSearchEngineWebsites = allowSearchEngineWebsitesSwitch.state == .on
     }
 
     @objc
     private func toggleAllowAIProviderWebsites() {
-        guard !appState.isStrict else { return }
+        if appState.isStrict {
+            guard StrictModeChallenge.run(
+                title: "Browser Settings",
+                action: "change browser settings",
+                appState: appState
+            ) else {
+                allowAIProviderWebsitesSwitch.state = appState.allowAIProviderWebsites ? .on : .off
+                return
+            }
+        }
         appState.allowAIProviderWebsites = allowAIProviderWebsitesSwitch.state == .on
     }
 

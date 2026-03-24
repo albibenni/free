@@ -210,17 +210,9 @@ struct SchedulesViewTests {
         #expect(controller.editorContextForTesting == nil)
     }
 
-    @Test("Schedules sheet strict-mode callback closures block select/update and show lock alert")
+    @Test("Schedules sheet strict-mode callback closures use challenge dialog; cancel keeps editor closed")
     @MainActor
     func schedulesViewStrictCallbacksShowLockAlert() {
-        defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
-        var alertRunCount = 0
-        SchedulesSheetViewController.makeScheduleModificationBlockedAlert = { NSAlert() }
-        SchedulesSheetViewController.runScheduleModificationBlockedAlert = { _ in
-            alertRunCount += 1
-            return .alertFirstButtonReturn
-        }
-
         let appState = isolatedAppState(name: "strictCallbacksShowLockAlert")
         var schedule = sampleSchedule(name: "Locked Callback")
         schedule.days = [2]
@@ -236,7 +228,12 @@ struct SchedulesViewTests {
         _ = host(controller)
 
         let config = controller.appKitConfigurationForTesting
+        // In tests StrictModeChallenge returns cancel — onSelectSchedule should not open the editor
         config.onSelectSchedule(schedule)
+        #expect(controller.editorContextForTesting == nil)
+
+        // onUpdateSchedule with challenge cancel should leave schedule unchanged
+        let originalStart = schedule.startTime
         config.calendarViewConfiguration.onUpdateSchedule(
             schedule.id,
             2,
@@ -245,9 +242,7 @@ struct SchedulesViewTests {
             schedule.startTime.addingTimeInterval(600),
             schedule.endTime.addingTimeInterval(600)
         )
-
-        #expect(alertRunCount == 1)
-        #expect(controller.editorContextForTesting == nil)
+        #expect(appState.schedules.first(where: { $0.id == schedule.id })?.startTime == originalStart)
     }
 
     @Test("Schedules sheet default lock alert runner uses native modal branch outside XCTest env")

@@ -404,7 +404,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
             ),
             color: primaryButtonColor
         )
-        saveButton.isEnabled = !appState.isStrict && !ScheduleEditorSupport.isSaveDisabled(
+        saveButton.isEnabled = !ScheduleEditorSupport.isSaveDisabled(
             days: days,
             modifyAllDays: modifyAllDays,
             isRecurring: isRecurring

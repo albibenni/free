@@ -316,7 +316,7 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
-    @Test("floating editor import calls presenter before checking strict lock; returning nil blocks add")
+    @Test("floating editor import checks strict lock before showing candidate picker; challenge cancel blocks add")
     func importLockedWhenStrictEditingLockIsActive() {
         let appState = makeAppState(
             name: "importLockedWhenStrictEditingLockIsActive",
@@ -337,8 +337,9 @@ struct AllowedWebsitesFloatingEditorTests {
             return nil
         }
 
+        // Challenge runs first; in tests StrictModeChallenge returns cancel, so presenter is not called
         controller.handleImportOpenTabs()
-        #expect(presenterCalls == 1)
+        #expect(presenterCalls == 0)
     }
 
     @MainActor

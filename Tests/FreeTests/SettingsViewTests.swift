@@ -281,7 +281,7 @@ struct SettingsViewTests {
         #expect(controller.shouldShowStrictDisableButtonForTesting == false)
     }
 
-    @Test("Settings controller calendar controls lock only during strict active mode")
+    @Test("Settings controller calendar controls always enabled; challenge guards changes in strict active mode")
     @MainActor
     func settingsControllerCalendarControlsLockState() {
         let appState = isolatedAppState(name: "calendarControlsLockState")
@@ -289,15 +289,16 @@ struct SettingsViewTests {
         appState.isStrict = true
         let notStrict = SettingsSectionViewController(appState: appState)
         _ = host(notStrict)
+        // Controls are always enabled — challenge dialog protects them
         #expect(notStrict.calendarControlsLockedForTesting == false)
 
         appState.isBlocking = true
         let strict = SettingsSectionViewController(appState: appState)
         _ = host(strict)
-        #expect(strict.calendarControlsLockedForTesting)
+        #expect(strict.calendarControlsLockedForTesting == false)
     }
 
-    @Test("Settings controller browser controls lock whenever strict mode is enabled")
+    @Test("Settings controller browser controls always enabled; strict notice shown and challenge guards changes")
     @MainActor
     func settingsControllerBrowserControlsLockState() {
         let appState = isolatedAppState(name: "browserControlsLockState")
@@ -315,7 +316,8 @@ struct SettingsViewTests {
         appState.isStrict = true
         let locked = SettingsSectionViewController(appState: appState)
         let lockedView = host(locked)
-        #expect(locked.browserControlsLockedForTesting)
+        // Controls stay enabled but lock notice is shown; challenge guards actual changes
+        #expect(locked.browserControlsLockedForTesting == false)
         #expect(
             visibleText(in: lockedView).contains(
                 "Strict mode is active. Browser blocking settings cannot be changed."
@@ -323,7 +325,7 @@ struct SettingsViewTests {
         )
     }
 
-    @Test("Settings browser toggle handlers return early while strict is enabled")
+    @Test("Settings browser toggle handlers show challenge and revert switch while strict is enabled")
     @MainActor
     func settingsControllerBrowserToggleGuardBranches() {
         let appState = isolatedAppState(name: "browserToggleGuardBranches")

@@ -238,7 +238,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             )
         }
 
-        let quickBreakEnabled = appState.isBlocking && !appState.isStrictActive
+        let quickBreakEnabled = appState.isBlocking
         quickBreakButtons.forEach { $0.isEnabled = quickBreakEnabled }
         customBreakButton?.isEnabled = quickBreakEnabled
 
@@ -524,9 +524,16 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                 selectedColor: .secondaryLabelColor,
                 width: 50
             ) { [self] in
+                if self.appState.isStrict {
+                    guard StrictModeChallenge.run(
+                        title: "Quick Break",
+                        action: "start a quick break",
+                        appState: self.appState
+                    ) else { return }
+                }
                 self.appState.startPause(minutes: Double(minutes))
             }
-            button.isEnabled = appState.isBlocking && !appState.isStrictActive
+            button.isEnabled = appState.isBlocking
             quickBreakButtons.append(button)
             buttons.addArrangedSubview(button)
         }
@@ -539,7 +546,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         ) { [self] in
             self.presentCustomBreakPrompt()
         }
-        customButton.isEnabled = appState.isBlocking && !appState.isStrictActive
+        customButton.isEnabled = appState.isBlocking
         customBreakButton = customButton
         buttons.addArrangedSubview(customButton)
 
@@ -621,6 +628,14 @@ final class FocusPomodoroWidgetView: AppKitCardView {
     }
 
     private func presentCustomBreakPrompt() {
+        if appState.isStrict {
+            guard StrictModeChallenge.run(
+                title: "Quick Break",
+                action: "start a quick break",
+                appState: appState
+            ) else { return }
+        }
+
         let field = NSTextField(string: "")
         field.placeholderString = "Minutes"
         field.frame = CGRect(x: 0, y: 0, width: 320, height: 24)

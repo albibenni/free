@@ -281,9 +281,12 @@ final class SchedulesSheetViewController: NSViewController {
                 },
                 onUpdateSchedule: { [weak self, weak appState] scheduleId, originalDay, targetDay, targetDate, start, end in
                     guard let self else { return }
-                    guard self.canModifySchedules else {
-                        self.showScheduleModificationBlockedAlert()
-                        return
+                    if !self.canModifySchedules {
+                        guard StrictModeChallenge.run(
+                            title: "Move Schedule",
+                            action: "move this schedule",
+                            appState: self.appState
+                        ) else { return }
                     }
                     appState?.updateScheduleOccurrence(
                         id: scheduleId,
@@ -338,9 +341,12 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func setScheduleEnabled(scheduleId: UUID, isEnabled: Bool) {
-        guard canModifySchedules else {
-            showScheduleModificationBlockedAlert()
-            return
+        if !canModifySchedules {
+            guard StrictModeChallenge.run(
+                title: "Toggle Schedule",
+                action: "toggle this schedule",
+                appState: appState
+            ) else { return }
         }
         guard let index = appState.schedules.firstIndex(where: { $0.id == scheduleId }) else {
             return
@@ -373,9 +379,12 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func quickAdd(day: Int, hour: Int) {
-        guard canModifySchedules else {
-            showScheduleModificationBlockedAlert()
-            return
+        if !canModifySchedules {
+            guard StrictModeChallenge.run(
+                title: "Add Schedule",
+                action: "add a new schedule",
+                appState: appState
+            ) else { return }
         }
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: hour, minute: 0))
@@ -392,9 +401,12 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openSelectionEditor(day: Int, startHour: CGFloat, endHour: CGFloat) {
-        guard canModifySchedules else {
-            showScheduleModificationBlockedAlert()
-            return
+        if !canModifySchedules {
+            guard StrictModeChallenge.run(
+                title: "Add Schedule",
+                action: "add a new schedule",
+                appState: appState
+            ) else { return }
         }
         let result = WeeklyCalendarSupport.calculateDragSelection(
             startHour: startHour,
