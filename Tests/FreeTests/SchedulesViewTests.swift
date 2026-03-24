@@ -117,7 +117,7 @@ struct SchedulesViewTests {
         #expect(controller.editorContextForTesting != nil)
     }
 
-    @Test("Schedules sheet blocks schedule mutations while strict mode is active")
+    @Test("Schedules sheet opens editor freely when strict; only save/toggle/delete are challenge-gated")
     @MainActor
     func schedulesViewBlocksMutationsWhenStrictActive() {
         let appState = isolatedAppState(name: "blocksMutationsWhenStrictActive")
@@ -133,18 +133,20 @@ struct SchedulesViewTests {
         )
         _ = host(controller)
 
+        // Opening the editor is always allowed — challenge fires only on Save.
         controller.openAddScheduleForTesting()
-        #expect(controller.editorContextForTesting == nil)
+        #expect(controller.editorContextForTesting != nil)
 
         controller.quickAddForTesting(day: 2, hour: 10)
-        #expect(controller.editorContextForTesting == nil)
+        #expect(controller.editorContextForTesting != nil)
 
         controller.openSelectionEditorForTesting(day: 2, startHour: 9.0, endHour: 10.0)
-        #expect(controller.editorContextForTesting == nil)
+        #expect(controller.editorContextForTesting != nil)
 
         controller.openScheduleEditorForTesting(day: 2, schedule: schedule)
-        #expect(controller.editorContextForTesting == nil)
+        #expect(controller.editorContextForTesting != nil)
 
+        // Direct mutations (no editor) are still challenge-gated; challenge cancels in tests.
         controller.setScheduleEnabledForTesting(scheduleId: schedule.id, isEnabled: false)
         #expect(appState.schedules.first?.isEnabled == true)
 
@@ -152,7 +154,7 @@ struct SchedulesViewTests {
         #expect(appState.schedules.contains(where: { $0.id == schedule.id }))
     }
 
-    @Test("Schedules sheet blocks schedule modifications when strict is on (regardless of focus state)")
+    @Test("Schedules sheet opens editor in strict-only mode; direct mutations remain challenge-gated")
     @MainActor
     func schedulesViewAllowsMutationsWhenStrictButNotBlocking() {
         let appState = isolatedAppState(name: "allowsMutationsWhenStrictButNotBlocking")
@@ -168,14 +170,16 @@ struct SchedulesViewTests {
         )
         _ = host(controller)
 
+        // Editor opens freely; challenge fires only on Save.
         controller.openAddScheduleForTesting()
-        #expect(controller.editorContextForTesting == nil)
+        #expect(controller.editorContextForTesting != nil)
 
+        // Direct toggle is still challenge-gated (challenge cancels in tests).
         controller.setScheduleEnabledForTesting(scheduleId: schedule.id, isEnabled: false)
         #expect(appState.schedules.first?.isEnabled == true)
     }
 
-    @Test("Schedules sheet openAddSchedule uses StrictModeChallenge (not blocked alert) and stays blocked when strict")
+    @Test("Schedules sheet openAddSchedule always opens editor regardless of strict mode; no blocked alert shown")
     @MainActor
     func schedulesViewShowsStrictLockAlert() {
         defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
@@ -202,15 +206,15 @@ struct SchedulesViewTests {
 
         controller.openAddScheduleForTesting()
         #expect(alertRunCount == 0)
-        #expect(controller.editorContextForTesting == nil)
+        #expect(controller.editorContextForTesting != nil)
 
         appState.isBlocking = false
         controller.openAddScheduleForTesting()
         #expect(alertRunCount == 0)
-        #expect(controller.editorContextForTesting == nil)
+        #expect(controller.editorContextForTesting != nil)
     }
 
-    @Test("Schedules sheet strict-mode callback closures use challenge dialog; cancel keeps editor closed")
+    @Test("Schedules sheet onSelectSchedule opens editor freely; onUpdateSchedule is still challenge-gated")
     @MainActor
     func schedulesViewStrictCallbacksShowLockAlert() {
         let appState = isolatedAppState(name: "strictCallbacksShowLockAlert")
@@ -228,9 +232,9 @@ struct SchedulesViewTests {
         _ = host(controller)
 
         let config = controller.appKitConfigurationForTesting
-        // In tests StrictModeChallenge returns cancel — onSelectSchedule should not open the editor
+        // onSelectSchedule just opens the editor — no challenge required
         config.onSelectSchedule(schedule)
-        #expect(controller.editorContextForTesting == nil)
+        #expect(controller.editorContextForTesting != nil)
 
         // onUpdateSchedule with challenge cancel should leave schedule unchanged
         let originalStart = schedule.startTime

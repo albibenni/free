@@ -260,7 +260,7 @@ struct CalendarSectionViewTests {
         )
     }
 
-    @Test("Calendar section blocks break/focus title rule edits when strict mode is on")
+    @Test("Calendar section shows title rule controls enabled when strict; challenge cancel blocks mutations")
     @MainActor
     func calendarSectionRuleEditsLockedWhileStrict() {
         let appState = isolatedAppState(name: "ruleEditsLockedWhileStrict")
@@ -288,15 +288,18 @@ struct CalendarSectionViewTests {
             return
         }
 
-        #expect(focusField.isEnabled == false)
-        #expect(breakField.isEnabled == false)
-        #expect(addButtons[0].isEnabled == false)
-        #expect(addButtons[1].isEnabled == false)
-        #expect(tables[0].isEnabled == false)
-        #expect(tables[1].isEnabled == false)
+        // Controls are enabled (integration is on); strict mode gates via challenge, not disablement.
+        #expect(focusField.isEnabled == true)
+        #expect(breakField.isEnabled == true)
+        #expect(addButtons[0].isEnabled == true)
+        #expect(addButtons[1].isEnabled == true)
+        #expect(tables[0].isEnabled == true)
+        #expect(tables[1].isEnabled == true)
+        // Remove buttons stay disabled until a row is selected.
         #expect(removeButtons[0].isEnabled == false)
         #expect(removeButtons[1].isEnabled == false)
 
+        // Clicking Add triggers StrictModeChallenge; challenge cancels in tests → no mutation.
         focusField.stringValue = "new focus rule"
         breakField.stringValue = "new break rule"
         addButtons[0].performClick(nil)
@@ -305,7 +308,7 @@ struct CalendarSectionViewTests {
         #expect(appState.calendarImportBreakTitleRules == ["break"])
     }
 
-    @Test("Calendar section private rule actions early-return when calendar title rule editing is locked")
+    @Test("Calendar section private rule actions are blocked by challenge cancel when strict mode is active")
     @MainActor
     func calendarSectionRuleActionGuardsWhenEditingLocked() {
         let appState = isolatedAppState(name: "ruleActionGuardsWhenEditingLocked")

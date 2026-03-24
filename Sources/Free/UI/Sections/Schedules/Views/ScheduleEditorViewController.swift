@@ -571,14 +571,11 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
             modifyAllDays: modifyAllDays,
             isRecurring: isRecurring
         )
-        if appState.isStrict {
-            saveButton?.isEnabled = false
-        }
         scrollContainer.needsLayout = true
     }
 
     private func toggleSaveStateForCurrentRules() {
-        saveButton?.isEnabled = !appState.isStrict && !ScheduleEditorSupport.isSaveDisabled(
+        saveButton?.isEnabled = !ScheduleEditorSupport.isSaveDisabled(
             days: days,
             modifyAllDays: modifyAllDays,
             isRecurring: isRecurring

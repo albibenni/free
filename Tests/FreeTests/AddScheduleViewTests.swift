@@ -353,7 +353,7 @@ struct AddScheduleViewTests {
         #expect(controller.areRecurringDayButtonsEnabledForTesting == false)
     }
 
-    @Test("ScheduleEditorViewController keeps save disabled in strict mode during recurring UI updates")
+    @Test("ScheduleEditorViewController keeps save enabled in strict mode; challenge fires on click not on render")
     @MainActor
     func addScheduleViewStrictModeDisablesSaveThroughRecurringRefresh() {
         let appState = isolatedAppState(name: "strictModeDisablesSaveThroughRecurringRefresh")
@@ -364,11 +364,11 @@ struct AddScheduleViewTests {
         let hosted = host(controller)
 
         let initialSave = actionButtons(in: hosted).first(where: { $0.title.contains("Add") })
-        #expect(initialSave?.isEnabled == false)
+        #expect(initialSave?.isEnabled == true)
 
         controller.setRecurringForTesting(true)
         let updatedSave = actionButtons(in: hosted).first(where: { $0.title.contains("Add") })
-        #expect(updatedSave?.isEnabled == false)
+        #expect(updatedSave?.isEnabled == true)
     }
 
     @Test("ScheduleEditorViewController renders imported schedule editor with limited editable sections")

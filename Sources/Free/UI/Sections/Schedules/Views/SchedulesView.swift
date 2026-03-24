@@ -304,13 +304,6 @@ final class SchedulesSheetViewController: NSViewController {
             },
             onSelectSchedule: { [weak self] schedule in
                 guard let self else { return }
-                if !self.canModifySchedules {
-                    guard StrictModeChallenge.run(
-                        title: "Modify Schedule",
-                        action: "modify this schedule",
-                        appState: self.appState
-                    ) else { return }
-                }
                 self.editorContext = ScheduleEditorContext(schedule: schedule)
                 self.refreshConfiguration()
             },
@@ -379,13 +372,6 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func quickAdd(day: Int, hour: Int) {
-        if !canModifySchedules {
-            guard StrictModeChallenge.run(
-                title: "Add Schedule",
-                action: "add a new schedule",
-                appState: appState
-            ) else { return }
-        }
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: hour, minute: 0))
         let end = calendar.date(from: DateComponents(hour: hour + 1, minute: 0))
@@ -401,13 +387,6 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openSelectionEditor(day: Int, startHour: CGFloat, endHour: CGFloat) {
-        if !canModifySchedules {
-            guard StrictModeChallenge.run(
-                title: "Add Schedule",
-                action: "add a new schedule",
-                appState: appState
-            ) else { return }
-        }
         let result = WeeklyCalendarSupport.calculateDragSelection(
             startHour: startHour,
             endHour: endHour
@@ -424,13 +403,6 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openScheduleEditor(day: Int, schedule: Schedule) {
-        if !canModifySchedules {
-            guard StrictModeChallenge.run(
-                title: "Modify Schedule",
-                action: "modify this schedule",
-                appState: appState
-            ) else { return }
-        }
         editorContext = ScheduleEditorContext(
             day: day,
             schedule: schedule,
@@ -455,13 +427,6 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func openAddSchedule() {
-        if !canModifySchedules {
-            guard StrictModeChallenge.run(
-                title: "Add Schedule",
-                action: "add a new schedule",
-                appState: appState
-            ) else { return }
-        }
         editorContext = ScheduleEditorContext()
         refreshConfiguration()
     }

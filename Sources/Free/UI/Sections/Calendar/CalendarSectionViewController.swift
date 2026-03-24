@@ -747,6 +747,13 @@ final class CalendarSectionViewController: NSViewController {
         into keyPath: ReferenceWritableKeyPath<AppState, [String]>
     ) {
         guard canEditCalendarTitleRules else { return }
+        if appState.isStrict {
+            guard StrictModeChallenge.run(
+                title: "Add Calendar Rule",
+                action: "add this calendar title rule",
+                appState: appState
+            ) else { return }
+        }
         let parsed = Self.parseRules(field.stringValue)
         guard !parsed.isEmpty else { return }
         var rules = appState[keyPath: keyPath]
@@ -766,6 +773,13 @@ final class CalendarSectionViewController: NSViewController {
         guard canEditCalendarTitleRules else { return }
         let rows = selectedRows(in: focusRulesTableView)
         guard !rows.isEmpty else { return }
+        if appState.isStrict {
+            guard StrictModeChallenge.run(
+                title: "Remove Calendar Rule",
+                action: "remove this calendar title rule",
+                appState: appState
+            ) else { return }
+        }
         appState.calendarImportFocusTitleRules = removeRules(
             at: rows,
             from: appState.calendarImportFocusTitleRules
@@ -778,6 +792,13 @@ final class CalendarSectionViewController: NSViewController {
         guard canEditCalendarTitleRules else { return }
         let rows = selectedRows(in: breakRulesTableView)
         guard !rows.isEmpty else { return }
+        if appState.isStrict {
+            guard StrictModeChallenge.run(
+                title: "Remove Calendar Rule",
+                action: "remove this calendar title rule",
+                appState: appState
+            ) else { return }
+        }
         appState.calendarImportBreakTitleRules = removeRules(
             at: rows,
             from: appState.calendarImportBreakTitleRules
@@ -806,7 +827,7 @@ final class CalendarSectionViewController: NSViewController {
     }
 
     private var canEditCalendarTitleRules: Bool {
-        appState.calendarIntegrationEnabled && !appState.isStrict
+        appState.calendarIntegrationEnabled
     }
 }
 

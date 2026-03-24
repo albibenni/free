@@ -13,6 +13,10 @@
 - [x] a bit of opacity on the animation
 - [x] toggle disable animation
 
+- [ ] settings:
+  - [ ] "Strict mode is active. Browser blocking settings cannot be changed." in settings should be under the Browser blocking section
+  - [ ] the toggle allow under Browser should all be "Allow..." instead of some "Allow..." and some "Block..."
+
 ### TOPBAR
 
 - [ ] add infos
@@ -140,10 +144,12 @@
   - [x] still allows right click copy paste - should be disabled
   - [x] remove the text selection on the dialog
 - [x] on import open tabs - if strict mode is on the dialog should pop up once the website are selected and clicking the add button should trigger the dialog challenge
-- [ ] schedule if strict mode is on should not open the dialog challenge when you click on the schedule, but only when you click on save after modifying it or creating a new one
-- [ ] calendar tab strict mode
-  - [ ] the add rules (like *work* or *study*) should trigger the dialog challenge if strict mode is on
-  - [ ] the delete of imported schedule should trigger the dialog challenge if strict mode is on
+- [x] schedule if strict mode is on should not open the dialog challenge when you click on the schedule, but only when you click on save after modifying it or creating a new one
+- [x] calendar tab strict mode
+  - [x] the add rules (like *work* or *study*) should trigger the dialog challenge if strict mode is on
+  - [x] the delete of imported schedule should trigger the dialog challenge if strict mode is on
+
+- [ ] quick break in strict mode should be clickable but trigger the dialog challenge, if accepted start the break, if not do nothing
 
 ## Performance check
 
