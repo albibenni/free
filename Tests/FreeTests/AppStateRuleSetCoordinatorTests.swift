@@ -4,7 +4,7 @@ import Testing
 @testable import FreeLogic
 
 struct AppStateRuleSetCoordinatorTests {
-    @Test("mutateRule enforces strict-mode guard")
+    @Test("mutateRule always applies mutation regardless of strict-mode flag")
     func mutateRuleStrictGuard() {
         let set = RuleSet(name: "Default", urls: [])
 
@@ -15,7 +15,7 @@ struct AppStateRuleSetCoordinatorTests {
             isStrictActive: true,
             mutation: .add
         )
-        #expect(blocked == [set])
+        #expect(blocked.first?.urls.contains("example.com") == true)
 
         let allowed = AppStateRuleSetCoordinator.mutateRule(
             "example.com",

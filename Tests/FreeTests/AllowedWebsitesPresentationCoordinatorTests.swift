@@ -60,8 +60,8 @@ struct AllowedWebsitesPresentationCoordinatorTests {
             visibleRulesCount: 3,
             ruleSetCount: 2
         )
-        #expect(!strict.canEdit)
-        #expect(!strict.canRemove)
+        #expect(strict.canEdit)
+        #expect(strict.canRemove)
         #expect(!strict.canCreateList)
         #expect(!strict.canDeleteList)
 

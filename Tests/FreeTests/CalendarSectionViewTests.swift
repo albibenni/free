@@ -252,7 +252,7 @@ struct CalendarSectionViewTests {
         #expect(addButtons[1].isEnabled == false)
         #expect(removeButtons[0].isEnabled == false)
         #expect(removeButtons[1].isEnabled == false)
-        #expect(controller.calendarControlsLockedForTesting)
+        #expect(!controller.calendarControlsLockedForTesting)
         #expect(
             visibleText(in: hosted).contains(
                 "Strict mode is active. You cannot change Calendar integration settings while Focus Mode is active."

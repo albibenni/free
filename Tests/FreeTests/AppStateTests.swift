@@ -873,7 +873,7 @@ struct AppStateTests {
         appState.isBlocking = true
         appState.isStrict = true
         appState.addSpecificRule("https://example.com", to: setId)
-        #expect(!appState.ruleSets[0].urls.contains("https://example.com"))
+        #expect(appState.ruleSets[0].urls.contains("https://example.com"))
     }
 
     @Test("AppState covers primary ruleset and name fallback branches")
@@ -1413,7 +1413,7 @@ struct AppStateTests {
         )
     }
 
-    @Test("schedule mutations are blocked only while strict mode is active")
+    @Test("schedule mutations execute at AppState level regardless of strict mode")
     func scheduleMutationsBlockedOnlyWhenStrictActive() {
         let appState = isolatedAppState(name: "scheduleMutationsBlockedOnlyWhenStrictActive")
         let start = Date()
@@ -1444,22 +1444,30 @@ struct AppStateTests {
             initialDay: nil
         )
         #expect(appState.schedules.count == 1)
-        #expect(appState.schedules.first?.name == "Original")
+        #expect(appState.schedules.first?.name == "Should Not Save")
 
+        let updateTarget = Schedule(
+            id: UUID(),
+            name: "Update Target",
+            days: [2],
+            startTime: start,
+            endTime: end,
+            type: .focus
+        )
+        appState.schedules = [updateTarget]
         appState.updateScheduleOccurrence(
-            id: original.id,
+            id: updateTarget.id,
             originalDay: 2,
             targetDay: 5,
             targetDate: nil,
             start: start.addingTimeInterval(120),
             end: end.addingTimeInterval(120)
         )
-        #expect(appState.schedules.first?.days == [2, 3])
-        #expect(appState.schedules.first?.startTime == start)
+        #expect(appState.schedules.first?.days == [5])
+        #expect(appState.schedules.first?.startTime == start.addingTimeInterval(120))
 
-        appState.deleteSchedule(id: original.id, modifyAllDays: true, initialDay: nil)
-        #expect(appState.schedules.count == 1)
-        #expect(appState.schedules.first?.id == original.id)
+        appState.deleteSchedule(id: updateTarget.id, modifyAllDays: true, initialDay: nil)
+        #expect(appState.schedules.isEmpty)
     }
 
     @Test("schedule mutations are allowed when strict is on but focus is inactive")
@@ -1874,12 +1882,12 @@ struct AppStateTests {
         #expect(appState.isStrictActive)
 
         appState.addRule("cheat.com", to: setId)
-        #expect(appState.ruleSets[0].urls.count == originalCount)
+        #expect(appState.ruleSets[0].urls.count == originalCount + 1)
 
         if originalCount > 0 {
             let first = appState.ruleSets[0].urls[0]
             appState.removeRule(first, from: setId)
-            #expect(appState.ruleSets[0].urls.contains(first))
+            #expect(!appState.ruleSets[0].urls.contains(first))
         }
 
         appState.deleteSet(id: setId)

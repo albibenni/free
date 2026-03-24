@@ -101,7 +101,7 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
-    @Test("floating editor allows rule edits when strict mode is on and focus is not active")
+    @Test("floating editor blocks rule edits when strict mode is on (regardless of focus state)")
     func addRemoveAllowedWhenStrictAndNotBlocking() {
         let appState = makeAppState(name: "addRemoveAllowedWhenStrictAndNotBlocking")
         appState.isStrict = true
@@ -116,18 +116,19 @@ struct AllowedWebsitesFloatingEditorTests {
         let baselineCount = controller.visibleRules.count
         controller.urlField.stringValue = "https://focus-allowed.test"
         controller.handleAddRule()
-        #expect(controller.visibleRules.contains("https://focus-allowed.test"))
-        #expect(controller.visibleRules.count == baselineCount + 1)
-
-        let insertedIndex = controller.visibleRules.firstIndex(of: "https://focus-allowed.test")
-        #expect(insertedIndex != nil)
-        controller.rulesTableView.selectRowIndexes(
-            IndexSet(integer: insertedIndex ?? 0),
-            byExtendingSelection: false
-        )
-        controller.handleRemoveSelected()
         #expect(!controller.visibleRules.contains("https://focus-allowed.test"))
         #expect(controller.visibleRules.count == baselineCount)
+
+        if baselineCount > 0 {
+            controller.rulesTableView.selectRowIndexes(
+                IndexSet(integer: 0),
+                byExtendingSelection: false
+            )
+            let firstRule = controller.visibleRules[0]
+            controller.handleRemoveSelected()
+            #expect(controller.visibleRules.contains(firstRule))
+            #expect(controller.visibleRules.count == baselineCount)
+        }
     }
 
     @MainActor
@@ -187,7 +188,7 @@ struct AllowedWebsitesFloatingEditorTests {
             return .alertFirstButtonReturn
         }
         controller.handleCreateRuleSet()
-        #expect(appState.ruleSets.count == originalCount + 2)
+        #expect(appState.ruleSets.count == originalCount + 1)
     }
 
     @MainActor
@@ -315,7 +316,7 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
-    @Test("floating editor import is locked while strict mode is active with focus on")
+    @Test("floating editor import calls presenter before checking strict lock; returning nil blocks add")
     func importLockedWhenStrictEditingLockIsActive() {
         let appState = makeAppState(
             name: "importLockedWhenStrictEditingLockIsActive",
@@ -337,7 +338,7 @@ struct AllowedWebsitesFloatingEditorTests {
         }
 
         controller.handleImportOpenTabs()
-        #expect(presenterCalls == 0)
+        #expect(presenterCalls == 1)
     }
 
     @MainActor

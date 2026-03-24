@@ -9,7 +9,7 @@ enum AppearanceMode: String, Codable, CaseIterable {
 
 class AppState: ObservableObject {
     static let challengePhrase =
-        "I undertand and want to quit!"
+        "I understand and want to quit!"
     let settingsStore: SettingsStore
     let logicFacade: AppStateLogicFacade
 

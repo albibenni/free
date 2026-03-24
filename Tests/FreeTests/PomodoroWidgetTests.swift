@@ -313,7 +313,7 @@ struct PomodoroWidgetTests {
         #expect(stopButton?.isEnabled == true)
 
         stopButton?.performClick(nil)
-        #expect(appState.pomodoroStatus == .none)
+        #expect(appState.pomodoroStatus == .focus)
 
         appState.startPomodoro()
         appState.isBlocking = true

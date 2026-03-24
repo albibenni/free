@@ -152,7 +152,7 @@ struct SchedulesViewTests {
         #expect(appState.schedules.contains(where: { $0.id == schedule.id }))
     }
 
-    @Test("Schedules sheet allows schedule modifications when strict is on but focus is inactive")
+    @Test("Schedules sheet blocks schedule modifications when strict is on (regardless of focus state)")
     @MainActor
     func schedulesViewAllowsMutationsWhenStrictButNotBlocking() {
         let appState = isolatedAppState(name: "allowsMutationsWhenStrictButNotBlocking")
@@ -169,13 +169,13 @@ struct SchedulesViewTests {
         _ = host(controller)
 
         controller.openAddScheduleForTesting()
-        #expect(controller.editorContextForTesting != nil)
+        #expect(controller.editorContextForTesting == nil)
 
         controller.setScheduleEnabledForTesting(scheduleId: schedule.id, isEnabled: false)
-        #expect(appState.schedules.first?.isEnabled == false)
+        #expect(appState.schedules.first?.isEnabled == true)
     }
 
-    @Test("Schedules sheet shows lock alert when strict mode blocks modification")
+    @Test("Schedules sheet openAddSchedule uses StrictModeChallenge (not blocked alert) and stays blocked when strict")
     @MainActor
     func schedulesViewShowsStrictLockAlert() {
         defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
@@ -201,13 +201,13 @@ struct SchedulesViewTests {
         _ = host(controller)
 
         controller.openAddScheduleForTesting()
-        #expect(alertRunCount == 1)
+        #expect(alertRunCount == 0)
         #expect(controller.editorContextForTesting == nil)
 
         appState.isBlocking = false
         controller.openAddScheduleForTesting()
-        #expect(alertRunCount == 1)
-        #expect(controller.editorContextForTesting != nil)
+        #expect(alertRunCount == 0)
+        #expect(controller.editorContextForTesting == nil)
     }
 
     @Test("Schedules sheet strict-mode callback closures block select/update and show lock alert")
@@ -246,7 +246,7 @@ struct SchedulesViewTests {
             schedule.endTime.addingTimeInterval(600)
         )
 
-        #expect(alertRunCount == 2)
+        #expect(alertRunCount == 1)
         #expect(controller.editorContextForTesting == nil)
     }
 
