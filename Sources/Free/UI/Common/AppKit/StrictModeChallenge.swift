@@ -33,8 +33,11 @@ enum StrictModeChallenge {
         alert.accessoryView = accessoryView
         alert.addButton(withTitle: "Unlock")
         alert.addButton(withTitle: "Cancel")
-        alert.layout()
-        alert.window.makeFirstResponder(input)
+        let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        if !isTesting {
+            alert.layout()
+            alert.window.makeFirstResponder(input)
+        }
         let response = alertRunner(alert)
         guard response == .alertFirstButtonReturn else { return false }
         return input.stringValue == AppState.challengePhrase
