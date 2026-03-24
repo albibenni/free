@@ -2,6 +2,7 @@
 
 ## Code Quality
 
+- use context7
 - check code format and lint
 - check memory leaks and performance issues
 - check for security vulnerabilities

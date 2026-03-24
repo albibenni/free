@@ -848,6 +848,65 @@ struct FocusViewTests {
         #expect(controller.quickBreakCustomMinutesField.stringValue == "789")
     }
 
+    @Test("Quick Break is blocked when Strict mode dialog is cancelled")
+    @MainActor
+    func focusViewQuickBreakBlockedByStrictModeDialogCancel() {
+        let appState = isolatedAppState(name: "quickBreakStrictDialogCancel")
+        appState.isTrusted = true
+        appState.isBlocking = true
+        appState.isStrict = true
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+
+        let originalMakeAlert = StrictModeChallenge.makeAlert
+        let originalRunAlert = StrictModeChallenge.runAlert
+        defer {
+            StrictModeChallenge.makeAlert = originalMakeAlert
+            StrictModeChallenge.runAlert = originalRunAlert
+        }
+
+        StrictModeChallenge.makeAlert = { NSAlert() }
+        StrictModeChallenge.runAlert = { _ in .alertSecondButtonReturn }
+
+        controller.startQuickBreak(minutes: 5)
+
+        #expect(appState.isPaused == false)
+    }
+
+    @Test("Quick Break starts normally when Strict mode dialog is confirmed with correct phrase")
+    @MainActor
+    func focusViewQuickBreakStartsWhenStrictModeChallengeSucceeds() {
+        let appState = isolatedAppState(name: "quickBreakStrictDialogConfirmed")
+        appState.isTrusted = true
+        appState.isBlocking = true
+        appState.isStrict = true
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+
+        let originalMakeAlert = StrictModeChallenge.makeAlert
+        let originalRunAlert = StrictModeChallenge.runAlert
+        defer {
+            StrictModeChallenge.makeAlert = originalMakeAlert
+            StrictModeChallenge.runAlert = originalRunAlert
+        }
+
+        StrictModeChallenge.makeAlert = { NSAlert() }
+        StrictModeChallenge.runAlert = { alert in
+            if let stack = alert.accessoryView?.subviews.first as? NSStackView,
+                let input = stack.arrangedSubviews.last as? NSTextField
+            {
+                input.stringValue = AppState.challengePhrase
+            }
+            return .alertFirstButtonReturn
+        }
+
+        controller.startQuickBreak(minutes: 5)
+
+        #expect(appState.isPaused == true)
+    }
+
     @Test("Quick Break controls are locked when Strict mode is active")
     @MainActor
     func focusViewMainQuickBreakLockedInStrictMode() {

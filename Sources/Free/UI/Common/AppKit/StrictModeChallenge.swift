@@ -9,7 +9,7 @@ enum StrictModeChallenge {
 
     private static func defaultMakeAlert() -> NSAlert { NSAlert() }
     private static func defaultRunAlert(_ alert: NSAlert) -> NSApplication.ModalResponse {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if AppDelegate.isRunningInTestProcess() {
             return .alertSecondButtonReturn
         }
         return alert.runModal()
@@ -33,7 +33,7 @@ enum StrictModeChallenge {
         alert.accessoryView = accessoryView
         alert.addButton(withTitle: "Unlock")
         alert.addButton(withTitle: "Cancel")
-        let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        let isTesting = AppDelegate.isRunningInTestProcess()
         if !isTesting {
             alert.layout()
             alert.window.makeFirstResponder(input)

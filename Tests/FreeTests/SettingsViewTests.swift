@@ -192,6 +192,53 @@ struct SettingsViewTests {
         #expect(appState.isStrict == true)
     }
 
+    @Test("Settings strict-mode toggle off preserves strict state when dialog is cancelled")
+    @MainActor
+    func settingsStrictModeToggleOffPreservesStateOnDialogCancel() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        let appState = isolatedAppState(name: "strictToggleOffCancelled")
+        appState.isBlocking = true
+        appState.isStrict = true
+
+        SettingsSectionViewController.makeStrictModeAlert = { NSAlert() }
+        SettingsSectionViewController.runStrictModeAlert = { _ in .alertSecondButtonReturn }
+
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setStrictModeForTesting(false)
+
+        #expect(appState.isStrict == true)
+    }
+
+    @Test("Settings strict-mode toggle off disables strict when dialog is confirmed with correct phrase")
+    @MainActor
+    func settingsStrictModeToggleOffDisablesStrictOnDialogConfirm() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        let appState = isolatedAppState(name: "strictToggleOffConfirmed")
+        appState.isBlocking = true
+        appState.isStrict = true
+
+        SettingsSectionViewController.makeStrictModeAlert = { NSAlert() }
+        SettingsSectionViewController.runStrictModeAlert = { alert in
+            if let stack = alert.accessoryView?.subviews.first as? NSStackView,
+                let input = stack.arrangedSubviews.last as? NSTextField
+            {
+                input.stringValue = AppState.challengePhrase
+            }
+            return .alertFirstButtonReturn
+        }
+
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setStrictModeForTesting(false)
+
+        #expect(appState.isStrict == false)
+    }
+
     @Test("Settings controller launch-at-login actions load and toggle state with failure fallback")
     @MainActor
     func settingsControllerLaunchAtLoginActions() {
