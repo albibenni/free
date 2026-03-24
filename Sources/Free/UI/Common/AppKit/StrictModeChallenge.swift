@@ -33,6 +33,8 @@ enum StrictModeChallenge {
         alert.accessoryView = accessoryView
         alert.addButton(withTitle: "Unlock")
         alert.addButton(withTitle: "Cancel")
+        alert.layout()
+        alert.window.makeFirstResponder(input)
         let response = alertRunner(alert)
         guard response == .alertFirstButtonReturn else { return false }
         return input.stringValue == AppState.challengePhrase

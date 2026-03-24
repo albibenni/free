@@ -39,11 +39,16 @@ extension AllowedWebsitesFloatingEditorViewController {
         styleHeaderIconButtons(color: accentColor)
         strictModeWarningLabel.textColor = .systemOrange
         strictModeWarningLabel.font = .systemFont(ofSize: 12, weight: .regular)
-        let showWarning = isAllowedWebsitesEditingLocked
-        strictModeWarningLabel.isHidden = !showWarning
-        warningCollapsedHeightConstraint?.isActive = !showWarning
-        warningTopConstraint?.constant = showWarning ? 8 : 0
-        warningToDividerConstraint?.constant = showWarning ? 10 : 8
+        if isAllowedWebsitesEditingLocked {
+            strictModeWarningLabel.isHidden = false
+            warningCollapsedHeightConstraint?.isActive = false
+            warningTopConstraint?.constant = 8
+        } else {
+            strictModeWarningLabel.isHidden = true
+            warningCollapsedHeightConstraint?.isActive = true
+            warningTopConstraint?.constant = 0
+        }
+        warningToDividerConstraint?.constant = 8
     }
 
     private func styleHeaderIconButtons(color _: NSColor) {

@@ -82,7 +82,7 @@ enum AllowedWebsitesPresentationCoordinator {
         visibleRulesCount: Int,
         ruleSetCount: Int
     ) -> ControlState {
-        let canEdit = selectedRuleSetId != nil && !isStrictActive
+        let canEdit = selectedRuleSetId != nil
         let canRemove = canEdit && AllowedWebsitesSelectionCoordinator.canRemoveSelection(
             selectedIndexes: selectedIndexes,
             visibleRulesCount: visibleRulesCount

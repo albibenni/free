@@ -38,7 +38,6 @@ extension AllowedWebsitesFloatingEditorViewController {
 
     @objc
     func handleImportOpenTabs() {
-        guard !isAllowedWebsitesEditingLocked else { return }
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
         guard let selectedSet = appState.ruleSets.first(where: { $0.id == setId }) else { return }
 
@@ -54,6 +53,14 @@ extension AllowedWebsitesFloatingEditorViewController {
         }
 
         guard let selectedRules = Self.presentImportCandidates(candidates, selectedSet.name) else { return }
+
+        if isAllowedWebsitesEditingLocked {
+            guard StrictModeChallenge.run(
+                title: "Import Open Tabs",
+                action: "add the selected URLs to the allowed list",
+                appState: appState
+            ) else { return }
+        }
 
         for rule in selectedRules {
             appState.addSpecificRule(rule, to: setId)

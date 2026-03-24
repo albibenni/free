@@ -25,7 +25,6 @@ enum AppStateRuleSetCoordinator {
         isStrictActive: Bool,
         mutation: RuleMutation
     ) -> [RuleSet] {
-        guard !isStrictActive else { return currentRuleSets }
         var ruleSets = currentRuleSets
 
         switch mutation {
