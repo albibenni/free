@@ -168,7 +168,7 @@ final class SettingsSectionViewController: NSViewController {
     private let cursorFluidAnimationSwitch = AppKitToggleSwitch()
     private let browserLockNotice = NSTextField(
         wrappingLabelWithString:
-            "Strict mode is active. Browser blocking settings cannot be changed."
+            StrictModeCopy.active
     )
     private var appearanceModeControl: AppKitSelectionButtonGroup<AppearanceMode>?
     private var accentButtons: [NSButton] = []

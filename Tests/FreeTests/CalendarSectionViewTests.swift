@@ -255,7 +255,7 @@ struct CalendarSectionViewTests {
         #expect(!controller.calendarControlsLockedForTesting)
         #expect(
             visibleText(in: hosted).contains(
-                "Strict mode is active. You cannot change Calendar integration settings while Focus Mode is active."
+                StrictModeCopy.active
             )
         )
     }

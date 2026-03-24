@@ -14,7 +14,7 @@
 - [x] toggle disable animation
 
 - [ ] settings:
-  - [ ] "Strict mode is active. Browser blocking settings cannot be changed." in settings should be under the Browser blocking section
+  - [ ] "Strict mode is active" in settings should be under the Browser blocking section
   - [ ] the toggle allow under Browser should all be "Allow..." instead of some "Allow..." and some "Block..."
 
 ### TOPBAR
@@ -149,9 +149,9 @@
   - [x] the add rules (like *work* or *study*) should trigger the dialog challenge if strict mode is on
   - [x] the delete of imported schedule should trigger the dialog challenge if strict mode is on
 
-- [ ] quick break in strict mode should be clickable but trigger the dialog challenge, if accepted start the break, if not do nothing
-- [ ] pomodoro stop in strict mode should be clickable but trigger the dialog challenge, if accepted stop the pomodoro, if not do nothing
-- [ ] remove "Strict mode is active..." message in favor of just "Strict mode is active". It should be the same everywhere in the app (check where currently is and unify it)
+- [x] quick break in strict mode should be clickable but trigger the dialog challenge, if accepted start the break, if not do nothing
+- [x] pomodoro stop in strict mode should be clickable but trigger the dialog challenge, if accepted stop the pomodoro, if not do nothing
+- [x] replace old strict-mode messages with just "Strict mode is active" everywhere in the app
 
 ## Performance check
 

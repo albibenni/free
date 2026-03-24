@@ -115,7 +115,7 @@ final class CalendarSectionViewController: NSViewController {
     )
     private let strictLockNotice = NSTextField(
         wrappingLabelWithString:
-            "Strict mode is active. You cannot change Calendar integration settings while Focus Mode is active."
+            StrictModeCopy.active
     )
     private let focusRuleField = VerticallyCenteredTextField(string: "")
     private let breakRuleField = VerticallyCenteredTextField(string: "")

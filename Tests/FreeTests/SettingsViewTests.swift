@@ -309,7 +309,7 @@ struct SettingsViewTests {
         #expect(unlocked.browserControlsLockedForTesting == false)
         #expect(
             visibleText(in: unlockedView).contains(
-                "Strict mode is active. Browser blocking settings cannot be changed."
+                StrictModeCopy.active
             ) == false
         )
 
@@ -320,7 +320,7 @@ struct SettingsViewTests {
         #expect(locked.browserControlsLockedForTesting == false)
         #expect(
             visibleText(in: lockedView).contains(
-                "Strict mode is active. Browser blocking settings cannot be changed."
+                StrictModeCopy.active
             )
         )
     }
