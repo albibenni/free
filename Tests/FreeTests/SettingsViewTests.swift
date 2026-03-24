@@ -309,7 +309,10 @@ struct SettingsViewTests {
         #expect(unlocked.browserControlsLockedForTesting == false)
         #expect(
             visibleText(in: unlockedView).contains(
-                StrictModeCopy.active
+                StrictModeCopy.active(
+                    withSuffix:
+                        " A challenge phrase is required to change Browser blocking settings."
+                )
             ) == false
         )
 
@@ -320,7 +323,10 @@ struct SettingsViewTests {
         #expect(locked.browserControlsLockedForTesting == false)
         #expect(
             visibleText(in: lockedView).contains(
-                StrictModeCopy.active
+                StrictModeCopy.active(
+                    withSuffix:
+                        " A challenge phrase is required to change Browser blocking settings."
+                )
             )
         )
     }

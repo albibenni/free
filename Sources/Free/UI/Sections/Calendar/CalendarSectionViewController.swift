@@ -115,7 +115,9 @@ final class CalendarSectionViewController: NSViewController {
     )
     private let strictLockNotice = NSTextField(
         wrappingLabelWithString:
-            StrictModeCopy.active
+            StrictModeCopy.active(
+                withSuffix: " A challenge phrase is required to change Calendar integration settings."
+            )
     )
     private let focusRuleField = VerticallyCenteredTextField(string: "")
     private let breakRuleField = VerticallyCenteredTextField(string: "")

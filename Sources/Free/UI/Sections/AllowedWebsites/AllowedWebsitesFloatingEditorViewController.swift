@@ -31,7 +31,9 @@ final class AllowedWebsitesFloatingEditorViewController:
     let importOpenTabsButton = ActionButton(title: "Import Open Tabs")
     let removeButton = ActionButton(title: "Remove Selected")
     let strictModeWarningLabel = NSTextField(
-        labelWithString: StrictModeCopy.active
+        labelWithString: StrictModeCopy.active(
+            withSuffix: " A challenge phrase is required to edit allowed websites."
+        )
     )
     let emptyLabel = NSTextField(labelWithString: "No allowed websites in this list yet.")
     let rulesTableView = NSTableView()

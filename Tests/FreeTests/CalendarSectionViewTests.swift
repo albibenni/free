@@ -255,7 +255,10 @@ struct CalendarSectionViewTests {
         #expect(!controller.calendarControlsLockedForTesting)
         #expect(
             visibleText(in: hosted).contains(
-                StrictModeCopy.active
+                StrictModeCopy.active(
+                    withSuffix:
+                        " A challenge phrase is required to change Calendar integration settings."
+                )
             )
         )
     }

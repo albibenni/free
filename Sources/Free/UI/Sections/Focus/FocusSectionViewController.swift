@@ -16,7 +16,11 @@ final class FocusSectionViewController: NSViewController {
     let headerIconView = NSImageView()
     let headerTitleLabel = NSTextField(labelWithString: "Focus Mode")
     let headerStatusLabel = NSTextField(labelWithString: "")
-    let strictWarningLabel = NSTextField(labelWithString: StrictModeCopy.active)
+    let strictWarningLabel = NSTextField(
+        labelWithString: StrictModeCopy.active(
+            withSuffix: " A challenge phrase is required to disable Focus Mode."
+        )
+    )
     let pauseDashboardView = AppKitDynamicView()
     let pauseTitleLabel = NSTextField(labelWithString: "On Break")
     let pauseTimeLabel = NSTextField(labelWithString: "")

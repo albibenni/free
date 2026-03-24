@@ -168,7 +168,9 @@ final class SettingsSectionViewController: NSViewController {
     private let cursorFluidAnimationSwitch = AppKitToggleSwitch()
     private let browserLockNotice = NSTextField(
         wrappingLabelWithString:
-            StrictModeCopy.active
+            StrictModeCopy.active(
+                withSuffix: " A challenge phrase is required to change Browser blocking settings."
+            )
     )
     private var appearanceModeControl: AppKitSelectionButtonGroup<AppearanceMode>?
     private var accentButtons: [NSButton] = []
