@@ -907,10 +907,10 @@ struct FocusViewTests {
         #expect(appState.isPaused == true)
     }
 
-    @Test("Quick Break controls are locked when Strict mode is active")
+    @Test("Quick Break controls are clickable in Strict mode and trigger the challenge dialog")
     @MainActor
-    func focusViewMainQuickBreakLockedInStrictMode() {
-        let appState = isolatedAppState(name: "mainQuickBreakLockedStrict")
+    func focusViewMainQuickBreakClickableInStrictMode() {
+        let appState = isolatedAppState(name: "mainQuickBreakClickableStrict")
         appState.isTrusted = true
         appState.isBlocking = true
         appState.isStrict = true
@@ -925,9 +925,9 @@ struct FocusViewTests {
             .compactMap { $0 as? NSTextField }
             .first { $0.placeholderString == "Minutes" }
 
-        #expect(quickBreakButton?.isEnabled == false)
-        #expect(customButton?.isEnabled == false)
-        #expect(minutesField?.isEditable == false)
+        #expect(quickBreakButton?.isEnabled == true)
+        #expect(customButton?.isEnabled == true)
+        #expect(minutesField?.isEditable == true)
     }
 
     @Test("Focus schedules widget reload keeps existing view when signature is unchanged")

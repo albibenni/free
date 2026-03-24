@@ -150,6 +150,8 @@
   - [x] the delete of imported schedule should trigger the dialog challenge if strict mode is on
 
 - [ ] quick break in strict mode should be clickable but trigger the dialog challenge, if accepted start the break, if not do nothing
+- [ ] pomodoro stop in strict mode should be clickable but trigger the dialog challenge, if accepted stop the pomodoro, if not do nothing
+- [ ] remove "Strict mode is active..." message in favor of just "Strict mode is active". It should be the same everywhere in the app (check where currently is and unify it)
 
 ## Performance check
 

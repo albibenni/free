@@ -298,7 +298,7 @@ struct PomodoroWidgetTests {
         #expect(appState.pomodoroBreakDuration == 5)
     }
 
-    @Test("FocusPomodoroWidgetView allows stop in strict grace period and blocks it after")
+    @Test("FocusPomodoroWidgetView stop button is always enabled in strict mode and requires challenge")
     @MainActor
     func pomodoroWidgetStopBehaviorAcrossStrictGracePeriod() {
         let appState = isolatedAppState(name: "stopBehaviorAcrossStrictGracePeriod")
@@ -313,9 +313,11 @@ struct PomodoroWidgetTests {
         #expect(stopButton != nil)
         #expect(stopButton?.isEnabled == true)
 
+        // Within grace period: challenge fires (returns cancel in tests) → pomodoro stays
         stopButton?.performClick(nil)
         #expect(appState.pomodoroStatus == .focus)
 
+        // After grace period: button remains enabled, challenge still fires → pomodoro stays
         appState.startPomodoro()
         appState.isBlocking = true
         appState.isStrict = true
@@ -323,15 +325,15 @@ struct PomodoroWidgetTests {
         widget.refreshForStateChange()
         widget.forceUpdateActiveControlsForTesting()
 
-        #expect(stopButton?.isEnabled == false)
+        #expect(stopButton?.isEnabled == true)
         stopButton?.performClick(nil)
         #expect(appState.pomodoroStatus == .focus)
     }
 
-    @Test("FocusPomodoroWidgetView stop action guard returns when button is forced enabled while locked")
+    @Test("FocusPomodoroWidgetView stop button triggers challenge in strict mode and stops when accepted")
     @MainActor
-    func pomodoroWidgetStopGuardReturnWhenLocked() {
-        let appState = isolatedAppState(name: "stopGuardReturnWhenLocked")
+    func pomodoroWidgetStopRequiresChallengeInStrictMode() {
+        let appState = isolatedAppState(name: "stopRequiresChallengeStrictMode")
         appState.startPomodoro()
         appState.isBlocking = true
         appState.isStrict = true
@@ -340,11 +342,32 @@ struct PomodoroWidgetTests {
         let hosted = host(FocusPomodoroWidgetView(appState: appState))
         let stopButton = buttons(in: hosted).first { $0.title == "Stop" }
         #expect(stopButton != nil)
-        #expect(stopButton?.isEnabled == false)
+        #expect(stopButton?.isEnabled == true)
 
-        stopButton?.isEnabled = true
+        let originalMakeAlert = StrictModeChallenge.makeAlert
+        let originalRunAlert = StrictModeChallenge.runAlert
+        defer {
+            StrictModeChallenge.makeAlert = originalMakeAlert
+            StrictModeChallenge.runAlert = originalRunAlert
+        }
+
+        // Cancel: pomodoro should keep running
+        StrictModeChallenge.makeAlert = { NSAlert() }
+        StrictModeChallenge.runAlert = { _ in .alertSecondButtonReturn }
         stopButton?.performClick(nil)
         #expect(appState.pomodoroStatus == .focus)
+
+        // Accept with correct phrase: pomodoro should stop
+        StrictModeChallenge.runAlert = { alert in
+            if let stack = alert.accessoryView?.subviews.first as? NSStackView,
+               let input = stack.arrangedSubviews.last as? NSTextField
+            {
+                input.stringValue = AppState.challengePhrase
+            }
+            return .alertFirstButtonReturn
+        }
+        stopButton?.performClick(nil)
+        #expect(appState.pomodoroStatus == .none)
     }
 
     @Test("FocusPomodoroWidgetSupport helper functions cover selection fallback and recursive labels")

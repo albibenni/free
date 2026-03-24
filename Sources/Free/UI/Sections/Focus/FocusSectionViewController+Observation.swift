@@ -50,8 +50,6 @@ extension FocusSectionViewController {
 
         let quickBreakEnabled =
             appState.isBlocking
-            && !appState.isStrictActive
-            && !appState.isStrict
             && !appState.isPaused
         [quickBreakFiveButton, quickBreakFifteenButton, quickBreakThirtyButton, quickBreakCustomButton].forEach {
             $0.isEnabled = quickBreakEnabled

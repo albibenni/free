@@ -270,7 +270,7 @@ final class FocusPomodoroWidgetView: AppKitCardView {
             centerText: appState.timeString(time: appState.pomodoroRemaining)
         )
         skipButton?.isEnabled = !appState.isPomodoroLocked
-        stopButton?.isEnabled = !appState.isPomodoroLocked
+        stopButton?.isEnabled = true
 
         if isFocus {
             let currentSetName = appState.ruleSets.first(where: { $0.id == appState.currentPrimaryRuleSetId })?.name
@@ -454,9 +454,8 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         self.skipButton = skipButton
 
         let stopButton = makeAppKitPrimaryButton(title: "Stop", color: .systemRed)
-        stopButton.isEnabled = !appState.isPomodoroLocked
+        stopButton.isEnabled = true
         stopButton.onAction = { [self] in
-            guard !self.appState.isPomodoroLocked else { return }
             if self.appState.isStrict {
                 guard StrictModeChallenge.run(
                     title: "Stop Pomodoro",
