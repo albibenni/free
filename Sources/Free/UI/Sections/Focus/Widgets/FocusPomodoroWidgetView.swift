@@ -462,8 +462,10 @@ final class FocusPomodoroWidgetView: AppKitCardView {
                     action: "stop the pomodoro session",
                     appState: self.appState
                 ) else { return }
+                _ = self.appState.stopPomodoroWithChallenge(phrase: AppState.challengePhrase)
+            } else {
+                self.appState.stopPomodoro()
             }
-            self.appState.stopPomodoro()
         }
         self.stopButton = stopButton
 
