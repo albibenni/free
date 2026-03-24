@@ -6,10 +6,6 @@
   - [ ] background color not white
 - [ ] better ui tbd
 
-- [ ] settings:
-  - [ ] "Strict mode is active" in settings should be under the Browser blocking section
-  - [ ] the toggle allow under Browser should all be "Allow..." instead of some "Allow..." and some "Block..."
-
 ### TOPBAR
 
 ## Logic
@@ -22,11 +18,12 @@
 
 ## Strict mode
 
-- [ ] dialog - challenge for blocked toggle if strict mode is on
+- [x] add the "Strict mode is active" text to the top of the Focus tab when strict mode is active
+- [x] add the "Strict mode is active" text to the top of the Schedule tab when strict mode is active
+- [x] add the "Strict mode is active" text to the top of the Allowed list tab when strict mode is active
 
-## Performance check
+## Misc
 
-## Future features
-
-- [ ] calendar should be calendar settings at the bottom - tab
-- [ ] block apps
+- [ ] calendar tab should be named to "Calendar Settings" and be at the bottom, above "Settings" tab
+- [ ] strict mode toggle should have a brief description of what it does, and a link to the wiki for more info
+  - [ ] create a wiki page for strict mode and link to it from the description

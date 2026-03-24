@@ -147,6 +147,11 @@ struct FocusViewTests {
         #expect(FocusSectionSupport.pomodoroPhaseLabel(status: .focus) == "Focus")
         #expect(FocusSectionSupport.pomodoroPhaseLabel(status: .breakTime) == "Break")
 
+        #expect(FocusSectionSupport.strictWarningText(for: .all).hasPrefix(StrictModeCopy.active))
+        #expect(FocusSectionSupport.strictWarningText(for: .schedules) == StrictModeCopy.active)
+        #expect(FocusSectionSupport.strictWarningText(for: .allowedWebsites) == StrictModeCopy.active)
+        #expect(FocusSectionSupport.strictWarningText(for: .pomodoro) == StrictModeCopy.active)
+
         let appState = isolatedAppState(name: "cancelPauseAction")
         appState.isPaused = true
         let cancelPause = FocusSectionSupport.makeCancelPauseAction(cancelPause: { appState.cancelPause() })
@@ -656,7 +661,38 @@ struct FocusViewTests {
 
         #expect(controller.isPermissionWarningHiddenForTesting == false)
         #expect(controller.isStrictWarningHiddenForTesting == false)
+        #expect(controller.strictWarningTextForTesting == FocusSectionSupport.strictWarningText(for: .all))
         #expect(controller.headerStatusTextForTesting == "Active • Work List")
+    }
+
+    @Test("Schedule section shows strict mode warning when strict mode is active")
+    @MainActor
+    func scheduleTabShowsStrictWarning() {
+        let appState = isolatedAppState(name: "strictSchedule")
+        appState.isTrusted = true
+        appState.isBlocking = true
+        appState.isStrict = true
+
+        let controller = makeController(appState: appState, section: .schedules)
+        _ = host(controller)
+
+        #expect(controller.isStrictWarningHiddenForTesting == false)
+        #expect(controller.strictWarningTextForTesting == StrictModeCopy.active)
+    }
+
+    @Test("Allowed list tab shows strict mode warning when strict mode is active")
+    @MainActor
+    func allowedListTabShowsStrictWarning() {
+        let appState = isolatedAppState(name: "strictAllowedWebsites")
+        appState.isTrusted = true
+        appState.isBlocking = true
+        appState.isStrict = true
+
+        let controller = makeController(appState: appState, section: .allowedWebsites)
+        _ = host(controller)
+
+        #expect(controller.isStrictWarningHiddenForTesting == false)
+        #expect(controller.strictWarningTextForTesting == StrictModeCopy.active)
     }
 
     @Test("Focus section renders paused dashboard state")

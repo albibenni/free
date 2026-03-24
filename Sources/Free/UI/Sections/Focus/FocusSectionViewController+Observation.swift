@@ -43,6 +43,7 @@ extension FocusSectionViewController {
 
         strictWarningLabel.font = .systemFont(ofSize: 12)
         strictWarningLabel.textColor = .systemOrange
+        strictWarningLabel.stringValue = FocusSectionSupport.strictWarningText(for: section)
         strictWarningLabel.isHidden = sharedState.isStrictWarningHidden
 
         pauseDashboardView.isHidden = sharedState.isPauseDashboardHidden

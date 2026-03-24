@@ -61,6 +61,15 @@ enum FocusSectionSupport {
         }
     }
 
+    static func strictWarningText(for section: FocusContentSection) -> String {
+        switch section {
+        case .all:
+            return StrictModeCopy.active(withSuffix: " A challenge phrase is required to disable Focus Mode.")
+        case .schedules, .allowedWebsites, .pomodoro:
+            return StrictModeCopy.active
+        }
+    }
+
     static func makeCancelPauseAction(cancelPause: @escaping () -> Void) -> () -> Void {
         cancelPause
     }

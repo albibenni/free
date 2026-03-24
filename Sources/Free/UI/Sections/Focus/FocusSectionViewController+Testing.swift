@@ -4,6 +4,7 @@ extension FocusSectionViewController {
     var headerStatusTextForTesting: String { headerStatusLabel.stringValue }
     var isPermissionWarningHiddenForTesting: Bool { permissionWarningView.isHidden }
     var isStrictWarningHiddenForTesting: Bool { strictWarningLabel.isHidden }
+    var strictWarningTextForTesting: String { strictWarningLabel.stringValue }
     var isPauseDashboardHiddenForTesting: Bool { pauseDashboardView.isHidden }
     var isQuickBreakDashboardHiddenForTesting: Bool { quickBreakDashboardView.isHidden }
     var pauseTimeTextForTesting: String { pauseTimeLabel.stringValue }
