@@ -328,22 +328,23 @@ final class SettingsSectionViewController: NSViewController {
         allowAIProviderWebsitesSwitch.action = #selector(toggleAllowAIProviderWebsites)
 
         [
+            browserLockNotice,
             makeToggleRow(
-                title: "Block New Tabs",
+                title: "Allow New Tabs",
                 descriptionLabel: makeDescriptionLabel(
-                    "When off, blank/new-tab pages are allowed by default."),
+                    "When on, blank/new-tab pages are allowed by default."),
                 toggle: blockNewTabsSwitch
             ),
             makeToggleRow(
-                title: "Block Localhost/Dev Ports",
+                title: "Allow Localhost/Dev Ports",
                 descriptionLabel: makeDescriptionLabel(
-                    "When off, localhost and loopback hosts are allowed."),
+                    "When on, localhost and loopback hosts are allowed."),
                 toggle: blockDeveloperHostsSwitch
             ),
             makeToggleRow(
-                title: "Block Local Network IPs",
+                title: "Allow Local Network IPs",
                 descriptionLabel: makeDescriptionLabel(
-                    "When off, private-network IPs are allowed."),
+                    "When on, private-network IPs are allowed."),
                 toggle: blockLocalNetworkHostsSwitch
             ),
             makeToggleRow(
@@ -358,7 +359,6 @@ final class SettingsSectionViewController: NSViewController {
                     "Always allow popular AI provider websites while blocking."),
                 toggle: allowAIProviderWebsitesSwitch
             ),
-            browserLockNotice,
         ].forEach { section.addArrangedSubview($0) }
         browserLockNotice.font = .systemFont(ofSize: 13, weight: .medium)
         browserLockNotice.textColor = .systemOrange
@@ -511,9 +511,9 @@ final class SettingsSectionViewController: NSViewController {
         resyncButton.isEnabled = appState.calendarIntegrationEnabled
 
         launchAtLoginSwitch.state = appState.launchAtLoginStatus() ? .on : .off
-        blockNewTabsSwitch.state = appState.blockNewTabs ? .on : .off
-        blockDeveloperHostsSwitch.state = appState.blockDeveloperHosts ? .on : .off
-        blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .on : .off
+        blockNewTabsSwitch.state = appState.blockNewTabs ? .off : .on
+        blockDeveloperHostsSwitch.state = appState.blockDeveloperHosts ? .off : .on
+        blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .off : .on
         allowSearchEngineWebsitesSwitch.state = appState.allowSearchEngineWebsites ? .on : .off
         allowAIProviderWebsitesSwitch.state = appState.allowAIProviderWebsites ? .on : .off
         cursorFluidAnimationSwitch.state = appState.cursorFluidAnimationEnabled ? .on : .off
@@ -687,11 +687,11 @@ final class SettingsSectionViewController: NSViewController {
                 action: "change browser settings",
                 appState: appState
             ) else {
-                blockNewTabsSwitch.state = appState.blockNewTabs ? .on : .off
+                blockNewTabsSwitch.state = appState.blockNewTabs ? .off : .on
                 return
             }
         }
-        appState.blockNewTabs = blockNewTabsSwitch.state == .on
+        appState.blockNewTabs = blockNewTabsSwitch.state == .off
     }
 
     @objc
@@ -702,11 +702,11 @@ final class SettingsSectionViewController: NSViewController {
                 action: "change browser settings",
                 appState: appState
             ) else {
-                blockDeveloperHostsSwitch.state = appState.blockDeveloperHosts ? .on : .off
+                blockDeveloperHostsSwitch.state = appState.blockDeveloperHosts ? .off : .on
                 return
             }
         }
-        appState.blockDeveloperHosts = blockDeveloperHostsSwitch.state == .on
+        appState.blockDeveloperHosts = blockDeveloperHostsSwitch.state == .off
     }
 
     @objc
@@ -717,11 +717,11 @@ final class SettingsSectionViewController: NSViewController {
                 action: "change browser settings",
                 appState: appState
             ) else {
-                blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .on : .off
+                blockLocalNetworkHostsSwitch.state = appState.blockLocalNetworkHosts ? .off : .on
                 return
             }
         }
-        appState.blockLocalNetworkHosts = blockLocalNetworkHostsSwitch.state == .on
+        appState.blockLocalNetworkHosts = blockLocalNetworkHostsSwitch.state == .off
     }
 
     @objc

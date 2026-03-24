@@ -375,9 +375,9 @@ struct SettingsViewTests {
 
         #expect(hosted.fittingSize.width >= 0)
         #expect(texts.contains("Launch at Login"))
-        #expect(texts.contains("Block New Tabs"))
-        #expect(texts.contains("Block Localhost/Dev Ports"))
-        #expect(texts.contains("Block Local Network IPs"))
+        #expect(texts.contains("Allow New Tabs"))
+        #expect(texts.contains("Allow Localhost/Dev Ports"))
+        #expect(texts.contains("Allow Local Network IPs"))
         #expect(texts.contains("Allow Search Engines"))
         #expect(texts.contains("Allow AI Providers"))
         #expect(toggleFrames.count == 8)
@@ -444,19 +444,19 @@ struct SettingsViewTests {
         #expect(appState.calendarImportsBlockTime == false)
 
         controller.setBlockNewTabsForTesting(true)
-        #expect(appState.blockNewTabs)
-        controller.setBlockNewTabsForTesting(false)
         #expect(appState.blockNewTabs == false)
+        controller.setBlockNewTabsForTesting(false)
+        #expect(appState.blockNewTabs)
 
         controller.setBlockDeveloperHostsForTesting(true)
-        #expect(appState.blockDeveloperHosts)
-        controller.setBlockDeveloperHostsForTesting(false)
         #expect(appState.blockDeveloperHosts == false)
+        controller.setBlockDeveloperHostsForTesting(false)
+        #expect(appState.blockDeveloperHosts)
 
         controller.setBlockLocalNetworkHostsForTesting(true)
-        #expect(appState.blockLocalNetworkHosts)
-        controller.setBlockLocalNetworkHostsForTesting(false)
         #expect(appState.blockLocalNetworkHosts == false)
+        controller.setBlockLocalNetworkHostsForTesting(false)
+        #expect(appState.blockLocalNetworkHosts)
 
         controller.setAllowSearchEngineWebsitesForTesting(true)
         #expect(appState.allowSearchEngineWebsites)
