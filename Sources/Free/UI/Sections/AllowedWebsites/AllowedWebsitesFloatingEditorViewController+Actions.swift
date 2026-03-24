@@ -2,7 +2,7 @@ import AppKit
 
 extension AllowedWebsitesFloatingEditorViewController {
     var isAllowedWebsitesEditingLocked: Bool {
-        appState.isUnblockable
+        appState.isStrict
     }
 
     @objc

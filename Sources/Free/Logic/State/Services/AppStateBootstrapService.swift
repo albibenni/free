@@ -3,7 +3,7 @@ import Foundation
 struct AppStateBootstrapService {
     struct Snapshot: Equatable {
         let isBlocking: Bool
-        let isUnblockable: Bool
+        let isStrict: Bool
         let weekStartsOnMonday: Bool
         let accentColorIndex: Int
         let appearanceMode: AppearanceMode
@@ -44,7 +44,7 @@ struct AppStateBootstrapService {
 
         return Snapshot(
             isBlocking: settingsStore.isBlocking(),
-            isUnblockable: settingsStore.isUnblockable(),
+            isStrict: settingsStore.isStrict(),
             weekStartsOnMonday: weekStartsOnMonday,
             accentColorIndex: settingsStore.accentColorIndex(),
             appearanceMode: appearanceMode,

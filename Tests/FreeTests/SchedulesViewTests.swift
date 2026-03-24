@@ -123,7 +123,7 @@ struct SchedulesViewTests {
         let appState = isolatedAppState(name: "blocksMutationsWhenStrictActive")
         let schedule = sampleSchedule(name: "Locked")
         appState.schedules = [schedule]
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = true
 
         let controller = SchedulesSheetViewController(
@@ -152,13 +152,13 @@ struct SchedulesViewTests {
         #expect(appState.schedules.contains(where: { $0.id == schedule.id }))
     }
 
-    @Test("Schedules sheet allows schedule modifications when unblockable is on but focus is inactive")
+    @Test("Schedules sheet allows schedule modifications when strict is on but focus is inactive")
     @MainActor
-    func schedulesViewAllowsMutationsWhenUnblockableButNotBlocking() {
-        let appState = isolatedAppState(name: "allowsMutationsWhenUnblockableButNotBlocking")
+    func schedulesViewAllowsMutationsWhenStrictButNotBlocking() {
+        let appState = isolatedAppState(name: "allowsMutationsWhenStrictButNotBlocking")
         let schedule = sampleSchedule(name: "Editable")
         appState.schedules = [schedule]
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = false
 
         let controller = SchedulesSheetViewController(
@@ -190,7 +190,7 @@ struct SchedulesViewTests {
 
         let appState = isolatedAppState(name: "showsStrictLockAlert")
         appState.schedules = [sampleSchedule(name: "Locked")]
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = true
 
         let controller = SchedulesSheetViewController(
@@ -225,7 +225,7 @@ struct SchedulesViewTests {
         var schedule = sampleSchedule(name: "Locked Callback")
         schedule.days = [2]
         appState.schedules = [schedule]
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = true
 
         let controller = SchedulesSheetViewController(

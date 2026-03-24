@@ -41,9 +41,9 @@ extension FocusSectionViewController {
         headerIconView.contentTintColor = sharedState.focusIconColor
         headerStatusLabel.stringValue = sharedState.headerStatusText
 
-        unblockableWarningLabel.font = .systemFont(ofSize: 12)
-        unblockableWarningLabel.textColor = .systemOrange
-        unblockableWarningLabel.isHidden = sharedState.isUnblockableWarningHidden
+        strictWarningLabel.font = .systemFont(ofSize: 12)
+        strictWarningLabel.textColor = .systemOrange
+        strictWarningLabel.isHidden = sharedState.isStrictWarningHidden
 
         pauseDashboardView.isHidden = sharedState.isPauseDashboardHidden
         pauseTimeLabel.stringValue = sharedState.pauseTimeText
@@ -51,7 +51,7 @@ extension FocusSectionViewController {
         let quickBreakEnabled =
             appState.isBlocking
             && !appState.isStrictActive
-            && !appState.isUnblockable
+            && !appState.isStrict
             && !appState.isPaused
         [quickBreakFiveButton, quickBreakFifteenButton, quickBreakThirtyButton, quickBreakCustomButton].forEach {
             $0.isEnabled = quickBreakEnabled

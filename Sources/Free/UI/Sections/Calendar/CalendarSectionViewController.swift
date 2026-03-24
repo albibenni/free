@@ -115,7 +115,7 @@ final class CalendarSectionViewController: NSViewController {
     )
     private let strictLockNotice = NSTextField(
         wrappingLabelWithString:
-            "Unblockable mode is active. You cannot change Calendar integration settings while Focus Mode is active."
+            "Strict mode is active. You cannot change Calendar integration settings while Focus Mode is active."
     )
     private let focusRuleField = VerticallyCenteredTextField(string: "")
     private let breakRuleField = VerticallyCenteredTextField(string: "")
@@ -647,7 +647,7 @@ final class CalendarSectionViewController: NSViewController {
 
     @objc
     private func toggleCalendarIntegration() {
-        if appState.isUnblockable {
+        if appState.isStrict {
             guard StrictModeChallenge.run(
                 title: "Calendar Integration",
                 action: "change the calendar integration setting",
@@ -667,7 +667,7 @@ final class CalendarSectionViewController: NSViewController {
 
     @objc
     private func resyncImportedSchedules() {
-        if appState.isUnblockable {
+        if appState.isStrict {
             guard StrictModeChallenge.run(
                 title: "Resync Schedules",
                 action: "resync imported schedules",
@@ -806,7 +806,7 @@ final class CalendarSectionViewController: NSViewController {
     }
 
     private var canEditCalendarTitleRules: Bool {
-        appState.calendarIntegrationEnabled && !appState.isUnblockable
+        appState.calendarIntegrationEnabled && !appState.isStrict
     }
 }
 

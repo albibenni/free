@@ -31,7 +31,7 @@ struct ScheduleEngine {
         pomodoroIsFocus: Bool,
         pomodoroIsBreak: Bool,
         calendarIntegrationEnabled: Bool,
-        isUnblockable: Bool,
+        isStrict: Bool,
         calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> AutomaticBlockingResult {
@@ -44,7 +44,7 @@ struct ScheduleEngine {
         let hasBreak = activeSchedules.contains { $0.type == .unfocus } || pomodoroIsBreak
         let hasMeeting =
             calendarIntegrationEnabled
-            && !isUnblockable
+            && !isStrict
             && !calendarImportsBlockTime
             && calendarEvents.contains { $0.isActive() }
 

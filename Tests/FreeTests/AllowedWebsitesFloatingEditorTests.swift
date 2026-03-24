@@ -101,10 +101,10 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
-    @Test("floating editor allows rule edits when unblockable mode is on and focus is not active")
-    func addRemoveAllowedWhenUnblockableAndNotBlocking() {
-        let appState = makeAppState(name: "addRemoveAllowedWhenUnblockableAndNotBlocking")
-        appState.isUnblockable = true
+    @Test("floating editor allows rule edits when strict mode is on and focus is not active")
+    func addRemoveAllowedWhenStrictAndNotBlocking() {
+        let appState = makeAppState(name: "addRemoveAllowedWhenStrictAndNotBlocking")
+        appState.isStrict = true
         appState.isBlocking = false
         let selectedSet = appState.ruleSets[0]
         let controller = AllowedWebsitesFloatingEditorViewController(
@@ -131,7 +131,7 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
-    @Test("floating editor create/delete list actions follow unblockable lock rules")
+    @Test("floating editor create/delete list actions follow strict lock rules")
     func createDeleteListActions() {
         let appState = makeAppState(name: "createDeleteListActions")
         let controller = AllowedWebsitesFloatingEditorViewController(
@@ -174,7 +174,7 @@ struct AllowedWebsitesFloatingEditorTests {
         #expect(appState.ruleSets.count == originalCount + 1)
 
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         controller.handleCreateRuleSet()
         #expect(appState.ruleSets.count == originalCount + 1)
 
@@ -315,13 +315,13 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
-    @Test("floating editor import is locked while unblockable mode is active with focus on")
+    @Test("floating editor import is locked while strict mode is active with focus on")
     func importLockedWhenStrictEditingLockIsActive() {
         let appState = makeAppState(
             name: "importLockedWhenStrictEditingLockIsActive",
             openUrls: ["https://example.com"]
         )
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = true
         let controller = AllowedWebsitesFloatingEditorViewController(
             appState: appState,
@@ -341,10 +341,10 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
-    @Test("floating editor add/remove rule actions are locked while unblockable mode is active with focus on")
+    @Test("floating editor add/remove rule actions are locked while strict mode is active with focus on")
     func addRemoveLockedWhenStrictEditingLockIsActive() {
         let appState = makeAppState(name: "addRemoveLockedWhenStrictEditingLockIsActive")
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = true
         let controller = AllowedWebsitesFloatingEditorViewController(
             appState: appState,
@@ -372,14 +372,14 @@ struct AllowedWebsitesFloatingEditorTests {
         )
         controller.loadViewIfNeeded()
 
-        appState.isUnblockable = false
+        appState.isStrict = false
         appState.isBlocking = false
         controller.applyButtonStyling()
         #expect(controller.strictModeWarningLabel.isHidden == true)
         #expect(controller.warningCollapsedHeightConstraint?.isActive == true)
         #expect(controller.warningTopConstraint?.constant == 0)
 
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = true
         controller.applyButtonStyling()
         #expect(controller.strictModeWarningLabel.isHidden == false)

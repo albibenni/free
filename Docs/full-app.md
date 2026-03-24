@@ -28,7 +28,7 @@
     - [6-2 Scheduled Focus Blocks](#6-2-scheduled-focus-blocks)
     - [6-3 Pomodoro Timer](#6-3-pomodoro-timer)
     - [6-4 Quick Breaks](#6-4-quick-breaks)
-    - [6-5 Strict and Unblockable Mode](#6-5-strict-and-unblockable-mode)
+    - [6-5 Strict and Strict Mode](#6-5-strict-and-strict-mode)
     - [6-6 Allowed Websites and Rule Sets](#6-6-allowed-websites-and-rule-sets)
     - [6-7 Calendar Integration](#6-7-calendar-integration)
     - [6-8 Status Menu](#6-8-status-menu)
@@ -122,7 +122,7 @@ All modes share the same underlying blocking engine — they only differ in *how
 4. Bootstraps persisted state via `AppStateBootstrapService`.
 5. Creates the main window and status menu item.
 
-`AppDelegate` handles system-level events: `applicationShouldTerminate` blocks quit during unblockable sessions, permission prompts, app-relocation to `/Applications`.
+`AppDelegate` handles system-level events: `applicationShouldTerminate` blocks quit during strict sessions, permission prompts, app-relocation to `/Applications`.
 
 **Architecture choice:** Thin `@main` struct + fat `Runtime` class keeps the app entry point clean and makes the dependency composition visible in one place.
 
@@ -519,11 +519,11 @@ struct PomodoroState {
 
 ---
 
-### 6-5 Strict and Unblockable Mode
+### 6-5 Strict and Strict Mode
 
 **How to use:**
 
-1. Settings → enable "Strict Mode" (called "Unblockable" internally).
+1. Settings → enable "Strict Mode" (called "Strict" internally).
 2. Once enabled with an active session, you cannot stop without typing the challenge phrase.
 
 **Challenge phrase:**
@@ -532,7 +532,7 @@ struct PomodoroState {
 **Logic:**
 
 - `AppStateChallengeCoordinator.verifyChallenge(input:)` does an exact string match.
-- On success: temporarily sets `isUnblockable = false` for the stop operation, then restores it.
+- On success: temporarily sets `isStrict = false` for the stop operation, then restores it.
 - App quit is blocked (`applicationShouldTerminate` returns `.terminateLater`) during strict active sessions.
 - Status menu "Quit" item is hidden.
 - Certain settings (e.g. disabling strict mode) are locked during an active strict session.
@@ -626,7 +626,7 @@ class AppState: ObservableObject {
     @Published var schedules: [Schedule]
 
     // Settings
-    @Published var isUnblockable: Bool
+    @Published var isStrict: Bool
     @Published var appearanceMode: AppearanceMode
     @Published var accentColor: FocusColor
     // ... ~25 more

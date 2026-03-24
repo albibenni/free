@@ -9,12 +9,12 @@ enum AppStateSessionCoordinator {
 
     static func toggle(
         current: SessionState,
-        isUnblockable: Bool,
+        isStrict: Bool,
         schedules: [Schedule]
     ) -> SessionState {
         let result = BlockingSessionService.toggleBlocking(
             isBlocking: current.isBlocking,
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             schedules: schedules,
             manuallyPausedScheduleIds: current.manuallyPausedScheduleIds,
             wasStartedBySchedule: current.wasStartedBySchedule
@@ -31,7 +31,7 @@ enum AppStateSessionCoordinator {
         schedules: [Schedule],
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
-        isUnblockable: Bool,
+        isStrict: Bool,
         calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> SessionState {
@@ -42,7 +42,7 @@ enum AppStateSessionCoordinator {
             manuallyPausedScheduleIds: current.manuallyPausedScheduleIds,
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )
@@ -59,7 +59,7 @@ enum AppStateSessionCoordinator {
         schedules: [Schedule],
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
-        isUnblockable: Bool,
+        isStrict: Bool,
         calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> SessionState? {
@@ -68,7 +68,7 @@ enum AppStateSessionCoordinator {
             manuallyPausedScheduleIds: current.manuallyPausedScheduleIds,
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )

@@ -4,24 +4,24 @@ extension AppStateLogicFacade {
     func stopPomodoroChallenge(
         phrase: String,
         challengePhrase: String,
-        currentIsUnblockable: Bool
+        currentIsStrict: Bool
     ) -> ChallengeStopResult {
         AppStateChallengeCoordinator.stopPomodoro(
             phrase: phrase,
             challengePhrase: challengePhrase,
-            currentIsUnblockable: currentIsUnblockable
+            currentIsStrict: currentIsStrict
         )
     }
 
-    func disableUnblockableChallenge(
+    func disableStrictChallenge(
         phrase: String,
         challengePhrase: String,
-        currentIsUnblockable: Bool
+        currentIsStrict: Bool
     ) -> ChallengeDisableResult {
-        AppStateChallengeCoordinator.disableUnblockable(
+        AppStateChallengeCoordinator.disableStrict(
             phrase: phrase,
             challengePhrase: challengePhrase,
-            currentIsUnblockable: currentIsUnblockable
+            currentIsStrict: currentIsStrict
         )
     }
 

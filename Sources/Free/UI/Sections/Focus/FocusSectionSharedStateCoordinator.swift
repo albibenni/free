@@ -5,7 +5,7 @@ enum FocusSectionSharedStateCoordinator {
         let isPermissionWarningHidden: Bool
         let focusIconColor: NSColor
         let headerStatusText: String
-        let isUnblockableWarningHidden: Bool
+        let isStrictWarningHidden: Bool
         let isPauseDashboardHidden: Bool
         let pauseTimeText: String
     }
@@ -34,9 +34,9 @@ enum FocusSectionSharedStateCoordinator {
                 isPaused: isPaused
             ),
             headerStatusText: headerStatusText,
-            isUnblockableWarningHidden: !FocusSectionSupport.shouldShowUnblockableWarning(
+            isStrictWarningHidden: !FocusSectionSupport.shouldShowStrictWarning(
                 isBlocking: isBlocking,
-                isUnblockable: appState.isUnblockable
+                isStrict: appState.isStrict
             ),
             isPauseDashboardHidden: !FocusSectionSupport.shouldShowPauseDashboard(
                 isBlocking: isBlocking,

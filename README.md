@@ -6,7 +6,7 @@ Free is a native macOS focus blocker with strict allowlist enforcement.
 - Focus blocking with multiple allowed website lists.
 - Open-tab import and wildcard URL matching.
 - Weekly schedules (calendar + list) with drag/resize editing.
-- Pomodoro (focus/break), quick breaks, and strict unblockable mode.
+- Pomodoro (focus/break), quick breaks, and strict strict mode.
 - Calendar import with title-based focus/break rules.
 - DMG install flow with optional move to `/Applications`.
 

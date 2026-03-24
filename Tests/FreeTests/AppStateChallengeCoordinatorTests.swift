@@ -3,43 +3,43 @@ import Testing
 @testable import FreeLogic
 
 struct AppStateChallengeCoordinatorTests {
-    @Test("disableUnblockable succeeds only with exact challenge phrase")
-    func disableUnblockableRequiresExactPhrase() {
-        let failed = AppStateChallengeCoordinator.disableUnblockable(
+    @Test("disableStrict succeeds only with exact challenge phrase")
+    func disableStrictRequiresExactPhrase() {
+        let failed = AppStateChallengeCoordinator.disableStrict(
             phrase: "wrong",
             challengePhrase: AppState.challengePhrase,
-            currentIsUnblockable: true
+            currentIsStrict: true
         )
         #expect(!failed.didSucceed)
-        #expect(failed.isUnblockable)
+        #expect(failed.isStrict)
 
-        let succeeded = AppStateChallengeCoordinator.disableUnblockable(
+        let succeeded = AppStateChallengeCoordinator.disableStrict(
             phrase: AppState.challengePhrase,
             challengePhrase: AppState.challengePhrase,
-            currentIsUnblockable: true
+            currentIsStrict: true
         )
         #expect(succeeded.didSucceed)
-        #expect(!succeeded.isUnblockable)
+        #expect(!succeeded.isStrict)
     }
 
-    @Test("stopPomodoro returns temporary and restored unblockable states")
+    @Test("stopPomodoro returns temporary and restored strict states")
     func stopPomodoroStateTransition() {
         let failed = AppStateChallengeCoordinator.stopPomodoro(
             phrase: "wrong",
             challengePhrase: AppState.challengePhrase,
-            currentIsUnblockable: true
+            currentIsStrict: true
         )
         #expect(!failed.didSucceed)
-        #expect(failed.temporaryIsUnblockable)
-        #expect(failed.restoredIsUnblockable)
+        #expect(failed.temporaryIsStrict)
+        #expect(failed.restoredIsStrict)
 
         let succeeded = AppStateChallengeCoordinator.stopPomodoro(
             phrase: AppState.challengePhrase,
             challengePhrase: AppState.challengePhrase,
-            currentIsUnblockable: true
+            currentIsStrict: true
         )
         #expect(succeeded.didSucceed)
-        #expect(!succeeded.temporaryIsUnblockable)
-        #expect(succeeded.restoredIsUnblockable)
+        #expect(!succeeded.temporaryIsStrict)
+        #expect(succeeded.restoredIsStrict)
     }
 }

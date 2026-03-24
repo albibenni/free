@@ -24,7 +24,7 @@
 
 ## Logic
 
-- [x] there should be a setting, maybe a setting tab where you can enable an UNBLOCKABLE feature where you cannot toggle the focus button
+- [x] there should be a setting, maybe a setting tab where you can enable an STRICT feature where you cannot toggle the focus button
 - [x] the app should manage focus mode via calendar schedule, like a google calendar app
 - [x] fix drag - should round to 15m
   - [x] overlay showing time selected?
@@ -53,7 +53,7 @@
   - [x] breaks only in first view - mode there from pomodoro
   - [x] pomodoro setting for it
   - [x] calendar setting for it
-- [x] with unblockable mode on schedule cannot be modified
+- [x] with strict mode on schedule cannot be modified
 
 ### Allowed list
 
@@ -122,10 +122,12 @@
 
 - [ ] don't allow to copy paste the challenge phrase
 - [ ] regression:
-  - [ ] can modify schedule with unblockable mode on
+  - [ ] can modify schedule with strict mode on
     - [ ] dialog should show new quote and new challenge phrase
-  - [ ] check if pomodoro can be stop with unblockable mode on
-  - [ ] check if quick break can be used with unblockable mode on
+  - [ ] check if pomodoro can be stop with strict mode on
+  - [ ] check if quick break can be used with strict mode on
+
+- [ ] dialog vanished from add websites inside import open tabs
 
 ## Performance check
 

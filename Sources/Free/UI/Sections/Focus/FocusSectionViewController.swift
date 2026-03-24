@@ -16,7 +16,7 @@ final class FocusSectionViewController: NSViewController {
     let headerIconView = NSImageView()
     let headerTitleLabel = NSTextField(labelWithString: "Focus Mode")
     let headerStatusLabel = NSTextField(labelWithString: "")
-    let unblockableWarningLabel = NSTextField(labelWithString: "Unblockable mode is active. You cannot disable Focus Mode.")
+    let strictWarningLabel = NSTextField(labelWithString: "Strict mode is active. You cannot disable Focus Mode.")
     let pauseDashboardView = AppKitDynamicView()
     let pauseTitleLabel = NSTextField(labelWithString: "On Break")
     let pauseTimeLabel = NSTextField(labelWithString: "")
@@ -81,7 +81,7 @@ final class FocusSectionViewController: NSViewController {
         [
             permissionWarningView,
             headerCardView,
-            unblockableWarningLabel,
+            strictWarningLabel,
             pauseDashboardView,
             quickBreakDashboardView,
             overviewCardView,

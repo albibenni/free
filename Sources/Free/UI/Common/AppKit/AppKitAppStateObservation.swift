@@ -71,7 +71,7 @@ enum AppKitAppStateObservation {
     static func settingsPublisher(appState: AppState) -> VoidPublisher {
         merge([
             appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isUnblockable.map { _ in () }.eraseToAnyPublisher(),
+            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
             appState.$weekStartsOnMonday.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarImportsBlockTime.map { _ in () }.eraseToAnyPublisher(),
@@ -117,7 +117,7 @@ enum AppKitAppStateObservation {
             appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
             appState.$activeRuleSetId.map { _ in () }.eraseToAnyPublisher(),
             appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isUnblockable.map { _ in () }.eraseToAnyPublisher(),
+            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
             appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
         ])
     }
@@ -125,7 +125,7 @@ enum AppKitAppStateObservation {
     static func focusPublisher(appState: AppState) -> VoidPublisher {
         merge([
             appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isUnblockable.map { _ in () }.eraseToAnyPublisher(),
+            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
             appState.$isTrusted.map { _ in () }.eraseToAnyPublisher(),
             appState.$isPaused.map { _ in () }.eraseToAnyPublisher(),
             appState.$pauseRemaining.map { _ in () }.eraseToAnyPublisher(),
@@ -151,7 +151,7 @@ enum AppKitAppStateObservation {
             appState.$calendarImportedScheduleRuleSetId.map { _ in () }.eraseToAnyPublisher(),
             appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
             appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isUnblockable.map { _ in () }.eraseToAnyPublisher(),
+            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
             appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
         ])
     }

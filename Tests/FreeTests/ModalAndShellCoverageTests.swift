@@ -360,12 +360,12 @@ struct ModalAndShellCoverageTests {
             AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting()
         }
 
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = true
         controller.handleCreateRuleSet()
         #expect(appState.ruleSets.count == 1)
 
-        appState.isUnblockable = false
+        appState.isStrict = false
         appState.isBlocking = false
         AllowedWebsitesRuleSetAlertPresenter.makeAlert = { NSAlert() }
         AllowedWebsitesRuleSetAlertPresenter.runModal = { alert in
@@ -403,7 +403,7 @@ struct ModalAndShellCoverageTests {
     }
 
     @MainActor
-    @Test("Allowed websites editor action controller covers row taps, unblockable lock, and add/remove guards")
+    @Test("Allowed websites editor action controller covers row taps, strict lock, and add/remove guards")
     func allowedWebsitesEditorActionControllerPaths() {
         let appState = isolatedAppState(
             name: "allowedWebsitesEditorActionControllerPaths",
@@ -431,13 +431,13 @@ struct ModalAndShellCoverageTests {
         #expect(controller.selectedRuleSetId == setA.id)
 
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         controller.selectedRuleSetId = setA.id
         controller.reloadRuleSetRows()
         controller.ruleSetButtons[setB.id]?.performClick(nil)
         #expect(controller.selectedRuleSetId == setA.id)
 
-        appState.isUnblockable = false
+        appState.isStrict = false
         appState.isBlocking = false
 
         AllowedWebsitesRuleSetAlertPresenter.makeAlert = { NSAlert() }

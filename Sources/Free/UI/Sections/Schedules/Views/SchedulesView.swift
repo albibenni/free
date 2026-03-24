@@ -179,7 +179,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private var canModifySchedules: Bool {
-        !appState.isUnblockable
+        !appState.isStrict
     }
 
     private func showScheduleModificationBlockedAlert() {
@@ -187,7 +187,7 @@ final class SchedulesSheetViewController: NSViewController {
         alert.alertStyle = .warning
         alert.messageText = "Schedule Editing Locked"
         alert.informativeText =
-            "Schedule changes are disabled while Focus Mode and Unblockable Mode are both active."
+            "Schedule changes are disabled while Focus Mode and Strict Mode are both active."
         alert.addButton(withTitle: "OK")
         _ = Self.runScheduleModificationBlockedAlert(alert)
     }

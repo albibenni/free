@@ -237,7 +237,7 @@ struct CalendarSectionViewTests {
         let appState = isolatedAppState(name: "disabledControls")
         appState.calendarIntegrationEnabled = false
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
 
         let controller = CalendarSectionViewController(appState: appState)
         let hosted = host(controller)
@@ -255,17 +255,17 @@ struct CalendarSectionViewTests {
         #expect(controller.calendarControlsLockedForTesting)
         #expect(
             visibleText(in: hosted).contains(
-                "Unblockable mode is active. You cannot change Calendar integration settings while Focus Mode is active."
+                "Strict mode is active. You cannot change Calendar integration settings while Focus Mode is active."
             )
         )
     }
 
-    @Test("Calendar section blocks break/focus title rule edits when unblockable mode is on")
+    @Test("Calendar section blocks break/focus title rule edits when strict mode is on")
     @MainActor
-    func calendarSectionRuleEditsLockedWhileUnblockable() {
-        let appState = isolatedAppState(name: "ruleEditsLockedWhileUnblockable")
+    func calendarSectionRuleEditsLockedWhileStrict() {
+        let appState = isolatedAppState(name: "ruleEditsLockedWhileStrict")
         appState.calendarIntegrationEnabled = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.calendarImportFocusTitleRules = ["focus"]
         appState.calendarImportBreakTitleRules = ["break"]
 
@@ -310,7 +310,7 @@ struct CalendarSectionViewTests {
     func calendarSectionRuleActionGuardsWhenEditingLocked() {
         let appState = isolatedAppState(name: "ruleActionGuardsWhenEditingLocked")
         appState.calendarIntegrationEnabled = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.calendarImportFocusTitleRules = ["keep-focus"]
         appState.calendarImportBreakTitleRules = ["keep-break"]
 

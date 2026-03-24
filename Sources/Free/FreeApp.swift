@@ -273,7 +273,7 @@ final class FreeApp {
             .store(in: &cancellables)
 
         Publishers.MergeMany(
-            appState.$isUnblockable.map { _ in () }.eraseToAnyPublisher(),
+            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
             appState.$isPaused.map { _ in () }.eraseToAnyPublisher(),
             appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
             appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
@@ -322,7 +322,7 @@ final class FreeApp {
             segments.append("Allowed List: \(appState.currentPrimaryRuleSetName)")
         }
 
-        if appState.isUnblockable {
+        if appState.isStrict {
             segments.append("Unbreakable")
         }
 

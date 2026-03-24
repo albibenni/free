@@ -125,7 +125,7 @@ struct PomodoroWidgetTests {
     func pomodoroWidgetPresetAndQuickBreakActions() {
         let appState = isolatedAppState(name: "presetAndQuickBreak")
         appState.isBlocking = true
-        appState.isUnblockable = false
+        appState.isStrict = false
         appState.pomodoroFocusDuration = 25
         appState.pomodoroBreakDuration = 5
 
@@ -186,7 +186,7 @@ struct PomodoroWidgetTests {
     func pomodoroWidgetQuickBreakDisabledStates() {
         let inactiveState = isolatedAppState(name: "inactiveQuickBreak")
         inactiveState.isBlocking = false
-        inactiveState.isUnblockable = false
+        inactiveState.isStrict = false
         let inactiveHosted = host(FocusPomodoroWidgetView(appState: inactiveState))
 
         #expect(buttons(in: inactiveHosted).first { $0.title == "5m" }?.isEnabled == false)
@@ -194,7 +194,7 @@ struct PomodoroWidgetTests {
 
         let strictState = isolatedAppState(name: "strictQuickBreak")
         strictState.isBlocking = true
-        strictState.isUnblockable = true
+        strictState.isStrict = true
         let strictHosted = host(FocusPomodoroWidgetView(appState: strictState))
 
         #expect(buttons(in: strictHosted).first { $0.title == "5m" }?.isEnabled == false)
@@ -221,7 +221,7 @@ struct PomodoroWidgetTests {
 
         appState.activeRuleSetId = work.id
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
 
         let strictHosted = host(FocusPomodoroWidgetView(appState: appState))
         let strictPersonalButton = selectableRowButtons(in: strictHosted).first { $0.displayedTitleForTesting == "Personal" }
@@ -303,7 +303,7 @@ struct PomodoroWidgetTests {
         let appState = isolatedAppState(name: "stopBehaviorAcrossStrictGracePeriod")
         appState.startPomodoro()
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.pomodoroStartedAt = Date()
 
         let widget = FocusPomodoroWidgetView(appState: appState)
@@ -317,7 +317,7 @@ struct PomodoroWidgetTests {
 
         appState.startPomodoro()
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.pomodoroStartedAt = Date().addingTimeInterval(-11)
         widget.refreshForStateChange()
         widget.forceUpdateActiveControlsForTesting()
@@ -333,7 +333,7 @@ struct PomodoroWidgetTests {
         let appState = isolatedAppState(name: "stopGuardReturnWhenLocked")
         appState.startPomodoro()
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.pomodoroStartedAt = Date().addingTimeInterval(-20)
 
         let hosted = host(FocusPomodoroWidgetView(appState: appState))
@@ -457,7 +457,7 @@ struct PomodoroWidgetTests {
         appState.ruleSets = [first, second]
         appState.activeRuleSetId = first.id
         appState.isBlocking = true
-        appState.isUnblockable = false
+        appState.isStrict = false
 
         let widget = FocusPomodoroWidgetView(appState: appState)
         let hosted = host(widget)
@@ -466,7 +466,7 @@ struct PomodoroWidgetTests {
         #expect(initialButtons.allSatisfy { $0.isEnabled })
 
         appState.activeRuleSetId = second.id
-        appState.isUnblockable = true
+        appState.isStrict = true
         widget.refreshForStateChange()
 
         let updatedButtons = selectableRowButtons(in: hosted)
@@ -671,7 +671,7 @@ struct PomodoroWidgetTests {
     func pomodoroWidgetPromptSimulations() {
         let breakState = isolatedAppState(name: "promptCustomBreak")
         breakState.isBlocking = true
-        breakState.isUnblockable = false
+        breakState.isStrict = false
 
         let breakWidget = FocusPomodoroWidgetView(appState: breakState)
         breakWidget.customBreakPromptSimulation = { (.alertFirstButtonReturn, "7") }
@@ -684,7 +684,7 @@ struct PomodoroWidgetTests {
 
         let cancelBreakState = isolatedAppState(name: "promptCancelBreak")
         cancelBreakState.isBlocking = true
-        cancelBreakState.isUnblockable = false
+        cancelBreakState.isStrict = false
         let cancelBreakWidget = FocusPomodoroWidgetView(appState: cancelBreakState)
         cancelBreakWidget.customBreakPromptSimulation = { (.alertSecondButtonReturn, "") }
         let cancelBreakHosted = host(cancelBreakWidget)
@@ -722,7 +722,7 @@ struct PomodoroWidgetTests {
 
         let breakState = isolatedAppState(name: "promptHookModal")
         breakState.isBlocking = true
-        breakState.isUnblockable = false
+        breakState.isStrict = false
         let breakWidget = FocusPomodoroWidgetView(appState: breakState)
         _ = host(breakWidget)
 
@@ -750,7 +750,7 @@ struct PomodoroWidgetTests {
 
         let customState = isolatedAppState(name: "promptBranchCustomSheet")
         customState.isBlocking = true
-        customState.isUnblockable = false
+        customState.isStrict = false
         let customWidget = FocusPomodoroWidgetView(appState: customState)
         let customWindow = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 960, height: 760),
@@ -827,7 +827,7 @@ struct PomodoroWidgetTests {
         appState.ruleSets = [work, personal]
         appState.activeRuleSetId = work.id
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.startPomodoro()
         appState.pomodoroStartedAt = Date().addingTimeInterval(-20)
 
@@ -859,7 +859,7 @@ struct PomodoroWidgetTests {
 
         appState.startPomodoro()
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.pomodoroStartedAt = Date().addingTimeInterval(-20)
         buttons(in: hosted).first { $0.title == "Stop" }?.performClick(nil)
         #expect(appState.pomodoroStatus != .none)
@@ -904,7 +904,7 @@ struct PomodoroWidgetTests {
     func pomodoroWidgetCustomBreakInvalidInputCoverage() {
         let appState = isolatedAppState(name: "customBreakInvalidInputCoverage")
         appState.isBlocking = true
-        appState.isUnblockable = false
+        appState.isStrict = false
         let widget = FocusPomodoroWidgetView(appState: appState)
         let hosted = host(widget)
         widget.customBreakPromptSimulation = { (.alertFirstButtonReturn, "abc") }

@@ -92,7 +92,7 @@ struct CoverageExpansionTests {
         appState.applySessionDomainState(
             .init(
                 isBlocking: true,
-                isUnblockable: true,
+                isStrict: true,
                 isPaused: true,
                 pauseRemaining: 90,
                 wasStartedBySchedule: true,
@@ -100,7 +100,7 @@ struct CoverageExpansionTests {
             )
         )
         #expect(appState.sessionDomainState.isBlocking)
-        #expect(appState.sessionDomainState.isUnblockable)
+        #expect(appState.sessionDomainState.isStrict)
         #expect(appState.sessionDomainState.isPaused)
         #expect(appState.sessionDomainState.pauseRemaining == 90)
         #expect(appState.sessionDomainState.wasStartedBySchedule)

@@ -66,7 +66,7 @@ struct PersistenceTests {
         defaults.set(true, forKey: "IsBlocking")
         defaults.set(false, forKey: "WasStartedBySchedule")
         defaults.set(true, forKey: "ManualBlockingEnabled")
-        appState?.isUnblockable = true
+        appState?.isStrict = true
         appState?.accentColorIndex = 5
         appState?.calendarImportsBlockTime = true
         appState?.blockNewTabs = true
@@ -76,7 +76,7 @@ struct PersistenceTests {
 
         let newAppState = AppState(defaults: defaults, isTesting: true)
         #expect(newAppState.isBlocking == true)
-        #expect(newAppState.isUnblockable == true)
+        #expect(newAppState.isStrict == true)
         #expect(newAppState.accentColorIndex == 5)
         #expect(newAppState.calendarImportsBlockTime == true)
         #expect(newAppState.blockNewTabs == true)

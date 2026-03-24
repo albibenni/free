@@ -19,7 +19,7 @@ extension AppStateLogicFacade {
         schedules: [Schedule],
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
-        isUnblockable: Bool,
+        isStrict: Bool,
         calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> SessionState? {
@@ -29,7 +29,7 @@ extension AppStateLogicFacade {
             schedules: schedules,
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )
@@ -37,12 +37,12 @@ extension AppStateLogicFacade {
 
     func toggleSession(
         current: SessionState,
-        isUnblockable: Bool,
+        isStrict: Bool,
         schedules: [Schedule]
     ) -> SessionState {
         AppStateSessionCoordinator.toggle(
             current: current,
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             schedules: schedules
         )
     }
@@ -52,7 +52,7 @@ extension AppStateLogicFacade {
         schedules: [Schedule],
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
-        isUnblockable: Bool,
+        isStrict: Bool,
         calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> SessionState {
@@ -61,7 +61,7 @@ extension AppStateLogicFacade {
             schedules: schedules,
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )

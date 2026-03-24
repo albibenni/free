@@ -348,12 +348,12 @@ struct SectionCoordinatorsTests {
         appState.isTrusted = false
         appState.isBlocking = true
         appState.isPaused = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.pauseRemaining = 75
 
         let presentation = FocusSectionSharedStateCoordinator.makePresentation(appState: appState)
         #expect(!presentation.isPermissionWarningHidden)
-        #expect(presentation.isUnblockableWarningHidden == false)
+        #expect(presentation.isStrictWarningHidden == false)
         #expect(presentation.isPauseDashboardHidden == false)
         #expect(presentation.headerStatusText == "Paused")
         #expect(presentation.pauseTimeText == "01:15")

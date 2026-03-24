@@ -39,7 +39,7 @@ struct AppStateLifecycleServiceTests {
         let importedRuleSetId = UUID()
         let snapshot = AppStateBootstrapService.Snapshot(
             isBlocking: true,
-            isUnblockable: true,
+            isStrict: true,
             weekStartsOnMonday: true,
             accentColorIndex: 3,
             appearanceMode: .dark,
@@ -67,7 +67,7 @@ struct AppStateLifecycleServiceTests {
         let projection = AppStateLifecycleService.makeBootstrapProjection(snapshot: snapshot)
 
         #expect(projection.session.isBlocking)
-        #expect(projection.session.isUnblockable)
+        #expect(projection.session.isStrict)
         #expect(projection.session.wasStartedBySchedule)
         #expect(projection.settings.weekStartsOnMonday)
         #expect(projection.settings.accentColorIndex == 3)
@@ -107,7 +107,7 @@ struct AppStateLifecycleServiceTests {
             schedules: [],
             pomodoroStatus: .none,
             calendarIntegrationEnabled: false,
-            isUnblockable: false,
+            isStrict: false,
             calendarImportsBlockTime: false,
             calendarEvents: []
         )
@@ -120,7 +120,7 @@ struct AppStateLifecycleServiceTests {
             schedules: [],
             pomodoroStatus: .none,
             calendarIntegrationEnabled: false,
-            isUnblockable: false,
+            isStrict: false,
             calendarImportsBlockTime: false,
             calendarEvents: []
         )
@@ -207,7 +207,7 @@ struct AppStateLifecycleServiceTests {
 
         let bindings = AppStatePersistenceCoordinator.Bindings(
             isBlocking: Just(false).eraseToAnyPublisher(),
-            isUnblockable: Just(false).eraseToAnyPublisher(),
+            isStrict: Just(false).eraseToAnyPublisher(),
             weekStartsOnMonday: Just(false).eraseToAnyPublisher(),
             accentColorIndex: Just(0).eraseToAnyPublisher(),
             appearanceMode: Just(.system).eraseToAnyPublisher(),

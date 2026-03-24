@@ -3,24 +3,24 @@ import Foundation
 extension AppState {
     var isPomodoroLocked: Bool {
         PomodoroEngine.isLocked(
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             status: pomodoroStatus,
             startedAt: pomodoroStartedAt
         )
     }
 
     var isPomodoroWithinStrictGracePeriod: Bool {
-        guard isUnblockable, pomodoroStatus != .none, let startedAt = pomodoroStartedAt else {
+        guard isStrict, pomodoroStatus != .none, let startedAt = pomodoroStartedAt else {
             return false
         }
         return !PomodoroEngine.isLocked(
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             status: pomodoroStatus,
             startedAt: startedAt
         )
     }
 
-    var isStrictActive: Bool { isBlocking && isUnblockable }
+    var isStrictActive: Bool { isBlocking && isStrict }
 
     var currentPrimaryRuleSetId: UUID? {
         logicFacade.currentPrimaryRuleSetId(context: ruleContext)

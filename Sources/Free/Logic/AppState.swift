@@ -21,7 +21,7 @@ class AppState: ObservableObject {
             )
         }
     }
-    @Published var isUnblockable = false
+    @Published var isStrict = false
     @Published var isTrusted = false
     @Published var weekStartsOnMonday = false
     @Published var accentColorIndex = 0
@@ -166,7 +166,7 @@ class AppState: ObservableObject {
             schedules: schedules,
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarProvider.events
         ) {
@@ -217,7 +217,7 @@ class AppState: ObservableObject {
         let wasBlocking = isBlocking
         let updated = logicFacade.toggleSession(
             current: sessionState,
-            isUnblockable: sessionDomainState.isUnblockable,
+            isStrict: sessionDomainState.isStrict,
             schedules: scheduleDomainState.schedules
         )
         applySessionState(updated)
@@ -246,7 +246,7 @@ class AppState: ObservableObject {
             schedules: scheduleDomainState.schedules,
             pomodoroStatus: pomodoroDomainState.status,
             calendarIntegrationEnabled: scheduleDomainState.calendarIntegrationEnabled,
-            isUnblockable: sessionDomainState.isUnblockable,
+            isStrict: sessionDomainState.isStrict,
             calendarImportsBlockTime: scheduleDomainState.calendarImportsBlockTime,
             calendarEvents: calendarProvider.events
         )

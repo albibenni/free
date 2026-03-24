@@ -238,32 +238,32 @@ struct AppDelegateTests {
         #expect(relaunchSystem.moveErrors.count == 1)
     }
 
-    @Test("AppDelegate prevents termination whenever unblockable mode is enabled")
+    @Test("AppDelegate prevents termination whenever strict mode is enabled")
     func terminationPrevention() {
         let (delegate, _, defaults) = setupIsolatedDelegate(name: "terminationPrevention")
 
         defaults.set(false, forKey: "IsBlocking")
-        defaults.set(false, forKey: "IsUnblockable")
+        defaults.set(false, forKey: "IsStrict")
         #expect(delegate.shouldPreventTermination() == false)
         #expect(delegate.shouldConfirmTerminationWhileBlocking() == false)
 
         defaults.set(true, forKey: "IsBlocking")
-        defaults.set(false, forKey: "IsUnblockable")
+        defaults.set(false, forKey: "IsStrict")
         #expect(delegate.shouldPreventTermination() == false)
         #expect(delegate.shouldConfirmTerminationWhileBlocking() == true)
 
         defaults.set(false, forKey: "IsBlocking")
-        defaults.set(true, forKey: "IsUnblockable")
+        defaults.set(true, forKey: "IsStrict")
         #expect(delegate.shouldPreventTermination() == true)
         #expect(delegate.shouldConfirmTerminationWhileBlocking() == false)
 
         defaults.set(true, forKey: "IsBlocking")
-        defaults.set(true, forKey: "IsUnblockable")
+        defaults.set(true, forKey: "IsStrict")
         #expect(delegate.shouldPreventTermination() == true)
         #expect(delegate.shouldConfirmTerminationWhileBlocking() == false)
     }
 
-    @Test("applicationShouldTerminate blocks quit whenever unblockable mode is enabled and triggers custom alert")
+    @Test("applicationShouldTerminate blocks quit whenever strict mode is enabled and triggers custom alert")
     func applicationTerminationStrictReply() {
         let (delegate, system, defaults) = setupIsolatedDelegate(
             name: "applicationTerminationStrictReply")
@@ -272,7 +272,7 @@ struct AppDelegateTests {
         delegate.onShowAlert = { alertWasShown = true }
 
         defaults.set(true, forKey: "IsBlocking")
-        defaults.set(true, forKey: "IsUnblockable")
+        defaults.set(true, forKey: "IsStrict")
         let reply1 = delegate.applicationShouldTerminate(NSApplication.shared)
         #expect(reply1 == .terminateCancel)
         #expect(alertWasShown == true)
@@ -280,15 +280,15 @@ struct AppDelegateTests {
 
         alertWasShown = false
         defaults.set(false, forKey: "IsBlocking")
-        defaults.set(true, forKey: "IsUnblockable")
-        let replyUnblockableOnly = delegate.applicationShouldTerminate(NSApplication.shared)
-        #expect(replyUnblockableOnly == .terminateCancel)
+        defaults.set(true, forKey: "IsStrict")
+        let replyStrictOnly = delegate.applicationShouldTerminate(NSApplication.shared)
+        #expect(replyStrictOnly == .terminateCancel)
         #expect(alertWasShown == true)
         #expect(system.confirmQuitCalls == 0)
 
         alertWasShown = false
         defaults.set(false, forKey: "IsBlocking")
-        defaults.set(false, forKey: "IsUnblockable")
+        defaults.set(false, forKey: "IsStrict")
         let reply2 = delegate.applicationShouldTerminate(NSApplication.shared)
         #expect(reply2 == .terminateNow)
         #expect(alertWasShown == false)
@@ -301,7 +301,7 @@ struct AppDelegateTests {
             name: "applicationTerminationNonStrictConfirm")
         delegate.onShowAlert = nil
         defaults.set(true, forKey: "IsBlocking")
-        defaults.set(false, forKey: "IsUnblockable")
+        defaults.set(false, forKey: "IsStrict")
         system.confirmQuitResult = true
 
         let reply = delegate.applicationShouldTerminate(NSApplication.shared)
@@ -317,7 +317,7 @@ struct AppDelegateTests {
             name: "applicationTerminationNonStrictCancel")
         delegate.onShowAlert = nil
         defaults.set(true, forKey: "IsBlocking")
-        defaults.set(false, forKey: "IsUnblockable")
+        defaults.set(false, forKey: "IsStrict")
         system.confirmQuitResult = false
 
         let reply = delegate.applicationShouldTerminate(NSApplication.shared)
@@ -333,7 +333,7 @@ struct AppDelegateTests {
             name: "applicationTerminationDefaultAlert")
         delegate.onShowAlert = nil
         defaults.set(true, forKey: "IsBlocking")
-        defaults.set(true, forKey: "IsUnblockable")
+        defaults.set(true, forKey: "IsStrict")
 
         let reply = delegate.applicationShouldTerminate(NSApplication.shared)
 

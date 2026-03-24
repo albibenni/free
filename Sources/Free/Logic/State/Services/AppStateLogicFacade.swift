@@ -6,7 +6,7 @@ struct AppStateLogicFacade {
     typealias RuleMutation = AppStateRuleSetCoordinator.RuleMutation
     typealias ScheduleDeleteResult = AppStateScheduleMutationCoordinator.DeletionResult
     typealias ChallengeStopResult = AppStateChallengeCoordinator.StopPomodoroResult
-    typealias ChallengeDisableResult = AppStateChallengeCoordinator.DisableUnblockableResult
+    typealias ChallengeDisableResult = AppStateChallengeCoordinator.DisableStrictResult
     typealias PomodoroTransition = AppStateFocusFlowCoordinator.PomodoroTransition
     typealias SkipPhaseAction = AppStateFocusFlowCoordinator.SkipPhaseAction
     typealias PauseTransition = AppStateFocusFlowCoordinator.PauseTransition

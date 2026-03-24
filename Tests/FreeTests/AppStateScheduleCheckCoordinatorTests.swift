@@ -23,7 +23,7 @@ struct AppStateScheduleCheckCoordinatorTests {
             manuallyPausedScheduleIds: [],
             pomodoroStatus: .none,
             calendarIntegrationEnabled: false,
-            isUnblockable: false,
+            isStrict: false,
             calendarImportsBlockTime: false,
             calendarEvents: []
         )
@@ -42,7 +42,7 @@ struct AppStateScheduleCheckCoordinatorTests {
             manuallyPausedScheduleIds: [],
             pomodoroStatus: .none,
             calendarIntegrationEnabled: false,
-            isUnblockable: false,
+            isStrict: false,
             calendarImportsBlockTime: false,
             calendarEvents: []
         )
@@ -62,7 +62,7 @@ struct AppStateScheduleCheckCoordinatorTests {
             manuallyPausedScheduleIds: [staleId],
             pomodoroStatus: .none,
             calendarIntegrationEnabled: false,
-            isUnblockable: false,
+            isStrict: false,
             calendarImportsBlockTime: false,
             calendarEvents: []
         )

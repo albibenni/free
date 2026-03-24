@@ -25,7 +25,7 @@ extension AppState {
     var sessionDomainState: AppSessionDomainState {
         AppSessionDomainState(
             isBlocking: isBlocking,
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             isPaused: isPaused,
             pauseRemaining: pauseRemaining,
             wasStartedBySchedule: wasStartedBySchedule,
@@ -35,7 +35,7 @@ extension AppState {
 
     func applySessionDomainState(_ state: AppSessionDomainState) {
         if isBlocking != state.isBlocking { isBlocking = state.isBlocking }
-        if isUnblockable != state.isUnblockable { isUnblockable = state.isUnblockable }
+        if isStrict != state.isStrict { isStrict = state.isStrict }
         if isPaused != state.isPaused { isPaused = state.isPaused }
         if pauseRemaining != state.pauseRemaining { pauseRemaining = state.pauseRemaining }
         if wasStartedBySchedule != state.wasStartedBySchedule {

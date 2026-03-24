@@ -31,7 +31,7 @@ enum AppStateLifecycleService {
         BootstrapProjection(
             session: AppSessionDomainState(
             isBlocking: snapshot.isBlocking,
-            isUnblockable: snapshot.isUnblockable,
+            isStrict: snapshot.isStrict,
             isPaused: false,
             pauseRemaining: 0,
             wasStartedBySchedule: snapshot.wasStartedBySchedule,
@@ -80,7 +80,7 @@ enum AppStateLifecycleService {
         schedules: [Schedule],
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
-        isUnblockable: Bool,
+        isStrict: Bool,
         calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> AppStateLogicFacade.SessionState? {
@@ -90,7 +90,7 @@ enum AppStateLifecycleService {
             schedules: schedules,
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )

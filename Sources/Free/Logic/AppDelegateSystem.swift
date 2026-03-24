@@ -173,8 +173,8 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
 
     func showBlockingAlert() {
         let alert = runtime.makeAlert()
-        alert.messageText = "Unblockable Mode is Active"
-        alert.informativeText = "Disable Unblockable Mode in Settings before quitting the app."
+        alert.messageText = "Strict Mode is Active"
+        alert.informativeText = "Disable Strict Mode in Settings before quitting the app."
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK")
         _ = ModalDefault.run(alert)

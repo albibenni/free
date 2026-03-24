@@ -76,10 +76,10 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     public func shouldPreventTermination() -> Bool {
-        return defaults.bool(forKey: "IsUnblockable")
+        return defaults.bool(forKey: "IsStrict")
     }
 
     public func shouldConfirmTerminationWhileBlocking() -> Bool {
-        return defaults.bool(forKey: "IsBlocking") && !defaults.bool(forKey: "IsUnblockable")
+        return defaults.bool(forKey: "IsBlocking") && !defaults.bool(forKey: "IsStrict")
     }
 }

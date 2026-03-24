@@ -83,7 +83,7 @@ struct AppStateTests {
     func pomodoroLocking() {
         let appState = isolatedAppState(name: "pomodoroLocking")
 
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.pomodoroStatus = .focus
         appState.pomodoroStartedAt = Date().addingTimeInterval(-100)
 
@@ -100,12 +100,12 @@ struct AppStateTests {
     func pomodoroStrictGracePeriodReadModelCoverage() {
         let appState = isolatedAppState(name: "pomodoroStrictGracePeriodReadModelCoverage")
 
-        appState.isUnblockable = false
+        appState.isStrict = false
         appState.pomodoroStatus = .focus
         appState.pomodoroStartedAt = Date()
         #expect(appState.isPomodoroWithinStrictGracePeriod == false)
 
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.pomodoroStatus = .none
         #expect(appState.isPomodoroWithinStrictGracePeriod == false)
 
@@ -120,15 +120,15 @@ struct AppStateTests {
         #expect(appState.isPomodoroWithinStrictGracePeriod == false)
     }
 
-    @Test("Strict Mode (Unblockable) activation logic")
+    @Test("Strict Mode (Strict) activation logic")
     func strictActive() {
         let appState = isolatedAppState(name: "strictActive")
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
 
         #expect(appState.isStrictActive)
 
-        appState.isUnblockable = false
+        appState.isStrict = false
         #expect(!appState.isStrictActive)
     }
 
@@ -201,7 +201,7 @@ struct AppStateTests {
     func schedulePriorityBreakOverridesFocus() {
         let appState = isolatedAppState(name: "schedulePriorityBreakOverridesFocus")
         appState.isBlocking = false
-        appState.isUnblockable = false
+        appState.isStrict = false
         appState.calendarIntegrationEnabled = false
 
         let now = Date()
@@ -446,7 +446,7 @@ struct AppStateTests {
         appState.calendarIntegrationEnabled = true
         #expect(appState.calendarImportsBlockTime == false)
         appState.isBlocking = false
-        appState.isUnblockable = false
+        appState.isStrict = false
 
         let now = Date()
         let calendar = Calendar.current
@@ -476,7 +476,7 @@ struct AppStateTests {
         appState.checkSchedules()
         #expect(!appState.isBlocking, "Calendar event should override focus in normal mode")
 
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.checkSchedules()
 
         #expect(appState.isBlocking, "Calendar event should NOT override focus in strict mode")
@@ -871,7 +871,7 @@ struct AppStateTests {
         #expect(appState.ruleSets[0].urls.count == countAfterFirstAdd)
 
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.addSpecificRule("https://example.com", to: setId)
         #expect(!appState.ruleSets[0].urls.contains("https://example.com"))
     }
@@ -1427,7 +1427,7 @@ struct AppStateTests {
             type: .focus
         )
         appState.schedules = [original]
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = true
 
         appState.saveSchedule(
@@ -1462,9 +1462,9 @@ struct AppStateTests {
         #expect(appState.schedules.first?.id == original.id)
     }
 
-    @Test("schedule mutations are allowed when unblockable is on but focus is inactive")
-    func scheduleMutationsAllowedWhenUnblockableButNotBlocking() {
-        let appState = isolatedAppState(name: "scheduleMutationsAllowedWhenUnblockableButNotBlocking")
+    @Test("schedule mutations are allowed when strict is on but focus is inactive")
+    func scheduleMutationsAllowedWhenStrictButNotBlocking() {
+        let appState = isolatedAppState(name: "scheduleMutationsAllowedWhenStrictButNotBlocking")
         let start = Date()
         let end = start.addingTimeInterval(3600)
         let original = Schedule(
@@ -1476,7 +1476,7 @@ struct AppStateTests {
             type: .focus
         )
         appState.schedules = [original]
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = false
 
         appState.saveSchedule(
@@ -1749,14 +1749,14 @@ struct AppStateTests {
     func challengePhraseEnforcement() {
         let appState = isolatedAppState(name: "challengePhraseEnforcement")
 
-        appState.isUnblockable = true
-        #expect(!appState.disableUnblockableWithChallenge(phrase: "wrong"))
-        #expect(appState.isUnblockable)
+        appState.isStrict = true
+        #expect(!appState.disableStrictWithChallenge(phrase: "wrong"))
+        #expect(appState.isStrict)
 
-        #expect(appState.disableUnblockableWithChallenge(phrase: AppState.challengePhrase))
-        #expect(!appState.isUnblockable)
+        #expect(appState.disableStrictWithChallenge(phrase: AppState.challengePhrase))
+        #expect(!appState.isStrict)
 
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.startPomodoro()
         appState.pomodoroStartedAt = Date().addingTimeInterval(-100)  // Ensure it's locked
         #expect(appState.isPomodoroLocked)
@@ -1771,15 +1771,15 @@ struct AppStateTests {
     @Test("Negative: Challenge phrase is case-sensitive and strict on whitespace")
     func challengePhraseStrictness() {
         let appState = isolatedAppState(name: "challengePhraseStrictness")
-        appState.isUnblockable = true
+        appState.isStrict = true
 
         let lowercased = AppState.challengePhrase.lowercased()
-        #expect(!appState.disableUnblockableWithChallenge(phrase: lowercased))
+        #expect(!appState.disableStrictWithChallenge(phrase: lowercased))
 
         let padded = " " + AppState.challengePhrase + " "
-        #expect(!appState.disableUnblockableWithChallenge(phrase: padded))
+        #expect(!appState.disableStrictWithChallenge(phrase: padded))
 
-        #expect(appState.isUnblockable, "Should still be locked after bad attempts")
+        #expect(appState.isStrict, "Should still be locked after bad attempts")
     }
 
     @Test("Negative: Pause when not blocking should fail")
@@ -1812,7 +1812,7 @@ struct AppStateTests {
     @Test("Negative: Stop Pomodoro when locked without challenge")
     func stopLockedPomodoro() {
         let appState = isolatedAppState(name: "stopLockedPomodoro")
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.startPomodoro()
         appState.pomodoroStartedAt = Date().addingTimeInterval(-100)
 
@@ -1870,7 +1870,7 @@ struct AppStateTests {
         let originalCount = appState.ruleSets[0].urls.count
 
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         #expect(appState.isStrictActive)
 
         appState.addRule("cheat.com", to: setId)

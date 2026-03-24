@@ -98,7 +98,7 @@ struct AllowedWebsitesWidgetTests {
         appState.ruleSets = [work, personal]
         appState.activeRuleSetId = work.id
         appState.isBlocking = true
-        appState.isUnblockable = false
+        appState.isStrict = false
 
         let hosted = host(FocusAllowedWebsitesWidgetView(appState: appState, shellState: FreeShellState()))
         let personalButton = selectableRowButtons(in: hosted).first { $0.displayedTitleForTesting == "Personal" }
@@ -117,7 +117,7 @@ struct AllowedWebsitesWidgetTests {
         appState.ruleSets = [work, personal]
         appState.activeRuleSetId = work.id
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
 
         let hosted = host(FocusAllowedWebsitesWidgetView(appState: appState, shellState: FreeShellState()))
         let personalButton = selectableRowButtons(in: hosted).first { $0.displayedTitleForTesting == "Personal" }

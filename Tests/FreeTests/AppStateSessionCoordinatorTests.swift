@@ -23,7 +23,7 @@ struct AppStateSessionCoordinatorTests {
         )
         let updated = AppStateSessionCoordinator.toggle(
             current: initial,
-            isUnblockable: false,
+            isStrict: false,
             schedules: [focus]
         )
 
@@ -55,7 +55,7 @@ struct AppStateSessionCoordinatorTests {
             schedules: [focus],
             pomodoroStatus: .none,
             calendarIntegrationEnabled: false,
-            isUnblockable: false,
+            isStrict: false,
             calendarImportsBlockTime: false,
             calendarEvents: []
         )
@@ -78,7 +78,7 @@ struct AppStateSessionCoordinatorTests {
             schedules: [],
             pomodoroStatus: .none,
             calendarIntegrationEnabled: false,
-            isUnblockable: false,
+            isStrict: false,
             calendarImportsBlockTime: false,
             calendarEvents: []
         )

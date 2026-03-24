@@ -3,7 +3,7 @@ import Foundation
 extension AppState {
     private var challengeContext: AppStateActionsMutationService.ChallengeContext {
         AppStateActionsMutationService.ChallengeContext(
-            currentIsUnblockable: isUnblockable,
+            currentIsStrict: isStrict,
             challengePhrase: AppState.challengePhrase
         )
     }
@@ -16,20 +16,20 @@ extension AppState {
         )
         guard result.didSucceed else { return false }
 
-        isUnblockable = result.temporaryIsUnblockable
+        isStrict = result.temporaryIsStrict
         stopPomodoro()
-        isUnblockable = result.restoredIsUnblockable
+        isStrict = result.restoredIsStrict
         return true
     }
 
-    func disableUnblockableWithChallenge(phrase: String) -> Bool {
-        let result = AppStateActionsMutationService.disableUnblockableWithChallenge(
+    func disableStrictWithChallenge(phrase: String) -> Bool {
+        let result = AppStateActionsMutationService.disableStrictWithChallenge(
             logicFacade: logicFacade,
             phrase: phrase,
             context: challengeContext
         )
         guard result.didSucceed else { return false }
-        isUnblockable = result.isUnblockable
+        isStrict = result.isStrict
         return result.didSucceed
     }
 

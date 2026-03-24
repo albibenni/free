@@ -110,7 +110,7 @@ final class SettingsSectionViewController: NSViewController {
 
     private struct ObservationSignature: Equatable {
         let isBlocking: Bool
-        let isUnblockable: Bool
+        let isStrict: Bool
         let isStrictActive: Bool
         let weekStartsOnMonday: Bool
         let calendarIntegrationEnabled: Bool
@@ -127,7 +127,7 @@ final class SettingsSectionViewController: NSViewController {
 
         static let fallback = ObservationSignature(
             isBlocking: false,
-            isUnblockable: false,
+            isStrict: false,
             isStrictActive: false,
             weekStartsOnMonday: false,
             calendarIntegrationEnabled: false,
@@ -168,7 +168,7 @@ final class SettingsSectionViewController: NSViewController {
     private let cursorFluidAnimationSwitch = AppKitToggleSwitch()
     private let browserLockNotice = NSTextField(
         wrappingLabelWithString:
-            "Unblockable mode is active. Browser blocking settings cannot be changed."
+            "Strict mode is active. Browser blocking settings cannot be changed."
     )
     private var appearanceModeControl: AppKitSelectionButtonGroup<AppearanceMode>?
     private var accentButtons: [NSButton] = []
@@ -220,7 +220,7 @@ final class SettingsSectionViewController: NSViewController {
             signature: {
                 ObservationSignature(
                     isBlocking: appState.isBlocking,
-                    isUnblockable: appState.isUnblockable,
+                    isStrict: appState.isStrict,
                     isStrictActive: appState.isStrictActive,
                     weekStartsOnMonday: appState.weekStartsOnMonday,
                     calendarIntegrationEnabled: appState.calendarIntegrationEnabled,
@@ -277,7 +277,7 @@ final class SettingsSectionViewController: NSViewController {
         strictSection.layer?.cornerRadius = 12
 
         let toggleRow = makeToggleRow(
-            title: "Unblockable Mode",
+            title: "Strict Mode",
             descriptionLabel: strictDescriptionLabel,
             toggle: strictToggle
         )
@@ -494,12 +494,12 @@ final class SettingsSectionViewController: NSViewController {
         appearanceModeControl?.accentColor = accentColor
         appearanceModeControl?.selectedValue = appState.appearanceMode
 
-        let strictLocked = appState.isBlocking && appState.isUnblockable
+        let strictLocked = appState.isBlocking && appState.isStrict
         strictToggle.isHidden = strictLocked
         strictDescriptionLabel.isHidden = strictLocked
         strictStatusLabel.isHidden = !strictLocked
         strictDisableButton.isHidden = !strictLocked
-        strictToggle.state = appState.isUnblockable ? .on : .off
+        strictToggle.state = appState.isStrict ? .on : .off
 
         weekStartsMondaySwitch.state = appState.weekStartsOnMonday ? .on : .off
         calendarIntegrationSwitch.state = appState.calendarIntegrationEnabled ? .on : .off
@@ -516,7 +516,7 @@ final class SettingsSectionViewController: NSViewController {
         allowSearchEngineWebsitesSwitch.state = appState.allowSearchEngineWebsites ? .on : .off
         allowAIProviderWebsitesSwitch.state = appState.allowAIProviderWebsites ? .on : .off
         cursorFluidAnimationSwitch.state = appState.cursorFluidAnimationEnabled ? .on : .off
-        let browserLocked = appState.isUnblockable
+        let browserLocked = appState.isStrict
         blockNewTabsSwitch.isEnabled = !browserLocked
         blockDeveloperHostsSwitch.isEnabled = !browserLocked
         blockLocalNetworkHostsSwitch.isEnabled = !browserLocked
@@ -576,25 +576,25 @@ final class SettingsSectionViewController: NSViewController {
     private func toggleStrictMode() {
         let wantsEnabled = strictToggle.state == .on
         if wantsEnabled {
-            appState.isUnblockable = true
+            appState.isStrict = true
         } else {
-            guard appState.isUnblockable else { return }
+            guard appState.isStrict else { return }
             disableStrictMode()
         }
         // Keep control state aligned even when unlock is cancelled or phrase is wrong.
-        strictToggle.state = appState.isUnblockable ? .on : .off
+        strictToggle.state = appState.isStrict ? .on : .off
     }
 
     @objc
     private func disableStrictMode() {
         guard StrictModeChallenge.run(
             title: "Emergency Unlock",
-            action: "disable Unblockable Mode",
+            action: "disable Strict Mode",
             appState: appState,
             makeAlert: Self.makeStrictModeAlert,
             runAlert: Self.runStrictModeAlert
         ) else { return }
-        _ = appState.disableUnblockableWithChallenge(phrase: AppState.challengePhrase)
+        _ = appState.disableStrictWithChallenge(phrase: AppState.challengePhrase)
     }
 
     @objc
@@ -660,31 +660,31 @@ final class SettingsSectionViewController: NSViewController {
 
     @objc
     private func toggleBlockNewTabs() {
-        guard !appState.isUnblockable else { return }
+        guard !appState.isStrict else { return }
         appState.blockNewTabs = blockNewTabsSwitch.state == .on
     }
 
     @objc
     private func toggleBlockDeveloperHosts() {
-        guard !appState.isUnblockable else { return }
+        guard !appState.isStrict else { return }
         appState.blockDeveloperHosts = blockDeveloperHostsSwitch.state == .on
     }
 
     @objc
     private func toggleBlockLocalNetworkHosts() {
-        guard !appState.isUnblockable else { return }
+        guard !appState.isStrict else { return }
         appState.blockLocalNetworkHosts = blockLocalNetworkHostsSwitch.state == .on
     }
 
     @objc
     private func toggleAllowSearchEngineWebsites() {
-        guard !appState.isUnblockable else { return }
+        guard !appState.isStrict else { return }
         appState.allowSearchEngineWebsites = allowSearchEngineWebsitesSwitch.state == .on
     }
 
     @objc
     private func toggleAllowAIProviderWebsites() {
-        guard !appState.isUnblockable else { return }
+        guard !appState.isStrict else { return }
         appState.allowAIProviderWebsites = allowAIProviderWebsitesSwitch.state == .on
     }
 
@@ -716,7 +716,7 @@ extension SettingsSectionViewController {
     }
 
     func disableStrictModeForTesting(phrase: String) {
-        _ = appState.disableUnblockableWithChallenge(phrase: phrase)
+        _ = appState.disableStrictWithChallenge(phrase: phrase)
         reloadSettings()
     }
 

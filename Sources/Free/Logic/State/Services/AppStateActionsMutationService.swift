@@ -2,19 +2,19 @@ import Foundation
 
 enum AppStateActionsMutationService {
     struct ChallengeContext {
-        let currentIsUnblockable: Bool
+        let currentIsStrict: Bool
         let challengePhrase: String
     }
 
     struct StopPomodoroChallengeUpdate {
         let didSucceed: Bool
-        let temporaryIsUnblockable: Bool
-        let restoredIsUnblockable: Bool
+        let temporaryIsStrict: Bool
+        let restoredIsStrict: Bool
     }
 
-    struct DisableUnblockableChallengeUpdate {
+    struct DisableStrictChallengeUpdate {
         let didSucceed: Bool
-        let isUnblockable: Bool
+        let isStrict: Bool
     }
 
     static func stopPomodoroWithChallenge(
@@ -25,28 +25,28 @@ enum AppStateActionsMutationService {
         let result = logicFacade.stopPomodoroChallenge(
             phrase: phrase,
             challengePhrase: context.challengePhrase,
-            currentIsUnblockable: context.currentIsUnblockable
+            currentIsStrict: context.currentIsStrict
         )
         return StopPomodoroChallengeUpdate(
             didSucceed: result.didSucceed,
-            temporaryIsUnblockable: result.temporaryIsUnblockable,
-            restoredIsUnblockable: result.restoredIsUnblockable
+            temporaryIsStrict: result.temporaryIsStrict,
+            restoredIsStrict: result.restoredIsStrict
         )
     }
 
-    static func disableUnblockableWithChallenge(
+    static func disableStrictWithChallenge(
         logicFacade: AppStateLogicFacade,
         phrase: String,
         context: ChallengeContext
-    ) -> DisableUnblockableChallengeUpdate {
-        let result = logicFacade.disableUnblockableChallenge(
+    ) -> DisableStrictChallengeUpdate {
+        let result = logicFacade.disableStrictChallenge(
             phrase: phrase,
             challengePhrase: context.challengePhrase,
-            currentIsUnblockable: context.currentIsUnblockable
+            currentIsStrict: context.currentIsStrict
         )
-        return DisableUnblockableChallengeUpdate(
+        return DisableStrictChallengeUpdate(
             didSucceed: result.didSucceed,
-            isUnblockable: result.isUnblockable
+            isStrict: result.isStrict
         )
     }
 

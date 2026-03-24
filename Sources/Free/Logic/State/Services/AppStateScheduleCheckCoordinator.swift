@@ -14,7 +14,7 @@ struct AppStateScheduleCheckCoordinator {
         manuallyPausedScheduleIds: Set<UUID>,
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
-        isUnblockable: Bool,
+        isStrict: Bool,
         calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> Result {
@@ -23,7 +23,7 @@ struct AppStateScheduleCheckCoordinator {
             manuallyPausedScheduleIds: manuallyPausedScheduleIds,
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )

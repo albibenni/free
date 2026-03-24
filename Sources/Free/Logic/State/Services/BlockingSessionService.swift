@@ -14,12 +14,12 @@ struct BlockingSessionService {
 
     static func toggleBlocking(
         isBlocking: Bool,
-        isUnblockable: Bool,
+        isStrict: Bool,
         schedules: [Schedule],
         manuallyPausedScheduleIds: Set<UUID>,
         wasStartedBySchedule: Bool
     ) -> ToggleResult {
-        guard !(isBlocking && isUnblockable) else {
+        guard !(isBlocking && isStrict) else {
             return ToggleResult(
                 isBlocking: isBlocking,
                 wasStartedBySchedule: wasStartedBySchedule,

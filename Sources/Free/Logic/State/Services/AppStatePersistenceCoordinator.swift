@@ -4,7 +4,7 @@ import Foundation
 enum AppStatePersistenceCoordinator {
     struct Bindings {
         let isBlocking: AnyPublisher<Bool, Never>
-        let isUnblockable: AnyPublisher<Bool, Never>
+        let isStrict: AnyPublisher<Bool, Never>
         let weekStartsOnMonday: AnyPublisher<Bool, Never>
         let accentColorIndex: AnyPublisher<Int, Never>
         let appearanceMode: AnyPublisher<AppearanceMode, Never>
@@ -43,9 +43,9 @@ enum AppStatePersistenceCoordinator {
             .sink { settingsStore.setIsBlocking($0) }
             .store(in: &cancellables)
 
-        bindings.isUnblockable
+        bindings.isStrict
             .dropFirst()
-            .sink { settingsStore.setIsUnblockable($0) }
+            .sink { settingsStore.setIsStrict($0) }
             .store(in: &cancellables)
 
         bindings.weekStartsOnMonday

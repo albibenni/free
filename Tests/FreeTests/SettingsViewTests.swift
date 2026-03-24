@@ -173,7 +173,7 @@ struct SettingsViewTests {
     func settingsControllerActionHelpers() {
         let appState = isolatedAppState(name: "actions")
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
 
         let controller = SettingsSectionViewController(appState: appState)
         _ = host(controller)
@@ -185,11 +185,11 @@ struct SettingsViewTests {
         #expect(controller.appearanceSelectionColorForTesting == FocusColor.nsColor(for: 4))
 
         controller.disableStrictModeForTesting(phrase: AppState.challengePhrase)
-        #expect(appState.isUnblockable == false)
+        #expect(appState.isStrict == false)
 
-        appState.isUnblockable = true
+        appState.isStrict = true
         controller.disableStrictModeForTesting(phrase: "wrong")
-        #expect(appState.isUnblockable == true)
+        #expect(appState.isStrict == true)
     }
 
     @Test("Settings controller launch-at-login actions load and toggle state with failure fallback")
@@ -228,7 +228,7 @@ struct SettingsViewTests {
     func settingsControllerStrictDisableFalseBranch() {
         let appState = isolatedAppState(name: "strictFalse")
         appState.isBlocking = false
-        appState.isUnblockable = true
+        appState.isStrict = true
         let controller = SettingsSectionViewController(appState: appState)
         _ = host(controller)
         #expect(controller.shouldShowStrictDisableButtonForTesting == false)
@@ -239,7 +239,7 @@ struct SettingsViewTests {
     func settingsControllerCalendarControlsLockState() {
         let appState = isolatedAppState(name: "calendarControlsLockState")
         appState.isBlocking = false
-        appState.isUnblockable = true
+        appState.isStrict = true
         let notStrict = SettingsSectionViewController(appState: appState)
         _ = host(notStrict)
         #expect(notStrict.calendarControlsLockedForTesting == false)
@@ -250,37 +250,37 @@ struct SettingsViewTests {
         #expect(strict.calendarControlsLockedForTesting)
     }
 
-    @Test("Settings controller browser controls lock whenever unblockable mode is enabled")
+    @Test("Settings controller browser controls lock whenever strict mode is enabled")
     @MainActor
     func settingsControllerBrowserControlsLockState() {
         let appState = isolatedAppState(name: "browserControlsLockState")
         appState.isBlocking = false
-        appState.isUnblockable = false
+        appState.isStrict = false
         let unlocked = SettingsSectionViewController(appState: appState)
         let unlockedView = host(unlocked)
         #expect(unlocked.browserControlsLockedForTesting == false)
         #expect(
             visibleText(in: unlockedView).contains(
-                "Unblockable mode is active. Browser blocking settings cannot be changed."
+                "Strict mode is active. Browser blocking settings cannot be changed."
             ) == false
         )
 
-        appState.isUnblockable = true
+        appState.isStrict = true
         let locked = SettingsSectionViewController(appState: appState)
         let lockedView = host(locked)
         #expect(locked.browserControlsLockedForTesting)
         #expect(
             visibleText(in: lockedView).contains(
-                "Unblockable mode is active. Browser blocking settings cannot be changed."
+                "Strict mode is active. Browser blocking settings cannot be changed."
             )
         )
     }
 
-    @Test("Settings browser toggle handlers return early while unblockable is enabled")
+    @Test("Settings browser toggle handlers return early while strict is enabled")
     @MainActor
     func settingsControllerBrowserToggleGuardBranches() {
         let appState = isolatedAppState(name: "browserToggleGuardBranches")
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.blockNewTabs = false
         appState.blockDeveloperHosts = false
         appState.blockLocalNetworkHosts = false
@@ -308,7 +308,7 @@ struct SettingsViewTests {
     func settingsControllerRenderDefaultBranch() {
         let appState = isolatedAppState(name: "renderDefault")
         appState.isBlocking = false
-        appState.isUnblockable = false
+        appState.isStrict = false
         appState.accentColorIndex = 2
 
         let controller = SettingsSectionViewController(appState: appState)
@@ -343,7 +343,7 @@ struct SettingsViewTests {
     func settingsControllerRenderStrictBranch() {
         let appState = isolatedAppState(name: "renderStrict")
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.accentColorIndex = 0
 
         let controller = SettingsSectionViewController(appState: appState)
@@ -364,14 +364,14 @@ struct SettingsViewTests {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         controller.setStrictModeForTesting(true)
-        #expect(appState.isUnblockable)
+        #expect(appState.isStrict)
         SettingsSectionViewController.makeStrictModeAlert = { NSAlert() }
         SettingsSectionViewController.runStrictModeAlert = { alert in
             firstEditableTextField(in: alert.accessoryView)?.stringValue = AppState.challengePhrase
             return .alertFirstButtonReturn
         }
         controller.setStrictModeForTesting(false)
-        #expect(appState.isUnblockable == false)
+        #expect(appState.isStrict == false)
 
         controller.setWeekStartsMondayForTesting(true)
         #expect(appState.weekStartsOnMonday)
@@ -425,7 +425,7 @@ struct SettingsViewTests {
     func settingsControllerStrictModeModalCoverage() {
         let appState = isolatedAppState(name: "strictModeModalCoverage")
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
         let controller = SettingsSectionViewController(appState: appState)
         _ = host(controller)
 
@@ -437,19 +437,19 @@ struct SettingsViewTests {
             return .alertFirstButtonReturn
         }
         controller.invokeDisableStrictModeModalForTesting()
-        #expect(appState.isUnblockable == false)
+        #expect(appState.isStrict == false)
 
-        appState.isUnblockable = true
+        appState.isStrict = true
         SettingsSectionViewController.runStrictModeAlert = { _ in .alertSecondButtonReturn }
         controller.invokeDisableStrictModeModalForTesting()
-        #expect(appState.isUnblockable)
+        #expect(appState.isStrict)
     }
 
     @Test("Settings strict toggle-off no-ops without challenge when already disabled")
     @MainActor
     func settingsStrictToggleOffGuardCoverage() {
         let appState = isolatedAppState(name: "strictToggleOffGuardCoverage")
-        appState.isUnblockable = false
+        appState.isStrict = false
         let controller = SettingsSectionViewController(appState: appState)
         _ = host(controller)
 
@@ -461,7 +461,7 @@ struct SettingsViewTests {
         }
 
         controller.setStrictModeForTesting(false)
-        #expect(appState.isUnblockable == false)
+        #expect(appState.isStrict == false)
         #expect(modalCallCount == 0)
     }
 

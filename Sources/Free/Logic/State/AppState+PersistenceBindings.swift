@@ -5,7 +5,7 @@ extension AppState {
     var persistenceBindings: AppStatePersistenceCoordinator.Bindings {
         AppStatePersistenceCoordinator.Bindings(
             isBlocking: $isBlocking.eraseToAnyPublisher(),
-            isUnblockable: $isUnblockable.eraseToAnyPublisher(),
+            isStrict: $isStrict.eraseToAnyPublisher(),
             weekStartsOnMonday: $weekStartsOnMonday.eraseToAnyPublisher(),
             accentColorIndex: $accentColorIndex.eraseToAnyPublisher(),
             appearanceMode: $appearanceMode.eraseToAnyPublisher(),

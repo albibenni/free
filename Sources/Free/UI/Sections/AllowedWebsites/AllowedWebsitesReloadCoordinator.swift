@@ -12,7 +12,7 @@ enum AllowedWebsitesReloadCoordinator {
         AllowedWebsitesFloatingEditorViewController.RenderSignature(
             ruleSets: appState.ruleSets,
             activeRuleSetId: appState.activeRuleSetId,
-            isUnblockable: appState.isUnblockable,
+            isStrict: appState.isStrict,
             accentColorIndex: appState.accentColorIndex
         )
     }

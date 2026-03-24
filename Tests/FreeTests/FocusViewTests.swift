@@ -67,9 +67,9 @@ struct FocusViewTests {
 
     @Test("Focus section support covers warning/icon/status/pause/action paths")
     func focusViewHelperLogic() {
-        #expect(FocusSectionSupport.shouldShowUnblockableWarning(isBlocking: true, isUnblockable: true))
-        #expect(!FocusSectionSupport.shouldShowUnblockableWarning(isBlocking: false, isUnblockable: true))
-        #expect(!FocusSectionSupport.shouldShowUnblockableWarning(isBlocking: true, isUnblockable: false))
+        #expect(FocusSectionSupport.shouldShowStrictWarning(isBlocking: true, isStrict: true))
+        #expect(!FocusSectionSupport.shouldShowStrictWarning(isBlocking: false, isStrict: true))
+        #expect(!FocusSectionSupport.shouldShowStrictWarning(isBlocking: true, isStrict: false))
 
         let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
         let options = FocusSectionSupport.accessibilityPromptOptions() as NSDictionary
@@ -629,7 +629,7 @@ struct FocusViewTests {
         appState.isTrusted = true
         appState.isBlocking = false
         appState.isPaused = false
-        appState.isUnblockable = false
+        appState.isStrict = false
 
         let controller = makeController(appState: appState, section: .all)
         let hosted = host(controller)
@@ -639,14 +639,14 @@ struct FocusViewTests {
         #expect(controller.headerStatusTextForTesting == "Inactive")
     }
 
-    @Test("Focus section renders blocking active unblockable state with list name")
+    @Test("Focus section renders blocking active strict state with list name")
     @MainActor
-    func focusViewRenderBlockingActiveUnblockable() {
-        let appState = isolatedAppState(name: "activeUnblockable")
+    func focusViewRenderBlockingActiveStrict() {
+        let appState = isolatedAppState(name: "activeStrict")
         appState.isTrusted = false
         appState.isBlocking = true
         appState.isPaused = false
-        appState.isUnblockable = true
+        appState.isStrict = true
         let rules = RuleSet(name: "Work List", urls: ["example.com"])
         appState.ruleSets = [rules]
         appState.activeRuleSetId = rules.id
@@ -655,7 +655,7 @@ struct FocusViewTests {
         _ = host(controller)
 
         #expect(controller.isPermissionWarningHiddenForTesting == false)
-        #expect(controller.isUnblockableWarningHiddenForTesting == false)
+        #expect(controller.isStrictWarningHiddenForTesting == false)
         #expect(controller.headerStatusTextForTesting == "Active • Work List")
     }
 
@@ -848,13 +848,13 @@ struct FocusViewTests {
         #expect(controller.quickBreakCustomMinutesField.stringValue == "789")
     }
 
-    @Test("Quick Break controls are locked when Unblockable mode is active")
+    @Test("Quick Break controls are locked when Strict mode is active")
     @MainActor
-    func focusViewMainQuickBreakLockedInUnblockableMode() {
-        let appState = isolatedAppState(name: "mainQuickBreakLockedUnblockable")
+    func focusViewMainQuickBreakLockedInStrictMode() {
+        let appState = isolatedAppState(name: "mainQuickBreakLockedStrict")
         appState.isTrusted = true
         appState.isBlocking = true
-        appState.isUnblockable = true
+        appState.isStrict = true
 
         let controller = makeController(appState: appState, section: .all)
         let hosted = host(controller)

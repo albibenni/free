@@ -21,7 +21,7 @@ struct BlockingSessionServiceTests {
         let initialPaused: Set<UUID> = [UUID()]
         let result = BlockingSessionService.toggleBlocking(
             isBlocking: true,
-            isUnblockable: true,
+            isStrict: true,
             schedules: [],
             manuallyPausedScheduleIds: initialPaused,
             wasStartedBySchedule: true
@@ -37,7 +37,7 @@ struct BlockingSessionServiceTests {
         let schedule = activeFocusSchedule()
         let result = BlockingSessionService.toggleBlocking(
             isBlocking: true,
-            isUnblockable: false,
+            isStrict: false,
             schedules: [schedule],
             manuallyPausedScheduleIds: [],
             wasStartedBySchedule: true

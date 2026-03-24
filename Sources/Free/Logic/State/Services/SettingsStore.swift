@@ -3,7 +3,7 @@ import Foundation
 final class SettingsStore {
     enum Key {
         static let isBlocking = "IsBlocking"
-        static let isUnblockable = "IsUnblockable"
+        static let isStrict = "IsStrict"
         static let weekStartsOnMonday = "WeekStartsOnMonday"
         static let accentColorIndex = "AccentColorIndex"
         static let appearanceMode = "AppearanceMode"
@@ -38,8 +38,8 @@ final class SettingsStore {
     func isBlocking() -> Bool { defaults.bool(forKey: Key.isBlocking) }
     func setIsBlocking(_ value: Bool) { defaults.set(value, forKey: Key.isBlocking) }
 
-    func isUnblockable() -> Bool { defaults.bool(forKey: Key.isUnblockable) }
-    func setIsUnblockable(_ value: Bool) { defaults.set(value, forKey: Key.isUnblockable) }
+    func isStrict() -> Bool { defaults.bool(forKey: Key.isStrict) }
+    func setIsStrict(_ value: Bool) { defaults.set(value, forKey: Key.isStrict) }
 
     func weekStartsOnMonday() -> Bool { defaults.bool(forKey: Key.weekStartsOnMonday) }
     func setWeekStartsOnMonday(_ value: Bool) { defaults.set(value, forKey: Key.weekStartsOnMonday) }

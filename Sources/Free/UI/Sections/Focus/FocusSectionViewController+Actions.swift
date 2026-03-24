@@ -18,7 +18,7 @@ extension FocusSectionViewController {
     }
 
     func startQuickBreak(minutes: Double) {
-        if appState.isUnblockable {
+        if appState.isStrict {
             guard StrictModeChallenge.run(
                 title: "Quick Break",
                 action: "start a quick break",

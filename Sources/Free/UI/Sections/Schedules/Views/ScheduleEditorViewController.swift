@@ -404,7 +404,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
             ),
             color: primaryButtonColor
         )
-        saveButton.isEnabled = !appState.isUnblockable && !ScheduleEditorSupport.isSaveDisabled(
+        saveButton.isEnabled = !appState.isStrict && !ScheduleEditorSupport.isSaveDisabled(
             days: days,
             modifyAllDays: modifyAllDays,
             isRecurring: isRecurring
@@ -457,7 +457,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     private func saveSchedule() {
-        if appState.isUnblockable {
+        if appState.isStrict {
             guard StrictModeChallenge.run(
                 title: "Save Schedule",
                 action: "save this schedule",
@@ -488,7 +488,7 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     }
 
     private func deleteSchedule() {
-        if appState.isUnblockable {
+        if appState.isStrict {
             guard StrictModeChallenge.run(
                 title: "Delete Schedule",
                 action: "delete this schedule",
@@ -571,14 +571,14 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
             modifyAllDays: modifyAllDays,
             isRecurring: isRecurring
         )
-        if appState.isUnblockable {
+        if appState.isStrict {
             saveButton?.isEnabled = false
         }
         scrollContainer.needsLayout = true
     }
 
     private func toggleSaveStateForCurrentRules() {
-        saveButton?.isEnabled = !appState.isUnblockable && !ScheduleEditorSupport.isSaveDisabled(
+        saveButton?.isEnabled = !appState.isStrict && !ScheduleEditorSupport.isSaveDisabled(
             days: days,
             modifyAllDays: modifyAllDays,
             isRecurring: isRecurring

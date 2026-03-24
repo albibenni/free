@@ -11,7 +11,7 @@ struct AppStateBlockingCoordinatorTests {
             manuallyPausedScheduleIds: [UUID()],
             pomodoroStatus: .none,
             calendarIntegrationEnabled: true,
-            isUnblockable: false,
+            isStrict: false,
             calendarImportsBlockTime: false,
             calendarEvents: []
         )
@@ -27,7 +27,7 @@ struct AppStateBlockingCoordinatorTests {
             manuallyPausedScheduleIds: [],
             pomodoroStatus: .focus,
             calendarIntegrationEnabled: false,
-            isUnblockable: false,
+            isStrict: false,
             calendarImportsBlockTime: false,
             calendarEvents: []
         )

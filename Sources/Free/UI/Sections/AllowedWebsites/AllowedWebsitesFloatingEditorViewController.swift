@@ -7,7 +7,7 @@ final class AllowedWebsitesFloatingEditorViewController:
     struct RenderSignature: Equatable {
         let ruleSets: [RuleSet]
         let activeRuleSetId: UUID?
-        let isUnblockable: Bool
+        let isStrict: Bool
         let accentColorIndex: Int
     }
 

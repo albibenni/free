@@ -1,49 +1,49 @@
 import Foundation
 
 enum AppStateChallengeCoordinator {
-    struct DisableUnblockableResult: Equatable {
+    struct DisableStrictResult: Equatable {
         let didSucceed: Bool
-        let isUnblockable: Bool
+        let isStrict: Bool
     }
 
     struct StopPomodoroResult: Equatable {
         let didSucceed: Bool
-        let temporaryIsUnblockable: Bool
-        let restoredIsUnblockable: Bool
+        let temporaryIsStrict: Bool
+        let restoredIsStrict: Bool
     }
 
-    static func disableUnblockable(
+    static func disableStrict(
         phrase: String,
         challengePhrase: String,
-        currentIsUnblockable: Bool
-    ) -> DisableUnblockableResult {
+        currentIsStrict: Bool
+    ) -> DisableStrictResult {
         guard phrase == challengePhrase else {
-            return DisableUnblockableResult(
+            return DisableStrictResult(
                 didSucceed: false,
-                isUnblockable: currentIsUnblockable
+                isStrict: currentIsStrict
             )
         }
 
-        return DisableUnblockableResult(didSucceed: true, isUnblockable: false)
+        return DisableStrictResult(didSucceed: true, isStrict: false)
     }
 
     static func stopPomodoro(
         phrase: String,
         challengePhrase: String,
-        currentIsUnblockable: Bool
+        currentIsStrict: Bool
     ) -> StopPomodoroResult {
         guard phrase == challengePhrase else {
             return StopPomodoroResult(
                 didSucceed: false,
-                temporaryIsUnblockable: currentIsUnblockable,
-                restoredIsUnblockable: currentIsUnblockable
+                temporaryIsStrict: currentIsStrict,
+                restoredIsStrict: currentIsStrict
             )
         }
 
         return StopPomodoroResult(
             didSucceed: true,
-            temporaryIsUnblockable: false,
-            restoredIsUnblockable: currentIsUnblockable
+            temporaryIsStrict: false,
+            restoredIsStrict: currentIsStrict
         )
     }
 }

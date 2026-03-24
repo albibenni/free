@@ -357,7 +357,7 @@ struct AddScheduleViewTests {
     @MainActor
     func addScheduleViewStrictModeDisablesSaveThroughRecurringRefresh() {
         let appState = isolatedAppState(name: "strictModeDisablesSaveThroughRecurringRefresh")
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = true
 
         let controller = makeController(appState: appState)
@@ -748,7 +748,7 @@ struct AddScheduleViewTests {
             type: .focus
         )
         appState.schedules = [schedule]
-        appState.isUnblockable = true
+        appState.isStrict = true
         appState.isBlocking = true
 
         var closeCount = 0

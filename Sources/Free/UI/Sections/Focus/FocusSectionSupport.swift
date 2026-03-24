@@ -8,8 +8,8 @@ enum FocusContentSection {
 }
 
 enum FocusSectionSupport {
-    static func shouldShowUnblockableWarning(isBlocking: Bool, isUnblockable: Bool) -> Bool {
-        isBlocking && isUnblockable
+    static func shouldShowStrictWarning(isBlocking: Bool, isStrict: Bool) -> Bool {
+        isBlocking && isStrict
     }
 
     static func accessibilityPromptOptions() -> CFDictionary {

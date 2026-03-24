@@ -9,13 +9,13 @@ struct PomodoroEngine {
     }
 
     static func isLocked(
-        isUnblockable: Bool,
+        isStrict: Bool,
         status: PomodoroStatus,
         startedAt: Date?,
         now: Date = Date(),
         gracePeriod: TimeInterval = 10
     ) -> Bool {
-        guard isUnblockable, status != .none, let startedAt else { return false }
+        guard isStrict, status != .none, let startedAt else { return false }
         return now.timeIntervalSince(startedAt) > gracePeriod
     }
 

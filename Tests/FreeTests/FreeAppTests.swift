@@ -119,7 +119,7 @@ struct FreeAppTests {
             appState.activeRuleSetId = list.id
             appState.isBlocking = true
             appState.calendarIntegrationEnabled = true
-            appState.isUnblockable = true
+            appState.isStrict = true
             appState.pomodoroStatus = .focus
             appState.pomodoroRemaining = 120
 

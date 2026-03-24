@@ -11,7 +11,7 @@ struct AppStateBlockingCoordinator {
         manuallyPausedScheduleIds: Set<UUID>,
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
-        isUnblockable: Bool,
+        isStrict: Bool,
         calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> Result {
@@ -21,7 +21,7 @@ struct AppStateBlockingCoordinator {
             pomodoroIsFocus: pomodoroStatus == .focus,
             pomodoroIsBreak: pomodoroStatus == .breakTime,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
-            isUnblockable: isUnblockable,
+            isStrict: isStrict,
             calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )

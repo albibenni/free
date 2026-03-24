@@ -2,7 +2,7 @@ import Foundation
 
 struct AppSessionDomainState: Equatable {
     var isBlocking: Bool
-    var isUnblockable: Bool
+    var isStrict: Bool
     var isPaused: Bool
     var pauseRemaining: TimeInterval
     var wasStartedBySchedule: Bool

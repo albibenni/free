@@ -285,10 +285,10 @@ struct AppDelegateSystemTests {
 
         system.showBlockingAlert()
 
-        #expect(capturedAlert.messageText == "Unblockable Mode is Active")
+        #expect(capturedAlert.messageText == "Strict Mode is Active")
         #expect(
             capturedAlert.informativeText
-                == "Disable Unblockable Mode in Settings before quitting the app.")
+                == "Disable Strict Mode in Settings before quitting the app.")
         #expect(capturedAlert.alertStyle == .warning)
         #expect(capturedAlert.buttonTitles == ["OK"])
         #expect(capturedAlert.runModalCalls == 1)
