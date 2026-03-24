@@ -920,4 +920,8 @@ extension SettingsSectionViewController {
     static func setWorkspaceNativeOpenURLOpenerForTesting(_ opener: URLOpener?) {
         _workspaceNativeOpenURLOpener = opener
     }
+
+    func invokeOpenStrictModeWikiForTesting() {
+        openStrictModeWiki()
+    }
 }

@@ -854,6 +854,139 @@ struct SettingsViewTests {
         scheduled.removeFirst()()
     }
 
+    @Test("Settings open strict mode wiki routes URL through workspace opener")
+    @MainActor
+    func settingsOpenStrictModeWikiCoverage() {
+        defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
+
+        let appState = isolatedAppState(name: "openStrictModeWiki")
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        var opened: [URL] = []
+        SettingsSectionViewController.workspaceURLOpener = { opened.append($0) }
+        controller.invokeOpenStrictModeWikiForTesting()
+
+        #expect(opened.count == 1)
+        #expect(opened.first?.absoluteString.contains("strict-mode") == true)
+    }
+
+    @Test("Settings calendar integration toggle reverts switch and skips update when strict is active and challenge is cancelled")
+    @MainActor
+    func settingsCalendarIntegrationStrictActiveCancel() {
+        let originalMakeAlert = StrictModeChallenge.makeAlert
+        let originalRunAlert = StrictModeChallenge.runAlert
+        defer {
+            StrictModeChallenge.makeAlert = originalMakeAlert
+            StrictModeChallenge.runAlert = originalRunAlert
+        }
+
+        let appState = isolatedAppState(name: "calendarIntegrationStrictCancel")
+        appState.isBlocking = true
+        appState.isStrict = true
+        appState.calendarIntegrationEnabled = false
+
+        StrictModeChallenge.makeAlert = { NSAlert() }
+        StrictModeChallenge.runAlert = { _ in .alertSecondButtonReturn }
+
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setCalendarIntegrationForTesting(true)
+        #expect(appState.calendarIntegrationEnabled == false)
+    }
+
+    @Test("Settings calendar integration toggle applies change when strict is active and challenge passes")
+    @MainActor
+    func settingsCalendarIntegrationStrictActivePass() {
+        let originalMakeAlert = StrictModeChallenge.makeAlert
+        let originalRunAlert = StrictModeChallenge.runAlert
+        defer {
+            StrictModeChallenge.makeAlert = originalMakeAlert
+            StrictModeChallenge.runAlert = originalRunAlert
+        }
+
+        let appState = isolatedAppState(name: "calendarIntegrationStrictPass")
+        appState.isBlocking = true
+        appState.isStrict = true
+        appState.calendarIntegrationEnabled = false
+
+        StrictModeChallenge.makeAlert = { NSAlert() }
+        StrictModeChallenge.runAlert = { alert in
+            if let stack = alert.accessoryView?.subviews.first as? NSStackView,
+                let input = stack.arrangedSubviews.last as? NSTextField
+            {
+                input.stringValue = AppState.challengePhrase
+            }
+            return .alertFirstButtonReturn
+        }
+
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setCalendarIntegrationForTesting(true)
+        #expect(appState.calendarIntegrationEnabled == true)
+    }
+
+    @Test("Settings calendar imports toggle reverts switch and skips update when strict is active and challenge is cancelled")
+    @MainActor
+    func settingsCalendarImportsStrictActiveCancel() {
+        let originalMakeAlert = StrictModeChallenge.makeAlert
+        let originalRunAlert = StrictModeChallenge.runAlert
+        defer {
+            StrictModeChallenge.makeAlert = originalMakeAlert
+            StrictModeChallenge.runAlert = originalRunAlert
+        }
+
+        let appState = isolatedAppState(name: "calendarImportsStrictCancel")
+        appState.isBlocking = true
+        appState.isStrict = true
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = false
+
+        StrictModeChallenge.makeAlert = { NSAlert() }
+        StrictModeChallenge.runAlert = { _ in .alertSecondButtonReturn }
+
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setCalendarImportsForTesting(true)
+        #expect(appState.calendarImportsBlockTime == false)
+    }
+
+    @Test("Settings calendar imports toggle applies change when strict is active and challenge passes")
+    @MainActor
+    func settingsCalendarImportsStrictActivePass() {
+        let originalMakeAlert = StrictModeChallenge.makeAlert
+        let originalRunAlert = StrictModeChallenge.runAlert
+        defer {
+            StrictModeChallenge.makeAlert = originalMakeAlert
+            StrictModeChallenge.runAlert = originalRunAlert
+        }
+
+        let appState = isolatedAppState(name: "calendarImportsStrictPass")
+        appState.isBlocking = true
+        appState.isStrict = true
+        appState.calendarIntegrationEnabled = true
+        appState.calendarImportsBlockTime = false
+
+        StrictModeChallenge.makeAlert = { NSAlert() }
+        StrictModeChallenge.runAlert = { alert in
+            if let stack = alert.accessoryView?.subviews.first as? NSStackView,
+                let input = stack.arrangedSubviews.last as? NSTextField
+            {
+                input.stringValue = AppState.challengePhrase
+            }
+            return .alertFirstButtonReturn
+        }
+
+        let controller = SettingsSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setCalendarImportsForTesting(true)
+        #expect(appState.calendarImportsBlockTime == true)
+    }
+
     @Test("Settings controller cursor fluid toggle updates app state and survives reset hooks")
     @MainActor
     func settingsCursorFluidToggleAndResetHooksCoverage() {
