@@ -52,6 +52,9 @@ extension AllowedWebsitesFloatingEditorViewController {
             return
         }
 
+        guard let selectedRules = Self.presentImportCandidates(candidates, selectedSet.name),
+              !selectedRules.isEmpty else { return }
+
         if isAllowedWebsitesEditingLocked {
             guard StrictModeChallenge.run(
                 title: "Import Open Tabs",
@@ -59,8 +62,6 @@ extension AllowedWebsitesFloatingEditorViewController {
                 appState: appState
             ) else { return }
         }
-
-        guard let selectedRules = Self.presentImportCandidates(candidates, selectedSet.name) else { return }
 
         for rule in selectedRules {
             appState.addSpecificRule(rule, to: setId)

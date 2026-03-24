@@ -316,7 +316,7 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @MainActor
-    @Test("floating editor import checks strict lock before showing candidate picker; challenge cancel blocks add")
+    @Test("floating editor import shows candidate picker first; challenge cancel after selection blocks add")
     func importLockedWhenStrictEditingLockIsActive() {
         let appState = makeAppState(
             name: "importLockedWhenStrictEditingLockIsActive",
@@ -330,16 +330,18 @@ struct AllowedWebsitesFloatingEditorTests {
         )
         controller.loadViewIfNeeded()
 
+        let baselineCount = controller.visibleRules.count
         var presenterCalls = 0
         defer { AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting() }
-        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in
+        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { candidates, _ in
             presenterCalls += 1
-            return nil
+            return [candidates[0].rule]
         }
 
-        // Challenge runs first; in tests StrictModeChallenge returns cancel, so presenter is not called
+        // Candidate picker shown first; StrictModeChallenge returns cancel in tests, so no rules are added
         controller.handleImportOpenTabs()
-        #expect(presenterCalls == 0)
+        #expect(presenterCalls == 1)
+        #expect(controller.visibleRules.count == baselineCount)
     }
 
     @MainActor

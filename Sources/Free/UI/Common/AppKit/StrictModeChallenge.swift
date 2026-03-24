@@ -1,6 +1,6 @@
 import AppKit
 
-private final class NoPasteTextField: NSTextField {
+private final class NoPasteTextField: NSTextField, NSTextViewDelegate {
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         if event.modifierFlags.contains(.command) {
             let char = event.charactersIgnoringModifiers
@@ -8,6 +8,21 @@ private final class NoPasteTextField: NSTextField {
         }
         return super.performKeyEquivalent(with: event)
     }
+
+    override func becomeFirstResponder() -> Bool {
+        let result = super.becomeFirstResponder()
+        if result, let editor = window?.fieldEditor(false, for: self) as? NSTextView {
+            editor.delegate = self
+        }
+        return result
+    }
+
+    func textView(
+        _ textView: NSTextView,
+        menu: NSMenu,
+        for event: NSEvent,
+        at charIndex: Int
+    ) -> NSMenu? { nil }
 }
 
 enum StrictModeChallenge {
@@ -71,6 +86,7 @@ enum StrictModeChallenge {
             NSFont.systemFont(ofSize: 13, weight: .heavy), toHaveTrait: .italicFontMask)
         quote.textColor = FocusColor.nsColor(for: appState.accentColorIndex)
         quote.alignment = .center
+        quote.isSelectable = false
         quote.translatesAutoresizingMaskIntoConstraints = false
 
         let boldAttrs: [NSAttributedString.Key: Any] = [
@@ -90,6 +106,7 @@ enum StrictModeChallenge {
 
         let instruction = NSTextField(wrappingLabelWithString: "")
         instruction.attributedStringValue = instructionText
+        instruction.isSelectable = false
         instruction.translatesAutoresizingMaskIntoConstraints = false
 
         let input = NoPasteTextField(string: "")

@@ -137,9 +137,13 @@
   - [x] delete schedule work as intended
 - [x] toggle in settings disabled by strict mode should work with the dialog challenge
 - [x] don't allow to copy paste the challenge phrase
-  - [ ] still allows right click copy paste - should be disabled
-  - [ ] remove the text selection on the dialog
-- [ ] on import open tabs - if strict mode is on the dialog should pop up once the website are selected and clicking the add button should trigger the dialog challenge
+  - [x] still allows right click copy paste - should be disabled
+  - [x] remove the text selection on the dialog
+- [x] on import open tabs - if strict mode is on the dialog should pop up once the website are selected and clicking the add button should trigger the dialog challenge
+- [ ] schedule if strict mode is on should not open the dialog challenge when you click on the schedule, but only when you click on save after modifying it or creating a new one
+- [ ] calendar tab strict mode
+  - [ ] the add rules (like *work* or *study*) should trigger the dialog challenge if strict mode is on
+  - [ ] the delete of imported schedule should trigger the dialog challenge if strict mode is on
 
 ## Performance check
 
