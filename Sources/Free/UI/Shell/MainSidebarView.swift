@@ -127,7 +127,7 @@ final class MainSidebarView: AppKitDynamicView {
         sectionButtonsStack.alignment = .leading
         sectionButtonsStack.spacing = 8
 
-        for section in [.focus, .schedules, .calendar, .pomodoro, .allowedWebsites] as [MainContentSection] {
+        for section in [.focus, .schedules, .pomodoro, .allowedWebsites] as [MainContentSection] {
             let button = sidebarButton(for: section)
             sectionButtons[section] = button
             sectionEnabled[section] = true
@@ -139,6 +139,10 @@ final class MainSidebarView: AppKitDynamicView {
         settingsDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
         settingsDivider.widthAnchor.constraint(equalToConstant: 156).isActive = true
 
+        let calendarButton = sidebarButton(for: .calendar)
+        sectionButtons[.calendar] = calendarButton
+        sectionEnabled[.calendar] = true
+
         let settingsButton = sidebarButton(for: .settings)
         sectionButtons[.settings] = settingsButton
         sectionEnabled[.settings] = true
@@ -146,7 +150,7 @@ final class MainSidebarView: AppKitDynamicView {
         let spacer = NSView()
         spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
 
-        [headerRow, sidebarDivider, sectionButtonsStack, spacer, settingsDivider, settingsButton]
+        [headerRow, sidebarDivider, sectionButtonsStack, spacer, settingsDivider, calendarButton, settingsButton]
             .forEach { sidebarStack.addArrangedSubview($0) }
 
         sidebarWidthConstraint = widthAnchor.constraint(equalToConstant: 56)

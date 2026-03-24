@@ -85,7 +85,7 @@ struct ContentViewTests {
         #expect(texts.contains("Menu"))
         #expect(texts.contains("Focus"))
         #expect(texts.contains("Schedules"))
-        #expect(texts.contains("Calendar"))
+        #expect(texts.contains("Calendar Settings"))
         #expect(texts.contains("Allowed Websites"))
         #expect(texts.contains("Pomodoro"))
         #expect(texts.contains("Settings"))

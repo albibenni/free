@@ -151,7 +151,8 @@ final class SettingsSectionViewController: NSViewController {
     private let strictSection = AppKitCardStackView()
     private let strictToggle = AppKitToggleSwitch()
     private let strictDescriptionLabel = NSTextField(
-        labelWithString: "When active, you cannot disable Focus Mode.")
+        labelWithString: "Locks Focus Mode so it cannot be stopped or settings changed without a challenge phrase.")
+    private let strictDescriptionStack = NSStackView()
     private let strictDisableButton = NSButton(title: "Disable...", target: nil, action: nil)
     private let strictStatusLabel = NSTextField(labelWithString: "Active and Locking Focus Mode.")
     private let weekStartsMondaySwitch = AppKitToggleSwitch()
@@ -278,9 +279,25 @@ final class SettingsSectionViewController: NSViewController {
         strictSection.edgeInsets = NSEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
         strictSection.layer?.cornerRadius = 12
 
+        strictDescriptionLabel.font = .systemFont(ofSize: 12)
+        strictDescriptionLabel.textColor = .secondaryLabelColor
+
+        let learnMoreButton = NSButton(title: "Learn more →", target: self, action: #selector(openStrictModeWiki))
+        learnMoreButton.bezelStyle = .inline
+        learnMoreButton.isBordered = false
+        learnMoreButton.font = .systemFont(ofSize: 12)
+        learnMoreButton.contentTintColor = .linkColor
+
+        strictDescriptionStack.orientation = .vertical
+        strictDescriptionStack.alignment = .leading
+        strictDescriptionStack.spacing = 2
+        strictDescriptionStack.addArrangedSubview(strictDescriptionLabel)
+        strictDescriptionStack.addArrangedSubview(learnMoreButton)
+        let descriptionStack = strictDescriptionStack
+
         let toggleRow = makeToggleRow(
             title: "Strict Mode",
-            descriptionLabel: strictDescriptionLabel,
+            descriptionLabel: nil,
             toggle: strictToggle
         )
         strictToggle.target = self
@@ -294,9 +311,16 @@ final class SettingsSectionViewController: NSViewController {
         strictStatusLabel.textColor = .systemOrange
 
         strictSection.addArrangedSubview(toggleRow)
+        strictSection.addArrangedSubview(descriptionStack)
         strictSection.addArrangedSubview(strictStatusLabel)
         strictSection.addArrangedSubview(strictDisableButton)
         return strictSection
+    }
+
+    @objc
+    private func openStrictModeWiki() {
+        guard let url = URL(string: "https://github.com/albibenni/free/wiki/Strict-Mode") else { return }
+        Self.workspaceURLOpener(url)
     }
 
     private func makeStartupSection() -> NSView {
@@ -498,7 +522,7 @@ final class SettingsSectionViewController: NSViewController {
 
         let strictLocked = appState.isBlocking && appState.isStrict
         strictToggle.isHidden = strictLocked
-        strictDescriptionLabel.isHidden = strictLocked
+        strictDescriptionStack.isHidden = strictLocked
         strictStatusLabel.isHidden = !strictLocked
         strictDisableButton.isHidden = !strictLocked
         strictToggle.state = appState.isStrict ? .on : .off

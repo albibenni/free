@@ -1,7 +1,7 @@
 enum MainContentSection: String, CaseIterable, Identifiable {
     case focus = "Focus"
     case schedules = "Schedules"
-    case calendar = "Calendar"
+    case calendar = "Calendar Settings"
     case pomodoro = "Pomodoro"
     case allowedWebsites = "Allowed Websites"
     case settings = "Settings"

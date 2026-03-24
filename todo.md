@@ -18,10 +18,6 @@
 
 ## Strict mode
 
-- [x] add the "Strict mode is active" text to the top of the Focus tab when strict mode is active
-- [x] add the "Strict mode is active" text to the top of the Schedule tab when strict mode is active
-- [x] add the "Strict mode is active" text to the top of the Allowed list tab when strict mode is active
-
 ## Misc
 
 - [ ] calendar tab should be named to "Calendar Settings" and be at the bottom, above "Settings" tab
