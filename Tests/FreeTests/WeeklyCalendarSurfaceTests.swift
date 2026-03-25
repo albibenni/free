@@ -112,6 +112,35 @@ struct WeeklyCalendarSurfaceTests {
         #expect(fallbackTimeOnly == start)
     }
 
+    @Test("Weekly calendar support calendarDateAdder nil fallbacks cover weekBounds and normalizedInterval defensive paths")
+    func weeklyCalendarSupportDateAdderNilFallbackCoverage() throws {
+        defer { WeeklyCalendarSupport.resetCalendarHooksForTesting() }
+
+        WeeklyCalendarSupport.calendarDateAdder = { _, _, _, date in nil }
+
+        let now = Date()
+        let bounds = WeeklyCalendarSupport.weekBounds(for: [now, now.addingTimeInterval(86400)])
+        #expect(bounds.1 > bounds.0)
+
+        let start = try #require(Calendar.current.date(from: DateComponents(hour: 23, minute: 0)))
+        let end = try #require(Calendar.current.date(from: DateComponents(hour: 1, minute: 0)))
+        let interval = WeeklyCalendarSupport.normalizedInterval(
+            startDate: start,
+            endDate: end,
+            calendar: Calendar.current
+        )
+        #expect(interval.end > interval.start)
+    }
+
+    @Test("Weekly calendar timeString nil date fallback via calendarDateBuilder hook")
+    func weeklyCalendarTimeStringDateBuilderNilFallbackCoverage() {
+        defer { WeeklyCalendarSupport.resetCalendarHooksForTesting() }
+
+        WeeklyCalendarSupport.calendarDateBuilder = { _, _ in nil }
+        let result = WeeklyCalendarSupport.timeString(hour: 9)
+        #expect(!result.isEmpty)
+    }
+
     @Test("Weekly calendar support schedule helpers cover visibility, labels, and style metadata")
     func weeklyCalendarSupportScheduleHelpersCoverage() throws {
         let calendar = Calendar.current

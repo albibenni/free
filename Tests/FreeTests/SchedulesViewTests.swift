@@ -1107,6 +1107,55 @@ struct SchedulesViewTests {
         #expect(updated.endTime == updatedEnd)
     }
 
+    @Test("Schedules modification alert getter uses defaultMakeScheduleModificationBlockedAlert when no override is set")
+    @MainActor
+    func schedulesAlertGetterUsesDefaultWhenNoOverride() {
+        defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
+        SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting()
+        let alert = SchedulesSheetViewController.makeScheduleModificationBlockedAlert()
+        #expect(alert is NSAlert)
+    }
+
+    @Test("Schedules modification alert property setter stores factory via property assignment syntax")
+    @MainActor
+    func schedulesAlertSetterStoresViaPropertySyntax() {
+        defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
+        var callCount = 0
+        SchedulesSheetViewController.makeScheduleModificationBlockedAlert = {
+            callCount += 1
+            return NSAlert()
+        }
+        _ = SchedulesSheetViewController.makeScheduleModificationBlockedAlert()
+        #expect(callCount == 1)
+    }
+
+    @Test("Default run alert runner returns alertFirstButtonReturn when running in test process")
+    @MainActor
+    func schedulesDefaultRunAlertReturnsFirstButtonInTestProcess() {
+        defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
+        SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting()
+        let response = SchedulesSheetViewController.runScheduleModificationBlockedAlert(NSAlert())
+        #expect(response == .alertFirstButtonReturn)
+    }
+
+    @Test("showScheduleModificationBlockedAlert creates and runs the configured alert")
+    @MainActor
+    func schedulesShowModificationBlockedAlertCoverage() {
+        defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
+        var makeCount = 0
+        var runCount = 0
+        SchedulesSheetViewController.setScheduleModificationAlertHooksForTesting(
+            make: { makeCount += 1; return NSAlert() },
+            run: { _ in runCount += 1; return .alertFirstButtonReturn }
+        )
+        let appState = isolatedAppState(name: "showBlockedAlert")
+        let controller = SchedulesSheetViewController(appState: appState, onDismiss: {})
+        _ = host(controller)
+        controller.showScheduleModificationBlockedAlertForTesting()
+        #expect(makeCount == 1)
+        #expect(runCount == 1)
+    }
+
     @Test("Schedules sheet hides external overlay entries when mirrored imported schedules already exist")
     @MainActor
     func schedulesExternalOverlaySkipsMirroredImportedEvents() {

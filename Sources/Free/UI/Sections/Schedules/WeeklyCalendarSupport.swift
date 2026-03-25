@@ -4,6 +4,7 @@ import Foundation
 enum WeeklyCalendarSupport {
     typealias CalendarHourSetter = (Calendar, Int, Int, Date) -> Date?
     typealias CalendarDateBuilder = (Calendar, DateComponents) -> Date?
+    typealias CalendarDateAdder = (Calendar, Calendar.Component, Int, Date) -> Date?
 
     static var calendarHourSetter: CalendarHourSetter = { calendar, hour, minute, anchor in
         calendar.date(bySettingHour: hour, minute: minute, second: 0, of: anchor)
@@ -13,12 +14,19 @@ enum WeeklyCalendarSupport {
         calendar.date(from: components)
     }
 
+    static var calendarDateAdder: CalendarDateAdder = { calendar, component, value, date in
+        calendar.date(byAdding: component, value: value, to: date)
+    }
+
     static func resetCalendarHooksForTesting() {
         calendarHourSetter = { calendar, hour, minute, anchor in
             calendar.date(bySettingHour: hour, minute: minute, second: 0, of: anchor)
         }
         calendarDateBuilder = { calendar, components in
             calendar.date(from: components)
+        }
+        calendarDateAdder = { calendar, component, value, date in
+            calendar.date(byAdding: component, value: value, to: date)
         }
     }
 
@@ -120,7 +128,7 @@ enum WeeklyCalendarSupport {
             end = anchor
         }
         if end <= start {
-            end = calendar.date(byAdding: .day, value: 1, to: end) ?? end.addingTimeInterval(86400)
+            end = calendarDateAdder(calendar, .day, 1, end) ?? end.addingTimeInterval(86400)
         }
         return DateInterval(start: start, end: end)
     }

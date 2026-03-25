@@ -544,4 +544,8 @@ extension SchedulesSheetViewController {
         _fallbackScheduleModificationBlockedAlertRunner = nil
         _isRunningInTestProcess = nil
     }
+
+    func showScheduleModificationBlockedAlertForTesting() {
+        showScheduleModificationBlockedAlert()
+    }
 }
