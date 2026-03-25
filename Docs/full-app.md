@@ -10,6 +10,8 @@
   - [Table of Contents](#table-of-contents)
   - [1. What is Free?](#1-what-is-free)
   - [2. High-Level Architecture](#2-high-level-architecture)
+    - [2-1 Full Architecture Flowchart](#2-1-full-architecture-flowchart)
+    - [2-2 Simplified Architecture Flowchart](#2-2-simplified-architecture-flowchart)
   - [3. Module Breakdown](#3-module-breakdown)
     - [3-1 App Entry and Runtime](#3-1-app-entry-and-runtime)
     - [3-2 AppState: The Central Hub](#3-2-appstate-the-central-hub)
@@ -97,6 +99,114 @@ All modes share the same underlying blocking engine — they only differ in *how
 │              LocalServer (http://localhost:10000)               │
 │              Serves block page HTML                             │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+### 2-1 Full Architecture Flowchart
+
+```mermaid
+flowchart TB
+  subgraph UI["AppKit UI"]
+    Shell["Shell + Sidebar + Status Item"]
+    Focus["Focus Section"]
+    RulesUI["Allowed Websites Section"]
+    SchedulesUI["Schedules Section"]
+    PomodoroUI["Pomodoro Section"]
+    CalendarUI["Calendar Section"]
+    SettingsUI["Settings Section"]
+  end
+
+  subgraph State["State Core"]
+    AppState["AppState (@Published source of truth)"]
+    ReadModel["AppState Read Model"]
+    Facade["AppStateLogicFacade"]
+    Persist["AppStatePersistenceCoordinator"]
+    Bootstrap["AppStateBootstrapService"]
+    Store["SettingsStore (UserDefaults)"]
+  end
+
+  subgraph Domain["Domain Services / Coordinators"]
+    SessionC["Session Coordinator"]
+    SchedC["Schedule Coordinator + ScheduleCheck Coordinator"]
+    PomodoroC["Pomodoro Coordinator"]
+    PauseC["Pause Coordinator"]
+    RulesC["RuleSet Coordinator / Rules Mutation"]
+    BlockingC["Blocking Coordinator"]
+    RuleSetSvc["RuleSetService (build allowedRules)"]
+    ScheduleEngine["ScheduleEngine"]
+    PomodoroEngine["PomodoroEngine"]
+    PauseEngine["PauseEngine"]
+    CalendarSvc["CalendarImport/Sync Services"]
+  end
+
+  subgraph Enforcement["Blocking Enforcement"]
+    Monitor["BrowserMonitor (1.5s polling)"]
+    Matcher["RuleMatcher"]
+    Automator["DefaultBrowserAutomator"]
+    LocalServer["LocalServer :10000 (block page)"]
+  end
+
+  subgraph OS["macOS / External"]
+    Browsers["Safari/Chrome/Brave/Edge/Arc/..."]
+    AppleScript["AppleScript Automation"]
+    AX["Accessibility API (AX)"]
+    EventKit["Calendar (EventKit)"]
+  end
+
+  Shell --> AppState
+  Focus --> AppState
+  RulesUI --> AppState
+  SchedulesUI --> AppState
+  PomodoroUI --> AppState
+  CalendarUI --> AppState
+  SettingsUI --> AppState
+
+  AppState --> ReadModel
+  AppState --> Facade
+  Facade --> SessionC
+  Facade --> SchedC
+  Facade --> PomodoroC
+  Facade --> PauseC
+  Facade --> RulesC
+  Facade --> BlockingC
+
+  SchedC --> ScheduleEngine
+  PomodoroC --> PomodoroEngine
+  PauseC --> PauseEngine
+  RulesC --> RuleSetSvc
+  CalendarSvc --> EventKit
+  AppState --> CalendarSvc
+
+  Bootstrap --> Store
+  Persist --> Store
+  Store --> AppState
+
+  AppState -->|"snapshot: isBlocking/isPaused/allowedRules + toggles"| Monitor
+  Monitor --> Automator
+  Monitor --> Matcher
+  RuleSetSvc -->|"allowedRules"| AppState
+  Automator --> AppleScript
+  Automator --> AX
+  AppleScript --> Browsers
+  AX --> Browsers
+  Monitor -->|"redirect disallowed URL to http://localhost:10000"| Automator
+  Browsers --> LocalServer
+```
+
+### 2-2 Simplified Architecture Flowchart
+
+```mermaid
+flowchart LR
+  UI["AppKit UI"] --> AppState["AppState"]
+  AppState --> Logic["Services + Coordinators"]
+  Logic --> Rules["Allowed Rules (RuleSetService)"]
+  AppState --> Monitor["BrowserMonitor"]
+  Rules --> Monitor
+  Monitor --> Automator["Browser Automator"]
+  Automator --> Browsers["Browsers"]
+  Monitor --> Matcher["RuleMatcher"]
+  Monitor -->|Blocked| BlockPage["LocalServer :10000 Block Page"]
+  AppState --> Store["UserDefaults"]
+  AppState --> Calendar["EventKit Calendar"]
 ```
 
 **Key principles:**
