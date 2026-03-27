@@ -116,6 +116,11 @@ final class FreeMainViewController: NSViewController {
         bindShellState()
     }
 
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        updateCloseButton()
+    }
+
     func presentLaunchAtLoginPromptIfNeeded() {
         guard let window = view.window, appState.prepareLaunchAtLoginPromptIfNeeded() else {
             return
@@ -181,6 +186,7 @@ final class FreeMainViewController: NSViewController {
                 self?.updateSidebarSelection()
                 self?.updateCursorOverlayVisibility()
                 self?.updateCalendarTabAvailability()
+                self?.updateCloseButton()
             },
             onShowRulesChanged: { [weak self] isShown in
                 if isShown {
@@ -246,6 +252,10 @@ final class FreeMainViewController: NSViewController {
         sidebarView.setSectionEnabled(.calendar, isEnabled: true)
     }
 
+    private func updateCloseButton() {
+        view.window?.standardWindowButton(.closeButton)?.isEnabled = !appState.isStrict
+    }
+
     private func updateSidebarVisibility() {
         sidebarView.setSidebarVisible(shellState.showSidebar)
     }
@@ -276,6 +286,9 @@ final class FreeMainViewController: NSViewController {
 
 extension FreeMainViewController {
     var isSidebarVisibleForTesting: Bool { shellState.showSidebar }
+    var isCloseButtonEnabledForTesting: Bool {
+        view.window?.standardWindowButton(.closeButton)?.isEnabled ?? true
+    }
     var selectedSectionForTesting: MainContentSection { shellState.selectedSection }
     var currentContentViewControllerForTesting: NSViewController? { contentHostView.currentViewController }
     var currentFocusSectionForTesting: FocusContentSection? {

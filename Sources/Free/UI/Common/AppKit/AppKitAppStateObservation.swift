@@ -161,6 +161,7 @@ enum AppKitAppStateObservation {
             appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
             appState.$cursorFluidAnimationEnabled.map { _ in () }.eraseToAnyPublisher(),
+            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
         ])
     }
 

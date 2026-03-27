@@ -365,6 +365,37 @@ struct FreeAppKitShellTests {
         #expect(controller.isSidebarVisibleForTesting)
     }
 
+    @Test("FreeMainViewController disables close button when strict mode is active")
+    func mainViewControllerDisablesCloseButtonInStrictMode() {
+        let appState = isolatedAppState(name: "closeButtonStrictMode")
+        let controller = FreeMainViewController(
+            appState: appState,
+            initialSection: .focus,
+            initialShowSidebar: false
+        )
+        controller.loadViewIfNeeded()
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 640),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentViewController = controller
+        window.makeKeyAndOrderFront(nil)
+        defer { window.orderOut(nil) }
+
+        #expect(controller.isCloseButtonEnabledForTesting)
+
+        appState.isStrict = true
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        #expect(controller.isCloseButtonEnabledForTesting == false)
+
+        appState.isStrict = false
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        #expect(controller.isCloseButtonEnabledForTesting)
+    }
+
     @Test("FreeMainViewController handles unavailable cursor overlay factory")
     func mainViewControllerCursorOverlayFactoryNilCoverage() {
         defer { FreeMainViewController.resetLaunchAtLoginAlertPresenterForTesting() }
