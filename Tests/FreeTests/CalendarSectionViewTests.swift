@@ -98,6 +98,24 @@ struct CalendarSectionViewTests {
         #expect(texts.contains("Break Title Rules"))
     }
 
+    @Test("Calendar section toggle row title remains visible after disabling integration")
+    @MainActor
+    func calendarSectionToggleTitleVisibleAfterDisable() {
+        let appState = isolatedAppState(name: "toggleTitleVisible")
+        appState.calendarIntegrationEnabled = true
+        let controller = CalendarSectionViewController(appState: appState)
+        let hosted = host(controller)
+
+        controller.setCalendarIntegrationForTesting(false)
+        hosted.layoutSubtreeIfNeeded()
+
+        let titleLabel = allSubviews(in: hosted)
+            .compactMap { $0 as? NSTextField }
+            .first { $0.stringValue == "Enable Calendar Integration" }
+        #expect(titleLabel != nil)
+        #expect((titleLabel?.frame.height ?? 0) > 0)
+    }
+
     @Test("Calendar section testing hooks update integration state")
     @MainActor
     func calendarSectionToggleHooks() {

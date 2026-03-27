@@ -67,6 +67,9 @@ final class VerticalStackScrollContainer: NSScrollView {
         didSet { needsLayout = true }
     }
 
+    private var stackLeadingConstraint: NSLayoutConstraint?
+    private var stackWidthConstraint: NSLayoutConstraint?
+
     init(contentInsets: NSEdgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)) {
         stackInsets = contentInsets
         super.init(frame: .zero)
@@ -79,9 +82,23 @@ final class VerticalStackScrollContainer: NSScrollView {
         stackView.orientation = .vertical
         stackView.alignment = .leading
         stackView.spacing = 12
+        stackView.translatesAutoresizingMaskIntoConstraints = false
 
         documentView = documentContainer
         documentContainer.addSubview(stackView)
+
+        let leading = stackView.leadingAnchor.constraint(
+            equalTo: documentContainer.leadingAnchor,
+            constant: stackInsets.left
+        )
+        let width = stackView.widthAnchor.constraint(equalToConstant: 1)
+        let top = stackView.topAnchor.constraint(
+            equalTo: documentContainer.topAnchor,
+            constant: stackInsets.top
+        )
+        NSLayoutConstraint.activate([leading, width, top])
+        stackLeadingConstraint = leading
+        stackWidthConstraint = width
     }
 
     @available(*, unavailable)
@@ -96,6 +113,11 @@ final class VerticalStackScrollContainer: NSScrollView {
         let cappedWidth = maxContentWidth.map { min(availableWidth, max($0, 1)) } ?? availableWidth
         let stackWidth = max(cappedWidth, 1)
         let horizontalInset = stackInsets.left + max((availableWidth - stackWidth) / 2, 0)
+
+        stackLeadingConstraint?.constant = horizontalInset
+        stackWidthConstraint?.constant = stackWidth
+        stackView.layoutSubtreeIfNeeded()
+
         let fittingSize = stackView.fittingSize
         let stackHeight = max(fittingSize.height, 1)
 
@@ -107,12 +129,6 @@ final class VerticalStackScrollContainer: NSScrollView {
                 stackHeight + stackInsets.top + stackInsets.bottom,
                 contentSize.height
             )
-        )
-        stackView.frame = CGRect(
-            x: horizontalInset,
-            y: stackInsets.top,
-            width: stackWidth,
-            height: stackHeight
         )
     }
 
