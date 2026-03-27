@@ -342,6 +342,26 @@ struct AppDelegateTests {
         #expect(system.confirmQuitCalls == 0)
     }
 
+    @Test("applicationShouldTerminate allows quit unconditionally when relaunching to Applications")
+    func applicationTerminationRelaunchBypass() {
+        let (delegate, system, defaults) = setupIsolatedDelegate(
+            name: "applicationTerminationRelaunchBypass")
+        delegate.onShowAlert = nil
+
+        defaults.set(true, forKey: "IsStrict")
+        defaults.set(true, forKey: "IsBlocking")
+
+        let replyBeforeRelaunch = delegate.applicationShouldTerminate(NSApplication.shared)
+        #expect(replyBeforeRelaunch == .terminateCancel)
+        #expect(system.blockingAlertCalls == 1)
+
+        delegate.isRelaunching = true
+        let replyDuringRelaunch = delegate.applicationShouldTerminate(NSApplication.shared)
+        #expect(replyDuringRelaunch == .terminateNow)
+        #expect(system.blockingAlertCalls == 1)
+        #expect(system.confirmQuitCalls == 0)
+    }
+
     @Test("isInApplications identifies correct paths")
     func pathDetectionLogic() {
         let delegate = AppDelegate()

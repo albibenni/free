@@ -5,6 +5,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     public var onShowAlert: (() -> Void)?
     public var onApplicationDidFinishLaunching: (() -> Void)?
     var system: any AppDelegateSystem = DefaultAppDelegateSystem()
+    var isRelaunching = false
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         checkLocation()
@@ -51,6 +52,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
 
             try system.copyItem(atPath: currentPath, toPath: destinationPath)
             try system.relaunch(destinationPath: destinationPath)
+            isRelaunching = true
             system.terminate()
         } catch {
             system.showMoveError(error.localizedDescription)
@@ -59,6 +61,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
 
     public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply
     {
+        if isRelaunching { return .terminateNow }
         if shouldPreventTermination() {
             if let customHandler = onShowAlert {
                 customHandler()
