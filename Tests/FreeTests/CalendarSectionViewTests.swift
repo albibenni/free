@@ -734,4 +734,79 @@ struct CalendarSectionViewTests {
                 == .alertSecondButtonReturn
         )
     }
+
+    @Test("Calendar integration toggle works without challenge when strict is set but not actively blocking")
+    @MainActor
+    func calendarIntegrationToggleWorksWhenStrictNotBlocking() {
+        let appState = isolatedAppState(name: "toggleStrictNotBlocking")
+        appState.isStrict = true
+        appState.isBlocking = false
+        appState.calendarIntegrationEnabled = false
+
+        let controller = CalendarSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setCalendarIntegrationForTesting(true)
+        #expect(appState.calendarIntegrationEnabled == true)
+
+        controller.setCalendarIntegrationForTesting(false)
+        #expect(appState.calendarIntegrationEnabled == false)
+    }
+
+    @Test("Calendar integration toggle reverts switch and skips update when strict is active and challenge is cancelled")
+    @MainActor
+    func calendarIntegrationToggleStrictActiveCancel() {
+        let originalMakeAlert = StrictModeChallenge.makeAlert
+        let originalRunAlert = StrictModeChallenge.runAlert
+        defer {
+            StrictModeChallenge.makeAlert = originalMakeAlert
+            StrictModeChallenge.runAlert = originalRunAlert
+        }
+
+        let appState = isolatedAppState(name: "toggleStrictActiveCancel")
+        appState.isBlocking = true
+        appState.isStrict = true
+        appState.calendarIntegrationEnabled = false
+
+        StrictModeChallenge.makeAlert = { NSAlert() }
+        StrictModeChallenge.runAlert = { _ in .alertSecondButtonReturn }
+
+        let controller = CalendarSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setCalendarIntegrationForTesting(true)
+        #expect(appState.calendarIntegrationEnabled == false)
+    }
+
+    @Test("Calendar integration toggle applies change when strict is active and challenge passes")
+    @MainActor
+    func calendarIntegrationToggleStrictActivePass() {
+        let originalMakeAlert = StrictModeChallenge.makeAlert
+        let originalRunAlert = StrictModeChallenge.runAlert
+        defer {
+            StrictModeChallenge.makeAlert = originalMakeAlert
+            StrictModeChallenge.runAlert = originalRunAlert
+        }
+
+        let appState = isolatedAppState(name: "toggleStrictActivePass")
+        appState.isBlocking = true
+        appState.isStrict = true
+        appState.calendarIntegrationEnabled = false
+
+        StrictModeChallenge.makeAlert = { NSAlert() }
+        StrictModeChallenge.runAlert = { alert in
+            if let stack = alert.accessoryView?.subviews.first as? NSStackView,
+                let input = stack.arrangedSubviews.last as? NSTextField
+            {
+                input.stringValue = AppState.challengePhrase
+            }
+            return .alertFirstButtonReturn
+        }
+
+        let controller = CalendarSectionViewController(appState: appState)
+        _ = host(controller)
+
+        controller.setCalendarIntegrationForTesting(true)
+        #expect(appState.calendarIntegrationEnabled == true)
+    }
 }

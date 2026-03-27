@@ -649,7 +649,7 @@ final class CalendarSectionViewController: NSViewController {
 
     @objc
     private func toggleCalendarIntegration() {
-        if appState.isStrict {
+        if appState.isStrictActive {
             guard StrictModeChallenge.run(
                 title: "Calendar Integration",
                 action: "change the calendar integration setting",
@@ -669,7 +669,7 @@ final class CalendarSectionViewController: NSViewController {
 
     @objc
     private func resyncImportedSchedules() {
-        if appState.isStrict {
+        if appState.isStrictActive {
             guard StrictModeChallenge.run(
                 title: "Resync Schedules",
                 action: "resync imported schedules",
