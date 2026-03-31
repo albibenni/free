@@ -89,6 +89,35 @@ struct StrictModeChallengeTests {
         #expect(result == false)
     }
 
+    @Test("StrictModeChallenge shows error alert when wrong phrase is entered")
+    @MainActor
+    func showsErrorAlertOnWrongPhrase() {
+        let appState = isolatedAppState(name: "wrongPhraseAlert")
+        var errorAlertShown = false
+        var alertCallCount = 0
+        _ = StrictModeChallenge.run(
+            title: "Test",
+            action: "test action",
+            appState: appState,
+            makeAlert: { NSAlert() },
+            runAlert: { alert in
+                alertCallCount += 1
+                if alertCallCount == 1 {
+                    if let stack = alert.accessoryView?.subviews.first as? NSStackView,
+                        let input = stack.arrangedSubviews.last as? NSTextField
+                    {
+                        input.stringValue = "wrong phrase"
+                    }
+                    return .alertFirstButtonReturn
+                } else {
+                    errorAlertShown = alert.messageText == "Incorrect Phrase"
+                    return .alertFirstButtonReturn
+                }
+            }
+        )
+        #expect(errorAlertShown == true)
+    }
+
     @Test("StrictModeChallenge alert is configured with Unlock and Cancel buttons")
     @MainActor
     func alertHasUnlockAndCancelButtons() {

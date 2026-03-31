@@ -65,7 +65,16 @@ enum StrictModeChallenge {
         }
         let response = alertRunner(alert)
         guard response == .alertFirstButtonReturn else { return false }
-        return input.stringValue == AppState.challengePhrase
+        guard input.stringValue == AppState.challengePhrase else {
+            let errorAlert = alertFactory()
+            errorAlert.messageText = "Incorrect Phrase"
+            errorAlert.informativeText = "The phrase you entered does not match. Please try again."
+            errorAlert.alertStyle = .warning
+            errorAlert.addButton(withTitle: "OK")
+            _ = alertRunner(errorAlert)
+            return false
+        }
+        return true
     }
 
     static func makeAccessoryView(action: String, appState: AppState) -> (NSView, NSTextField) {
