@@ -91,7 +91,7 @@ struct ContentViewTests {
         #expect(texts.contains("Settings"))
     }
 
-    @Test("Main shell schedules section loads AppKit schedules widget")
+    @Test("Main shell schedules section loads full-page schedules calendar")
     @MainActor
     func mainShellSchedulesSectionOpensWidget() {
         let appState = isolatedAppState(name: "schedulesSection")
@@ -115,11 +115,10 @@ struct ContentViewTests {
         let hosted = host(controller)
         let texts = visibleText(in: hosted)
 
-        #expect(controller.currentFocusSectionForTesting == .schedules)
-        let focusController = controller.currentContentViewControllerForTesting as? FocusSectionViewController
-        #expect(focusController?.currentWidgetViewTypeForTesting == "FocusSchedulesWidgetView")
-        #expect(texts.contains("Focus Schedules"))
-        #expect(texts.contains("Open Full Calendar"))
+        #expect(controller.currentFocusSectionForTesting == nil)
+        #expect(controller.currentContentViewControllerForTesting is SchedulesSheetViewController)
+        #expect(texts.contains("View Mode"))
+        #expect(texts.contains("Add Schedule"))
     }
 
     @Test("Main shell settings section renders AppKit settings controller")

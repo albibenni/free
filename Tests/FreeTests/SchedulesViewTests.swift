@@ -94,7 +94,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 0
+            initialViewMode: 1
         )
         let hosted = host(controller)
         #expect(hosted.fittingSize.width >= 0)
@@ -129,7 +129,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 0
+            initialViewMode: 1
         )
         _ = host(controller)
 
@@ -166,7 +166,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 0
+            initialViewMode: 1
         )
         _ = host(controller)
 
@@ -200,7 +200,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 0
+            initialViewMode: 1
         )
         _ = host(controller)
 
@@ -227,7 +227,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 1
+            initialViewMode: 0
         )
         _ = host(controller)
 
@@ -340,7 +340,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 0
+            initialViewMode: 1
         )
 
         controller.deleteScheduleForTesting(scheduleId: imported.id)
@@ -385,7 +385,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 0
+            initialViewMode: 1
         )
         #expect(controller.removableScheduleIDForTesting(at: 999) == nil)
         #expect(controller.removableScheduleIDForTesting(at: importedIndex) == nil)
@@ -404,7 +404,7 @@ struct SchedulesViewTests {
             SchedulesSheetViewController(
                 appState: appState,
                 onDismiss: {},
-                initialViewMode: 0
+                initialViewMode: 1
             )
         )
         #expect(hosted.fittingSize.width >= 0)
@@ -419,11 +419,11 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 1
+            initialViewMode: 0
         )
         let hosted = host(controller)
         #expect(hosted.fittingSize.height >= 0)
-        #expect(controller.viewModeForTesting == 1)
+        #expect(controller.viewModeForTesting == 0)
     }
 
     @Test("Schedules sheet controller skips full refresh for unrelated app-state changes")
@@ -435,7 +435,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 1
+            initialViewMode: 0
         )
         _ = host(controller)
         let initialRefreshGeneration = controller.refreshGenerationForTesting
@@ -456,7 +456,7 @@ struct SchedulesViewTests {
             SchedulesSheetViewController(
                 appState: appState,
                 onDismiss: {},
-                initialViewMode: 1
+                initialViewMode: 0
             ),
             size: CGSize(width: 900, height: 760)
         )
@@ -480,7 +480,7 @@ struct SchedulesViewTests {
             SchedulesSheetViewController(
                 appState: appState,
                 onDismiss: {},
-                initialViewMode: 1
+                initialViewMode: 0
             ),
             size: CGSize(width: 900, height: 760)
         )
@@ -493,13 +493,13 @@ struct SchedulesViewTests {
             return
         }
 
-        segmented.setSelected(true, forSegment: 0)
+        segmented.setSelected(true, forSegment: 1)
         if let action = segmented.action {
             NSApp.sendAction(action, to: segmented.target, from: segmented)
         }
         RunLoop.main.run(until: Date().addingTimeInterval(0.02))
 
-        #expect(segmented.selectedSegment == 0)
+        #expect(segmented.selectedSegment == 1)
     }
 
     @Test("Schedules sheet controller supports a preset editor context")
@@ -519,7 +519,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 1,
+            initialViewMode: 0,
             initialEditorContext: context
         )
         let hosted = host(controller, size: CGSize(width: 900, height: 800))
@@ -538,13 +538,13 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: { dismissCount += 1 },
-            initialViewMode: 1
+            initialViewMode: 0
         )
         _ = host(controller)
 
         var config = controller.appKitConfigurationForTesting
-        config.onChangeViewMode(0)
-        #expect(controller.viewModeForTesting == 0)
+        config.onChangeViewMode(1)
+        #expect(controller.viewModeForTesting == 1)
 
         config = controller.appKitConfigurationForTesting
         config.onSelectSchedule(schedule)
@@ -592,7 +592,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 1
+            initialViewMode: 0
         )
         _ = host(controller)
 
@@ -621,7 +621,7 @@ struct SchedulesViewTests {
             var controller: SchedulesSheetViewController? = SchedulesSheetViewController(
                 appState: appState,
                 onDismiss: {},
-                initialViewMode: 1
+                initialViewMode: 0
             )
             weakController = controller
             config = controller?.appKitConfigurationForTesting
@@ -654,7 +654,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 0
+            initialViewMode: 1
         )
         _ = host(controller)
 
@@ -814,7 +814,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: { dismissCount += 1 },
-            initialViewMode: 0
+            initialViewMode: 1
         )
         _ = host(controller)
 
@@ -854,7 +854,7 @@ struct SchedulesViewTests {
         container.onWindowAttached = { _ in attachedWindows += 1 }
         container.configure(
             with: SchedulesAppKitConfiguration(
-                viewMode: 1,
+                viewMode: 0,
                 monthTitle: "March 2026",
                 schedules: [sampleSchedule(name: "One")],
                 accentColor: .systemGreen,
@@ -901,7 +901,7 @@ struct SchedulesViewTests {
             weekOffset: 0
         )
         let editorConfig = SchedulesAppKitConfiguration(
-            viewMode: 1,
+            viewMode: 0,
             monthTitle: "March 2026",
             schedules: [sampleSchedule(name: "Editor Host")],
             accentColor: .systemGreen,
@@ -931,7 +931,7 @@ struct SchedulesViewTests {
         RunLoop.main.run(until: Date().addingTimeInterval(0.02))
 
         let noEditorConfig = SchedulesAppKitConfiguration(
-            viewMode: 1,
+            viewMode: 0,
             monthTitle: "March 2026",
             schedules: [sampleSchedule(name: "Editor Host")],
             accentColor: .systemGreen,
@@ -953,7 +953,7 @@ struct SchedulesViewTests {
         )
         container.configure(with: noEditorConfig)
 
-        #expect(changedModes == [1])
+        #expect(changedModes == [0])
         #expect(addCount == 1)
         #expect(prevCount == 1)
         #expect(currentCount == 1)
@@ -1000,7 +1000,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 1
+            initialViewMode: 0
         )
         _ = host(controller)
         let initialGeneration = controller.refreshGenerationForTesting
@@ -1041,7 +1041,7 @@ struct SchedulesViewTests {
         let dismissController = SchedulesSheetViewController(
             appState: appState,
             onDismiss: { dismissCount += 1 },
-            initialViewMode: 0
+            initialViewMode: 1
         )
         _ = host(dismissController)
         dismissController.invokeDismissForTesting()
@@ -1069,7 +1069,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 1
+            initialViewMode: 0
         )
         _ = host(controller)
 
@@ -1187,7 +1187,7 @@ struct SchedulesViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 1
+            initialViewMode: 0
         )
         _ = host(controller)
 

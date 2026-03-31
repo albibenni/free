@@ -37,10 +37,10 @@ struct SectionCoordinatorsTests {
     @Test("Schedules presentation coordinator derives title and week navigation")
     func schedulesSheetPresentationCoordinator() {
         #expect(
-            SchedulesSheetPresentationCoordinator.windowTitle(viewMode: 1) == "Schedules · Calendar"
+            SchedulesSheetPresentationCoordinator.windowTitle(viewMode: 0) == "Schedules · Calendar"
         )
         #expect(
-            SchedulesSheetPresentationCoordinator.windowTitle(viewMode: 0) == "Schedules · List"
+            SchedulesSheetPresentationCoordinator.windowTitle(viewMode: 1) == "Schedules · List"
         )
         #expect(
             SchedulesSheetPresentationCoordinator.weekOffset(

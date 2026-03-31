@@ -661,10 +661,10 @@ struct UIComponentTests {
             shellState: shellState,
             section: .all
         )
-        let schedulesController = FocusSectionViewController(
+        let schedulesController = SchedulesSheetViewController(
             appState: appState,
-            shellState: shellState,
-            section: .schedules
+            onDismiss: {},
+            managesWindowTitle: false
         )
         let pomodoroController = FocusSectionViewController(
             appState: appState,
@@ -680,7 +680,7 @@ struct UIComponentTests {
         let settingsController = SettingsSectionViewController(appState: appState)
         let router = MainSectionRouter(
             focusOverviewController: focusController,
-            schedulesOverviewController: schedulesController,
+            schedulesViewController: schedulesController,
             calendarSectionController: calendarController,
             pomodoroSectionController: pomodoroController,
             allowedWebsitesSectionController: allowedWebsitesController,
@@ -740,10 +740,10 @@ struct UIComponentTests {
             shellState: shellState,
             section: .all
         )
-        let schedulesController = FocusSectionViewController(
+        let schedulesController = SchedulesSheetViewController(
             appState: appState,
-            shellState: shellState,
-            section: .schedules
+            onDismiss: {},
+            managesWindowTitle: false
         )
         let pomodoroController = FocusSectionViewController(
             appState: appState,
@@ -759,7 +759,7 @@ struct UIComponentTests {
         let settingsController = SettingsSectionViewController(appState: appState)
         let router = MainSectionRouter(
             focusOverviewController: focusController,
-            schedulesOverviewController: schedulesController,
+            schedulesViewController: schedulesController,
             calendarSectionController: calendarController,
             pomodoroSectionController: pomodoroController,
             allowedWebsitesSectionController: allowedWebsitesController,

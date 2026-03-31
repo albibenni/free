@@ -12,7 +12,7 @@ enum SchedulesSheetPresentationCoordinator {
     static func windowTitle(
         viewMode: Int
     ) -> String {
-        viewMode == 1 ? "Schedules · Calendar" : "Schedules · List"
+        viewMode == 0 ? "Schedules · Calendar" : "Schedules · List"
     }
 
     static func weekOffset(

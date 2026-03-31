@@ -1312,7 +1312,7 @@ struct WeeklyCalendarViewTests {
         let controller = SchedulesSheetViewController(
             appState: appState,
             onDismiss: {},
-            initialViewMode: 1
+            initialViewMode: 0
         )
         let hosted = host(controller.view, size: CGSize(width: 900, height: 760))
         #expect(hosted.fittingSize.height >= 0)

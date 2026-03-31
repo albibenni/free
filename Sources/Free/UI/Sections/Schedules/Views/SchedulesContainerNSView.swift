@@ -94,12 +94,12 @@ final class SchedulesContainerNSView: NSView {
         applyToolbarStyle(accentColor: configuration.accentColor)
         addButton.isEnabled = configuration.canModifySchedules
         addButton.alphaValue = configuration.canModifySchedules ? 1.0 : 0.55
-        titleLabel.stringValue = configuration.viewMode == 1 ? configuration.monthTitle : "Schedules"
+        titleLabel.stringValue = configuration.viewMode == 0 ? configuration.monthTitle : "Schedules"
         titleLabel.isHidden = false
         viewModeLabel.isHidden = false
         viewModeControl.isHidden = false
         viewModeControl.selectedSegment = configuration.viewMode
-        let showsCalendar = configuration.viewMode == 1
+        let showsCalendar = configuration.viewMode == 0
         navigationGroupView.isHidden = !showsCalendar
         previousWeekButton.isHidden = !showsCalendar
         todayButton.isHidden = !showsCalendar
@@ -214,9 +214,9 @@ final class SchedulesContainerNSView: NSView {
         listDocumentView.layoutRows(width: listScrollView.contentSize.width)
 
         let calendarFrame = CGRect(
-            x: 10,
+            x: contentFrame.minX,
             y: contentFrame.minY,
-            width: max(contentFrame.width - 18, 0),
+            width: contentFrame.width,
             height: contentFrame.height
         )
         calendarView.frame = calendarFrame
@@ -236,11 +236,11 @@ final class SchedulesContainerNSView: NSView {
         viewModeControl.setWidth(27, forSegment: 0)
         viewModeControl.setWidth(27, forSegment: 1)
         viewModeControl.setImage(
-            appKitSymbolImage(spec: AppKitUISymbols.listMode),
+            appKitSymbolImage(spec: AppKitUISymbols.calendarMode),
             forSegment: 0
         )
         viewModeControl.setImage(
-            appKitSymbolImage(spec: AppKitUISymbols.calendarMode),
+            appKitSymbolImage(spec: AppKitUISymbols.listMode),
             forSegment: 1
         )
     }

@@ -2,7 +2,7 @@ import AppKit
 
 final class MainSectionRouter {
     private let focusOverviewController: FocusSectionViewController
-    private let schedulesOverviewController: FocusSectionViewController
+    private let schedulesViewController: SchedulesSheetViewController
     private let calendarSectionController: CalendarSectionViewController
     private let pomodoroSectionController: FocusSectionViewController
     private let allowedWebsitesSectionController: FocusSectionViewController
@@ -10,14 +10,14 @@ final class MainSectionRouter {
 
     init(
         focusOverviewController: FocusSectionViewController,
-        schedulesOverviewController: FocusSectionViewController,
+        schedulesViewController: SchedulesSheetViewController,
         calendarSectionController: CalendarSectionViewController,
         pomodoroSectionController: FocusSectionViewController,
         allowedWebsitesSectionController: FocusSectionViewController,
         settingsSectionController: SettingsSectionViewController
     ) {
         self.focusOverviewController = focusOverviewController
-        self.schedulesOverviewController = schedulesOverviewController
+        self.schedulesViewController = schedulesViewController
         self.calendarSectionController = calendarSectionController
         self.pomodoroSectionController = pomodoroSectionController
         self.allowedWebsitesSectionController = allowedWebsitesSectionController
@@ -31,7 +31,7 @@ final class MainSectionRouter {
         case .focus:
             return focusOverviewController
         case .schedules:
-            return schedulesOverviewController
+            return schedulesViewController
         case .calendar:
             return calendarSectionController
         case .pomodoro:

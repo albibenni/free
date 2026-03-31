@@ -17,7 +17,7 @@ final class FreeMainViewController: NSViewController {
     private let appState: AppState
     private let shellState: FreeShellState
     private let focusOverviewController: FocusSectionViewController
-    private let schedulesOverviewController: FocusSectionViewController
+    private let schedulesViewController: SchedulesSheetViewController
     private let calendarSectionController: CalendarSectionViewController
     private let pomodoroSectionController: FocusSectionViewController
     private let allowedWebsitesSectionController: FocusSectionViewController
@@ -35,11 +35,6 @@ final class FreeMainViewController: NSViewController {
         onRulesDismissed: { [weak self] in
             if self?.shellState.showRules == true {
                 self?.shellState.showRules = false
-            }
-        },
-        onSchedulesDismissed: { [weak self] in
-            if self?.shellState.showSchedules == true {
-                self?.shellState.showSchedules = false
             }
         }
     )
@@ -64,10 +59,11 @@ final class FreeMainViewController: NSViewController {
             shellState: shellState,
             section: .all
         )
-        schedulesOverviewController = FocusSectionViewController(
+        schedulesViewController = SchedulesSheetViewController(
             appState: appState,
-            shellState: shellState,
-            section: .schedules
+            onDismiss: {},
+            initialViewMode: 0,
+            managesWindowTitle: false
         )
         pomodoroSectionController = FocusSectionViewController(
             appState: appState,
@@ -83,7 +79,7 @@ final class FreeMainViewController: NSViewController {
         settingsSectionController = SettingsSectionViewController(appState: appState)
         sectionRouter = MainSectionRouter(
             focusOverviewController: focusOverviewController,
-            schedulesOverviewController: schedulesOverviewController,
+            schedulesViewController: schedulesViewController,
             calendarSectionController: calendarSectionController,
             pomodoroSectionController: pomodoroSectionController,
             allowedWebsitesSectionController: allowedWebsitesSectionController,
@@ -196,10 +192,10 @@ final class FreeMainViewController: NSViewController {
                 }
             },
             onShowSchedulesChanged: { [weak self] isShown in
-                if isShown {
-                    self?.sheetPresenter.presentSchedules(from: self?.view.window)
-                } else {
-                    self?.sheetPresenter.dismissSchedules()
+                guard isShown, let self else { return }
+                applySelectedSection(.schedules)
+                DispatchQueue.main.async { [weak self] in
+                    self?.shellState.showSchedules = false
                 }
             }
         )
@@ -275,7 +271,7 @@ final class FreeMainViewController: NSViewController {
     }
 
     private var isTabSwitchBlockedByPresentedWindow: Bool {
-        shellState.showRules || shellState.showSchedules
+        shellState.showRules
     }
 
     private func toggleSidebar() {

@@ -46,7 +46,7 @@ final class SchedulesSheetViewController: NSViewController {
             appearanceMode = appState.appearanceMode
             accentColorIndex = appState.accentColorIndex
             schedules = appState.schedules
-            let isCalendarMode = viewMode == 1
+            let isCalendarMode = viewMode == 0
             if isCalendarMode {
                 weekStartsOnMonday = appState.weekStartsOnMonday
                 calendarIntegrationEnabled = appState.calendarIntegrationEnabled
@@ -71,6 +71,7 @@ final class SchedulesSheetViewController: NSViewController {
     private let calendarTimeLabelWidth: CGFloat = 60
     private let calendarTimeColumnGutter: CGFloat = 12
 
+    private let managesWindowTitle: Bool
     private var viewMode: Int
     private var editorContext: ScheduleEditorContext?
     private var weekOffset: Int
@@ -82,15 +83,17 @@ final class SchedulesSheetViewController: NSViewController {
     init(
         appState: AppState,
         onDismiss: @escaping () -> Void,
-        initialViewMode: Int = 1,
+        initialViewMode: Int = 0,
         initialEditorContext: ScheduleEditorContext? = nil,
-        initialWeekOffset: Int = 0
+        initialWeekOffset: Int = 0,
+        managesWindowTitle: Bool = true
     ) {
         self.appState = appState
         self.onDismiss = onDismiss
-        viewMode = initialViewMode
-        editorContext = initialEditorContext
-        weekOffset = initialWeekOffset
+        self.managesWindowTitle = managesWindowTitle
+        self.viewMode = initialViewMode
+        self.editorContext = initialEditorContext
+        self.weekOffset = initialWeekOffset
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -126,7 +129,7 @@ final class SchedulesSheetViewController: NSViewController {
 
     private func schedulesObservationPublisher() -> AnyPublisher<Void, Never> {
         let calendarModeOnly: (()) -> Bool = { [weak self] _ in
-            self?.viewMode == 1
+            self?.viewMode == 0
         }
 
         return Publishers.MergeMany(
@@ -218,6 +221,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private func updateWindowTitle() {
+        guard managesWindowTitle else { return }
         let title = SchedulesSheetPresentationCoordinator.windowTitle(viewMode: viewMode)
         guard let window = schedulesContainerView.window else { return }
         window.title = title
