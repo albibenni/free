@@ -24,6 +24,7 @@ enum AppStateFocusFlowCoordinator {
         let state: PauseEngine.State
         let shouldStartTimer: Bool
         let shouldStopTimer: Bool
+        let shouldCheckSchedules: Bool
     }
 
     struct PauseTickTransition: Equatable {
@@ -95,14 +96,15 @@ enum AppStateFocusFlowCoordinator {
             )
         else { return nil }
 
-        return PauseTransition(state: updated, shouldStartTimer: true, shouldStopTimer: false)
+        return PauseTransition(state: updated, shouldStartTimer: true, shouldStopTimer: false, shouldCheckSchedules: false)
     }
 
     static func cancelPause(state: PauseEngine.State) -> PauseTransition {
         PauseTransition(
             state: AppStatePauseCoordinator.cancel(from: state),
             shouldStartTimer: false,
-            shouldStopTimer: true
+            shouldStopTimer: true,
+            shouldCheckSchedules: true
         )
     }
 

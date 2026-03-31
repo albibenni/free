@@ -73,12 +73,14 @@ struct AppStateFocusFlowCoordinatorTests {
             isBlocking: true
         )
         #expect(started?.shouldStartTimer == true)
+        #expect(started?.shouldCheckSchedules == false)
         #expect(started?.state.isPaused == true)
 
         let cancelled = AppStateFocusFlowCoordinator.cancelPause(
             state: started?.state ?? initial
         )
         #expect(cancelled.shouldStopTimer)
+        #expect(cancelled.shouldCheckSchedules)
         #expect(!cancelled.state.isPaused)
     }
 

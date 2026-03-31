@@ -42,5 +42,8 @@ extension AppState {
         if transition.shouldStopTimer {
             timerCoordinator.replacePauseTimer(with: nil)
         }
+        if transition.shouldCheckSchedules {
+            checkSchedules()
+        }
     }
 }

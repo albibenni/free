@@ -2,10 +2,6 @@
 
 ## UI
 
-- [] light mode:
-  - [ ] background color not white
-- [ ] better ui tbd
-
 ### TOPBAR
 
 ## Logic
@@ -14,10 +10,12 @@
 
 ### Schedule
 
+- [ ] change view - calendar view deafult from the tab and toggle to move the list view. Keep both full size, not in a separate dialog
+
 ## Bug
 
-- [x] toggle enable calendar integration breaks Calendar setting view
-
 ## Strict mode
+
+- [ ] on wrong writing raise an alert signaling it
 
 ## Misc
