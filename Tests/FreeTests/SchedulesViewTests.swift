@@ -1112,8 +1112,7 @@ struct SchedulesViewTests {
     func schedulesAlertGetterUsesDefaultWhenNoOverride() {
         defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
         SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting()
-        let alert = SchedulesSheetViewController.makeScheduleModificationBlockedAlert()
-        #expect(alert is NSAlert)
+        _ = SchedulesSheetViewController.makeScheduleModificationBlockedAlert()
     }
 
     @Test("Schedules modification alert property setter stores factory via property assignment syntax")

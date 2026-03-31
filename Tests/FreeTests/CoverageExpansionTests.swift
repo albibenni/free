@@ -363,14 +363,14 @@ struct CoverageExpansionTests {
         var appStateSignatureEvents: [Bool] = []
         AppKitAppStateObservation.bind(
             appState: appState,
-            signature: { [appState] in appState.isBlocking },
+            signature: { [appState] in appState.isStrict },
             cancellables: &cancellables
         ) { value in
             appStateSignatureEvents.append(value)
         }
-        appState.isBlocking.toggle()
+        appState.isStrict.toggle()
         flushMainRunLoop()
-        #expect(appStateSignatureEvents.last == appState.isBlocking)
+        #expect(appStateSignatureEvents.last == appState.isStrict)
 
         var appStateVoidEvents = 0
         AppKitAppStateObservation.bind(
