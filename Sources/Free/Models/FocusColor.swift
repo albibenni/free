@@ -2,6 +2,7 @@ import AppKit
 
 struct FocusColor {
     private static let rainbowMarker = NSColor(calibratedRed: 0.99, green: 0.11, blue: 0.79, alpha: 1)
+    static let lime = NSColor(calibratedRed: 0.50, green: 0.86, blue: 0.05, alpha: 1)
 
     static let all: [NSColor] = [
         .systemBlue,
@@ -13,6 +14,7 @@ struct FocusColor {
         .systemIndigo,
         .systemTeal,
         .systemGray,
+        lime,
         rainbowMarker,
     ]
 
