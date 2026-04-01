@@ -14,6 +14,7 @@ struct FocusColor {
         .systemIndigo,
         .systemTeal,
         .systemGray,
+        .systemBrown,
         lime,
         rainbowMarker,
     ]
