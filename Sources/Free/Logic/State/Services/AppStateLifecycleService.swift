@@ -13,6 +13,7 @@ enum AppStateLifecycleService {
     struct RuntimeBindings {
         let monitor: BrowserMonitor?
         let calendarCancellable: AnyCancellable
+        let rescheduleScheduleTimer: () -> Void
     }
 
     static func bindPersistence(
@@ -103,7 +104,8 @@ enum AppStateLifecycleService {
         timerCoordinator: AppStateTimerCoordinator,
         monitorStateSnapshotProvider: @escaping () -> BrowserMonitor.StateSnapshot?,
         onMonitorEvent: @escaping (BrowserMonitor.Event) -> Void,
-        onScheduleUpdate: @escaping () -> Void
+        onScheduleUpdate: @escaping () -> Void,
+        scheduleTickIntervalProvider: @escaping () -> TimeInterval
     ) -> RuntimeBindings {
         let monitor = AppStateRuntimeWiringCoordinator.resolveMonitor(
             injectedMonitor: injectedMonitor,
@@ -115,16 +117,18 @@ enum AppStateLifecycleService {
             )
         }
 
-        let calendarCancellable = AppStateRuntimeWiringCoordinator.start(
+        let runtimeWiring = AppStateRuntimeWiringCoordinator.start(
             calendarProvider: calendarProvider,
             timerCoordinator: timerCoordinator,
             onCalendarChange: onScheduleUpdate,
-            onScheduleTick: onScheduleUpdate
+            onScheduleTick: onScheduleUpdate,
+            scheduleTickIntervalProvider: scheduleTickIntervalProvider
         )
 
         return RuntimeBindings(
             monitor: monitor,
-            calendarCancellable: calendarCancellable
+            calendarCancellable: runtimeWiring.calendarCancellable,
+            rescheduleScheduleTimer: runtimeWiring.rescheduleScheduleTimer
         )
     }
 

@@ -106,6 +106,7 @@ class AppState: ObservableObject {
     private let scheduleCheckSubject = PassthroughSubject<Void, Never>()
     private let isTesting: Bool
     var internalState = AppStateInternalState()
+    private var rescheduleScheduleTimer: (() -> Void)?
 
     init(
         defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil,
@@ -195,10 +196,14 @@ class AppState: ObservableObject {
                     self?.isTrusted = trusted
                 }
             },
-            onScheduleUpdate: { [weak self] in self?.checkSchedules() }
+            onScheduleUpdate: { [weak self] in self?.checkSchedules() },
+            scheduleTickIntervalProvider: { [weak self] in
+                self?.nextScheduleTickInterval() ?? 60
+            }
         )
         self.monitor = runtimeBindings.monitor
         calendarCancellable = runtimeBindings.calendarCancellable
+        rescheduleScheduleTimer = runtimeBindings.rescheduleScheduleTimer
         if isBlocking && !wasStartedBySchedule && !manualBlockingEnabled {
             isBlocking = false
         }
@@ -232,6 +237,7 @@ class AppState: ObservableObject {
     }
 
     func checkSchedules() {
+        rescheduleScheduleTimer?()
         if isTesting {
             performCheckSchedules()
         } else {
@@ -251,6 +257,17 @@ class AppState: ObservableObject {
             calendarEvents: calendarProvider.events
         )
         applySessionState(updated)
+    }
+
+    private func nextScheduleTickInterval(now: Date = Date()) -> TimeInterval {
+        AppStateScheduleTickCoordinator.nextInterval(
+            schedules: scheduleDomainState.schedules,
+            calendarEvents: calendarProvider.events,
+            calendarIntegrationEnabled: scheduleDomainState.calendarIntegrationEnabled,
+            isStrict: sessionDomainState.isStrict,
+            calendarImportsBlockTime: scheduleDomainState.calendarImportsBlockTime,
+            now: now
+        )
     }
 
     func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }

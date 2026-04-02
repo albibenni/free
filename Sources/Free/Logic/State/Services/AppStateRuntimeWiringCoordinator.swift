@@ -2,6 +2,11 @@ import Combine
 import Foundation
 
 enum AppStateRuntimeWiringCoordinator {
+    struct StartResult {
+        let calendarCancellable: AnyCancellable
+        let rescheduleScheduleTimer: () -> Void
+    }
+
     static func resolveMonitor(
         injectedMonitor: BrowserMonitor?,
         isTesting: Bool,
@@ -19,17 +24,30 @@ enum AppStateRuntimeWiringCoordinator {
         timerCoordinator: AppStateTimerCoordinator,
         onCalendarChange: @escaping () -> Void,
         onScheduleTick: @escaping () -> Void,
+        scheduleTickIntervalProvider: @escaping () -> TimeInterval,
         dispatchToMain: @escaping (@escaping () -> Void) -> Void = { block in
             DispatchQueue.main.async(execute: block)
         }
-    ) -> AnyCancellable {
+    ) -> StartResult {
         let calendarCancellable = calendarProvider.objectWillChange.sink { _ in
             dispatchToMain(onCalendarChange)
         }
 
-        let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 10 * 60, onScheduleTick)
-        timerCoordinator.replaceScheduleTimer(with: timer)
-        return calendarCancellable
+        func armScheduleTimer() {
+            let interval = max(1, scheduleTickIntervalProvider())
+            let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: interval) {
+                onScheduleTick()
+                armScheduleTimer()
+            }
+            timerCoordinator.replaceScheduleTimer(with: timer)
+        }
+
+        armScheduleTimer()
+
+        return StartResult(
+            calendarCancellable: calendarCancellable,
+            rescheduleScheduleTimer: armScheduleTimer
+        )
     }
 
     static func teardown(

@@ -144,7 +144,8 @@ struct AppStateLifecycleServiceTests {
             timerCoordinator: timerCoordinator,
             monitorStateSnapshotProvider: { nil },
             onMonitorEvent: { _ in },
-            onScheduleUpdate: { scheduleUpdateCount += 1 }
+            onScheduleUpdate: { scheduleUpdateCount += 1 },
+            scheduleTickIntervalProvider: { 600 }
         )
 
         #expect(bindings.monitor === injectedMonitor)
@@ -181,7 +182,8 @@ struct AppStateLifecycleServiceTests {
             timerCoordinator: timerCoordinator,
             monitorStateSnapshotProvider: { nil },
             onMonitorEvent: { _ in },
-            onScheduleUpdate: {}
+            onScheduleUpdate: {},
+            scheduleTickIntervalProvider: { 600 }
         )
 
         #expect(bindings.monitor != nil)

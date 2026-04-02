@@ -64,13 +64,15 @@ struct AppStateRuntimeWiringCoordinatorTests {
         var calendarChangeCount = 0
         var scheduleTickCount = 0
 
-        var cancellable: AnyCancellable? = AppStateRuntimeWiringCoordinator.start(
+        let startResult = AppStateRuntimeWiringCoordinator.start(
             calendarProvider: calendar,
             timerCoordinator: timerCoordinator,
             onCalendarChange: { calendarChangeCount += 1 },
             onScheduleTick: { scheduleTickCount += 1 },
+            scheduleTickIntervalProvider: { 600 },
             dispatchToMain: { $0() }
         )
+        var cancellable: AnyCancellable? = startResult.calendarCancellable
 
         #expect(scheduler.intervals == [600])
         scheduler.fire(at: 0)

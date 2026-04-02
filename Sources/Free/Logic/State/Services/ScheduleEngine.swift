@@ -40,13 +40,16 @@ struct ScheduleEngine {
         let activeFocusIds = Set(focusSchedules.map(\.id))
         let normalizedPaused = manuallyPausedScheduleIds.intersection(activeFocusIds)
 
+        let activeImportedEventKeys = Set(activeSchedules.compactMap(\.importedCalendarEventKey))
         let hasFocus = focusSchedules.contains { !normalizedPaused.contains($0.id) } || pomodoroIsFocus
         let hasBreak = activeSchedules.contains { $0.type == .unfocus } || pomodoroIsBreak
         let hasMeeting =
             calendarIntegrationEnabled
             && !isStrict
             && !calendarImportsBlockTime
-            && calendarEvents.contains { $0.isActive() }
+            && calendarEvents.contains {
+                $0.isActive() && !activeImportedEventKeys.contains($0.id)
+            }
 
         return AutomaticBlockingResult(
             shouldBlock: hasFocus && !hasBreak && !hasMeeting,
