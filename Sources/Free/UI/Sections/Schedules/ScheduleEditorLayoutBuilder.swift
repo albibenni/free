@@ -44,6 +44,7 @@ enum ScheduleEditorLayoutBuilder {
         field.isEnabled = editable
         field.identifier = NSUserInterfaceItemIdentifier("scheduleNameField")
         section.contentStack.addArrangedSubview(field)
+        field.widthAnchor.constraint(equalTo: section.contentStack.widthAnchor).isActive = true
         return section
     }
 
