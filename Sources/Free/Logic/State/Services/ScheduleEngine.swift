@@ -39,9 +39,23 @@ struct ScheduleEngine {
         let activeFocusIds = Set(focusSchedules.map(\.id))
         let normalizedPaused = manuallyPausedScheduleIds.intersection(activeFocusIds)
 
+        // Pomodoro overrides schedules entirely when active
+        if pomodoroIsFocus {
+            return AutomaticBlockingResult(
+                shouldBlock: true,
+                normalizedManuallyPausedScheduleIds: normalizedPaused
+            )
+        }
+        if pomodoroIsBreak {
+            return AutomaticBlockingResult(
+                shouldBlock: false,
+                normalizedManuallyPausedScheduleIds: normalizedPaused
+            )
+        }
+
         let activeImportedEventKeys = Set(activeSchedules.compactMap(\.importedCalendarEventKey))
-        let hasFocus = focusSchedules.contains { !normalizedPaused.contains($0.id) } || pomodoroIsFocus
-        let hasBreak = activeSchedules.contains { $0.type == .unfocus } || pomodoroIsBreak
+        let hasFocus = focusSchedules.contains { !normalizedPaused.contains($0.id) }
+        let hasBreak = activeSchedules.contains { $0.type == .unfocus }
         let hasMeeting =
             calendarIntegrationEnabled
             && !isStrict
