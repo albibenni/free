@@ -23,7 +23,6 @@ enum AppStateCalendarSyncMutationService {
                 calendarIntegrationEnabled: context.schedule.calendarIntegrationEnabled,
                 currentSchedules: context.schedule.schedules,
                 events: context.events,
-                calendarImportsBlockTime: context.schedule.calendarImportsBlockTime,
                 suppressedImportedCalendarEventKeys: context.schedule
                     .suppressedImportedCalendarEventKeys,
                 focusTitleRules: context.settings.calendarImportFocusTitleRules,
@@ -54,7 +53,6 @@ enum AppStateCalendarSyncMutationService {
                 currentSchedules: context.schedule.schedules,
                 events: context.events,
                 calendarIntegrationEnabled: context.schedule.calendarIntegrationEnabled,
-                calendarImportsBlockTime: context.schedule.calendarImportsBlockTime,
                 suppressedImportedCalendarEventKeys: context.schedule
                     .suppressedImportedCalendarEventKeys,
                 focusTitleRules: context.settings.calendarImportFocusTitleRules,

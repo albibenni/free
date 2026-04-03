@@ -15,7 +15,6 @@ struct AppStateScheduleCheckCoordinator {
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isStrict: Bool,
-        calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> Result {
         let blocking = AppStateBlockingCoordinator.evaluateAutomaticBlocking(
@@ -24,7 +23,6 @@ struct AppStateScheduleCheckCoordinator {
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
             isStrict: isStrict,
-            calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )
 

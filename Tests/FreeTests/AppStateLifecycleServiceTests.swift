@@ -45,7 +45,6 @@ struct AppStateLifecycleServiceTests {
             appearanceMode: .dark,
             cursorFluidAnimationEnabled: false,
             calendarIntegrationEnabled: true,
-            calendarImportsBlockTime: true,
             calendarImportFocusTitleRules: ["Focus", "Deep Work"],
             calendarImportBreakTitleRules: ["Break", "Lunch"],
             calendarImportedScheduleRuleSetId: importedRuleSetId,
@@ -87,7 +86,6 @@ struct AppStateLifecycleServiceTests {
         #expect(projection.rules.activeRuleSetId == ruleSet.id)
         #expect(projection.schedule.schedules == [schedule])
         #expect(projection.schedule.calendarIntegrationEnabled)
-        #expect(projection.schedule.calendarImportsBlockTime)
         #expect(projection.schedule.suppressedImportedCalendarEventKeys == ["event-1"])
     }
 
@@ -108,7 +106,6 @@ struct AppStateLifecycleServiceTests {
             pomodoroStatus: .none,
             calendarIntegrationEnabled: false,
             isStrict: false,
-            calendarImportsBlockTime: false,
             calendarEvents: []
         )
         #expect(alreadyMigrated == nil)
@@ -121,7 +118,6 @@ struct AppStateLifecycleServiceTests {
             pomodoroStatus: .none,
             calendarIntegrationEnabled: false,
             isStrict: false,
-            calendarImportsBlockTime: false,
             calendarEvents: []
         )
         #expect(migrated != nil)
@@ -215,7 +211,6 @@ struct AppStateLifecycleServiceTests {
             appearanceMode: Just(.system).eraseToAnyPublisher(),
             cursorFluidAnimationEnabled: Just(true).eraseToAnyPublisher(),
             calendarIntegrationEnabled: Just(false).eraseToAnyPublisher(),
-            calendarImportsBlockTime: Just(false).eraseToAnyPublisher(),
             calendarImportFocusTitleRules: Just([]).eraseToAnyPublisher(),
             calendarImportBreakTitleRules: Just([]).eraseToAnyPublisher(),
             calendarImportedScheduleRuleSetId: Just(nil).eraseToAnyPublisher(),
@@ -234,6 +229,6 @@ struct AppStateLifecycleServiceTests {
             bindings: bindings,
             settingsStore: settingsStore
         )
-        #expect(cancellables.count == 20)
+        #expect(cancellables.count == 19)
     }
 }

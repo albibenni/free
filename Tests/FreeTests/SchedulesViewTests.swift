@@ -318,7 +318,6 @@ struct SchedulesViewTests {
     func schedulesViewPreventsImportedDeletion() {
         let appState = isolatedAppState(name: "preventsImportedDeletion")
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = true
 
         let now = Date()
         let importedEvent = ExternalEvent(
@@ -359,7 +358,6 @@ struct SchedulesViewTests {
     func schedulesRemoveOffsetsSkipsImportedBranch() {
         let appState = isolatedAppState(name: "removeOffsetsSkipsImported")
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = true
         let now = Date()
         appState.calendarProvider.events = [
             ExternalEvent(
@@ -1056,7 +1054,6 @@ struct SchedulesViewTests {
         schedule.days = [2]
         appState.schedules = [schedule]
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = false
         appState.calendarProvider.events = [
             ExternalEvent(
                 id: "event-1",
@@ -1160,7 +1157,6 @@ struct SchedulesViewTests {
     func schedulesExternalOverlaySkipsMirroredImportedEvents() {
         let appState = isolatedAppState(name: "externalOverlaySkipsMirroredImportedEvents")
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = false
         appState.suppressedImportedCalendarEventKeys = ["event-2"]
 
         var local = sampleSchedule(name: "Local")

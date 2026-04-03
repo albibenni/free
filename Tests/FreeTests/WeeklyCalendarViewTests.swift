@@ -560,10 +560,7 @@ struct WeeklyCalendarViewTests {
         #expect(splitRect?.minX == 50)
 
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = false
-        #expect(appState.calendarIntegrationEnabled && !appState.calendarImportsBlockTime)
-        appState.calendarImportsBlockTime = true
-        #expect(appState.calendarIntegrationEnabled && !appState.calendarImportsBlockTime == false)
+        #expect(appState.calendarIntegrationEnabled)
     }
 
     @Test(
@@ -1344,11 +1341,7 @@ struct WeeklyCalendarViewTests {
         #expect(controller.calendarConfigurationForTesting.weekRange.first == initialWeekStart)
 
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = false
         #expect(controller.calendarConfigurationForTesting.showsExternalEvents)
-
-        appState.calendarImportsBlockTime = true
-        #expect(controller.calendarConfigurationForTesting.showsExternalEvents == false)
         #expect(!controller.monthTitleForTesting.isEmpty)
     }
 }

@@ -39,7 +39,6 @@ struct AppRulesDomainState: Equatable {
 struct AppScheduleDomainState: Equatable {
     var schedules: [Schedule]
     var calendarIntegrationEnabled: Bool
-    var calendarImportsBlockTime: Bool
     var isSynchronizingImportedSchedules: Bool
     var suppressedImportedCalendarEventKeys: Set<String>
 }

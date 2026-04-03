@@ -74,7 +74,6 @@ enum AppKitAppStateObservation {
             appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
             appState.$weekStartsOnMonday.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarImportsBlockTime.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarImportFocusTitleRules.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarImportBreakTitleRules.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarImportedScheduleRuleSetId.map { _ in () }.eraseToAnyPublisher(),
@@ -97,7 +96,6 @@ enum AppKitAppStateObservation {
             appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
             appState.$weekStartsOnMonday.map { _ in () }.eraseToAnyPublisher(),
             appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarImportsBlockTime.map { _ in () }.eraseToAnyPublisher(),
             appState.calendarProvider.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
         ])
     }

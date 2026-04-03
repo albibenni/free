@@ -10,7 +10,6 @@ enum AppStatePersistenceCoordinator {
         let appearanceMode: AnyPublisher<AppearanceMode, Never>
         let cursorFluidAnimationEnabled: AnyPublisher<Bool, Never>
         let calendarIntegrationEnabled: AnyPublisher<Bool, Never>
-        let calendarImportsBlockTime: AnyPublisher<Bool, Never>
         let calendarImportFocusTitleRules: AnyPublisher<[String], Never>
         let calendarImportBreakTitleRules: AnyPublisher<[String], Never>
         let calendarImportedScheduleRuleSetId: AnyPublisher<UUID?, Never>
@@ -71,11 +70,6 @@ enum AppStatePersistenceCoordinator {
         bindings.calendarIntegrationEnabled
             .dropFirst()
             .sink { settingsStore.setCalendarIntegrationEnabled($0) }
-            .store(in: &cancellables)
-
-        bindings.calendarImportsBlockTime
-            .dropFirst()
-            .sink { settingsStore.setCalendarImportsBlockTime($0) }
             .store(in: &cancellables)
 
         bindings.calendarImportFocusTitleRules

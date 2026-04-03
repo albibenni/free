@@ -9,7 +9,6 @@ struct AppStateBootstrapService {
         let appearanceMode: AppearanceMode
         let cursorFluidAnimationEnabled: Bool
         let calendarIntegrationEnabled: Bool
-        let calendarImportsBlockTime: Bool
         let calendarImportFocusTitleRules: [String]
         let calendarImportBreakTitleRules: [String]
         let calendarImportedScheduleRuleSetId: UUID?
@@ -50,7 +49,6 @@ struct AppStateBootstrapService {
             appearanceMode: appearanceMode,
             cursorFluidAnimationEnabled: settingsStore.cursorFluidAnimationEnabled(),
             calendarIntegrationEnabled: settingsStore.calendarIntegrationEnabled(),
-            calendarImportsBlockTime: settingsStore.calendarImportsBlockTime(),
             calendarImportFocusTitleRules: settingsStore.calendarImportFocusTitleRules(),
             calendarImportBreakTitleRules: settingsStore.calendarImportBreakTitleRules(),
             calendarImportedScheduleRuleSetId: settingsStore.calendarImportedScheduleRuleSetId(),

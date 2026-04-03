@@ -20,7 +20,6 @@ extension AppStateLogicFacade {
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isStrict: Bool,
-        calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> SessionState? {
         AppStateSessionCoordinator.migrateLegacyBlockingSourceIfNeeded(
@@ -30,7 +29,6 @@ extension AppStateLogicFacade {
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
             isStrict: isStrict,
-            calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )
     }
@@ -53,7 +51,6 @@ extension AppStateLogicFacade {
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isStrict: Bool,
-        calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> SessionState {
         AppStateSessionCoordinator.check(
@@ -62,7 +59,6 @@ extension AppStateLogicFacade {
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
             isStrict: isStrict,
-            calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )
     }

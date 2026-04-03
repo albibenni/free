@@ -9,7 +9,6 @@ final class SettingsStore {
         static let appearanceMode = "AppearanceMode"
         static let cursorFluidAnimationEnabled = "CursorFluidAnimationEnabled"
         static let calendarIntegrationEnabled = "CalendarIntegrationEnabled"
-        static let calendarImportsBlockTime = "CalendarImportsBlockTime"
         static let calendarImportFocusTitleRules = "CalendarImportFocusTitleRules"
         static let calendarImportBreakTitleRules = "CalendarImportBreakTitleRules"
         static let calendarImportedScheduleRuleSetId = "CalendarImportedScheduleRuleSetId"
@@ -61,11 +60,6 @@ final class SettingsStore {
     func calendarIntegrationEnabled() -> Bool { defaults.bool(forKey: Key.calendarIntegrationEnabled) }
     func setCalendarIntegrationEnabled(_ value: Bool) {
         defaults.set(value, forKey: Key.calendarIntegrationEnabled)
-    }
-
-    func calendarImportsBlockTime() -> Bool { defaults.bool(forKey: Key.calendarImportsBlockTime) }
-    func setCalendarImportsBlockTime(_ value: Bool) {
-        defaults.set(value, forKey: Key.calendarImportsBlockTime)
     }
 
     func calendarImportFocusTitleRules() -> [String] {

@@ -32,7 +32,6 @@ struct ScheduleEngine {
         pomodoroIsBreak: Bool,
         calendarIntegrationEnabled: Bool,
         isStrict: Bool,
-        calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> AutomaticBlockingResult {
         let activeSchedules = schedules.filter { $0.isActive() }
@@ -46,7 +45,6 @@ struct ScheduleEngine {
         let hasMeeting =
             calendarIntegrationEnabled
             && !isStrict
-            && !calendarImportsBlockTime
             && calendarEvents.contains {
                 $0.isActive() && !activeImportedEventKeys.contains($0.id)
             }

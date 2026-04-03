@@ -322,7 +322,7 @@ struct CalendarManagerTests {
 
         mock.events = [meeting]
         appState.checkSchedules()
-        #expect(appState.isBlocking == false, "Should unblock because of calendar meeting")
+        #expect(appState.isBlocking == true, "Calendar event is imported as focus schedule, so blocking stays true")
     }
 
     @Test("RealCalendarManager deinit invalidates refresh timer")

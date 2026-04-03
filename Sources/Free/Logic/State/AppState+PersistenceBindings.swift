@@ -11,7 +11,6 @@ extension AppState {
             appearanceMode: $appearanceMode.eraseToAnyPublisher(),
             cursorFluidAnimationEnabled: $cursorFluidAnimationEnabled.eraseToAnyPublisher(),
             calendarIntegrationEnabled: $calendarIntegrationEnabled.eraseToAnyPublisher(),
-            calendarImportsBlockTime: $calendarImportsBlockTime.eraseToAnyPublisher(),
             calendarImportFocusTitleRules: $calendarImportFocusTitleRules.eraseToAnyPublisher(),
             calendarImportBreakTitleRules: $calendarImportBreakTitleRules.eraseToAnyPublisher(),
             calendarImportedScheduleRuleSetId: $calendarImportedScheduleRuleSetId.eraseToAnyPublisher(),

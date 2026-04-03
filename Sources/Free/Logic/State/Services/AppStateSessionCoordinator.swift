@@ -32,7 +32,6 @@ enum AppStateSessionCoordinator {
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isStrict: Bool,
-        calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> SessionState {
         let result = AppStateScheduleCheckCoordinator.evaluate(
@@ -43,7 +42,6 @@ enum AppStateSessionCoordinator {
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
             isStrict: isStrict,
-            calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )
         return SessionState(
@@ -60,7 +58,6 @@ enum AppStateSessionCoordinator {
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isStrict: Bool,
-        calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> SessionState? {
         let automatic = AppStateBlockingCoordinator.evaluateAutomaticBlocking(
@@ -69,7 +66,6 @@ enum AppStateSessionCoordinator {
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
             isStrict: isStrict,
-            calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )
 

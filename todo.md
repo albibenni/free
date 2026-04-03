@@ -16,9 +16,7 @@
 
 ## Bug
 
-- [x] after break it doesn't refresh active focus
-
-- [ ] schedule active but doesn't start focus, why?
+- [ ] break schedule active and pomodoro active - schedule takes over
 
 ## Strict mode
 

@@ -78,14 +78,12 @@ struct CoverageExpansionTests {
             .init(
                 schedules: [schedule],
                 calendarIntegrationEnabled: true,
-                calendarImportsBlockTime: true,
                 isSynchronizingImportedSchedules: true,
                 suppressedImportedCalendarEventKeys: ["event-1"]
             )
         )
         #expect(appState.scheduleDomainState.schedules.count == 1)
         #expect(appState.scheduleDomainState.calendarIntegrationEnabled)
-        #expect(appState.scheduleDomainState.calendarImportsBlockTime)
         #expect(appState.scheduleDomainState.isSynchronizingImportedSchedules)
         #expect(appState.scheduleDomainState.suppressedImportedCalendarEventKeys == ["event-1"])
 
@@ -180,7 +178,6 @@ struct CoverageExpansionTests {
             schedule: AppScheduleDomainState(
                 schedules: [existing],
                 calendarIntegrationEnabled: true,
-                calendarImportsBlockTime: true,
                 isSynchronizingImportedSchedules: false,
                 suppressedImportedCalendarEventKeys: []
             ),
@@ -223,7 +220,6 @@ struct CoverageExpansionTests {
         appState.ruleSets = [defaultSet]
         appState.activeRuleSetId = defaultSet.id
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = true
         appState.calendarProvider.events = [
             ExternalEvent(
                 id: "calendar-ext-sync-1",

@@ -36,13 +36,6 @@ class AppState: ObservableObject {
             )
         }
     }
-    @Published var calendarImportsBlockTime = false {
-        didSet {
-            AppStatePropertyEffectsService.handleCalendarImportsBlockTimeDidChange(
-                checkSchedules: { checkSchedules() }
-            )
-        }
-    }
     @Published var calendarImportFocusTitleRules: [String] = [] {
         didSet { checkSchedules() }
     }
@@ -168,7 +161,6 @@ class AppState: ObservableObject {
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
             isStrict: isStrict,
-            calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarProvider.events
         ) {
             applySessionState(migration)
@@ -237,10 +229,10 @@ class AppState: ObservableObject {
     }
 
     func checkSchedules() {
-        rescheduleScheduleTimer?()
         if isTesting {
             performCheckSchedules()
         } else {
+            rescheduleScheduleTimer?()
             scheduleCheckSubject.send()
         }
     }
@@ -253,7 +245,6 @@ class AppState: ObservableObject {
             pomodoroStatus: pomodoroDomainState.status,
             calendarIntegrationEnabled: scheduleDomainState.calendarIntegrationEnabled,
             isStrict: sessionDomainState.isStrict,
-            calendarImportsBlockTime: scheduleDomainState.calendarImportsBlockTime,
             calendarEvents: calendarProvider.events
         )
         applySessionState(updated)
@@ -265,7 +256,6 @@ class AppState: ObservableObject {
             calendarEvents: calendarProvider.events,
             calendarIntegrationEnabled: scheduleDomainState.calendarIntegrationEnabled,
             isStrict: sessionDomainState.isStrict,
-            calendarImportsBlockTime: scheduleDomainState.calendarImportsBlockTime,
             now: now
         )
     }

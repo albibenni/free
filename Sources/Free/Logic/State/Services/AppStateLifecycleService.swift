@@ -67,7 +67,6 @@ enum AppStateLifecycleService {
             schedule: AppScheduleDomainState(
             schedules: snapshot.schedules,
             calendarIntegrationEnabled: snapshot.calendarIntegrationEnabled,
-            calendarImportsBlockTime: snapshot.calendarImportsBlockTime,
             isSynchronizingImportedSchedules: false,
             suppressedImportedCalendarEventKeys: snapshot.suppressedImportedCalendarEventKeys
         )
@@ -82,7 +81,6 @@ enum AppStateLifecycleService {
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isStrict: Bool,
-        calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> AppStateLogicFacade.SessionState? {
         logicFacade.migrateLegacyBlockingSourceIfNeeded(
@@ -92,7 +90,6 @@ enum AppStateLifecycleService {
             pomodoroStatus: pomodoroStatus,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
             isStrict: isStrict,
-            calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )
     }

@@ -12,7 +12,6 @@ struct AppStateBlockingCoordinator {
         pomodoroStatus: PomodoroStatus,
         calendarIntegrationEnabled: Bool,
         isStrict: Bool,
-        calendarImportsBlockTime: Bool,
         calendarEvents: [ExternalEvent]
     ) -> Result {
         let result = ScheduleEngine.automaticBlockingState(
@@ -22,7 +21,6 @@ struct AppStateBlockingCoordinator {
             pomodoroIsBreak: pomodoroStatus == .breakTime,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
             isStrict: isStrict,
-            calendarImportsBlockTime: calendarImportsBlockTime,
             calendarEvents: calendarEvents
         )
 

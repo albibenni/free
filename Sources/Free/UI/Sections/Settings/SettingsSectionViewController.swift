@@ -114,7 +114,6 @@ final class SettingsSectionViewController: NSViewController {
         let isStrictActive: Bool
         let weekStartsOnMonday: Bool
         let calendarIntegrationEnabled: Bool
-        let calendarImportsBlockTime: Bool
         let blockNewTabs: Bool
         let blockDeveloperHosts: Bool
         let blockLocalNetworkHosts: Bool
@@ -131,7 +130,6 @@ final class SettingsSectionViewController: NSViewController {
             isStrictActive: false,
             weekStartsOnMonday: false,
             calendarIntegrationEnabled: false,
-            calendarImportsBlockTime: false,
             blockNewTabs: false,
             blockDeveloperHosts: false,
             blockLocalNetworkHosts: false,
@@ -157,7 +155,6 @@ final class SettingsSectionViewController: NSViewController {
     private let strictStatusLabel = NSTextField(labelWithString: "Active and Locking Focus Mode.")
     private let weekStartsMondaySwitch = AppKitToggleSwitch()
     private let calendarIntegrationSwitch = AppKitToggleSwitch()
-    private let calendarImportsSwitch = AppKitToggleSwitch()
     private let resyncButton = NSButton(
         title: "Resync Imported Schedules", target: nil, action: nil)
     private let launchAtLoginSwitch = AppKitToggleSwitch()
@@ -227,7 +224,6 @@ final class SettingsSectionViewController: NSViewController {
                     isStrictActive: appState.isStrictActive,
                     weekStartsOnMonday: appState.weekStartsOnMonday,
                     calendarIntegrationEnabled: appState.calendarIntegrationEnabled,
-                    calendarImportsBlockTime: appState.calendarImportsBlockTime,
                     blockNewTabs: appState.blockNewTabs,
                     blockDeveloperHosts: appState.blockDeveloperHosts,
                     blockLocalNetworkHosts: appState.blockLocalNetworkHosts,
@@ -529,9 +525,7 @@ final class SettingsSectionViewController: NSViewController {
 
         weekStartsMondaySwitch.state = appState.weekStartsOnMonday ? .on : .off
         calendarIntegrationSwitch.state = appState.calendarIntegrationEnabled ? .on : .off
-        calendarImportsSwitch.state = appState.calendarImportsBlockTime ? .on : .off
         calendarIntegrationSwitch.isEnabled = true
-        calendarImportsSwitch.isEnabled = appState.calendarIntegrationEnabled
         resyncButton.isEnabled = appState.calendarIntegrationEnabled
 
         launchAtLoginSwitch.state = appState.launchAtLoginStatus() ? .on : .off
@@ -586,7 +580,6 @@ final class SettingsSectionViewController: NSViewController {
             strictToggle,
             weekStartsMondaySwitch,
             calendarIntegrationSwitch,
-            calendarImportsSwitch,
             launchAtLoginSwitch,
             blockNewTabsSwitch,
             blockDeveloperHostsSwitch,
@@ -640,21 +633,6 @@ final class SettingsSectionViewController: NSViewController {
             }
         }
         appState.calendarIntegrationEnabled = calendarIntegrationSwitch.state == .on
-    }
-
-    @objc
-    private func toggleCalendarImports() {
-        if appState.isStrictActive {
-            guard StrictModeChallenge.run(
-                title: "Calendar Settings",
-                action: "change calendar settings",
-                appState: appState
-            ) else {
-                calendarImportsSwitch.state = appState.calendarImportsBlockTime ? .on : .off
-                return
-            }
-        }
-        appState.calendarImportsBlockTime = calendarImportsSwitch.state == .on
     }
 
     @objc
@@ -830,12 +808,6 @@ extension SettingsSectionViewController {
     func setCalendarIntegrationForTesting(_ enabled: Bool) {
         calendarIntegrationSwitch.state = enabled ? .on : .off
         toggleCalendarIntegration()
-        reloadSettings()
-    }
-
-    func setCalendarImportsForTesting(_ enabled: Bool) {
-        calendarImportsSwitch.state = enabled ? .on : .off
-        toggleCalendarImports()
         reloadSettings()
     }
 

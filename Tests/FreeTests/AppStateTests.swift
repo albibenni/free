@@ -440,11 +440,10 @@ struct AppStateTests {
         #expect(Bool(true))
     }
 
-    @Test("Calendar events override focus sessions in normal mode")
-    func calendarEventOverride() {
-        let appState = isolatedAppState(name: "calendarEventOverride")
+    @Test("Imported calendar event keeps focus active and does not override focus session")
+    func importedCalendarEventKeepsFocusActive() {
+        let appState = isolatedAppState(name: "importedCalendarEventKeepsFocusActive")
         appState.calendarIntegrationEnabled = true
-        #expect(appState.calendarImportsBlockTime == false)
         appState.isBlocking = false
         appState.isStrict = false
 
@@ -474,7 +473,7 @@ struct AppStateTests {
 
         appState.calendarProvider.events = [event]
         appState.checkSchedules()
-        #expect(!appState.isBlocking, "Calendar event should override focus in normal mode")
+        #expect(appState.isBlocking, "Imported event is treated as focus schedule, so blocking stays true")
 
         appState.isStrict = true
         appState.checkSchedules()
@@ -482,11 +481,10 @@ struct AppStateTests {
         #expect(appState.isBlocking, "Calendar event should NOT override focus in strict mode")
     }
 
-    @Test("Calendar imports can block time when enabled")
+    @Test("Calendar imports always enabled and block time")
     func calendarImportsBlockTimeToggle() {
         let appState = isolatedAppState(name: "calendarImportsBlockTimeToggle")
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = true
         appState.isBlocking = false
 
         let now = Date()
@@ -506,7 +504,6 @@ struct AppStateTests {
     func calendarImportSyncUpsertAndRemove() {
         let appState = isolatedAppState(name: "calendarImportSyncUpsertAndRemove")
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = true
 
         let now = Date()
         let eventA = ExternalEvent(
@@ -566,7 +563,6 @@ struct AppStateTests {
     func calendarImportDisableKeepsMirroredSchedulesWhenIntegrated() {
         let appState = isolatedAppState(name: "calendarImportDisableKeepsMirroredSchedulesWhenIntegrated")
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = true
 
         let now = Date()
         appState.calendarProvider.events = [
@@ -580,7 +576,6 @@ struct AppStateTests {
         appState.checkSchedules()
         #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-remove" }))
 
-        appState.calendarImportsBlockTime = false
         appState.checkSchedules()
         #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-remove" }))
     }
@@ -589,7 +584,6 @@ struct AppStateTests {
     func calendarSyncPrunesOlderThanPreviousWeek() {
         let appState = isolatedAppState(name: "calendarSyncPrunesOlderThanPreviousWeek")
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = true
 
         let now = Date()
         let staleOneOffDate = now.addingTimeInterval(-21 * 24 * 60 * 60)
@@ -659,7 +653,6 @@ struct AppStateTests {
     func deletingImportedScheduleSuppressesReimport() {
         let appState = isolatedAppState(name: "deletingImportedScheduleSuppressesReimport")
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = true
 
         let now = Date()
         let event = ExternalEvent(
@@ -692,7 +685,6 @@ struct AppStateTests {
     func calendarImportDefaultsToActiveRuleSet() {
         let appState = isolatedAppState(name: "calendarImportDefaultsToActiveRuleSet")
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = true
 
         let defaultSet = appState.ruleSets[0]
         let secondSet = RuleSet(name: "Second", urls: ["example.com"])
@@ -719,7 +711,6 @@ struct AppStateTests {
     func calendarImportUsesConfiguredImportedRuleSet() {
         let appState = isolatedAppState(name: "calendarImportUsesConfiguredImportedRuleSet")
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = true
 
         let defaultSet = appState.ruleSets[0]
         let secondSet = RuleSet(name: "Second", urls: ["example.com"])
@@ -747,7 +738,6 @@ struct AppStateTests {
     func resyncImportedSchedulesDeduplicatesLegacy() {
         let appState = isolatedAppState(name: "resyncImportedSchedulesDeduplicatesLegacy")
         appState.calendarIntegrationEnabled = true
-        appState.calendarImportsBlockTime = true
 
         let now = Date()
         let event = ExternalEvent(

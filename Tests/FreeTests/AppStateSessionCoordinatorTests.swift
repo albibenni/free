@@ -56,7 +56,6 @@ struct AppStateSessionCoordinatorTests {
             pomodoroStatus: .none,
             calendarIntegrationEnabled: false,
             isStrict: false,
-            calendarImportsBlockTime: false,
             calendarEvents: []
         )
 
@@ -79,7 +78,6 @@ struct AppStateSessionCoordinatorTests {
             pomodoroStatus: .none,
             calendarIntegrationEnabled: false,
             isStrict: false,
-            calendarImportsBlockTime: false,
             calendarEvents: []
         )
 

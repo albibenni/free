@@ -39,7 +39,6 @@ final class SchedulesSheetViewController: NSViewController {
         let schedules: [Schedule]
         let weekStartsOnMonday: Bool
         let calendarIntegrationEnabled: Bool
-        let calendarImportsBlockTime: Bool
         let externalEventsVersion: Int
 
         init(appState: AppState, viewMode: Int, calendarEventsVersion: Int) {
@@ -50,14 +49,11 @@ final class SchedulesSheetViewController: NSViewController {
             if isCalendarMode {
                 weekStartsOnMonday = appState.weekStartsOnMonday
                 calendarIntegrationEnabled = appState.calendarIntegrationEnabled
-                calendarImportsBlockTime = appState.calendarImportsBlockTime
                 let shouldIncludeExternalEvents = appState.calendarIntegrationEnabled
-                    && !appState.calendarImportsBlockTime
                 externalEventsVersion = shouldIncludeExternalEvents ? calendarEventsVersion : 0
             } else {
                 weekStartsOnMonday = false
                 calendarIntegrationEnabled = false
-                calendarImportsBlockTime = false
                 externalEventsVersion = 0
             }
         }
@@ -142,9 +138,6 @@ final class SchedulesSheetViewController: NSViewController {
             appState.$calendarIntegrationEnabled.map { _ in () }
                 .filter(calendarModeOnly)
                 .eraseToAnyPublisher(),
-            appState.$calendarImportsBlockTime.map { _ in () }
-                .filter(calendarModeOnly)
-                .eraseToAnyPublisher(),
             appState.calendarProvider.objectWillChange
                 .filter(calendarModeOnly)
                 .handleEvents(receiveOutput: { [weak self] _ in
@@ -178,7 +171,7 @@ final class SchedulesSheetViewController: NSViewController {
     }
 
     private var shouldShowExternalCalendarOverlay: Bool {
-        appState.calendarIntegrationEnabled && !appState.calendarImportsBlockTime
+        appState.calendarIntegrationEnabled
     }
 
     private var canModifySchedules: Bool {

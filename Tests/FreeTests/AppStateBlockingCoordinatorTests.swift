@@ -12,7 +12,6 @@ struct AppStateBlockingCoordinatorTests {
             pomodoroStatus: .none,
             calendarIntegrationEnabled: true,
             isStrict: false,
-            calendarImportsBlockTime: false,
             calendarEvents: []
         )
 
@@ -28,7 +27,6 @@ struct AppStateBlockingCoordinatorTests {
             pomodoroStatus: .focus,
             calendarIntegrationEnabled: false,
             isStrict: false,
-            calendarImportsBlockTime: false,
             calendarEvents: []
         )
 
@@ -62,7 +60,6 @@ struct AppStateBlockingCoordinatorTests {
             pomodoroStatus: .none,
             calendarIntegrationEnabled: true,
             isStrict: false,
-            calendarImportsBlockTime: false,
             calendarEvents: [event]
         )
 
@@ -101,7 +98,6 @@ struct AppStateBlockingCoordinatorTests {
             pomodoroStatus: .none,
             calendarIntegrationEnabled: true,
             isStrict: false,
-            calendarImportsBlockTime: false,
             calendarEvents: [focusEvent, meetingEvent]
         )
 

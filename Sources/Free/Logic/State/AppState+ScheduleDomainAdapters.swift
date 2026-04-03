@@ -5,7 +5,6 @@ extension AppState {
         AppScheduleDomainState(
             schedules: schedules,
             calendarIntegrationEnabled: calendarIntegrationEnabled,
-            calendarImportsBlockTime: calendarImportsBlockTime,
             isSynchronizingImportedSchedules: isSynchronizingImportedSchedules,
             suppressedImportedCalendarEventKeys: suppressedImportedCalendarEventKeys
         )
@@ -15,9 +14,6 @@ extension AppState {
         if schedules != state.schedules { schedules = state.schedules }
         if calendarIntegrationEnabled != state.calendarIntegrationEnabled {
             calendarIntegrationEnabled = state.calendarIntegrationEnabled
-        }
-        if calendarImportsBlockTime != state.calendarImportsBlockTime {
-            calendarImportsBlockTime = state.calendarImportsBlockTime
         }
         if isSynchronizingImportedSchedules != state.isSynchronizingImportedSchedules {
             isSynchronizingImportedSchedules = state.isSynchronizingImportedSchedules

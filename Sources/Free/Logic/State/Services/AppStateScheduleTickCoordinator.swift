@@ -10,7 +10,6 @@ enum AppStateScheduleTickCoordinator {
         calendarEvents: [ExternalEvent],
         calendarIntegrationEnabled: Bool,
         isStrict: Bool,
-        calendarImportsBlockTime: Bool,
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> TimeInterval {
@@ -23,7 +22,6 @@ enum AppStateScheduleTickCoordinator {
         let shouldTrackMeetingBoundaries =
             calendarIntegrationEnabled
             && !isStrict
-            && !calendarImportsBlockTime
         if shouldTrackMeetingBoundaries {
             for event in calendarEvents {
                 if event.startDate > now {

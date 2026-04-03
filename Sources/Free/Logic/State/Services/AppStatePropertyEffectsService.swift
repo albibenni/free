@@ -17,12 +17,6 @@ enum AppStatePropertyEffectsService {
         checkSchedules()
     }
 
-    static func handleCalendarImportsBlockTimeDidChange(
-        checkSchedules: () -> Void
-    ) {
-        checkSchedules()
-    }
-
     static func handleSchedulesDidChange(
         schedules: [Schedule],
         settingsStore: SettingsStore,

@@ -53,7 +53,6 @@ struct AppStateScheduleTickCoordinatorTests {
             calendarEvents: [],
             calendarIntegrationEnabled: false,
             isStrict: false,
-            calendarImportsBlockTime: false,
             now: now,
             calendar: calendar
         )
@@ -77,7 +76,6 @@ struct AppStateScheduleTickCoordinatorTests {
             calendarEvents: [event],
             calendarIntegrationEnabled: true,
             isStrict: false,
-            calendarImportsBlockTime: false,
             now: now,
             calendar: calendar
         )
@@ -101,7 +99,6 @@ struct AppStateScheduleTickCoordinatorTests {
             calendarEvents: [event],
             calendarIntegrationEnabled: true,
             isStrict: true,
-            calendarImportsBlockTime: false,
             now: now,
             calendar: calendar
         )
