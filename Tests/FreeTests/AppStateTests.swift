@@ -268,7 +268,8 @@ struct AppStateTests {
         #expect(appState.isBlocking, "Manual focus should not be turned off by schedule ending")
     }
 
-    @Test("AppState migrates legacy stale blocking state to inactive when no automatic reason exists")
+    @Test(
+        "AppState migrates legacy stale blocking state to inactive when no automatic reason exists")
     func legacyBlockingMigrationClearsStaleState() {
         let suite = "AppStateTests.legacyBlockingMigrationClearsStaleState"
         let defaults = UserDefaults(suiteName: suite)!
@@ -473,7 +474,9 @@ struct AppStateTests {
 
         appState.calendarProvider.events = [event]
         appState.checkSchedules()
-        #expect(appState.isBlocking, "Imported event is treated as focus schedule, so blocking stays true")
+        #expect(
+            appState.isBlocking,
+            "Imported event is treated as focus schedule, so blocking stays true")
 
         appState.isStrict = true
         appState.checkSchedules()
@@ -527,7 +530,9 @@ struct AppStateTests {
         #expect(Set(imported.compactMap(\.importedCalendarEventKey)).count == 2)
 
         let setId = appState.ruleSets[0].id
-        if let idx = appState.schedules.firstIndex(where: { $0.importedCalendarEventKey == "event-a" }) {
+        if let idx = appState.schedules.firstIndex(where: {
+            $0.importedCalendarEventKey == "event-a"
+        }) {
             appState.schedules[idx].ruleSetId = setId
             appState.schedules[idx].type = .unfocus
             appState.schedules = appState.schedules
@@ -553,15 +558,23 @@ struct AppStateTests {
 
         imported = appState.schedules.filter { $0.importedCalendarEventKey != nil }
         #expect(imported.count == 2)
-        #expect(Set(imported.compactMap(\.importedCalendarEventKey)) == Set(["event-a", "event-c"]))
-        #expect(imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.name == "Imported A Updated")
-        #expect(imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.type == .unfocus)
-        #expect(imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.ruleSetId == setId)
+        #expect(
+            Set(imported.compactMap(\.importedCalendarEventKey)) == Set(["event-a", "event-c"]))
+        #expect(
+            imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.name
+                == "Imported A Updated")
+        #expect(
+            imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.type == .unfocus)
+        #expect(
+            imported.first(where: { $0.importedCalendarEventKey == "event-a" })?.ruleSetId == setId)
     }
 
-    @Test("Disabling calendar import blocking keeps mirrored schedules while integration remains enabled")
+    @Test(
+        "Disabling calendar import blocking keeps mirrored schedules while integration remains enabled"
+    )
     func calendarImportDisableKeepsMirroredSchedulesWhenIntegrated() {
-        let appState = isolatedAppState(name: "calendarImportDisableKeepsMirroredSchedulesWhenIntegrated")
+        let appState = isolatedAppState(
+            name: "calendarImportDisableKeepsMirroredSchedulesWhenIntegrated")
         appState.calendarIntegrationEnabled = true
 
         let now = Date()
@@ -574,10 +587,12 @@ struct AppStateTests {
             )
         ]
         appState.checkSchedules()
-        #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-remove" }))
+        #expect(
+            appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-remove" }))
 
         appState.checkSchedules()
-        #expect(appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-remove" }))
+        #expect(
+            appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-remove" }))
     }
 
     @Test("Calendar sync prunes schedules and imports older than previous week")
@@ -666,7 +681,9 @@ struct AppStateTests {
         appState.checkSchedules()
         // Drain async calendar publisher callbacks queued by MockCalendarManager objectWillChange.
         RunLoop.main.run(until: Date().addingTimeInterval(0.02))
-        let imported = appState.schedules.first(where: { $0.importedCalendarEventKey == "event-suppress" })
+        let imported = appState.schedules.first(where: {
+            $0.importedCalendarEventKey == "event-suppress"
+        })
         #expect(imported != nil)
 
         if let imported {
@@ -678,7 +695,9 @@ struct AppStateTests {
 
         appState.checkSchedules()
         RunLoop.main.run(until: Date().addingTimeInterval(0.02))
-        #expect(!appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-suppress" }))
+        #expect(
+            !appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-suppress" })
+        )
     }
 
     @Test("Imported calendar schedules default to the active allowed list")
@@ -702,7 +721,9 @@ struct AppStateTests {
         ]
         appState.checkSchedules()
 
-        let imported = appState.schedules.first(where: { $0.importedCalendarEventKey == "event-default-list" })
+        let imported = appState.schedules.first(where: {
+            $0.importedCalendarEventKey == "event-default-list"
+        })
         #expect(imported != nil)
         #expect(imported?.ruleSetId == secondSet.id)
     }
@@ -729,7 +750,9 @@ struct AppStateTests {
         ]
         appState.checkSchedules()
 
-        let imported = appState.schedules.first(where: { $0.importedCalendarEventKey == "event-configured-list" })
+        let imported = appState.schedules.first(where: {
+            $0.importedCalendarEventKey == "event-configured-list"
+        })
         #expect(imported != nil)
         #expect(imported?.ruleSetId == defaultSet.id)
     }
@@ -950,7 +973,8 @@ struct AppStateTests {
         }
     }
 
-    @Test("AppState production runtime monitor callbacks update trusted state and snapshot provider")
+    @Test(
+        "AppState production runtime monitor callbacks update trusted state and snapshot provider")
     func productionRuntimeMonitorCallbacksCoverage() {
         let suite = "AppStateTests.productionRuntimeMonitorCallbacksCoverage"
         let defaults = UserDefaults(suiteName: suite)!
@@ -1383,7 +1407,8 @@ struct AppStateTests {
             end: movedEnd
         )
         #expect(appState.schedules.first(where: { $0.id == recurringSingle.id })?.days == [5])
-        #expect(appState.schedules.first(where: { $0.id == recurringSingle.id })?.endTime == movedEnd)
+        #expect(
+            appState.schedules.first(where: { $0.id == recurringSingle.id })?.endTime == movedEnd)
 
         let beforeSplitCount = appState.schedules.count
         appState.updateScheduleOccurrence(
@@ -1576,7 +1601,9 @@ struct AppStateTests {
         #expect(!appState.allowedRules.contains("manual.example"))
     }
 
-    @Test("Pomodoro temporarily overrides schedule allow list, then schedule resumes after pomodoro stops")
+    @Test(
+        "Pomodoro temporarily overrides schedule allow list, then schedule resumes after pomodoro stops"
+    )
     func pomodoroOverrideRevertsToScheduleRules() {
         let appState = isolatedAppState(name: "pomodoroOverrideRevertsToScheduleRules")
         let scheduleSet = RuleSet(id: UUID(), name: "Schedule Set", urls: ["schedule.example"])
@@ -1620,8 +1647,142 @@ struct AppStateTests {
         #expect(appState.allowedRules.contains("schedule.example"))
         #expect(!appState.allowedRules.contains("pomodoro.example"))
     }
+    @Test("Active pomodoro focus overrides multiple schedules")
+    func pomodoroFocusOverridesMultipleSchedules() {
+        let appState = isolatedAppState(name: "pomodoroFocusOverridesMultipleSchedules")
+        appState.isBlocking = false
+        appState.isStrict = false
+        appState.calendarIntegrationEnabled = false
 
-    @Test("currentPrimaryRuleSetName returns Unknown List when active schedule points to missing ruleset")
+        let now = Date()
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: now)
+
+        let focusSchedule = Schedule(
+            name: "Focus",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-3600),
+            endTime: now.addingTimeInterval(3600),
+            isEnabled: true,
+            type: .focus
+        )
+        let focusSchedule2 = Schedule(
+            name: "Focus 2",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-1800),
+            endTime: now.addingTimeInterval(1800),
+            isEnabled: true,
+            type: .focus
+        )
+
+        appState.schedules = [focusSchedule, focusSchedule2]
+        appState.startPomodoro()
+
+        #expect(appState.pomodoroStatus == .focus)
+        #expect(
+            appState.isBlocking,
+            "Pomodoro focus should override break schedule and keep blocking active")
+
+        appState.stopPomodoro()
+
+        #expect(appState.pomodoroStatus == .none)
+        #expect(appState.isBlocking, "Focus schedules should keep blocking active after pomodoro ends")
+    }
+
+    @Test("Active pomodoro focus overrides break schedule")
+    func pomodoroFocusOverridesBreakSchedule() {
+        let appState = isolatedAppState(name: "pomodoroFocusOverridesBreakSchedule")
+        appState.isBlocking = false
+        appState.isStrict = false
+        appState.calendarIntegrationEnabled = false
+
+        let now = Date()
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: now)
+
+        let focusSchedule = Schedule(
+            name: "Focus",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-3600),
+            endTime: now.addingTimeInterval(3600),
+            isEnabled: true,
+            type: .focus
+        )
+        let breakSchedule = Schedule(
+            name: "Break",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-600),
+            endTime: now.addingTimeInterval(600),
+            isEnabled: true,
+            type: .unfocus
+        )
+
+        appState.schedules = [focusSchedule, breakSchedule]
+        appState.startPomodoro()
+
+        #expect(appState.pomodoroStatus == .focus)
+        #expect(
+            appState.isBlocking,
+            "Pomodoro focus should override break schedule and keep blocking active")
+
+        appState.stopPomodoro()
+
+        #expect(appState.pomodoroStatus == .none)
+        #expect(!appState.isBlocking, "Break schedule should take effect again once pomodoro ends")
+    }
+
+    @Test("Active pomodoro focus overrides multiple schedules of different types")
+    func pomodoroFocusOverridesMultipleSchedulesOfDifferentTypes() {
+        let appState = isolatedAppState(name: "pomodoroFocusOverridesBreakScheduleOFDifferentTypes")
+        appState.isBlocking = false
+        appState.isStrict = false
+        appState.calendarIntegrationEnabled = false
+
+        let now = Date()
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: now)
+
+        let focusSchedule = Schedule(
+            name: "Focus",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-3600),
+            endTime: now.addingTimeInterval(3600),
+            isEnabled: true,
+            type: .focus
+        )
+        let breakSchedule = Schedule(
+            name: "Break",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-600),
+            endTime: now.addingTimeInterval(600),
+            isEnabled: true,
+            type: .unfocus
+        )
+        let focusSchedule2 = Schedule(
+            name: "Focus 2",
+            days: [weekday],
+            startTime: now.addingTimeInterval(-1800),
+            endTime: now.addingTimeInterval(1800),
+            isEnabled: true,
+            type: .focus
+        )
+
+        appState.schedules = [focusSchedule, breakSchedule, focusSchedule2]
+        appState.startPomodoro()
+
+        #expect(appState.pomodoroStatus == .focus)
+        #expect(
+            appState.isBlocking,
+            "Pomodoro focus should override break schedule and keep blocking active")
+
+        appState.stopPomodoro()
+
+        #expect(appState.pomodoroStatus == .none)
+        #expect(!appState.isBlocking, "Break schedule should take effect again once pomodoro ends")
+    }
+    @Test(
+        "currentPrimaryRuleSetName returns Unknown List when active schedule points to missing ruleset"
+    )
     func primaryRuleSetNameUnknownForMissingScheduleSet() {
         let appState = isolatedAppState(name: "primaryRuleSetNameUnknownForMissingScheduleSet")
         let knownSet = RuleSet(id: UUID(), name: "Known", urls: ["known.example"])
@@ -1660,7 +1821,9 @@ struct AppStateTests {
         #expect(rules.isEmpty)
     }
 
-    @Test("allowedRules falls back to first ruleset during schedule-driven blocking without schedule ruleset")
+    @Test(
+        "allowedRules falls back to first ruleset during schedule-driven blocking without schedule ruleset"
+    )
     func allowedRulesScheduleFallbackToFirstSet() {
         let appState = isolatedAppState(name: "allowedRulesScheduleFallbackToFirstSet")
         let fallback = RuleSet(id: UUID(), name: "Fallback", urls: ["fallback.example"])
@@ -1804,7 +1967,8 @@ struct AppStateTests {
         #expect(appState.ruleSets[0].urls.count == count, "Should trim and detect duplicate")
 
         appState.addRule("google.com\n", to: id)
-        #expect(appState.ruleSets[0].urls.count == count, "Should trim newlines and detect duplicate")
+        #expect(
+            appState.ruleSets[0].urls.count == count, "Should trim newlines and detect duplicate")
     }
 
     @Test("Negative: Stop Pomodoro when locked without challenge")
@@ -1926,7 +2090,8 @@ struct AppStateTests {
     @Test("Quick break pauses active pomodoro countdown and resumes after break ends")
     func quickBreakPausesPomodoroTimer() {
         let scheduler = MockRepeatingTimerScheduler()
-        let appState = isolatedAppState(name: "quickBreakPausesPomodoroTimer", timerScheduler: scheduler)
+        let appState = isolatedAppState(
+            name: "quickBreakPausesPomodoroTimer", timerScheduler: scheduler)
         appState.isBlocking = true
 
         appState.startPomodoro()
