@@ -16,7 +16,7 @@
 
 ## Bug
 
-- [ ] break schedule active and pomodoro active - schedule takes over
+- [x] break schedule active and pomodoro active - schedule takes over
 
 ## Strict mode
 

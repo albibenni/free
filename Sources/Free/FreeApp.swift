@@ -97,11 +97,13 @@ final class FreeApp {
 
     static func applicationName(bundleInfo: [String: Any], processName: String) -> String {
         if let displayName = bundleInfo["CFBundleDisplayName"] as? String,
-           !displayName.isEmpty {
+            !displayName.isEmpty
+        {
             return displayName
         }
         if let bundleName = bundleInfo["CFBundleName"] as? String,
-           !bundleName.isEmpty {
+            !bundleName.isEmpty
+        {
             return bundleName
         }
         return processName
@@ -172,15 +174,18 @@ final class FreeApp {
         editMenu.addItem(redoItem)
         editMenu.addItem(.separator())
 
-        let cutItem = NSMenuItem(title: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        let cutItem = NSMenuItem(
+            title: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
         cutItem.target = nil
         editMenu.addItem(cutItem)
 
-        let copyItem = NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        let copyItem = NSMenuItem(
+            title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
         copyItem.target = nil
         editMenu.addItem(copyItem)
 
-        let pasteItem = NSMenuItem(title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        let pasteItem = NSMenuItem(
+            title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
         pasteItem.target = nil
         editMenu.addItem(pasteItem)
 
@@ -328,7 +333,8 @@ final class FreeApp {
 
         if appState.pomodoroStatus != .none {
             let phase = appState.pomodoroStatus == .focus ? "Focus" : "Break"
-            segments.append("Pomodoro: \(phase) \(appState.timeString(time: appState.pomodoroRemaining))")
+            segments.append(
+                "Pomodoro: \(phase) \(appState.timeString(time: appState.pomodoroRemaining))")
         }
 
         return segments
@@ -367,15 +373,15 @@ final class FreeApp {
 }
 
 #if !SWIFT_PACKAGE
-@main
-enum FreeAppMain {
-    static func main() {
-        let application = NSApplication.shared
-        let app = FreeApp()
-        app.launch(application: application)
-        withExtendedLifetime(app) {
-            application.run()
+    @main
+    enum FreeAppMain {
+        static func main() {
+            let application = NSApplication.shared
+            let app = FreeApp()
+            app.launch(application: application)
+            withExtendedLifetime(app) {
+                application.run()
+            }
         }
     }
-}
 #endif

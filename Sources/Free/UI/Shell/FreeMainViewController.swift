@@ -7,7 +7,8 @@ final class FreeMainViewController: NSViewController {
         NSWindow,
         @escaping (NSApplication.ModalResponse) -> Void
     ) -> Void
-    static var presentLaunchAtLoginAlert: LaunchAtLoginAlertPresenter = { alert, window, completion in
+    static var presentLaunchAtLoginAlert: LaunchAtLoginAlertPresenter = {
+        alert, window, completion in
         alert.beginSheetModal(for: window, completionHandler: completion)
     }
     private static var makeCursorFluidOverlay: () -> AppKitCursorFluidOverlayView? = {
@@ -286,7 +287,9 @@ extension FreeMainViewController {
         view.window?.standardWindowButton(.closeButton)?.isEnabled ?? true
     }
     var selectedSectionForTesting: MainContentSection { shellState.selectedSection }
-    var currentContentViewControllerForTesting: NSViewController? { contentHostView.currentViewController }
+    var currentContentViewControllerForTesting: NSViewController? {
+        contentHostView.currentViewController
+    }
     var currentFocusSectionForTesting: FocusContentSection? {
         (contentHostView.currentViewController as? FocusSectionViewController)?.section
     }
