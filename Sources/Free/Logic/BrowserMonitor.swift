@@ -8,8 +8,8 @@ protocol BrowserAutomator {
     func checkPermissions(prompt: Bool) -> Bool
 }
 
-class BrowserMonitor {
-    enum Event {
+actor BrowserMonitor {
+    enum Event: Sendable {
         case trustedStateChanged(Bool)
     }
 
@@ -24,7 +24,7 @@ class BrowserMonitor {
         }
     }
 
-    struct StateSnapshot {
+    struct StateSnapshot: Sendable {
         let isBlocking: Bool
         let isPaused: Bool
         let blockNewTabs: Bool
@@ -34,17 +34,15 @@ class BrowserMonitor {
     }
 
     private var timer: (any RepeatingTimer)?
-    private let timerLock = NSLock()
-    private let redirectLock = NSLock()
-    private let stateSnapshotProvider: () -> StateSnapshot?
-    private let onEvent: (Event) -> Void
+    private let stateSnapshotProvider: @Sendable () -> StateSnapshot?
+    private let onEvent: @Sendable (Event) -> Void
     private let server: LocalServer?
     private let automator: BrowserAutomator
     private let timerScheduler: any RepeatingTimerScheduling
     private let supportedBrowsers: Set<String>
-    private let frontmostAppProvider: () -> NSRunningApplication?
-    private let bundleIdProvider: (NSRunningApplication) -> String?
-    private let nowProvider: () -> Date
+    private let frontmostAppProvider: @Sendable () -> NSRunningApplication?
+    private let bundleIdProvider: @Sendable (NSRunningApplication) -> String?
+    private let nowProvider: @Sendable () -> Date
     private let monitorInterval: TimeInterval
     private var lastRedirectTime: [String: Date] = [:]
     private static let defaultBrowsers: Set<String> = [
@@ -73,17 +71,18 @@ class BrowserMonitor {
     ]
 
     init(
-        stateSnapshotProvider: @escaping () -> StateSnapshot?,
-        onEvent: @escaping (Event) -> Void,
+        stateSnapshotProvider: @escaping @Sendable () -> StateSnapshot?,
+        onEvent: @escaping @Sendable (Event) -> Void,
         server: LocalServer? = LocalServer(),
         automator: BrowserAutomator = DefaultBrowserAutomator(),
         supportedBrowsers: Set<String> = BrowserMonitor.defaultBrowsers,
-        frontmostAppProvider: @escaping () -> NSRunningApplication? = { NSWorkspace.shared.frontmostApplication },
-        bundleIdProvider: @escaping (NSRunningApplication) -> String? = { $0.bundleIdentifier },
-        nowProvider: @escaping () -> Date = Date.init,
+        frontmostAppProvider: @escaping @Sendable () -> NSRunningApplication? = { NSWorkspace.shared.frontmostApplication },
+        bundleIdProvider: @escaping @Sendable (NSRunningApplication) -> String? = { $0.bundleIdentifier },
+        nowProvider: @escaping @Sendable () -> Date = { Date() },
         monitorInterval: TimeInterval = 1.5,
         timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
-        startTimer: Bool = true
+        startTimer: Bool = true,
+        testRuntimeActive: Bool? = nil
     ) {
         self.stateSnapshotProvider = stateSnapshotProvider
         self.onEvent = onEvent
@@ -95,10 +94,13 @@ class BrowserMonitor {
         self.bundleIdProvider = bundleIdProvider
         self.nowProvider = nowProvider
         self.monitorInterval = monitorInterval
-        checkPermissions(prompt: !TestRuntime.isActive())
-        server?.start()
-        if startTimer {
-            startMonitoring()
+        let shouldPrompt = !(testRuntimeActive ?? TestRuntime.isActive())
+        Task {
+            await self.checkPermissions(prompt: shouldPrompt)
+            await self.server?.start()
+            if startTimer {
+                await self.startMonitoring()
+            }
         }
     }
 
@@ -108,14 +110,16 @@ class BrowserMonitor {
 
     func checkPermissions(prompt: Bool = false) {
         let trusted = automator.checkPermissions(prompt: prompt)
-        DispatchQueue.main.async { [weak self] in
-            self?.onEvent(.trustedStateChanged(trusted))
+        Task {
+            self.onEvent(.trustedStateChanged(trusted))
         }
     }
 
     func startMonitoring() {
         let repeatingTimer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: monitorInterval) { [weak self] in
-            self?.checkActiveTab()
+            Task { [weak self] in
+                await self?.checkActiveTab()
+            }
         }
         replaceTimer(with: repeatingTimer)
     }
@@ -136,10 +140,8 @@ class BrowserMonitor {
 
         let now = nowProvider()
 
-        // Read lastRedirectTime under lock (background thread, timer can race with stopMonitoring).
-        redirectLock.lock()
+        // Read lastRedirectTime without lock (isolated by actor).
         let lastRedirect = lastRedirectTime[bundleId]
-        redirectLock.unlock()
         if let lastRedirect, now.timeIntervalSince(lastRedirect) < 2.0 { return }
 
         if let currentURL = automator.getActiveUrl(for: frontApp) {
@@ -147,27 +149,27 @@ class BrowserMonitor {
 
             if Self.isNewTabLike(currentURL) {
                 guard snapshot.blockNewTabs else { return }
-                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
+                lastRedirectTime[bundleId] = now
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
                 return
             }
 
             if Self.isDeveloperLocalUrl(currentURL) {
                 guard snapshot.blockDeveloperHosts else { return }
-                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
+                lastRedirectTime[bundleId] = now
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
                 return
             }
 
             if Self.isPrivateNetworkUrl(currentURL) {
                 guard snapshot.blockLocalNetworkHosts else { return }
-                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
+                lastRedirectTime[bundleId] = now
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
                 return
             }
 
             if !RuleMatcher.isAllowed(currentURL, rules: snapshot.allowedRules) {
-                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
+                lastRedirectTime[bundleId] = now
                 automator.redirect(app: frontApp, to: "http://localhost:10000")
             }
         }
@@ -176,10 +178,8 @@ class BrowserMonitor {
     func getAllOpenUrls() -> [String] { automator.getAllOpenUrls(browsers: Array(supportedBrowsers)) }
 
     private func replaceTimer(with newTimer: (any RepeatingTimer)?) {
-        timerLock.lock()
         let oldTimer = timer
         timer = newTimer
-        timerLock.unlock()
         oldTimer?.invalidate()
     }
 

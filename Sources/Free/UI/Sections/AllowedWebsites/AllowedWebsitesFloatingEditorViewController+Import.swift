@@ -38,10 +38,16 @@ extension AllowedWebsitesFloatingEditorViewController {
 
     @objc
     func handleImportOpenTabs() {
+        Task { @MainActor in
+            await handleImportOpenTabsAsync()
+        }
+    }
+
+    func handleImportOpenTabsAsync() async {
         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
         guard let selectedSet = appState.ruleSets.first(where: { $0.id == setId }) else { return }
 
-        appState.refreshCurrentOpenUrls()
+        await appState.refreshCurrentOpenUrlsAsync()
         let candidates = AllowedWebsitesImportCoordinator.buildCandidates(
             currentOpenUrls: appState.currentOpenUrls,
             selectedSet: selectedSet

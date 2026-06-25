@@ -547,6 +547,7 @@ struct FreeAppTests {
                 startTimer: false
             )
             appState.monitor = monitor
+            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
             let baselineCallCount = automator.promptValues.count
 
             let app = FreeApp(

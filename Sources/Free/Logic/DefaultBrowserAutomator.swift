@@ -86,11 +86,17 @@ class DefaultBrowserAutomator: BrowserAutomator {
         return chromRedirect(appName, url)
     }
 
+    private func escapeForAppleScript(_ string: String) -> String {
+        return string.replacingOccurrences(of: "\\", with: "\\\\")
+                     .replacingOccurrences(of: "\"", with: "\\\"")
+    }
+
     func activeURLScript(bundleIdentifier: String, appName: String) -> String {
         if bundleIdentifier == Self.safariBundleIdentifier {
             return "tell application \"Safari\" to return URL of current tab of front window"
         }
-        return "tell application \"\(appName)\" to return URL of active tab of front window"
+        let escapedAppName = escapeForAppleScript(appName)
+        return "tell application \"\(escapedAppName)\" to return URL of active tab of front window"
     }
 
     func scriptAppName(bundleIdentifier: String, localizedName: String) -> String {
@@ -100,7 +106,8 @@ class DefaultBrowserAutomator: BrowserAutomator {
     }
 
     func allTabsScript(appName: String) -> String {
-        "set o to \"\"\ntell application \"\(appName)\"\nrepeat with w in windows\nrepeat with t in tabs of w\nset o to o & URL of t & \"\n\"\nend repeat\nend repeat\nend tell\nreturn o"
+        let escapedAppName = escapeForAppleScript(appName)
+        return "set o to \"\"\ntell application \"\(escapedAppName)\"\nrepeat with w in windows\nrepeat with t in tabs of w\nset o to o & URL of t & \"\n\"\nend repeat\nend repeat\nend tell\nreturn o"
     }
 
     func parseScriptOutput(_ output: String?) -> [String] {
@@ -114,14 +121,18 @@ class DefaultBrowserAutomator: BrowserAutomator {
     }
 
     func arcRedirect(_ url: String) -> String {
-        "tell application \"Arc\"\nactivate\nif (count of windows) > 0 then\ntry\nset URL of active tab of front window to \"\(url)\"\non error\ntell application \"System Events\" to tell process \"Arc\"\nkeystroke \"l\" using {command down}\ndelay 0.1\nkeystroke \"\(url)\"\nkey code 36\nend tell\nend try\nelse\nopen location \"\(url)\"\nend if\nend tell"
+        let escapedURL = escapeForAppleScript(url)
+        return "tell application \"Arc\"\nactivate\nif (count of windows) > 0 then\ntry\nset URL of active tab of front window to \"\(escapedURL)\"\non error\ntell application \"System Events\" to tell process \"Arc\"\nkeystroke \"l\" using {command down}\ndelay 0.1\nkeystroke \"\(escapedURL)\"\nkey code 36\nend tell\nend try\nelse\nopen location \"\(escapedURL)\"\nend if\nend tell"
     }
 
     func safariRedirect(_ url: String) -> String {
-        "tell application \"Safari\" to if (count of windows) > 0 then set URL of current tab of front window to \"\(url)\""
+        let escapedURL = escapeForAppleScript(url)
+        return "tell application \"Safari\" to if (count of windows) > 0 then set URL of current tab of front window to \"\(escapedURL)\""
     }
 
     func chromRedirect(_ appName: String, _ url: String) -> String {
-        "tell application \"\(appName)\" to if (count of windows) > 0 then set URL of active tab of front window to \"\(url)\""
+        let escapedAppName = escapeForAppleScript(appName)
+        let escapedURL = escapeForAppleScript(url)
+        return "tell application \"\(escapedAppName)\" to if (count of windows) > 0 then set URL of active tab of front window to \"\(escapedURL)\""
     }
 }

@@ -35,7 +35,7 @@ struct AllowedWebsitesFloatingEditorTests {
 
     @MainActor
     @Test("floating editor layout wires controls and table behavior")
-    func layoutWiring() {
+    func layoutWiring() async {
         let appState = makeAppState(name: "layoutWiring")
         let controller = AllowedWebsitesFloatingEditorViewController(
             appState: appState,
@@ -236,7 +236,7 @@ struct AllowedWebsitesFloatingEditorTests {
 
     @MainActor
     @Test("floating editor import action covers empty, cancel, and add-selected branches")
-    func importOpenTabsActionBranches() {
+    func importOpenTabsActionBranches() async {
         let appState = makeAppState(
             name: "importOpenTabsActionBranches",
             openUrls: [
@@ -260,7 +260,7 @@ struct AllowedWebsitesFloatingEditorTests {
         }
 
         AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in nil }
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
         #expect(emptyStateCalls == 0)
         #expect(controller.visibleRules.count == baselineCount)
 
@@ -268,11 +268,11 @@ struct AllowedWebsitesFloatingEditorTests {
             #expect(!candidates.isEmpty)
             return [candidates[0].rule]
         }
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
         #expect(controller.visibleRules.count == baselineCount + 1)
 
         AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in [] }
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
         #expect(controller.visibleRules.count == baselineCount + 1)
 
         let emptyState = makeAppState(name: "importOpenTabsEmpty", openUrls: [])
@@ -284,13 +284,13 @@ struct AllowedWebsitesFloatingEditorTests {
         AllowedWebsitesFloatingEditorViewController.presentEmptyImportState = { _ in
             emptyStateCalls += 1
         }
-        emptyController.handleImportOpenTabs()
+        await emptyController.handleImportOpenTabsAsync()
         #expect(emptyStateCalls == 1)
     }
 
     @MainActor
     @Test("floating editor import guard returns when selected rule-set id is missing")
-    func importMissingSelectedRuleSetGuard() {
+    func importMissingSelectedRuleSetGuard() async {
         let appState = makeAppState(
             name: "importMissingSelectedRuleSetGuard",
             openUrls: ["https://example.com"]
@@ -311,13 +311,13 @@ struct AllowedWebsitesFloatingEditorTests {
             return nil
         }
 
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
         #expect(candidatesPresenterCalls == 0)
     }
 
     @MainActor
     @Test("floating editor import shows candidate picker first; challenge cancel after selection blocks add")
-    func importLockedWhenStrictEditingLockIsActive() {
+    func importLockedWhenStrictEditingLockIsActive() async {
         let appState = makeAppState(
             name: "importLockedWhenStrictEditingLockIsActive",
             openUrls: ["https://example.com"]
@@ -339,7 +339,7 @@ struct AllowedWebsitesFloatingEditorTests {
         }
 
         // Candidate picker shown first; StrictModeChallenge returns cancel in tests, so no rules are added
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
         #expect(presenterCalls == 1)
         #expect(controller.visibleRules.count == baselineCount)
     }

@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "Free",
     platforms: [
-        .macOS(.v14)
+        .macOS("26.0")
     ],
     dependencies: [
         .package(url: "https://github.com/nalexn/ViewInspector.git", from: "0.9.11")

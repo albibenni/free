@@ -232,7 +232,9 @@ final class FreeApp {
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
-                self?.appState.monitor?.checkPermissions(prompt: false)
+                Task {
+                    await self?.appState.monitor?.checkPermissions(prompt: false)
+                }
             }
         }
         statusItemController?.setOpenAppHandler { [weak self, weak application] in

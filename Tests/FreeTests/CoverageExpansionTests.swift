@@ -490,7 +490,7 @@ struct CoverageExpansionTests {
 
     @MainActor
     @Test("Allowed websites import flow covers guard/cancel/success branches")
-    func allowedWebsitesImportFlowBranches() {
+    func allowedWebsitesImportFlowBranches() async {
         let suite = "CoverageExpansionTests.allowedWebsitesImportFlowBranches"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -530,19 +530,19 @@ struct CoverageExpansionTests {
         defer { AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting() }
 
         controller.selectedRuleSetId = nil
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
         #expect(emptyCalls == 0)
         #expect(candidateCalls == 0)
 
         controller.selectedRuleSetId = set.id
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
         #expect(emptyCalls == 0)
         #expect(candidateCalls == 0)
 
         appState.ruleSets = [set]
         appState.activeRuleSetId = set.id
         controller.selectedRuleSetId = set.id
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
         #expect(candidateCalls == 1)
         #expect(appState.ruleSets.first?.urls.isEmpty == true)
 
@@ -550,7 +550,7 @@ struct CoverageExpansionTests {
             candidateCalls += 1
             return ["example.com"]
         }
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
         #expect(candidateCalls == 2)
         #expect(appState.ruleSets.first?.urls.contains("example.com") == true)
     }

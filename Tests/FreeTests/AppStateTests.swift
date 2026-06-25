@@ -973,10 +973,9 @@ struct AppStateTests {
         }
     }
 
-    @Test(
-        "AppState production runtime monitor callbacks update trusted state and snapshot provider")
-    func productionRuntimeMonitorCallbacksCoverage() {
-        let suite = "AppStateTests.productionRuntimeMonitorCallbacksCoverage"
+    @Test("isTestingFalseBootstrapsMonitor")
+    func isTestingFalseBootstrapsMonitor() async {
+        let suite = "AppStateTests.isTestingFalseBootstrapsMonitor"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
 
@@ -985,13 +984,15 @@ struct AppStateTests {
             isTesting: false
         )
         defer {
-            appState.monitor?.stopMonitoring()
+            Task {
+                await appState.monitor?.stopMonitoring()
+            }
         }
 
         appState.isBlocking = true
-        appState.monitor?.checkActiveTab()
-        appState.monitor?.checkPermissions(prompt: false)
-        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        await appState.monitor?.checkActiveTab()
+        await appState.monitor?.checkPermissions(prompt: false)
+        try? await Task.sleep(nanoseconds: 50_000_000)
 
         #expect(appState.monitor != nil)
     }
@@ -1070,7 +1071,7 @@ struct AppStateTests {
     }
 
     @Test("refreshCurrentOpenUrls uses monitor-provided URLs")
-    func refreshCurrentOpenUrlsCoverage() {
+    func refreshCurrentOpenUrlsCoverage() async {
         let appState = isolatedAppState(name: "refreshCurrentOpenUrlsCoverage")
         let automator = MockBrowserAutomator()
         automator.activeUrl = "https://example.com"
@@ -1078,16 +1079,16 @@ struct AppStateTests {
         let monitor = makeMonitor(appState: appState, automator: automator)
         appState.monitor = monitor
 
-        appState.refreshCurrentOpenUrls()
+        await appState.refreshCurrentOpenUrlsAsync()
         #expect(appState.currentOpenUrls == ["https://example.com"])
     }
 
     @Test("refreshCurrentOpenUrls falls back to empty when monitor is missing")
-    func refreshCurrentOpenUrlsNilMonitorCoverage() {
+    func refreshCurrentOpenUrlsNilMonitorCoverage() async {
         let appState = isolatedAppState(name: "refreshCurrentOpenUrlsNilMonitorCoverage")
         appState.currentOpenUrls = ["stale"]
         appState.monitor = nil
-        appState.refreshCurrentOpenUrls()
+        await appState.refreshCurrentOpenUrlsAsync()
         #expect(appState.currentOpenUrls.isEmpty)
     }
 

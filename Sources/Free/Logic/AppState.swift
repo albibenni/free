@@ -219,7 +219,9 @@ class AppState: ObservableObject {
         )
         applySessionState(updated)
         if !wasBlocking && updated.isBlocking {
-            monitor?.checkPermissions(prompt: false)
+            Task {
+                await monitor?.checkPermissions(prompt: false)
+            }
         }
         if !wasBlocking && updated.isBlocking && !updated.wasStartedBySchedule {
             setManualBlockingEnabled(true)
@@ -260,5 +262,16 @@ class AppState: ObservableObject {
         )
     }
 
-    func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }
+    func refreshCurrentOpenUrls() { 
+        Task { @MainActor [weak self] in
+            await self?.refreshCurrentOpenUrlsAsync()
+        }
+    }
+
+    @MainActor
+    func refreshCurrentOpenUrlsAsync() async {
+        let urls = await self.monitor?.getAllOpenUrls()
+        print("DEBUG refreshCurrentOpenUrlsAsync: monitor is \(self.monitor != nil), returned \(urls ?? [])")
+        self.currentOpenUrls = urls ?? []
+    }
 }

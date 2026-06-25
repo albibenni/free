@@ -166,7 +166,7 @@ struct RulesViewTests {
 
     @Test("Rules sheet controller actions mutate rule-set state and UI state")
     @MainActor
-    func rulesSheetControllerActionCoverage() throws {
+    func rulesSheetControllerActionCoverage() async throws {
         let appState = isolatedAppState(name: "actions")
         let setA = RuleSet(name: "Set A", urls: ["a.com"])
         let setB = RuleSet(name: "Set B", urls: ["b.com"])
@@ -189,7 +189,7 @@ struct RulesViewTests {
         controller.toggleSuggestionsForTesting()
         #expect(controller.isSuggestionsExpandedForTesting)
         appState.currentOpenUrls = ["https://open.example.com"]
-        controller.refreshSuggestionsForTesting()
+        await controller.refreshSuggestionsForTestingAsync()
         #expect(appState.currentOpenUrls == [])
 
         controller.addSuggestionForTesting(url: "manual-add.com", setId: setA.id)

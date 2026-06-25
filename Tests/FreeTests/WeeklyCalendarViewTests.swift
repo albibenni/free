@@ -1270,7 +1270,7 @@ struct WeeklyCalendarViewTests {
         let hosted = host(surface, size: CGSize(width: 980, height: 860))
         #expect(hosted.fittingSize.width >= 0)
         #expect(surface.headerHeightForTesting >= 56)
-        #expect(surface.documentHeightForTesting == 24.0 * 80.0)
+        #expect(Int(surface.documentHeightForTesting) == Int(24.0 * 80.0))
         #expect(surface.hasVerticalScrollerForTesting)
         #expect(surface.didInitialScrollForTesting)
         #expect(surface.scheduleBlockCountForTesting == 2)

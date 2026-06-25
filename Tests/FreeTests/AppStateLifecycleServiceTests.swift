@@ -166,7 +166,7 @@ struct AppStateLifecycleServiceTests {
 
     @MainActor
     @Test("startRuntime builds monitor from factory when not testing and no injected monitor is provided")
-    func startRuntimeBuildsMonitorFromFactory() {
+    func startRuntimeBuildsMonitorFromFactory() async {
         let calendar = MockCalendarManager()
         let scheduler = MockRepeatingTimerScheduler()
         let timerCoordinator = AppStateTimerCoordinator(timerScheduler: scheduler)
@@ -183,7 +183,7 @@ struct AppStateLifecycleServiceTests {
         )
 
         #expect(bindings.monitor != nil)
-        bindings.monitor?.stopMonitoring()
+        await bindings.monitor?.stopMonitoring()
 
         var calendarCancellable: AnyCancellable? = bindings.calendarCancellable
         var persistenceCancellables: Set<AnyCancellable> = []

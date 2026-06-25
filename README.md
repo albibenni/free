@@ -47,5 +47,5 @@ open Free.app
 
 ## Requirements
 
-- macOS 14+
+- macOS 26+
 - Accessibility and Automation permissions for browser control

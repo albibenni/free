@@ -303,7 +303,7 @@ struct ModalAndShellCoverageTests {
 
     @MainActor
     @Test("Allowed websites import action uses injected presenter callbacks")
-    func allowedWebsitesImportActionFlow() {
+    func allowedWebsitesImportActionFlow() async {
         let appState = isolatedAppState(
             name: "allowedWebsitesImportActionFlow",
             openUrls: ["https://swift.org", "https://example.com"]
@@ -332,14 +332,14 @@ struct ModalAndShellCoverageTests {
             return ["https://example.com"]
         }
 
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
         #expect(didPresentEmpty == false)
         #expect(appState.ruleSets.first?.urls.contains("https://example.com") == true)
     }
 
     @MainActor
     @Test("Allowed websites editor actions cover create/delete/import guard branches")
-    func allowedWebsitesEditorActionBranches() {
+    func allowedWebsitesEditorActionBranches() async {
         let appState = isolatedAppState(
             name: "allowedWebsitesEditorActionBranches",
             openUrls: []
@@ -392,7 +392,7 @@ struct ModalAndShellCoverageTests {
             showedEmptyImportState = true
         }
         controller.selectedRuleSetId = appState.ruleSets.first?.id
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
         #expect(showedEmptyImportState)
 
         // Cover default import presenter closures in the controller extension.
@@ -535,7 +535,7 @@ struct ModalAndShellCoverageTests {
 
     @MainActor
     @Test("Import support covers default presenters and unresolved-set guard")
-    func allowedWebsitesImportSupportBranches() {
+    func allowedWebsitesImportSupportBranches() async {
         let appState = isolatedAppState(name: "allowedWebsitesImportSupportBranches")
         appState.ruleSets = []
         appState.activeRuleSetId = nil
@@ -545,7 +545,7 @@ struct ModalAndShellCoverageTests {
         controller.viewDidLoad()
 
         // No selected set path.
-        controller.handleImportOpenTabs()
+        await controller.handleImportOpenTabsAsync()
 
         // Exercise default static presenter closures.
         AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting()
