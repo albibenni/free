@@ -4,16 +4,13 @@ extension AllowedWebsitesFloatingEditorViewController {
     typealias EmptyImportStatePresenter = ([String]) -> Void
     typealias ImportCandidatesPresenter = ([AllowedWebsitesImportCoordinator.Candidate], String) -> [String]?
 
-    private static var customPresentEmptyImportState: EmptyImportStatePresenter?
-    private static var customPresentImportCandidates: ImportCandidatesPresenter?
-
-    static var presentEmptyImportState: EmptyImportStatePresenter {
-        get { customPresentEmptyImportState ?? defaultPresentEmptyImportState }
+    var presentEmptyImportState: EmptyImportStatePresenter {
+        get { customPresentEmptyImportState ?? Self.defaultPresentEmptyImportState }
         set { customPresentEmptyImportState = newValue }
     }
 
-    static var presentImportCandidates: ImportCandidatesPresenter {
-        get { customPresentImportCandidates ?? defaultPresentImportCandidates }
+    var presentImportCandidates: ImportCandidatesPresenter {
+        get { customPresentImportCandidates ?? Self.defaultPresentImportCandidates }
         set { customPresentImportCandidates = newValue }
     }
 
@@ -31,7 +28,7 @@ extension AllowedWebsitesFloatingEditorViewController {
         )
     }
 
-    static func resetImportPresentersForTesting() {
+    func resetImportPresentersForTesting() {
         customPresentEmptyImportState = nil
         customPresentImportCandidates = nil
     }
@@ -54,11 +51,11 @@ extension AllowedWebsitesFloatingEditorViewController {
         )
 
         guard !candidates.isEmpty else {
-            Self.presentEmptyImportState(appState.currentOpenUrls)
+            presentEmptyImportState(appState.currentOpenUrls)
             return
         }
 
-        guard let selectedRules = Self.presentImportCandidates(candidates, selectedSet.name),
+        guard let selectedRules = presentImportCandidates(candidates, selectedSet.name),
               !selectedRules.isEmpty else { return }
 
         if isAllowedWebsitesEditingLocked {

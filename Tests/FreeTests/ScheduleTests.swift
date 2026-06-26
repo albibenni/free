@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct ScheduleTests {
     @Test("anchoredInterval builds same-day and overnight ranges")
-    func anchoredIntervalConstruction() {
+    func anchoredIntervalConstruction() async throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let anchor = calendar.date(from: DateComponents(year: 2026, month: 2, day: 16))!
@@ -32,7 +33,7 @@ struct ScheduleTests {
     }
 
     @Test("anchoredInterval rejects zero-duration ranges")
-    func anchoredIntervalZeroDuration() {
+    func anchoredIntervalZeroDuration() async throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let anchor = calendar.date(from: DateComponents(year: 2026, month: 2, day: 16))!
@@ -47,7 +48,7 @@ struct ScheduleTests {
     }
 
     @Test("Schedule.contains uses inclusive-start exclusive-end semantics")
-    func intervalContainsSemantics() {
+    func intervalContainsSemantics() async throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let anchor = calendar.date(from: DateComponents(year: 2026, month: 2, day: 16))!
@@ -67,7 +68,7 @@ struct ScheduleTests {
     }
 
     @Test("anchoredInterval normalizes anchorDay to start-of-day")
-    func anchoredIntervalAnchorNormalization() {
+    func anchoredIntervalAnchorNormalization() async throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let noisyAnchor = calendar.date(
@@ -86,7 +87,7 @@ struct ScheduleTests {
     }
 
     @Test("Recurring overnight schedule carries correctly across week boundary")
-    func recurringOvernightWeekBoundary() {
+    func recurringOvernightWeekBoundary() async throws {
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: 22, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 2, minute: 0))!
@@ -105,7 +106,7 @@ struct ScheduleTests {
     }
 
     @Test("One-off overnight schedule has exclusive end on the next day")
-    func oneOffOvernightBoundary() {
+    func oneOffOvernightBoundary() async throws {
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: 22, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 2, minute: 0))!
@@ -126,7 +127,7 @@ struct ScheduleTests {
     }
 
     @Test("Schedule activates correctly within time range")
-    func scheduleActiveInTimeRange() {
+    func scheduleActiveInTimeRange() async throws {
         var schedule = Schedule(
             name: "Test Schedule",
             days: [2],
@@ -148,7 +149,7 @@ struct ScheduleTests {
     }
 
     @Test("Schedule remains inactive on wrong day")
-    func scheduleInactiveWrongDay() {
+    func scheduleInactiveWrongDay() async throws {
         var schedule = Schedule(
             name: "Test Schedule",
             days: [2],
@@ -170,7 +171,7 @@ struct ScheduleTests {
     }
 
     @Test("Overnight schedule logic works correctly")
-    func scheduleOvernight() {
+    func scheduleOvernight() async throws {
         var schedule = Schedule(
             name: "Night Shift",
             days: [2],
@@ -199,7 +200,7 @@ struct ScheduleTests {
     }
 
     @Test("Schedule disabled state")
-    func scheduleDisabled() {
+    func scheduleDisabled() async throws {
         let calendar = Calendar.current
         let now = Date()
         let weekday = calendar.component(.weekday, from: now)
@@ -219,7 +220,7 @@ struct ScheduleTests {
     }
 
     @Test("Schedule boundary conditions")
-    func scheduleBoundaries() {
+    func scheduleBoundaries() async throws {
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 10, minute: 0))!
@@ -237,7 +238,7 @@ struct ScheduleTests {
     }
 
     @Test("Default schedule properties")
-    func defaultSchedule() {
+    func defaultSchedule() async throws {
         let schedule = Schedule.defaultSchedule()
         #expect(schedule.name == "Work Hours")
         #expect(schedule.days.count == 5)
@@ -246,7 +247,7 @@ struct ScheduleTests {
     }
 
     @Test("Schedule display strings formatting")
-    func displayStrings() {
+    func displayStrings() async throws {
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 17, minute: 0))!
@@ -266,7 +267,7 @@ struct ScheduleTests {
     }
 
     @Test("Schedule daysString with various day counts")
-    func daysStringVariations() {
+    func daysStringVariations() async throws {
         let s1 = Schedule(name: "S", days: [1], startTime: Date(), endTime: Date())
         #expect(s1.daysString == "Sun")
 
@@ -279,7 +280,7 @@ struct ScheduleTests {
     }
 
     @Test("Negative: Schedule with no days should never be active")
-    func scheduleNoDays() {
+    func scheduleNoDays() async throws {
         let now = Date()
         let schedule = Schedule(
             name: "Empty", days: [], startTime: now.addingTimeInterval(-3600),
@@ -288,7 +289,7 @@ struct ScheduleTests {
     }
 
     @Test("Negative: Zero duration schedule should not be active")
-    func scheduleZeroDuration() {
+    func scheduleZeroDuration() async throws {
         let now = Date()
         let calendar = Calendar.current
         let today = calendar.component(.weekday, from: now)
@@ -299,7 +300,7 @@ struct ScheduleTests {
     }
 
     @Test("Negative: One-off zero duration schedule should not be active")
-    func oneOffZeroDuration() {
+    func oneOffZeroDuration() async throws {
         let calendar = Calendar.current
         let oneOffDate = calendar.date(from: DateComponents(year: 2023, month: 1, day: 2))!
         let time = calendar.date(from: DateComponents(hour: 10, minute: 0))!
@@ -312,7 +313,7 @@ struct ScheduleTests {
     }
 
     @Test("One-off schedule logic")
-    func oneOffScheduleLogic() {
+    func oneOffScheduleLogic() async throws {
         let calendar = Calendar.current
         let today = Date()
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
@@ -334,7 +335,7 @@ struct ScheduleTests {
     }
 
     @Test("calculateOneOffDate correctly maps weekdays across offsets")
-    func oneOffDateCalculation() {
+    func oneOffDateCalculation() async throws {
         let calendar = Calendar.current
         let thisWeek = WeekDateCalculator.getWeekDates(
             weekStartsOnMonday: true,

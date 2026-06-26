@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum FocusSectionWidgetCoordinator {
     enum PomodoroReuseAction {
         case updateSelection

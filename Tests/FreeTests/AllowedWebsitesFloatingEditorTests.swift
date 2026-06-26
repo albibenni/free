@@ -5,6 +5,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct AllowedWebsitesFloatingEditorTests {
     private final class MockBrowserAutomator: BrowserAutomator {
         let urls: [String]
@@ -73,7 +74,7 @@ struct AllowedWebsitesFloatingEditorTests {
 
     @MainActor
     @Test("floating editor add/remove rule actions update visible rules")
-    func addRemoveRuleActions() {
+    func addRemoveRuleActions() async throws {
         let appState = makeAppState(name: "addRemoveRuleActions")
         let selectedSet = appState.ruleSets[0]
         let controller = AllowedWebsitesFloatingEditorViewController(
@@ -102,7 +103,7 @@ struct AllowedWebsitesFloatingEditorTests {
 
     @MainActor
     @Test("floating editor blocks rule edits when strict mode is on (regardless of focus state)")
-    func addRemoveAllowedWhenStrictAndNotBlocking() {
+    func addRemoveAllowedWhenStrictAndNotBlocking() async throws {
         let appState = makeAppState(name: "addRemoveAllowedWhenStrictAndNotBlocking")
         appState.isStrict = true
         appState.isBlocking = false
@@ -133,7 +134,7 @@ struct AllowedWebsitesFloatingEditorTests {
 
     @MainActor
     @Test("floating editor create/delete list actions follow strict lock rules")
-    func createDeleteListActions() {
+    func createDeleteListActions() async throws {
         let appState = makeAppState(name: "createDeleteListActions")
         let controller = AllowedWebsitesFloatingEditorViewController(
             appState: appState,
@@ -193,7 +194,7 @@ struct AllowedWebsitesFloatingEditorTests {
 
     @MainActor
     @Test("floating editor action guards cover invalid add/remove/delete and table selection callback")
-    func actionGuardBranches() {
+    func actionGuardBranches() async throws {
         let appState = makeAppState(name: "actionGuardBranches")
         let controller = AllowedWebsitesFloatingEditorViewController(
             appState: appState,
@@ -251,27 +252,27 @@ struct AllowedWebsitesFloatingEditorTests {
         )
         controller.loadViewIfNeeded()
 
-        defer { AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting() }
+        defer { controller.resetImportPresentersForTesting() }
 
         let baselineCount = controller.visibleRules.count
         var emptyStateCalls = 0
-        AllowedWebsitesFloatingEditorViewController.presentEmptyImportState = { _ in
+        controller.presentEmptyImportState = { _ in
             emptyStateCalls += 1
         }
 
-        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in nil }
+        controller.presentImportCandidates = { _, _ in nil }
         await controller.handleImportOpenTabsAsync()
         #expect(emptyStateCalls == 0)
         #expect(controller.visibleRules.count == baselineCount)
 
-        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { candidates, _ in
+        controller.presentImportCandidates = { candidates, _ in
             #expect(!candidates.isEmpty)
             return [candidates[0].rule]
         }
         await controller.handleImportOpenTabsAsync()
         #expect(controller.visibleRules.count == baselineCount + 1)
 
-        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in [] }
+        controller.presentImportCandidates = { _, _ in [] }
         await controller.handleImportOpenTabsAsync()
         #expect(controller.visibleRules.count == baselineCount + 1)
 
@@ -281,7 +282,7 @@ struct AllowedWebsitesFloatingEditorTests {
             initialRuleSetId: emptyState.ruleSets[0].id
         )
         emptyController.loadViewIfNeeded()
-        AllowedWebsitesFloatingEditorViewController.presentEmptyImportState = { _ in
+        emptyController.presentEmptyImportState = { _ in
             emptyStateCalls += 1
         }
         await emptyController.handleImportOpenTabsAsync()
@@ -305,8 +306,8 @@ struct AllowedWebsitesFloatingEditorTests {
         controller.selectedRuleSetId = nil
 
         var candidatesPresenterCalls = 0
-        defer { AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting() }
-        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in
+        defer { controller.resetImportPresentersForTesting() }
+        controller.presentImportCandidates = { _, _ in
             candidatesPresenterCalls += 1
             return nil
         }
@@ -332,8 +333,8 @@ struct AllowedWebsitesFloatingEditorTests {
 
         let baselineCount = controller.visibleRules.count
         var presenterCalls = 0
-        defer { AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting() }
-        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { candidates, _ in
+        defer { controller.resetImportPresentersForTesting() }
+        controller.presentImportCandidates = { candidates, _ in
             presenterCalls += 1
             return [candidates[0].rule]
         }
@@ -346,7 +347,7 @@ struct AllowedWebsitesFloatingEditorTests {
 
     @MainActor
     @Test("floating editor add/remove rule actions are locked while strict mode is active with focus on")
-    func addRemoveLockedWhenStrictEditingLockIsActive() {
+    func addRemoveLockedWhenStrictEditingLockIsActive() async throws {
         let appState = makeAppState(name: "addRemoveLockedWhenStrictEditingLockIsActive")
         appState.isStrict = true
         appState.isBlocking = true
@@ -368,7 +369,7 @@ struct AllowedWebsitesFloatingEditorTests {
 
     @MainActor
     @Test("floating editor styling toggles strict-mode warning constraints and header icons")
-    func layoutStylingStrictWarningBranches() {
+    func layoutStylingStrictWarningBranches() async throws {
         let appState = makeAppState(name: "layoutStylingStrictWarningBranches")
         let controller = AllowedWebsitesFloatingEditorViewController(
             appState: appState,
@@ -395,7 +396,7 @@ struct AllowedWebsitesFloatingEditorTests {
 
     @MainActor
     @Test("floating editor row tap callback safely no-ops after controller deallocation")
-    func rowTapCallbackWeakSelfNoOpAfterDeallocation() {
+    func rowTapCallbackWeakSelfNoOpAfterDeallocation() async throws {
         let appState = makeAppState(name: "rowTapCallbackWeakSelfNoOpAfterDeallocation")
         let beforeActive = appState.activeRuleSetId
 
@@ -421,7 +422,7 @@ struct AllowedWebsitesFloatingEditorTests {
 
     @MainActor
     @Test("import alert presenter covers empty-state and candidate-selection paths")
-    func importAlertPresenterBranches() {
+    func importAlertPresenterBranches() async throws {
         defer { AllowedWebsitesImportAlertPresenter.resetForTesting() }
         AllowedWebsitesImportAlertPresenter.makeAlert = { NSAlert() }
 
@@ -473,7 +474,7 @@ struct AllowedWebsitesFloatingEditorTests {
 
     @MainActor
     @Test("rule-set alert presenter covers create/cancel and delete confirmation branches")
-    func ruleSetAlertPresenterBranches() {
+    func ruleSetAlertPresenterBranches() async throws {
         defer { AllowedWebsitesRuleSetAlertPresenter.resetForTesting() }
         AllowedWebsitesRuleSetAlertPresenter.makeAlert = { NSAlert() }
 
@@ -505,7 +506,7 @@ struct AllowedWebsitesFloatingEditorTests {
     }
 
     @Test("rules table controller returns rows and builds reusable cell views")
-    func rulesTableControllerBranches() {
+    func rulesTableControllerBranches() async throws {
         let controller = AllowedWebsitesRulesTableController()
         controller.numberOfRules = { 2 }
         controller.ruleAt = { index in

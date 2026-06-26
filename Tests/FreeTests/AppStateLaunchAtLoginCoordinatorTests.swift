@@ -2,9 +2,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateLaunchAtLoginCoordinatorTests {
     @Test("preparePromptIfNeeded delegates and returns dependency result")
-    func preparePromptDelegates() {
+    func preparePromptDelegates() async throws {
         var called = false
         let deps = AppStateLaunchAtLoginCoordinator.Dependencies(
             preparePromptIfNeeded: {
@@ -24,7 +25,7 @@ struct AppStateLaunchAtLoginCoordinatorTests {
     }
 
     @Test("status and enable delegate to dependency closures")
-    func statusAndEnableDelegate() {
+    func statusAndEnableDelegate() async throws {
         var statusCalled = false
         var enableCalled = false
         let deps = AppStateLaunchAtLoginCoordinator.Dependencies(
@@ -47,7 +48,7 @@ struct AppStateLaunchAtLoginCoordinatorTests {
     }
 
     @Test("setEnabled forwards the boolean parameter")
-    func setEnabledForwardsParameter() {
+    func setEnabledForwardsParameter() async throws {
         var captured = false
         let deps = AppStateLaunchAtLoginCoordinator.Dependencies(
             preparePromptIfNeeded: { false },

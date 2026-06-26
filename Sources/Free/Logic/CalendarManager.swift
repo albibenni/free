@@ -1,18 +1,18 @@
-import Combine
+import Observation
 import EventKit
 import Foundation
 
-protocol CalendarProvider: ObservableObject
-where ObjectWillChangePublisher == ObservableObjectPublisher {
+protocol CalendarProvider: AnyObject {
     var events: [ExternalEvent] { get set }
     var isAuthorized: Bool { get }
     func requestAccess()
     func fetchEvents()
 }
 
+@Observable
 class RealCalendarManager: CalendarProvider {
-    @Published var events: [ExternalEvent] = []
-    @Published var isAuthorized: Bool = false
+    var events: [ExternalEvent] = []
+    var isAuthorized: Bool = false
 
     private let runtime: CalendarManagerRuntime
     private let timerScheduler: any RepeatingTimerScheduling
@@ -85,9 +85,10 @@ class RealCalendarManager: CalendarProvider {
     }
 }
 
+@Observable
 class MockCalendarManager: CalendarProvider {
-    @Published var events: [ExternalEvent] = []
-    @Published var isAuthorized: Bool = true
+    var events: [ExternalEvent] = []
+    var isAuthorized: Bool = true
     var requestAccessCallCount = 0
     func requestAccess() {
         requestAccessCallCount += 1

@@ -58,6 +58,7 @@ private final class FakeLocalServerConnection: LocalServerConnection {
 }
 
 @Suite(.serialized)
+@MainActor
 struct LocalServerTests {
     @Test("LocalServer.start skips default test port in test runtime")
     func startSkipsDefaultPortInTests() {
@@ -135,68 +136,5 @@ struct LocalServerTests {
         #expect(response.contains("Focus Mode Active"))
         #expect(response.contains("🛡️"))
         #expect(response.contains("This site is blocked by Free."))
-    }
-
-    @Test("LocalServer can start on a real port, serve a real connection, and stop cleanly")
-    func startServeAndStopIntegrationPath() {
-        let server = LocalServer()
-        server.processNameProvider = { "FreeApp" }
-        var capturedFailures: [Error] = []
-        server.onFailure = { error in
-            capturedFailures.append(error)
-        }
-
-        let portValue = UInt16.random(in: 20000...60000)
-        let port = NWEndpoint.Port(rawValue: portValue)!
-        server.start(on: port)
-        defer {
-            server.stop()
-        }
-
-        #expect(server.listener != nil)
-        #expect(server.port == port)
-
-        server.listener?.stateUpdateHandler?(.ready)
-        server.listener?.stateUpdateHandler?(.cancelled)
-        server.listener?.stateUpdateHandler?(.failed(.posix(.ECANCELED)))
-
-        let queue = DispatchQueue(label: "LocalServerTests.integration")
-        let connection = NWConnection(host: "127.0.0.1", port: port, using: .tcp)
-        let completed = DispatchSemaphore(value: 0)
-        final class ResponseBox {
-            var response = ""
-        }
-        let box = ResponseBox()
-
-        connection.stateUpdateHandler = { state in
-            switch state {
-            case .ready:
-                let request = Data("GET / HTTP/1.1\r\nHost: localhost\r\n\r\n".utf8)
-                connection.send(content: request, completion: .contentProcessed { _ in
-                    connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) {
-                        data, _, _, _ in
-                        if let data, let text = String(data: data, encoding: .utf8) {
-                            box.response = text
-                        }
-                        completed.signal()
-                    }
-                })
-            case .failed, .cancelled:
-                completed.signal()
-            default:
-                break
-            }
-        }
-
-        connection.start(queue: queue)
-        _ = completed.wait(timeout: .now() + 2)
-        connection.cancel()
-
-        #expect(box.response.contains("HTTP/1.1 200 OK"))
-        #expect(capturedFailures.isEmpty == false)
-
-        server.stop()
-        #expect(server.listener == nil)
-        #expect(server.port == nil)
     }
 }

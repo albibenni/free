@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateScheduleMutationCoordinatorTests {
     @Test("saveSchedule appends a new schedule through ScheduleEngine")
-    func saveScheduleAddsEntry() {
+    func saveScheduleAddsEntry() async throws {
         let start = Date()
         let end = start.addingTimeInterval(3600)
 
@@ -31,7 +32,7 @@ struct AppStateScheduleMutationCoordinatorTests {
     }
 
     @Test("deleteSchedule suppresses imported calendar key when deleting imported schedule")
-    func deleteScheduleSuppressesImportedKey() {
+    func deleteScheduleSuppressesImportedKey() async throws {
         let imported = Schedule(
             name: "Imported",
             days: [],
@@ -60,7 +61,7 @@ struct AppStateScheduleMutationCoordinatorTests {
     }
 
     @Test("deleteSchedule returns no mutation when id is missing")
-    func deleteScheduleMissingIdIsNoop() {
+    func deleteScheduleMissingIdIsNoop() async throws {
         let existing = Schedule(
             name: "Local",
             days: [2],

@@ -39,6 +39,7 @@ private final class SettingsMockLaunchAtLoginManager: LaunchAtLoginManaging {
 }
 
 @Suite(.serialized)
+@MainActor
 struct SettingsViewTests {
     private final class TestModalAlert: NSAlert {
         override func runModal() -> NSApplication.ModalResponse {
@@ -148,7 +149,7 @@ struct SettingsViewTests {
 
     @Test("Settings strict-mode initial default hooks execute native modal path with NSAlert override")
     @MainActor
-    func settingsStrictModeInitialDefaultHooksCoverage() {
+    func settingsStrictModeInitialDefaultHooksCoverage() async throws {
         defer {
             _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -170,7 +171,7 @@ struct SettingsViewTests {
 
     @Test("Settings controller action helpers cover strict-mode challenge and accent selection")
     @MainActor
-    func settingsControllerActionHelpers() {
+    func settingsControllerActionHelpers() async throws {
         let appState = isolatedAppState(name: "actions")
         appState.isBlocking = true
         appState.isStrict = true
@@ -194,7 +195,7 @@ struct SettingsViewTests {
 
     @Test("Settings strict-mode toggle off preserves strict state when dialog is cancelled")
     @MainActor
-    func settingsStrictModeToggleOffPreservesStateOnDialogCancel() {
+    func settingsStrictModeToggleOffPreservesStateOnDialogCancel() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         let appState = isolatedAppState(name: "strictToggleOffCancelled")
@@ -214,7 +215,7 @@ struct SettingsViewTests {
 
     @Test("Settings strict-mode toggle off disables strict when dialog is confirmed with correct phrase")
     @MainActor
-    func settingsStrictModeToggleOffDisablesStrictOnDialogConfirm() {
+    func settingsStrictModeToggleOffDisablesStrictOnDialogConfirm() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         let appState = isolatedAppState(name: "strictToggleOffConfirmed")
@@ -241,7 +242,7 @@ struct SettingsViewTests {
 
     @Test("Settings controller launch-at-login actions load and toggle state with failure fallback")
     @MainActor
-    func settingsControllerLaunchAtLoginActions() {
+    func settingsControllerLaunchAtLoginActions() async throws {
         let launchManager = SettingsMockLaunchAtLoginManager(isEnabled: false)
         let appState = isolatedAppState(name: "launchAtLoginActions", launchManager: launchManager)
 
@@ -272,7 +273,7 @@ struct SettingsViewTests {
 
     @Test("Settings controller strict-disable visibility helper covers false branch")
     @MainActor
-    func settingsControllerStrictDisableFalseBranch() {
+    func settingsControllerStrictDisableFalseBranch() async throws {
         let appState = isolatedAppState(name: "strictFalse")
         appState.isBlocking = false
         appState.isStrict = true
@@ -283,7 +284,7 @@ struct SettingsViewTests {
 
     @Test("Settings controller calendar controls always enabled; challenge guards changes in strict active mode")
     @MainActor
-    func settingsControllerCalendarControlsLockState() {
+    func settingsControllerCalendarControlsLockState() async throws {
         let appState = isolatedAppState(name: "calendarControlsLockState")
         appState.isBlocking = false
         appState.isStrict = true
@@ -300,7 +301,7 @@ struct SettingsViewTests {
 
     @Test("Settings controller browser controls always enabled; strict notice shown and challenge guards changes")
     @MainActor
-    func settingsControllerBrowserControlsLockState() {
+    func settingsControllerBrowserControlsLockState() async throws {
         let appState = isolatedAppState(name: "browserControlsLockState")
         appState.isBlocking = false
         appState.isStrict = false
@@ -333,7 +334,7 @@ struct SettingsViewTests {
 
     @Test("Settings browser toggle handlers show challenge and revert switch while strict is enabled")
     @MainActor
-    func settingsControllerBrowserToggleGuardBranches() {
+    func settingsControllerBrowserToggleGuardBranches() async throws {
         let appState = isolatedAppState(name: "browserToggleGuardBranches")
         appState.isStrict = true
         appState.blockNewTabs = false
@@ -360,7 +361,7 @@ struct SettingsViewTests {
 
     @Test("Settings controller renders default toggle branch")
     @MainActor
-    func settingsControllerRenderDefaultBranch() {
+    func settingsControllerRenderDefaultBranch() async throws {
         let appState = isolatedAppState(name: "renderDefault")
         appState.isBlocking = false
         appState.isStrict = false
@@ -395,7 +396,7 @@ struct SettingsViewTests {
 
     @Test("Settings controller renders strict-mode disable branch")
     @MainActor
-    func settingsControllerRenderStrictBranch() {
+    func settingsControllerRenderStrictBranch() async throws {
         let appState = isolatedAppState(name: "renderStrict")
         appState.isBlocking = true
         appState.isStrict = true
@@ -412,7 +413,7 @@ struct SettingsViewTests {
 
     @Test("Settings controller testing hooks exercise toggle and selection action handlers")
     @MainActor
-    func settingsControllerToggleActionCoverage() {
+    func settingsControllerToggleActionCoverage() async throws {
         let appState = isolatedAppState(name: "toggleActionCoverage")
         let controller = SettingsSectionViewController(appState: appState)
         _ = host(controller)
@@ -472,7 +473,7 @@ struct SettingsViewTests {
 
     @Test("Settings controller strict-mode modal action supports unlock/cancel branches via alert hooks")
     @MainActor
-    func settingsControllerStrictModeModalCoverage() {
+    func settingsControllerStrictModeModalCoverage() async throws {
         let appState = isolatedAppState(name: "strictModeModalCoverage")
         appState.isBlocking = true
         appState.isStrict = true
@@ -497,7 +498,7 @@ struct SettingsViewTests {
 
     @Test("Settings strict toggle-off no-ops without challenge when already disabled")
     @MainActor
-    func settingsStrictToggleOffGuardCoverage() {
+    func settingsStrictToggleOffGuardCoverage() async throws {
         let appState = isolatedAppState(name: "strictToggleOffGuardCoverage")
         appState.isStrict = false
         let controller = SettingsSectionViewController(appState: appState)
@@ -517,19 +518,19 @@ struct SettingsViewTests {
 
     @Test("Settings observation callback reloads after app-state changes")
     @MainActor
-    func settingsControllerObservationReloadCoverage() {
+    func settingsControllerObservationReloadCoverage() async throws {
         let appState = isolatedAppState(name: "observationReloadCoverage")
         let controller = SettingsSectionViewController(appState: appState)
         _ = host(controller)
 
         appState.accentColorIndex = 3
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100000000)
         #expect(controller.appearanceSelectionColorForTesting == FocusColor.nsColor(for: 3))
     }
 
     @Test("Resync imported schedules requests calendar permission when unauthorized")
     @MainActor
-    func settingsResyncRequestsCalendarPermissionWhenUnauthorized() {
+    func settingsResyncRequestsCalendarPermissionWhenUnauthorized() async throws {
         let calendar = MockCalendarManager()
         calendar.isAuthorized = false
         let appState = isolatedAppState(name: "resyncPermissionRequest", calendar: calendar)
@@ -545,7 +546,7 @@ struct SettingsViewTests {
 
     @Test("Calendar-permission fallback alert can open system settings")
     @MainActor
-    func settingsCalendarPermissionFallbackAlert() {
+    func settingsCalendarPermissionFallbackAlert() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         let appState = isolatedAppState(name: "calendarPermissionFallbackAlert")
@@ -570,7 +571,7 @@ struct SettingsViewTests {
 
     @Test("Settings strict-mode alert default hooks return cancel response in test environment")
     @MainActor
-    func settingsStrictModeDefaultAlertHooks() {
+    func settingsStrictModeDefaultAlertHooks() async throws {
         defer {
             unsetenv("XCTestConfigurationFilePath")
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -587,7 +588,7 @@ struct SettingsViewTests {
 
     @Test("Settings native workspace opener default getter instantiates fallback closure")
     @MainActor
-    func settingsNativeWorkspaceOpenerDefaultGetterCoverage() {
+    func settingsNativeWorkspaceOpenerDefaultGetterCoverage() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
         _ = SettingsSectionViewController.nativeWorkspaceURLOpener
@@ -595,7 +596,7 @@ struct SettingsViewTests {
 
     @Test("Settings strict-mode default hook falls back to NSAlert.runModal when XCTest env var is missing")
     @MainActor
-    func settingsStrictModeDefaultAlertHooksRunModalPath() {
+    func settingsStrictModeDefaultAlertHooksRunModalPath() async throws {
         defer {
             _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -612,7 +613,7 @@ struct SettingsViewTests {
 
     @Test("Settings calendar-permission default hook falls back to NSAlert.runModal when XCTest env var is missing")
     @MainActor
-    func settingsCalendarPermissionDefaultAlertHooksRunModalPath() {
+    func settingsCalendarPermissionDefaultAlertHooksRunModalPath() async throws {
         defer {
             _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -629,7 +630,7 @@ struct SettingsViewTests {
 
     @Test("Settings async calendar-permission fallback presents alert after delay outside XCTest guard")
     @MainActor
-    func settingsCalendarPermissionAsyncFallbackCoverage() {
+    func settingsCalendarPermissionAsyncFallbackCoverage() async throws {
         defer {
             _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -660,7 +661,7 @@ struct SettingsViewTests {
     }
 
     @Test("Settings calendar privacy opener guards invalid URLs and opens valid URLs")
-    func settingsCalendarPrivacyOpenerCoverage() {
+    func settingsCalendarPrivacyOpenerCoverage() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -678,7 +679,7 @@ struct SettingsViewTests {
     }
 
     @Test("Settings default scheduler executes delayed work closure")
-    func settingsDefaultSchedulerCoverage() {
+    func settingsDefaultSchedulerCoverage() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -686,13 +687,13 @@ struct SettingsViewTests {
         SettingsSectionViewController.scheduleAfter(0) { didRun = true }
         let timeout = Date().addingTimeInterval(0.25)
         while !didRun && Date() < timeout {
-            RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+            try await Task.sleep(nanoseconds: 100000000)
         }
         #expect(didRun)
     }
 
     @Test("Settings workspace opener default path delegates to platform opener")
-    func settingsWorkspaceDefaultOpenerCoverage() {
+    func settingsWorkspaceDefaultOpenerCoverage() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -705,7 +706,7 @@ struct SettingsViewTests {
     }
 
     @Test("Settings workspace opener setter path is exercised")
-    func settingsWorkspaceOpenerSetterCoverage() {
+    func settingsWorkspaceOpenerSetterCoverage() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -720,7 +721,7 @@ struct SettingsViewTests {
     }
 
     @Test("Settings platform workspace opener covers x-free-test guard and native open path")
-    func settingsPlatformWorkspaceOpenerCoverage() {
+    func settingsPlatformWorkspaceOpenerCoverage() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -738,7 +739,7 @@ struct SettingsViewTests {
     }
 
     @Test("Settings default workspace helpers expose callable detector and opener closures")
-    func settingsDefaultWorkspaceHelperGettersCoverage() {
+    func settingsDefaultWorkspaceHelperGettersCoverage() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -750,7 +751,7 @@ struct SettingsViewTests {
     }
 
     @Test("Settings default native workspace opener closure executes through native open hook")
-    func settingsDefaultNativeWorkspaceOpenerClosureExecutionCoverage() {
+    func settingsDefaultNativeWorkspaceOpenerClosureExecutionCoverage() async throws {
         defer {
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
             AppKitSystemBridges.setOpenURLForTesting(nil)
@@ -765,7 +766,7 @@ struct SettingsViewTests {
     }
 
     @Test("Settings native opener default branch routes through AppKit system bridge")
-    func settingsNativeWorkspaceOpenerDefaultBranchCoverage() {
+    func settingsNativeWorkspaceOpenerDefaultBranchCoverage() async throws {
         defer {
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
             AppKitSystemBridges.setOpenURLForTesting(nil)
@@ -782,7 +783,7 @@ struct SettingsViewTests {
 
     @Test("Settings calendar fallback guard handles pending-true and authorization-restored branches")
     @MainActor
-    func settingsCalendarFallbackPendingAndAuthorizedGuardsCoverage() {
+    func settingsCalendarFallbackPendingAndAuthorizedGuardsCoverage() async throws {
         defer {
             _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -821,7 +822,7 @@ struct SettingsViewTests {
 
     @Test("Settings calendar fallback closure safely returns when controller is deallocated")
     @MainActor
-    func settingsCalendarFallbackClosureNilSelfGuardCoverage() {
+    func settingsCalendarFallbackClosureNilSelfGuardCoverage() async throws {
         defer {
             _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
@@ -851,7 +852,7 @@ struct SettingsViewTests {
 
     @Test("Settings open strict mode wiki routes URL through workspace opener")
     @MainActor
-    func settingsOpenStrictModeWikiCoverage() {
+    func settingsOpenStrictModeWikiCoverage() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         let appState = isolatedAppState(name: "openStrictModeWiki")
@@ -868,7 +869,7 @@ struct SettingsViewTests {
 
     @Test("Settings calendar integration toggle reverts switch and skips update when strict is active and challenge is cancelled")
     @MainActor
-    func settingsCalendarIntegrationStrictActiveCancel() {
+    func settingsCalendarIntegrationStrictActiveCancel() async throws {
         let originalMakeAlert = StrictModeChallenge.makeAlert
         let originalRunAlert = StrictModeChallenge.runAlert
         defer {
@@ -893,7 +894,7 @@ struct SettingsViewTests {
 
     @Test("Settings calendar integration toggle applies change when strict is active and challenge passes")
     @MainActor
-    func settingsCalendarIntegrationStrictActivePass() {
+    func settingsCalendarIntegrationStrictActivePass() async throws {
         let originalMakeAlert = StrictModeChallenge.makeAlert
         let originalRunAlert = StrictModeChallenge.runAlert
         defer {
@@ -925,7 +926,7 @@ struct SettingsViewTests {
 
     @Test("Settings controller cursor fluid toggle updates app state and survives reset hooks")
     @MainActor
-    func settingsCursorFluidToggleAndResetHooksCoverage() {
+    func settingsCursorFluidToggleAndResetHooksCoverage() async throws {
         defer { SettingsSectionViewController.resetStrictModeAlertHooksForTesting() }
 
         let appState = isolatedAppState(name: "cursorFluidToggle")

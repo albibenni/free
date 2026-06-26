@@ -54,8 +54,8 @@ class LocalServer {
         try NWListener(using: .tcp, on: port)
     }
 
-    func start(on requestedPort: NWEndpoint.Port = 10000) {
-        let isGeneralTesting = processNameProvider().contains("Test") && requestedPort == 10000
+    func start(on requestedPort: NWEndpoint.Port = .any) {
+        let isGeneralTesting = processNameProvider().contains("Test") && requestedPort == .any
 
         if isGeneralTesting {
             return
@@ -68,7 +68,7 @@ class LocalServer {
             listener.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    _ = listener.port
+                    self.port = listener.port
                 case .failed(let error):
                     self.onFailure?(error)
                 default:

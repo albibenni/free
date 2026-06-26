@@ -34,7 +34,7 @@ actor BrowserMonitor {
     }
 
     private var timer: (any RepeatingTimer)?
-    private let stateSnapshotProvider: @Sendable () -> StateSnapshot?
+    private let stateSnapshotProvider: @Sendable () async -> StateSnapshot?
     private let onEvent: @Sendable (Event) -> Void
     private let server: LocalServer?
     private let automator: BrowserAutomator
@@ -71,7 +71,7 @@ actor BrowserMonitor {
     ]
 
     init(
-        stateSnapshotProvider: @escaping @Sendable () -> StateSnapshot?,
+        stateSnapshotProvider: @escaping @Sendable () async -> StateSnapshot?,
         onEvent: @escaping @Sendable (Event) -> Void,
         server: LocalServer? = LocalServer(),
         automator: BrowserAutomator = DefaultBrowserAutomator(),
@@ -105,7 +105,7 @@ actor BrowserMonitor {
     }
 
     deinit {
-        stopMonitoring()
+        timer?.invalidate()
     }
 
     func checkPermissions(prompt: Bool = false) {
@@ -128,9 +128,19 @@ actor BrowserMonitor {
         replaceTimer(with: nil)
     }
 
-    func checkActiveTab() {
+    private var redirectUrlString: String {
+        let port = server?.port?.rawValue ?? 10000
+        return "http://localhost:\(port)"
+    }
+    
+    private var localServerHostPort: String {
+        let port = server?.port?.rawValue ?? 10000
+        return "localhost:\(port)"
+    }
+
+    func checkActiveTab() async {
         guard
-            let snapshot = stateSnapshotProvider(),
+            let snapshot = await stateSnapshotProvider(),
             snapshot.isBlocking,
             !snapshot.isPaused,
               let frontApp = frontmostAppProvider(),
@@ -145,32 +155,33 @@ actor BrowserMonitor {
         if let lastRedirect, now.timeIntervalSince(lastRedirect) < 2.0 { return }
 
         if let currentURL = automator.getActiveUrl(for: frontApp) {
-            if currentURL.contains("localhost:10000") { return }
+            if currentURL.contains(localServerHostPort) { return }
 
             if Self.isNewTabLike(currentURL) {
                 guard snapshot.blockNewTabs else { return }
                 lastRedirectTime[bundleId] = now
-                automator.redirect(app: frontApp, to: "http://localhost:10000")
+                automator.redirect(app: frontApp, to: redirectUrlString)
                 return
             }
 
             if Self.isDeveloperLocalUrl(currentURL) {
                 guard snapshot.blockDeveloperHosts else { return }
                 lastRedirectTime[bundleId] = now
-                automator.redirect(app: frontApp, to: "http://localhost:10000")
+                automator.redirect(app: frontApp, to: redirectUrlString)
                 return
             }
 
             if Self.isPrivateNetworkUrl(currentURL) {
                 guard snapshot.blockLocalNetworkHosts else { return }
                 lastRedirectTime[bundleId] = now
-                automator.redirect(app: frontApp, to: "http://localhost:10000")
+                automator.redirect(app: frontApp, to: redirectUrlString)
                 return
             }
 
-            if !RuleMatcher.isAllowed(currentURL, rules: snapshot.allowedRules) {
+            let currentPort = server?.port?.rawValue
+            if !RuleMatcher.isAllowed(currentURL, rules: snapshot.allowedRules, localPort: currentPort) {
                 lastRedirectTime[bundleId] = now
-                automator.redirect(app: frontApp, to: "http://localhost:10000")
+                automator.redirect(app: frontApp, to: redirectUrlString)
             }
         }
     }

@@ -6,7 +6,7 @@ final class MainShellBindings {
     private var cancellables: Set<AnyCancellable> = []
 
     func bind(
-        appStateChanges: AnyPublisher<Void, Never>,
+        appStateChanges: (@escaping () -> Void) -> Void,
         shellState: FreeShellState,
         onSelectedSectionChanged: @escaping () -> Void,
         onAppStateChanged: @escaping () -> Void,
@@ -21,12 +21,9 @@ final class MainShellBindings {
             }
             .store(in: &cancellables)
 
-        appStateChanges
-            .receive(on: RunLoop.main)
-            .sink {
-                onAppStateChanged()
-            }
-            .store(in: &cancellables)
+        appStateChanges {
+            onAppStateChanged()
+        }
 
         shellState.$showRules
             .removeDuplicates()

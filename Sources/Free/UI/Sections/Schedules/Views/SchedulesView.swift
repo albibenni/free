@@ -33,6 +33,7 @@ final class SchedulesSheetViewController: NSViewController {
         _fallbackScheduleModificationBlockedAlertRunner ?? AppKitSystemBridges.runModal
     }
 
+    @MainActor
     private struct RenderSignature: Equatable {
         let appearanceMode: AppearanceMode
         let accentColorIndex: Int
@@ -108,45 +109,29 @@ final class SchedulesSheetViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        AppKitAppStateObservation.bind(
-            publisher: schedulesObservationPublisher(),
-            signature: { [unowned self, appState] in
-                RenderSignature(
-                    appState: appState,
+        let appState = self.appState
+        AppKitAppStateObservation.observe(
+            appState: appState,
+            signature: { [weak self] () -> RenderSignature? in
+                guard let self = self else { return nil }
+                let _ = self.appState.schedules
+                let _ = self.appState.appearanceMode
+                let _ = self.appState.accentColorIndex
+                if self.viewMode == 0 {
+                    let _ = self.appState.weekStartsOnMonday
+                    let _ = self.appState.calendarIntegrationEnabled
+                    let _ = self.appState.calendarProvider.events
+                }
+                return RenderSignature(
+                    appState: self.appState,
                     viewMode: self.viewMode,
                     calendarEventsVersion: self.calendarEventsVersion
                 )
-            },
-            cancellables: &cancellables
+            }
         ) { [weak self] nextSignature in
+            guard let nextSignature = nextSignature else { return }
             self?.applyConfiguration(signature: nextSignature)
         }
-    }
-
-    private func schedulesObservationPublisher() -> AnyPublisher<Void, Never> {
-        let calendarModeOnly: (()) -> Bool = { [weak self] _ in
-            self?.viewMode == 0
-        }
-
-        return Publishers.MergeMany(
-            appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
-            appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
-            appState.$weekStartsOnMonday.map { _ in () }
-                .filter(calendarModeOnly)
-                .eraseToAnyPublisher(),
-            appState.$calendarIntegrationEnabled.map { _ in () }
-                .filter(calendarModeOnly)
-                .eraseToAnyPublisher(),
-            appState.calendarProvider.objectWillChange
-                .filter(calendarModeOnly)
-                .handleEvents(receiveOutput: { [weak self] _ in
-                    self?.calendarEventsVersion &+= 1
-                })
-                .map { _ in () }
-                .eraseToAnyPublisher()
-        )
-        .eraseToAnyPublisher()
     }
 
     override func viewDidAppear() {

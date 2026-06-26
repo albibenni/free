@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum AllowedWebsitesRuleActionsCoordinator {
     @inline(never)
     static func normalizedRuleInput(_ rawValue: String) -> String? {
@@ -34,6 +35,7 @@ enum AllowedWebsitesRuleActionsCoordinator {
     }
 }
 
+@MainActor
 enum AllowedWebsitesRuleSetActionsCoordinator {
     @inline(never)
     static func canCreateRuleSet(isStrictActive: Bool) -> Bool {

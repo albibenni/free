@@ -4,6 +4,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct AppKitSystemBridgeLiveSystemTests {
     final class ModalTestAlert: NSAlert {
         override func runModal() -> NSApplication.ModalResponse {
@@ -13,7 +14,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystem openURL short-circuits under tests")
     @MainActor
-    func openURLShortCircuitsUnderTests() throws {
+    func openURLShortCircuitsUnderTests() async throws {
         defer { AppKitSystemBridgeLiveSystem.resetForTesting() }
 
         let url = try #require(URL(string: "https://example.com/system-short-circuit"))
@@ -30,7 +31,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystem runModal short-circuits under tests")
     @MainActor
-    func runModalShortCircuitsUnderTests() {
+    func runModalShortCircuitsUnderTests() async throws {
         defer { AppKitSystemBridgeLiveSystem.resetForTesting() }
 
         var called = false
@@ -46,7 +47,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystem fallback closures are used outside test runtime")
     @MainActor
-    func fallbackClosuresAreUsedOutsideTestRuntime() throws {
+    func fallbackClosuresAreUsedOutsideTestRuntime() async throws {
         defer { AppKitSystemBridgeLiveSystem.resetForTesting() }
 
         let url = try #require(URL(string: "https://example.com/system-pass-through"))
@@ -71,7 +72,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystem live workspace and modal delegates use injected defaults")
     @MainActor
-    func liveDelegatesUseInjectedDefaults() throws {
+    func liveDelegatesUseInjectedDefaults() async throws {
         defer { AppKitSystemBridgeLiveSystem.resetForTesting() }
 
         let url = try #require(URL(string: "https://example.com/system-live"))
@@ -85,7 +86,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystem reset clears delegate overrides")
     @MainActor
-    func resetClearsDelegateOverrides() throws {
+    func resetClearsDelegateOverrides() async throws {
         defer { AppKitSystemBridgeLiveSystem.resetForTesting() }
 
         let url = try #require(URL(string: "https://example.com/system-reset"))
@@ -104,7 +105,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystem default workspace fallback executes")
     @MainActor
-    func defaultWorkspaceFallbackExecutes() {
+    func defaultWorkspaceFallbackExecutes() async throws {
         defer { AppKitSystemBridgeLiveSystem.resetForTesting() }
 
         AppKitSystemBridgeLiveSystem.setIsRunningInTestProcessForTesting { false }
@@ -116,7 +117,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystem default workspace native fallback path executes")
     @MainActor
-    func defaultWorkspaceNativeFallbackPathExecutes() {
+    func defaultWorkspaceNativeFallbackPathExecutes() async throws {
         defer { AppKitSystemBridgeLiveSystem.resetForTesting() }
 
         AppKitSystemBridgeLiveSystem.setIsRunningInTestProcessForTesting { false }
@@ -129,7 +130,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystem default runModal fallback executes")
     @MainActor
-    func defaultRunModalFallbackExecutes() {
+    func defaultRunModalFallbackExecutes() async throws {
         defer { AppKitSystemBridgeLiveSystem.resetForTesting() }
 
         AppKitSystemBridgeLiveSystem.setIsRunningInTestProcessForTesting { false }
@@ -140,7 +141,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystem default runModal native fallback path executes")
     @MainActor
-    func defaultRunModalNativeFallbackPathExecutes() {
+    func defaultRunModalNativeFallbackPathExecutes() async throws {
         defer { AppKitSystemBridgeLiveSystem.resetForTesting() }
 
         AppKitSystemBridgeLiveSystem.setIsRunningInTestProcessForTesting { false }
@@ -151,7 +152,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystemRuntime uses injected native workspace opener")
     @MainActor
-    func runtimeUsesInjectedNativeWorkspaceOpener() {
+    func runtimeUsesInjectedNativeWorkspaceOpener() async throws {
         defer { AppKitSystemBridgeLiveSystemRuntime.resetForTesting() }
 
         var openedURL: URL?
@@ -166,7 +167,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystemRuntime returns false when XCTest runtime is forced")
     @MainActor
-    func runtimeReturnsFalseWhenXCTestForced() {
+    func runtimeReturnsFalseWhenXCTestForced() async throws {
         defer { AppKitSystemBridgeLiveSystemRuntime.resetForTesting() }
 
         AppKitSystemBridgeLiveSystemRuntime.setNativeWorkspaceOpenForTesting(nil)
@@ -177,7 +178,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystemRuntime reset clears overrides")
     @MainActor
-    func runtimeResetClearsOverrides() {
+    func runtimeResetClearsOverrides() async throws {
         defer { AppKitSystemBridgeLiveSystemRuntime.resetForTesting() }
 
         AppKitSystemBridgeLiveSystemRuntime.setNativeWorkspaceOpenForTesting { _ in true }
@@ -191,7 +192,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystemRuntime non-XCTest fallback executes native open path")
     @MainActor
-    func runtimeNonXCTestFallbackExecutesNativeOpenPath() {
+    func runtimeNonXCTestFallbackExecutesNativeOpenPath() async throws {
         defer { AppKitSystemBridgeLiveSystemRuntime.resetForTesting() }
 
         AppKitSystemBridgeLiveSystemRuntime.setNativeWorkspaceOpenForTesting(nil)
@@ -203,7 +204,7 @@ struct AppKitSystemBridgeLiveSystemTests {
 
     @Test("AppKitSystemBridgeLiveSystemRuntime uses ProcessInfo XCTest fallback when hook is nil")
     @MainActor
-    func runtimeUsesProcessInfoXCTestFallbackWhenHookNil() {
+    func runtimeUsesProcessInfoXCTestFallbackWhenHookNil() async throws {
         defer { AppKitSystemBridgeLiveSystemRuntime.resetForTesting() }
 
         AppKitSystemBridgeLiveSystemRuntime.setNativeWorkspaceOpenForTesting(nil)

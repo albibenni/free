@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 enum FocusSectionSharedStateCoordinator {
     struct Presentation {
         let isPermissionWarningHidden: Bool

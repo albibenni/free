@@ -4,6 +4,7 @@ import Foundation
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct SchedulesViewTests {
     private func isolatedAppState(name: String) -> AppState {
         let suite = "SchedulesViewTests.\(name)"
@@ -85,7 +86,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet controller actions cover delete, remove-at-offsets, select, and open add")
     @MainActor
-    func schedulesViewActionLogic() {
+    func schedulesViewActionLogic() async throws {
         let appState = isolatedAppState(name: "actions")
         let first = sampleSchedule(name: "First")
         let second = sampleSchedule(name: "Second")
@@ -119,7 +120,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet opens editor freely when strict; only save/toggle/delete are challenge-gated")
     @MainActor
-    func schedulesViewBlocksMutationsWhenStrictActive() {
+    func schedulesViewBlocksMutationsWhenStrictActive() async throws {
         let appState = isolatedAppState(name: "blocksMutationsWhenStrictActive")
         let schedule = sampleSchedule(name: "Locked")
         appState.schedules = [schedule]
@@ -156,7 +157,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet opens editor in strict-only mode; direct mutations remain challenge-gated")
     @MainActor
-    func schedulesViewAllowsMutationsWhenStrictButNotBlocking() {
+    func schedulesViewAllowsMutationsWhenStrictButNotBlocking() async throws {
         let appState = isolatedAppState(name: "allowsMutationsWhenStrictButNotBlocking")
         let schedule = sampleSchedule(name: "Editable")
         appState.schedules = [schedule]
@@ -181,7 +182,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet openAddSchedule always opens editor regardless of strict mode; no blocked alert shown")
     @MainActor
-    func schedulesViewShowsStrictLockAlert() {
+    func schedulesViewShowsStrictLockAlert() async throws {
         defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
         var alertRunCount = 0
         SchedulesSheetViewController.setScheduleModificationAlertHooksForTesting(
@@ -216,7 +217,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet onSelectSchedule opens editor freely; onUpdateSchedule is still challenge-gated")
     @MainActor
-    func schedulesViewStrictCallbacksShowLockAlert() {
+    func schedulesViewStrictCallbacksShowLockAlert() async throws {
         let appState = isolatedAppState(name: "strictCallbacksShowLockAlert")
         var schedule = sampleSchedule(name: "Locked Callback")
         schedule.days = [2]
@@ -251,7 +252,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet default lock alert runner uses native modal branch outside XCTest env")
     @MainActor
-    func schedulesViewDefaultLockAlertRunnerFallback() {
+    func schedulesViewDefaultLockAlertRunnerFallback() async throws {
         defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
         let originalEnv = getenv("XCTestConfigurationFilePath").map { String(cString: $0) }
         unsetenv("XCTestConfigurationFilePath")
@@ -278,7 +279,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet default native runner fallback path is covered without presenting modal in XCTest")
     @MainActor
-    func schedulesViewDefaultNativeRunnerFallbackCoverage() {
+    func schedulesViewDefaultNativeRunnerFallbackCoverage() async throws {
         defer {
             SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting()
             AppKitSystemBridges.setRunModalForTesting(nil)
@@ -297,7 +298,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet default fallback branch routes through AppKit system bridge")
     @MainActor
-    func schedulesViewDefaultFallbackBranchCoverage() {
+    func schedulesViewDefaultFallbackBranchCoverage() async throws {
         defer {
             SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting()
             AppKitSystemBridges.setRunModalForTesting(nil)
@@ -315,7 +316,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet controller does not delete imported schedules from row or swipe actions")
     @MainActor
-    func schedulesViewPreventsImportedDeletion() {
+    func schedulesViewPreventsImportedDeletion() async throws {
         let appState = isolatedAppState(name: "preventsImportedDeletion")
         appState.calendarIntegrationEnabled = true
 
@@ -355,7 +356,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules remove-at-offsets skips imported entries in compactMap guard branch")
     @MainActor
-    func schedulesRemoveOffsetsSkipsImportedBranch() {
+    func schedulesRemoveOffsetsSkipsImportedBranch() async throws {
         let appState = isolatedAppState(name: "removeOffsetsSkipsImported")
         appState.calendarIntegrationEnabled = true
         let now = Date()
@@ -394,7 +395,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet controller renders list mode with schedules")
     @MainActor
-    func schedulesViewListModeRender() {
+    func schedulesViewListModeRender() async throws {
         let appState = isolatedAppState(name: "listMode")
         appState.schedules = [sampleSchedule(name: "A"), sampleSchedule(name: "B")]
 
@@ -410,7 +411,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet controller renders calendar mode")
     @MainActor
-    func schedulesViewCalendarModeRender() {
+    func schedulesViewCalendarModeRender() async throws {
         let appState = isolatedAppState(name: "calendarMode")
         appState.schedules = [sampleSchedule(name: "A")]
 
@@ -426,7 +427,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet controller skips full refresh for unrelated app-state changes")
     @MainActor
-    func schedulesViewSkipsRefreshForUnrelatedStateChanges() {
+    func schedulesViewSkipsRefreshForUnrelatedStateChanges() async throws {
         let appState = isolatedAppState(name: "unrelatedRefresh")
         appState.schedules = [sampleSchedule(name: "A")]
 
@@ -439,14 +440,14 @@ struct SchedulesViewTests {
         let initialRefreshGeneration = controller.refreshGenerationForTesting
 
         appState.currentOpenUrls = ["https://example.com"]
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100000000)
 
         #expect(controller.refreshGenerationForTesting == initialRefreshGeneration)
     }
 
     @Test("Schedules sheet controller exposes visible AppKit toolbar controls in calendar mode")
     @MainActor
-    func schedulesViewCalendarModeShowsToolbarControls() {
+    func schedulesViewCalendarModeShowsToolbarControls() async throws {
         let appState = isolatedAppState(name: "calendarToolbar")
         appState.schedules = [sampleSchedule(name: "A")]
 
@@ -470,7 +471,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet controller supports switching between calendar and list via segmented control")
     @MainActor
-    func schedulesViewToggleSwitchesModes() {
+    func schedulesViewToggleSwitchesModes() async throws {
         let appState = isolatedAppState(name: "toggleModes")
         appState.schedules = [sampleSchedule(name: "A")]
 
@@ -495,14 +496,14 @@ struct SchedulesViewTests {
         if let action = segmented.action {
             NSApp.sendAction(action, to: segmented.target, from: segmented)
         }
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100000000)
 
         #expect(segmented.selectedSegment == 1)
     }
 
     @Test("Schedules sheet controller supports a preset editor context")
     @MainActor
-    func schedulesViewPresetEditorSheetRender() {
+    func schedulesViewPresetEditorSheetRender() async throws {
         let appState = isolatedAppState(name: "doneBinding")
         let schedule = sampleSchedule(name: "Edit")
         appState.schedules = [schedule]
@@ -527,7 +528,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet AppKit configuration callbacks route to controller actions")
     @MainActor
-    func schedulesViewConfigurationCallbacks() {
+    func schedulesViewConfigurationCallbacks() async throws {
         let appState = isolatedAppState(name: "configurationCallbacks")
         var dismissCount = 0
         let schedule = sampleSchedule(name: "Callback")
@@ -583,7 +584,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet testing helpers expose calendar month/config and week navigation methods")
     @MainActor
-    func schedulesViewTestingHelpersForCalendarMetadataAndWeekNav() {
+    func schedulesViewTestingHelpersForCalendarMetadataAndWeekNav() async throws {
         let appState = isolatedAppState(name: "testingHelpersCalendarMetadataAndWeekNav")
         appState.schedules = [sampleSchedule(name: "Helper Schedule")]
 
@@ -608,7 +609,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules callbacks safely early-return when controller is deallocated")
     @MainActor
-    func schedulesViewCallbackNilSelfGuards() {
+    func schedulesViewCallbackNilSelfGuards() async throws {
         let appState = isolatedAppState(name: "callbackNilSelfGuards")
         let schedule = sampleSchedule(name: "Nil Self")
         appState.schedules = [schedule]
@@ -644,7 +645,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules list view reuses existing row view identity for unchanged schedules")
     @MainActor
-    func schedulesListRowReuseIdentity() throws {
+    func schedulesListRowReuseIdentity() async throws {
         let appState = isolatedAppState(name: "listRowReuseIdentity")
         let first = sampleSchedule(name: "First")
         appState.schedules = [first]
@@ -662,7 +663,7 @@ struct SchedulesViewTests {
 
         let second = sampleSchedule(name: "Second")
         appState.schedules.append(second)
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100000000)
 
         #expect(controller.listRowObjectIdentifierForTesting(scheduleId: first.id) == initialRowId)
         #expect(controller.listRowObjectIdentifierForTesting(scheduleId: second.id) != nil)
@@ -670,7 +671,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules list document reorders existing row views when schedule order changes")
     @MainActor
-    func schedulesListDocumentReorderCoverage() throws {
+    func schedulesListDocumentReorderCoverage() async throws {
         let first = sampleSchedule(name: "First")
         let second = sampleSchedule(name: "Second")
         let document = SchedulesListDocumentNSView(frame: NSRect(x: 0, y: 0, width: 600, height: 300))
@@ -705,7 +706,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules list row view handles draw, select, delete, and toggle callbacks")
     @MainActor
-    func schedulesListRowViewInteractionCoverage() {
+    func schedulesListRowViewInteractionCoverage() async throws {
         let row = SchedulesListRowNSView(frame: NSRect(x: 0, y: 0, width: 420, height: 72))
         #expect(row.scheduleId == nil)
         row.showsSeparator = false
@@ -805,7 +806,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet testing helpers cover dismiss callback and non-forced refresh no-op")
     @MainActor
-    func schedulesTestingHelpersDismissAndRefreshCoverage() {
+    func schedulesTestingHelpersDismissAndRefreshCoverage() async throws {
         let appState = isolatedAppState(name: "testingHelpersDismissAndRefreshCoverage")
         appState.schedules = [sampleSchedule(name: "Seed")]
         var dismissCount = 0
@@ -826,7 +827,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules list row and schedules sheet unavailable coder init paths return nil")
     @MainActor
-    func schedulesUnavailableCoderInitCoverage() throws {
+    func schedulesUnavailableCoderInitCoverage() async throws {
         let archiver = NSKeyedArchiver(requiringSecureCoding: false)
         archiver.finishEncoding()
         let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)
@@ -838,7 +839,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules container routes toolbar actions and window attachment callback")
     @MainActor
-    func schedulesContainerActionsAndWindowAttachment() {
+    func schedulesContainerActionsAndWindowAttachment() async throws {
         let appState = isolatedAppState(name: "containerActions")
         let container = SchedulesContainerNSView(frame: NSRect(x: 0, y: 0, width: 900, height: 760))
         _ = hostView(container)
@@ -926,7 +927,7 @@ struct SchedulesViewTests {
         if let editor = window.attachedSheet?.contentViewController as? ScheduleEditorViewController {
             editor.dismissForTesting()
         }
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100000000)
 
         let noEditorConfig = SchedulesAppKitConfiguration(
             viewMode: 0,
@@ -962,7 +963,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules container dismiss helper clears injected editor controller")
     @MainActor
-    func schedulesContainerDismissHelperCoverage() {
+    func schedulesContainerDismissHelperCoverage() async throws {
         let container = SchedulesContainerNSView(frame: NSRect(x: 0, y: 0, width: 500, height: 400))
         let sheet = FreeSheetWindowController(
             contentViewController: NSViewController(),
@@ -976,7 +977,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules container coder init returns nil and pre-config window attach is safe")
     @MainActor
-    func schedulesContainerCoderAndPreConfigGuardCoverage() throws {
+    func schedulesContainerCoderAndPreConfigGuardCoverage() async throws {
         let container = SchedulesContainerNSView(frame: NSRect(x: 0, y: 0, width: 500, height: 400))
         container.viewDidMoveToWindow()
 
@@ -989,7 +990,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules controller testing hooks cover editor and lightweight refresh paths")
     @MainActor
-    func schedulesControllerHookCoverage() {
+    func schedulesControllerHookCoverage() async throws {
         let appState = isolatedAppState(name: "controllerHooks")
         var schedule = sampleSchedule(name: "Hook")
         schedule.days = [2]
@@ -1048,7 +1049,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet maps external-event snapshots and routes calendar update callback")
     @MainActor
-    func schedulesExternalEventsAndUpdateCallbackCoverage() {
+    func schedulesExternalEventsAndUpdateCallbackCoverage() async throws {
         let appState = isolatedAppState(name: "externalEventsAndUpdateCallback")
         var schedule = sampleSchedule(name: "Calendar Update")
         schedule.days = [2]
@@ -1079,7 +1080,7 @@ struct SchedulesViewTests {
                 endDate: Date().addingTimeInterval(2400)
             )
         ]
-        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        try await Task.sleep(nanoseconds: 100000000)
         #expect(controller.refreshGenerationForTesting > generationBeforeCalendarPublish)
 
         controller.refreshConfigurationForTesting(force: false)
@@ -1106,7 +1107,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules modification alert getter uses defaultMakeScheduleModificationBlockedAlert when no override is set")
     @MainActor
-    func schedulesAlertGetterUsesDefaultWhenNoOverride() {
+    func schedulesAlertGetterUsesDefaultWhenNoOverride() async throws {
         defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
         SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting()
         _ = SchedulesSheetViewController.makeScheduleModificationBlockedAlert()
@@ -1114,7 +1115,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules modification alert property setter stores factory via property assignment syntax")
     @MainActor
-    func schedulesAlertSetterStoresViaPropertySyntax() {
+    func schedulesAlertSetterStoresViaPropertySyntax() async throws {
         defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
         var callCount = 0
         SchedulesSheetViewController.makeScheduleModificationBlockedAlert = {
@@ -1127,7 +1128,7 @@ struct SchedulesViewTests {
 
     @Test("Default run alert runner returns alertFirstButtonReturn when running in test process")
     @MainActor
-    func schedulesDefaultRunAlertReturnsFirstButtonInTestProcess() {
+    func schedulesDefaultRunAlertReturnsFirstButtonInTestProcess() async throws {
         defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
         SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting()
         let response = SchedulesSheetViewController.runScheduleModificationBlockedAlert(NSAlert())
@@ -1136,7 +1137,7 @@ struct SchedulesViewTests {
 
     @Test("showScheduleModificationBlockedAlert creates and runs the configured alert")
     @MainActor
-    func schedulesShowModificationBlockedAlertCoverage() {
+    func schedulesShowModificationBlockedAlertCoverage() async throws {
         defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
         var makeCount = 0
         var runCount = 0
@@ -1154,7 +1155,7 @@ struct SchedulesViewTests {
 
     @Test("Schedules sheet hides external overlay entries when mirrored imported schedules already exist")
     @MainActor
-    func schedulesExternalOverlaySkipsMirroredImportedEvents() {
+    func schedulesExternalOverlaySkipsMirroredImportedEvents() async throws {
         let appState = isolatedAppState(name: "externalOverlaySkipsMirroredImportedEvents")
         appState.calendarIntegrationEnabled = true
         appState.suppressedImportedCalendarEventKeys = ["event-2"]

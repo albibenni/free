@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateScheduleCheckCoordinatorTests {
     @Test("evaluate starts schedule-driven blocking when automatic focus is active")
-    func evaluateStartsBlockingForActiveFocus() {
+    func evaluateStartsBlockingForActiveFocus() async throws {
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
         let focus = Schedule(
@@ -33,7 +34,7 @@ struct AppStateScheduleCheckCoordinatorTests {
     }
 
     @Test("evaluate stops only schedule-driven blocking when automatic focus is inactive")
-    func evaluateStopsOnlyScheduleDrivenBlocking() {
+    func evaluateStopsOnlyScheduleDrivenBlocking() async throws {
         let result = AppStateScheduleCheckCoordinator.evaluate(
             currentIsBlocking: true,
             currentWasStartedBySchedule: true,
@@ -50,7 +51,7 @@ struct AppStateScheduleCheckCoordinatorTests {
     }
 
     @Test("evaluate keeps manual blocking active and normalizes stale paused ids")
-    func evaluateKeepsManualBlockingAndNormalizesPausedIds() {
+    func evaluateKeepsManualBlockingAndNormalizesPausedIds() async throws {
         let staleId = UUID()
 
         let result = AppStateScheduleCheckCoordinator.evaluate(

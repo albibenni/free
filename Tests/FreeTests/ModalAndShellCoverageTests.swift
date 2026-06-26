@@ -18,6 +18,7 @@ private final class ImportCoverageAutomator: BrowserAutomator {
 }
 
 @Suite(.serialized)
+@MainActor
 struct ModalAndShellCoverageTests {
     private final class NonBlockingAlert: NSAlert {
         override func runModal() -> NSApplication.ModalResponse {
@@ -57,7 +58,7 @@ struct ModalAndShellCoverageTests {
     }
 
     @Test("Schedule editor action coordinator maps popup index and recurring toggle")
-    func scheduleEditorActionCoordinator() {
+    func scheduleEditorActionCoordinator() async throws {
         let ids = [UUID(), UUID()]
         let sets = [
             RuleSet(id: ids[0], name: "A", urls: []),
@@ -75,7 +76,7 @@ struct ModalAndShellCoverageTests {
 
     @MainActor
     @Test("Rule-set alert presenters default native-modal runners execute through NSAlert.runModal override")
-    func alertPresentersDefaultNativeModalRunners() {
+    func alertPresentersDefaultNativeModalRunners() async throws {
         defer {
             AllowedWebsitesRuleSetAlertPresenter.resetForTesting()
             RulesSheetAlertPresenter.resetForTesting()
@@ -104,7 +105,7 @@ struct ModalAndShellCoverageTests {
 
     @MainActor
     @Test("Alert presenters support create/cancel and confirm paths through injected runner")
-    func alertPresenters() {
+    func alertPresenters() async throws {
         defer {
             AllowedWebsitesRuleSetAlertPresenter.resetForTesting()
             RulesSheetAlertPresenter.resetForTesting()
@@ -320,14 +321,14 @@ struct ModalAndShellCoverageTests {
         controller.viewDidLoad()
 
         defer {
-            AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting()
+            controller.resetImportPresentersForTesting()
         }
 
         var didPresentEmpty = false
-        AllowedWebsitesFloatingEditorViewController.presentEmptyImportState = { _ in
+        controller.presentEmptyImportState = { _ in
             didPresentEmpty = true
         }
-        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { candidates, _ in
+        controller.presentImportCandidates = { candidates, _ in
             #expect(candidates.count >= 1)
             return ["https://example.com"]
         }
@@ -357,7 +358,7 @@ struct ModalAndShellCoverageTests {
 
         defer {
             AllowedWebsitesRuleSetAlertPresenter.resetForTesting()
-            AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting()
+            controller.resetImportPresentersForTesting()
         }
 
         appState.isStrict = true
@@ -388,7 +389,7 @@ struct ModalAndShellCoverageTests {
         #expect(appState.ruleSets.contains(where: { $0.id == toDeleteId }) == false)
 
         var showedEmptyImportState = false
-        AllowedWebsitesFloatingEditorViewController.presentEmptyImportState = { _ in
+        controller.presentEmptyImportState = { _ in
             showedEmptyImportState = true
         }
         controller.selectedRuleSetId = appState.ruleSets.first?.id
@@ -396,15 +397,15 @@ struct ModalAndShellCoverageTests {
         #expect(showedEmptyImportState)
 
         // Cover default import presenter closures in the controller extension.
-        AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting()
+        controller.resetImportPresentersForTesting()
         AllowedWebsitesImportAlertPresenter.resetForTesting()
-        AllowedWebsitesFloatingEditorViewController.presentEmptyImportState([])
-        _ = AllowedWebsitesFloatingEditorViewController.presentImportCandidates([], "Any")
+        controller.presentEmptyImportState([])
+        _ = controller.presentImportCandidates([], "Any")
     }
 
     @MainActor
     @Test("Allowed websites editor action controller covers row taps, strict lock, and add/remove guards")
-    func allowedWebsitesEditorActionControllerPaths() {
+    func allowedWebsitesEditorActionControllerPaths() async throws {
         let appState = isolatedAppState(
             name: "allowedWebsitesEditorActionControllerPaths",
             openUrls: ["https://swift.org"]
@@ -492,7 +493,7 @@ struct ModalAndShellCoverageTests {
 
     @MainActor
     @Test("Allowed websites editor covers weak-self closures, add-from-field, and preserved selection")
-    func allowedWebsitesEditorClosureAndSelectionCoverage() {
+    func allowedWebsitesEditorClosureAndSelectionCoverage() async throws {
         let appState = isolatedAppState(name: "allowedWebsitesEditorClosureAndSelectionCoverage")
         let set = RuleSet(name: "Default", urls: ["https://swift.org", "https://example.com"])
         appState.ruleSets = [set]
@@ -548,19 +549,15 @@ struct ModalAndShellCoverageTests {
         await controller.handleImportOpenTabsAsync()
 
         // Exercise default static presenter closures.
-        AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting()
+        controller.resetImportPresentersForTesting()
         AllowedWebsitesImportAlertPresenter.resetForTesting()
-        AllowedWebsitesFloatingEditorViewController.presentEmptyImportState([])
-        _ = AllowedWebsitesFloatingEditorViewController.presentImportCandidates([], "Default")
+        controller.presentEmptyImportState([])
+        _ = controller.presentImportCandidates([], "Default")
     }
 
     @MainActor
     @Test("Import presenter static defaults and observation-driven reload execute")
-    func allowedWebsitesImportDefaultsAndObservationReload() {
-        // Execute static default closure initializers before any reset.
-        _ = AllowedWebsitesFloatingEditorViewController.presentImportCandidates([], "Default")
-        AllowedWebsitesFloatingEditorViewController.presentEmptyImportState([])
-
+    func allowedWebsitesImportDefaultsAndObservationReload() async throws {
         let appState = isolatedAppState(name: "allowedWebsitesImportDefaultsAndObservationReload")
         let initial = RuleSet(name: "Initial", urls: [])
         appState.ruleSets = [initial]
@@ -576,17 +573,14 @@ struct ModalAndShellCoverageTests {
         controller.selectedRuleSetId = UUID()
         appState.ruleSets = [initial, RuleSet(name: "Second", urls: [])]
 
-        let limit = Date().addingTimeInterval(0.5)
-        while Date() < limit {
-            RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.01))
-        }
+        try await Task.sleep(nanoseconds: 500_000_000)
 
         #expect(controller.selectedRuleSetId == initial.id)
     }
 
     @MainActor
     @Test("Free sheet container wires done action and hosted content")
-    func freeSheetContainer() {
+    func freeSheetContainer() async throws {
         let hosted = NSViewController()
         hosted.view = NSView(frame: NSRect(x: 0, y: 0, width: 100, height: 100))
 
@@ -610,7 +604,7 @@ struct ModalAndShellCoverageTests {
 
     @MainActor
     @Test("Free sheet window controller supports panel and sheet presentation modes")
-    func freeSheetWindowController() {
+    func freeSheetWindowController() async throws {
         let parent = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
             styleMask: [.titled, .closable],
@@ -664,7 +658,7 @@ struct ModalAndShellCoverageTests {
 
     @MainActor
     @Test("Free sheet window controller covers no-op and already-attached branches")
-    func freeSheetWindowControllerBranchCoverage() {
+    func freeSheetWindowControllerBranchCoverage() async throws {
         let parent = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 720, height: 520),
             styleMask: [.titled, .closable],
@@ -731,7 +725,7 @@ struct ModalAndShellCoverageTests {
 
     @MainActor
     @Test("Free sheet window controller guard-return branches are covered")
-    func freeSheetWindowControllerGuardBranches() {
+    func freeSheetWindowControllerGuardBranches() async throws {
         let parent = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
             styleMask: [.titled, .closable],
@@ -768,7 +762,7 @@ struct ModalAndShellCoverageTests {
 
     @MainActor
     @Test("Status item controller updates menu state and executes quit callback")
-    func freeStatusItemController() {
+    func freeStatusItemController() async throws {
         var didQuit = false
         var didOpenApp = false
         let controller = FreeStatusItemController {
@@ -843,7 +837,7 @@ struct ModalAndShellCoverageTests {
 
     @MainActor
     @Test("Vertically centered text-field support covers drawing/edit/select paths")
-    func verticallyCenteredTextFieldSupportCoverage() {
+    func verticallyCenteredTextFieldSupportCoverage() async throws {
         let rect = NSRect(x: 0, y: 0, width: 220, height: 40)
         let cell = VerticallyCenteredTextFieldCell(textCell: "value")
         _ = cell.drawingRect(forBounds: rect)
@@ -859,7 +853,7 @@ struct ModalAndShellCoverageTests {
     }
 
     @Test("Rule-set alert presenters execute default class lookup")
-    func alertPresenterDefaultClassLookupCoverage() {
+    func alertPresenterDefaultClassLookupCoverage() async throws {
         defer {
             AllowedWebsitesImportAlertPresenter.resetForTesting()
             AllowedWebsitesRuleSetAlertPresenter.resetForTesting()

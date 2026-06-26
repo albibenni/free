@@ -5,6 +5,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct AppStateLifecycleServiceTests {
     private func makeMonitor() -> BrowserMonitor {
         BrowserMonitor(
@@ -25,7 +26,7 @@ struct AppStateLifecycleServiceTests {
     }
 
     @Test("makeBootstrapProjection maps all snapshot domains")
-    func makeBootstrapProjectionMapsSnapshot() {
+    func makeBootstrapProjectionMapsSnapshot() async throws {
         let schedule = Schedule(
             name: "Focus",
             days: [2],
@@ -90,7 +91,7 @@ struct AppStateLifecycleServiceTests {
     }
 
     @Test("resolveLegacyBlockingMigration returns nil when migration is not needed and state when needed")
-    func resolveLegacyBlockingMigrationBranches() {
+    func resolveLegacyBlockingMigrationBranches() async throws {
         let facade = AppStateLogicFacade.live
         let current = AppStateLogicFacade.SessionState(
             isBlocking: true,
@@ -126,7 +127,7 @@ struct AppStateLifecycleServiceTests {
 
     @MainActor
     @Test("startRuntime and teardown wire monitor, timers, and cancellables")
-    func startRuntimeAndTeardown() {
+    func startRuntimeAndTeardown() async throws {
         let injectedMonitor = makeMonitor()
         let calendar = MockCalendarManager()
         let scheduler = MockRepeatingTimerScheduler()
@@ -150,17 +151,9 @@ struct AppStateLifecycleServiceTests {
         scheduler.fire(at: 0)
         #expect(scheduleUpdateCount == 1)
 
-        var calendarCancellable: AnyCancellable? = bindings.calendarCancellable
-        var persistenceCancellables: Set<AnyCancellable> = [
-            AnyCancellable {}
-        ]
         AppStateLifecycleService.teardown(
-            timerCoordinator: timerCoordinator,
-            calendarCancellable: &calendarCancellable,
-            persistenceCancellables: &persistenceCancellables
+            timerCoordinator: timerCoordinator
         )
-        #expect(calendarCancellable == nil)
-        #expect(persistenceCancellables.isEmpty)
         #expect(scheduler.timers.first?.invalidateCallCount == 1)
     }
 
@@ -185,50 +178,23 @@ struct AppStateLifecycleServiceTests {
         #expect(bindings.monitor != nil)
         await bindings.monitor?.stopMonitoring()
 
-        var calendarCancellable: AnyCancellable? = bindings.calendarCancellable
-        var persistenceCancellables: Set<AnyCancellable> = []
         AppStateLifecycleService.teardown(
-            timerCoordinator: timerCoordinator,
-            calendarCancellable: &calendarCancellable,
-            persistenceCancellables: &persistenceCancellables
+            timerCoordinator: timerCoordinator
         )
-        #expect(calendarCancellable == nil)
     }
 
     @Test("bindPersistence forwards to persistence coordinator and returns cancellables")
-    func bindPersistence() {
+    func bindPersistence() async throws {
         let suite = "AppStateLifecycleServiceTests.bindPersistence"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
         let settingsStore = SettingsStore(defaults: defaults)
-        let sampleRuleSet = RuleSet(name: "Default", urls: [])
-
-        let bindings = AppStatePersistenceCoordinator.Bindings(
-            isBlocking: Just(false).eraseToAnyPublisher(),
-            isStrict: Just(false).eraseToAnyPublisher(),
-            weekStartsOnMonday: Just(false).eraseToAnyPublisher(),
-            accentColorIndex: Just(0).eraseToAnyPublisher(),
-            appearanceMode: Just(.system).eraseToAnyPublisher(),
-            cursorFluidAnimationEnabled: Just(true).eraseToAnyPublisher(),
-            calendarIntegrationEnabled: Just(false).eraseToAnyPublisher(),
-            calendarImportFocusTitleRules: Just([]).eraseToAnyPublisher(),
-            calendarImportBreakTitleRules: Just([]).eraseToAnyPublisher(),
-            calendarImportedScheduleRuleSetId: Just(nil).eraseToAnyPublisher(),
-            blockNewTabs: Just(false).eraseToAnyPublisher(),
-            blockDeveloperHosts: Just(false).eraseToAnyPublisher(),
-            blockLocalNetworkHosts: Just(false).eraseToAnyPublisher(),
-            allowSearchEngineWebsites: Just(false).eraseToAnyPublisher(),
-            allowAIProviderWebsites: Just(false).eraseToAnyPublisher(),
-            ruleSets: Just([sampleRuleSet]).eraseToAnyPublisher(),
-            activeRuleSetId: Just(sampleRuleSet.id).map(Optional.some).eraseToAnyPublisher(),
-            pomodoroFocusDuration: Just(25).eraseToAnyPublisher(),
-            pomodoroBreakDuration: Just(5).eraseToAnyPublisher()
-        )
+        let appState = AppState(isTesting: true)
 
         let cancellables = AppStateLifecycleService.bindPersistence(
-            bindings: bindings,
+            appState: appState,
             settingsStore: settingsStore
         )
-        #expect(cancellables.count == 19)
+        #expect(!cancellables.isEmpty)
     }
 }

@@ -4,6 +4,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct AppStateRuntimeMonitorFactoryTests {
     @Test("AppStateRuntimeMonitorFactory builds a monitor and allows teardown")
     func makeMonitorBuildsBrowserMonitor() async {

@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum FocusSectionWidgetFactory {
     struct BuildResult {
         let widgetView: NSView?

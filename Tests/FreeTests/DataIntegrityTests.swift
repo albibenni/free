@@ -3,10 +3,11 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct DataIntegrityTests {
 
     @Test("AppState recovers from corrupted RuleSets JSON")
-    func corruptedRuleSets() {
+    func corruptedRuleSets() async throws {
         let suite = "DataIntegrityTests.corruptedRuleSets"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -20,7 +21,7 @@ struct DataIntegrityTests {
     }
 
     @Test("AppState recovers from missing activeRuleSetId")
-    func missingActiveSet() {
+    func missingActiveSet() async throws {
         let suite = "DataIntegrityTests.missingActiveSet"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -36,7 +37,7 @@ struct DataIntegrityTests {
     }
 
     @Test("AppState recovers from corrupted Schedules JSON")
-    func corruptedSchedules() {
+    func corruptedSchedules() async throws {
         let suite = "DataIntegrityTests.corruptedSchedules"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)

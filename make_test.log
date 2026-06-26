@@ -1,0 +1,1911 @@
+[0/1] Planning build
+Building for debugging...
+[0/3] Write sources
+[1/3] Write swift-version--58304C5D6DBC2206.txt
+[3/5] Compiling FreeLogic FreeApp.swift
+/Users/benni/benni-projects/free/Sources/Free/FreeApp.swift:293:17: warning: capture of 'self' with non-Sendable type 'FreeApp?' in a '@Sendable' closure [#SendableClosureCaptures]
+  2 | import Combine
+  3 | 
+  4 | final class FreeApp {
+    |             `- note: class 'FreeApp' does not conform to the 'Sendable' protocol
+  5 |     let appState: AppState
+  6 |     let appDelegate: AppDelegate
+    :
+291 |         } onChange: { [weak self] in
+292 |             DispatchQueue.main.async {
+293 |                 self?.updateStatusItem()
+    |                 `- warning: capture of 'self' with non-Sendable type 'FreeApp?' in a '@Sendable' closure [#SendableClosureCaptures]
+294 |                 self?.startTrackingStatusItem()
+295 |             }
+
+/Users/benni/benni-projects/free/Sources/Free/FreeApp.swift:304:31: warning: capture of 'self' with non-Sendable type 'FreeApp?' in a '@Sendable' closure [#SendableClosureCaptures]
+  2 | import Combine
+  3 | 
+  4 | final class FreeApp {
+    |             `- note: class 'FreeApp' does not conform to the 'Sendable' protocol
+  5 |     let appState: AppState
+  6 |     let appDelegate: AppDelegate
+    :
+302 |         } onChange: { [weak self] in
+303 |             DispatchQueue.main.async {
+304 |                 if let mode = self?.appState.appearanceMode {
+    |                               `- warning: capture of 'self' with non-Sendable type 'FreeApp?' in a '@Sendable' closure [#SendableClosureCaptures]
+305 |                     self?.applyMacOSAppearance(mode)
+306 |                 }
+
+[#SendableClosureCaptures]: <https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures>
+[4/5] Emitting module FreeLogic
+[5/9] Compiling FreeTests FreeAppRuntimeTests.swift
+[6/9] Emitting module FreeTests
+[7/9] Compiling FreeTests FreeAppTests.swift
+[7/9] Write Objects.LinkFileList
+[8/9] Linking FreePackageTests
+Build complete! (5.60s)
+Test Suite 'All tests' started at 2026-06-26 10:29:57.649.
+Test Suite 'All tests' passed at 2026-06-26 10:29:57.650.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite AAAWeeklyCalendarSupportBootstrapTests started.
+◇ Test "Weekly calendar default date builder returns date for hour/minute components" started.
+✔ Test "Weekly calendar default date builder returns date for hour/minute components" passed after 0.003 seconds.
+✔ Suite AAAWeeklyCalendarSupportBootstrapTests passed after 0.003 seconds.
+◇ Suite AddScheduleViewTests started.
+◇ Test "Schedule editor support covers focus/break and scheduling branches" started.
+✔ Test "Schedule editor support covers focus/break and scheduling branches" passed after 0.023 seconds.
+◇ Test "Schedule editor support save payload maps recurring and one-off correctly" started.
+✔ Test "Schedule editor support save payload maps recurring and one-off correctly" passed after 0.001 seconds.
+◇ Test "ScheduleEditorViewController renders new schedule form" started.
+✔ Test "ScheduleEditorViewController renders new schedule form" passed after 0.087 seconds.
+◇ Test "ScheduleEditorViewController header renders close button and dismisses" started.
+✔ Test "ScheduleEditorViewController header renders close button and dismisses" passed after 0.037 seconds.
+◇ Test "ScheduleEditorViewController renders edit scope path" started.
+✔ Test "ScheduleEditorViewController renders edit scope path" passed after 0.034 seconds.
+◇ Test "ScheduleEditorViewController can render single-day recurring badge path" started.
+✔ Test "ScheduleEditorViewController can render single-day recurring badge path" passed after 0.033 seconds.
+◇ Test "ScheduleEditorViewController can render break-session path without allowed list" started.
+✔ Test "ScheduleEditorViewController can render break-session path without allowed list" passed after 0.030 seconds.
+◇ Test "ScheduleEditorViewController does not reload the whole form when toggling repeat weekly" started.
+✔ Test "ScheduleEditorViewController does not reload the whole form when toggling repeat weekly" passed after 0.030 seconds.
+◇ Test "ScheduleEditorViewController keeps save enabled in strict mode; challenge fires on click not on render" started.
+✔ Test "ScheduleEditorViewController keeps save enabled in strict mode; challenge fires on click not on render" passed after 0.029 seconds.
+◇ Test "ScheduleEditorViewController renders imported schedule editor with limited editable sections" started.
+✔ Test "ScheduleEditorViewController renders imported schedule editor with limited editable sections" passed after 0.023 seconds.
+◇ Test "ScheduleEditorViewController save schedule persists and dismisses" started.
+✔ Test "ScheduleEditorViewController save schedule persists and dismisses" passed after 0.003 seconds.
+◇ Test "ScheduleEditorViewController delete schedule removes and dismisses" started.
+✔ Test "ScheduleEditorViewController delete schedule removes and dismisses" passed after 0.001 seconds.
+◇ Test "ScheduleEditorViewController delete confirms multi-day recurring schedule before deleting" started.
+✔ Test "ScheduleEditorViewController delete confirms multi-day recurring schedule before deleting" passed after 0.035 seconds.
+◇ Test "ScheduleEditorViewController delete uses XCTest fast path when confirmation hooks are not overridden" started.
+✔ Test "ScheduleEditorViewController delete uses XCTest fast path when confirmation hooks are not overridden" passed after 0.003 seconds.
+◇ Test "ScheduleEditorViewController delete confirmation hooks expose default and override paths" started.
+✔ Test "ScheduleEditorViewController delete confirmation hooks expose default and override paths" passed after 0.029 seconds.
+◇ Test "ScheduleEditorViewController control handlers update editor state" started.
+✔ Test "ScheduleEditorViewController control handlers update editor state" passed after 0.035 seconds.
+◇ Test "Schedule editor UI interactions trigger selection closures and button actions" started.
+✔ Test "Schedule editor UI interactions trigger selection closures and button actions" passed after 0.078 seconds.
+◇ Test "Schedule editor allowed-list popup falls back to None when current rule-set is missing" started.
+✔ Test "Schedule editor allowed-list popup falls back to None when current rule-set is missing" passed after 0.036 seconds.
+◇ Test "Schedule editor recurring day button actions trigger toggle closures" started.
+✔ Test "Schedule editor recurring day button actions trigger toggle closures" passed after 0.029 seconds.
+◇ Test "Schedule editor save/delete are blocked while strict mode is active" started.
+✔ Test "Schedule editor save/delete are blocked while strict mode is active" passed after 0.055 seconds.
+✔ Suite AddScheduleViewTests passed after 0.638 seconds.
+◇ Suite AllowedWebsitesActionsCoordinatorsTests started.
+◇ Test "Rule-set actions coordinator guards create/delete and mutates via AppState" started.
+✔ Test "Rule-set actions coordinator guards create/delete and mutates via AppState" passed after 0.005 seconds.
+◇ Test "Rule actions coordinator normalizes/adds/removes rules" started.
+✔ Test "Rule actions coordinator normalizes/adds/removes rules" passed after 0.001 seconds.
+◇ Test "Reload coordinator resolves signature and selected rule-set fallback" started.
+✔ Test "Reload coordinator resolves signature and selected rule-set fallback" passed after 0.001 seconds.
+◇ Test "Rule-set actions coordinator function references execute runtime paths" started.
+✔ Test "Rule-set actions coordinator function references execute runtime paths" passed after 0.001 seconds.
+✔ Suite AllowedWebsitesActionsCoordinatorsTests passed after 0.006 seconds.
+◇ Suite AllowedWebsitesCoordinatorsTests started.
+◇ Test "Selection coordinator resolves selected, active, and fallback rule set ids" started.
+✔ Test "Selection coordinator resolves selected, active, and fallback rule set ids" passed after 0.001 seconds.
+◇ Test "Selection coordinator maps selected rows and preserves selection by rule" started.
+✔ Test "Selection coordinator maps selected rows and preserves selection by rule" passed after 0.001 seconds.
+◇ Test "Import coordinator builds candidates with already-allowed state and selection extraction" started.
+✔ Test "Import coordinator builds candidates with already-allowed state and selection extraction" passed after 0.001 seconds.
+✔ Suite AllowedWebsitesCoordinatorsTests passed after 0.001 seconds.
+◇ Suite AllowedWebsitesFloatingEditorTests started.
+◇ Test "floating editor layout wires controls and table behavior" started.
+✔ Test "floating editor layout wires controls and table behavior" passed after 0.005 seconds.
+◇ Test "floating editor add/remove rule actions update visible rules" started.
+✔ Test "floating editor add/remove rule actions update visible rules" passed after 0.005 seconds.
+◇ Test "floating editor blocks rule edits when strict mode is on (regardless of focus state)" started.
+✔ Test "floating editor blocks rule edits when strict mode is on (regardless of focus state)" passed after 0.018 seconds.
+◇ Test "floating editor create/delete list actions follow strict lock rules" started.
+✔ Test "floating editor create/delete list actions follow strict lock rules" passed after 0.030 seconds.
+◇ Test "floating editor action guards cover invalid add/remove/delete and table selection callback" started.
+✔ Test "floating editor action guards cover invalid add/remove/delete and table selection callback" passed after 0.007 seconds.
+◇ Test "floating editor import action covers empty, cancel, and add-selected branches" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is true, returned ["https://www.youtube.com/watch?v=abc", "https://developer.apple.com/documentation"]
+DEBUG refreshCurrentOpenUrlsAsync: monitor is true, returned ["https://www.youtube.com/watch?v=abc", "https://developer.apple.com/documentation"]
+DEBUG refreshCurrentOpenUrlsAsync: monitor is true, returned ["https://www.youtube.com/watch?v=abc", "https://developer.apple.com/documentation"]
+DEBUG refreshCurrentOpenUrlsAsync: monitor is true, returned []
+✔ Test "floating editor import action covers empty, cancel, and add-selected branches" passed after 0.010 seconds.
+◇ Test "floating editor import guard returns when selected rule-set id is missing" started.
+✔ Test "floating editor import guard returns when selected rule-set id is missing" passed after 0.004 seconds.
+◇ Test "floating editor import shows candidate picker first; challenge cancel after selection blocks add" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is true, returned ["https://example.com"]
+✔ Test "floating editor import shows candidate picker first; challenge cancel after selection blocks add" passed after 0.009 seconds.
+◇ Test "floating editor add/remove rule actions are locked while strict mode is active with focus on" started.
+✔ Test "floating editor add/remove rule actions are locked while strict mode is active with focus on" passed after 0.021 seconds.
+◇ Test "floating editor styling toggles strict-mode warning constraints and header icons" started.
+✔ Test "floating editor styling toggles strict-mode warning constraints and header icons" passed after 0.007 seconds.
+◇ Test "floating editor row tap callback safely no-ops after controller deallocation" started.
+✔ Test "floating editor row tap callback safely no-ops after controller deallocation" passed after 0.004 seconds.
+◇ Test "import alert presenter covers empty-state and candidate-selection paths" started.
+✔ Test "import alert presenter covers empty-state and candidate-selection paths" passed after 0.017 seconds.
+◇ Test "rule-set alert presenter covers create/cancel and delete confirmation branches" started.
+✔ Test "rule-set alert presenter covers create/cancel and delete confirmation branches" passed after 0.022 seconds.
+◇ Test "rules table controller returns rows and builds reusable cell views" started.
+✔ Test "rules table controller returns rows and builds reusable cell views" passed after 0.003 seconds.
+✔ Suite AllowedWebsitesFloatingEditorTests passed after 0.169 seconds.
+◇ Suite AllowedWebsitesPresentationCoordinatorTests started.
+◇ Test "Presentation coordinator derives visible rules and list height" started.
+✔ Test "Presentation coordinator derives visible rules and list height" passed after 0.001 seconds.
+◇ Test "Presentation coordinator computes control state flags" started.
+✔ Test "Presentation coordinator computes control state flags" passed after 0.001 seconds.
+◇ Test "Presentation coordinator preserves selection across rules-content reload" started.
+✔ Test "Presentation coordinator preserves selection across rules-content reload" passed after 0.001 seconds.
+✔ Suite AllowedWebsitesPresentationCoordinatorTests passed after 0.001 seconds.
+◇ Suite AllowedWebsitesUIHelpersTests started.
+◇ Test "Control-state applier updates allowed-websites controls consistently" started.
+✔ Test "Control-state applier updates allowed-websites controls consistently" passed after 0.004 seconds.
+◇ Test "Rule-set list builder rebuilds rows and wires taps" started.
+✔ Test "Rule-set list builder rebuilds rows and wires taps" passed after 0.003 seconds.
+◇ Test "Rule-set list builder reuses existing rows when shape is unchanged" started.
+✔ Test "Rule-set list builder reuses existing rows when shape is unchanged" passed after 0.004 seconds.
+◇ Test "Rule-set list builder updateOrRebuild falls back to rebuild on id/title/order mismatches" started.
+✔ Test "Rule-set list builder updateOrRebuild falls back to rebuild on id/title/order mismatches" passed after 0.011 seconds.
+✔ Suite AllowedWebsitesUIHelpersTests passed after 0.022 seconds.
+◇ Suite AllowedWebsitesWidgetTests started.
+◇ Test "FocusAllowedWebsitesWidget renders rule sets and opens list management" started.
+✔ Test "FocusAllowedWebsitesWidget renders rule sets and opens list management" passed after 0.009 seconds.
+◇ Test "FocusAllowedWebsitesWidget updates the active rule set when selection is allowed" started.
+✔ Test "FocusAllowedWebsitesWidget updates the active rule set when selection is allowed" passed after 0.007 seconds.
+◇ Test "FocusAllowedWebsitesWidget disables rule-set switching during strict mode" started.
+✔ Test "FocusAllowedWebsitesWidget disables rule-set switching during strict mode" passed after 0.006 seconds.
+◇ Test "FocusAllowedWebsitesWidget renders an empty state when no rule sets exist" started.
+✔ Test "FocusAllowedWebsitesWidget renders an empty state when no rule sets exist" passed after 0.002 seconds.
+✔ Suite AllowedWebsitesWidgetTests passed after 0.026 seconds.
+◇ Suite AppDelegateSystemTests started.
+◇ Test "DefaultAppDelegateSystem exposes runtime-provided identifiers" started.
+✔ Test "DefaultAppDelegateSystem exposes runtime-provided identifiers" passed after 0.001 seconds.
+◇ Test "DefaultAppDelegateSystem live runtime path can be instantiated" started.
+✔ Test "DefaultAppDelegateSystem live runtime path can be instantiated" passed after 0.001 seconds.
+◇ Test "DefaultAppDelegateSystem live runtime can build alert and process" started.
+✔ Test "DefaultAppDelegateSystem live runtime can build alert and process" passed after 0.011 seconds.
+◇ Test "activateForAlert delegates through runtime" started.
+✔ Test "activateForAlert delegates through runtime" passed after 0.001 seconds.
+◇ Test "confirmMoveToApplications configures alert and maps modal response" started.
+✔ Test "confirmMoveToApplications configures alert and maps modal response" passed after 0.003 seconds.
+◇ Test "confirmQuitWhileBlocking configures warning alert and maps modal response" started.
+✔ Test "confirmQuitWhileBlocking configures warning alert and maps modal response" passed after 0.002 seconds.
+◇ Test "file operations delegate to runtime file manager" started.
+✔ Test "file operations delegate to runtime file manager" passed after 0.001 seconds.
+◇ Test "file operations propagate runtime file manager errors" started.
+✔ Test "file operations propagate runtime file manager errors" passed after 0.001 seconds.
+◇ Test "relaunch configures and runs process" started.
+✔ Test "relaunch configures and runs process" passed after 0.001 seconds.
+◇ Test "relaunch propagates process errors" started.
+✔ Test "relaunch propagates process errors" passed after 0.001 seconds.
+◇ Test "terminate delegates through runtime" started.
+✔ Test "terminate delegates through runtime" passed after 0.001 seconds.
+◇ Test "showMoveError configures alert and shows it" started.
+✔ Test "showMoveError configures alert and shows it" passed after 0.001 seconds.
+◇ Test "showBlockingAlert configures warning alert" started.
+✔ Test "showBlockingAlert configures warning alert" passed after 0.001 seconds.
+◇ Test "NSAlert-backed modal default returns cancel in test process without running modal UI" started.
+✔ Test "NSAlert-backed modal default returns cancel in test process without running modal UI" passed after 0.006 seconds.
+◇ Test "test-process helper checks all environment keys and class lookup fallback" started.
+✔ Test "test-process helper checks all environment keys and class lookup fallback" passed after 0.001 seconds.
+✔ Suite AppDelegateSystemTests passed after 0.027 seconds.
+◇ Suite AppDelegateTests started.
+◇ Test "AppDelegate launch check returns early when app is already in Applications" started.
+✔ Test "AppDelegate launch check returns early when app is already in Applications" passed after 0.001 seconds.
+◇ Test "AppDelegate launch check short-circuits for default system during test runtime" started.
+✔ Test "AppDelegate launch check short-circuits for default system during test runtime" passed after 0.001 seconds.
+◇ Test "AppDelegate launch check returns early in test process" started.
+✔ Test "AppDelegate launch check returns early in test process" passed after 0.001 seconds.
+◇ Test "AppDelegate launch check prompts but does not move when user declines" started.
+✔ Test "AppDelegate launch check prompts but does not move when user declines" passed after 0.001 seconds.
+◇ Test "AppDelegate moves app and relaunches when user confirms" started.
+✔ Test "AppDelegate moves app and relaunches when user confirms" passed after 0.001 seconds.
+◇ Test "AppDelegate reports copy errors during move flow" started.
+✔ Test "AppDelegate reports copy errors during move flow" passed after 0.001 seconds.
+◇ Test "AppDelegate reports remove and relaunch errors during move flow" started.
+✔ Test "AppDelegate reports remove and relaunch errors during move flow" passed after 0.001 seconds.
+◇ Test "AppDelegate prevents termination whenever strict mode is enabled" started.
+✔ Test "AppDelegate prevents termination whenever strict mode is enabled" passed after 0.001 seconds.
+◇ Test "applicationShouldTerminate blocks quit whenever strict mode is enabled and triggers custom alert" started.
+✔ Test "applicationShouldTerminate blocks quit whenever strict mode is enabled and triggers custom alert" passed after 0.001 seconds.
+◇ Test "applicationShouldTerminate asks confirmation while non-strict blocking and respects confirm" started.
+✔ Test "applicationShouldTerminate asks confirmation while non-strict blocking and respects confirm" passed after 0.001 seconds.
+◇ Test "applicationShouldTerminate asks confirmation while non-strict blocking and respects cancel" started.
+✔ Test "applicationShouldTerminate asks confirmation while non-strict blocking and respects cancel" passed after 0.001 seconds.
+◇ Test "applicationShouldTerminate uses default blocking alert when no custom handler" started.
+✔ Test "applicationShouldTerminate uses default blocking alert when no custom handler" passed after 0.001 seconds.
+◇ Test "applicationShouldTerminate allows quit unconditionally when relaunching to Applications" started.
+✔ Test "applicationShouldTerminate allows quit unconditionally when relaunching to Applications" passed after 0.001 seconds.
+◇ Test "isInApplications identifies correct paths" started.
+✔ Test "isInApplications identifies correct paths" passed after 0.001 seconds.
+◇ Test "isRunningInTestProcess checks all environment keys and class lookup fallback" started.
+✔ Test "isRunningInTestProcess checks all environment keys and class lookup fallback" passed after 0.001 seconds.
+✔ Suite AppDelegateTests passed after 0.008 seconds.
+◇ Suite AppKitSystemBridgeLiveSystemTests started.
+◇ Test "AppKitSystemBridgeLiveSystem openURL short-circuits under tests" started.
+✔ Test "AppKitSystemBridgeLiveSystem openURL short-circuits under tests" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLiveSystem runModal short-circuits under tests" started.
+✔ Test "AppKitSystemBridgeLiveSystem runModal short-circuits under tests" passed after 0.003 seconds.
+◇ Test "AppKitSystemBridgeLiveSystem fallback closures are used outside test runtime" started.
+✔ Test "AppKitSystemBridgeLiveSystem fallback closures are used outside test runtime" passed after 0.003 seconds.
+◇ Test "AppKitSystemBridgeLiveSystem live workspace and modal delegates use injected defaults" started.
+✔ Test "AppKitSystemBridgeLiveSystem live workspace and modal delegates use injected defaults" passed after 0.002 seconds.
+◇ Test "AppKitSystemBridgeLiveSystem reset clears delegate overrides" started.
+✔ Test "AppKitSystemBridgeLiveSystem reset clears delegate overrides" passed after 0.009 seconds.
+◇ Test "AppKitSystemBridgeLiveSystem default workspace fallback executes" started.
+✔ Test "AppKitSystemBridgeLiveSystem default workspace fallback executes" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLiveSystem default workspace native fallback path executes" started.
+✔ Test "AppKitSystemBridgeLiveSystem default workspace native fallback path executes" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLiveSystem default runModal fallback executes" started.
+✔ Test "AppKitSystemBridgeLiveSystem default runModal fallback executes" passed after 0.002 seconds.
+◇ Test "AppKitSystemBridgeLiveSystem default runModal native fallback path executes" started.
+✔ Test "AppKitSystemBridgeLiveSystem default runModal native fallback path executes" passed after 0.003 seconds.
+◇ Test "AppKitSystemBridgeLiveSystemRuntime uses injected native workspace opener" started.
+✔ Test "AppKitSystemBridgeLiveSystemRuntime uses injected native workspace opener" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLiveSystemRuntime returns false when XCTest runtime is forced" started.
+✔ Test "AppKitSystemBridgeLiveSystemRuntime returns false when XCTest runtime is forced" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLiveSystemRuntime reset clears overrides" started.
+✔ Test "AppKitSystemBridgeLiveSystemRuntime reset clears overrides" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLiveSystemRuntime non-XCTest fallback executes native open path" started.
+✔ Test "AppKitSystemBridgeLiveSystemRuntime non-XCTest fallback executes native open path" passed after 0.002 seconds.
+◇ Test "AppKitSystemBridgeLiveSystemRuntime uses ProcessInfo XCTest fallback when hook is nil" started.
+✔ Test "AppKitSystemBridgeLiveSystemRuntime uses ProcessInfo XCTest fallback when hook is nil" passed after 0.001 seconds.
+✔ Suite AppKitSystemBridgeLiveSystemTests passed after 0.031 seconds.
+◇ Suite AppKitSystemBridgeLiveTests started.
+◇ Test "AppKitSystemBridgeLive openURL returns false during test runtime" started.
+✔ Test "AppKitSystemBridgeLive openURL returns false during test runtime" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLive openURL uses workspace bridge outside test runtime" started.
+✔ Test "AppKitSystemBridgeLive openURL uses workspace bridge outside test runtime" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLive runModal returns first button during test runtime" started.
+✔ Test "AppKitSystemBridgeLive runModal returns first button during test runtime" passed after 0.002 seconds.
+◇ Test "AppKitSystemBridgeLive runModal uses alert bridge outside test runtime" started.
+✔ Test "AppKitSystemBridgeLive runModal uses alert bridge outside test runtime" passed after 0.006 seconds.
+◇ Test "AppKitSystemBridgeLive resetForTesting clears overrides" started.
+✔ Test "AppKitSystemBridgeLive resetForTesting clears overrides" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLive uses default detector path under tests" started.
+✔ Test "AppKitSystemBridgeLive uses default detector path under tests" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLive uses default workspace fallback safely" started.
+✔ Test "AppKitSystemBridgeLive uses default workspace fallback safely" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLive uses default runModal fallback safely" started.
+✔ Test "AppKitSystemBridgeLive uses default runModal fallback safely" passed after 0.007 seconds.
+◇ Test "AppKitSystemBridgeLive live workspace fallback delegates to system bridge" started.
+✔ Test "AppKitSystemBridgeLive live workspace fallback delegates to system bridge" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridgeLive live runModal fallback delegates to system bridge" started.
+✔ Test "AppKitSystemBridgeLive live runModal fallback delegates to system bridge" passed after 0.003 seconds.
+✔ Suite AppKitSystemBridgeLiveTests passed after 0.022 seconds.
+◇ Suite AppKitSystemBridgesTests started.
+◇ Test "AppKitSystemBridges uses injected openURL implementation" started.
+✔ Test "AppKitSystemBridges uses injected openURL implementation" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridges default openURL implementation is test-safe" started.
+✔ Test "AppKitSystemBridges default openURL implementation is test-safe" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridges uses injected runModal implementation" started.
+✔ Test "AppKitSystemBridges uses injected runModal implementation" passed after 0.002 seconds.
+◇ Test "AppKitSystemBridges default runModal implementation is test-safe" started.
+✔ Test "AppKitSystemBridges default runModal implementation is test-safe" passed after 0.003 seconds.
+◇ Test "AppKitSystemBridges default openURL calls native bridge outside test runtime" started.
+✔ Test "AppKitSystemBridges default openURL calls native bridge outside test runtime" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridges default runModal calls native bridge outside test runtime" started.
+✔ Test "AppKitSystemBridges default runModal calls native bridge outside test runtime" passed after 0.002 seconds.
+◇ Test "AppKitSystemBridges openURL native fallback uses system bridge" started.
+✔ Test "AppKitSystemBridges openURL native fallback uses system bridge" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridges runModal native fallback uses system bridge" started.
+✔ Test "AppKitSystemBridges runModal native fallback uses system bridge" passed after 0.002 seconds.
+◇ Test "AppKitSystemBridges openURL can run with live system executor in tests" started.
+✔ Test "AppKitSystemBridges openURL can run with live system executor in tests" passed after 0.001 seconds.
+◇ Test "AppKitSystemBridges runModal can run with live system executor in tests" started.
+✔ Test "AppKitSystemBridges runModal can run with live system executor in tests" passed after 0.002 seconds.
+◇ Test "AppKitSystemBridges resetForTesting clears custom hooks" started.
+✔ Test "AppKitSystemBridges resetForTesting clears custom hooks" passed after 0.005 seconds.
+✔ Suite AppKitSystemBridgesTests passed after 0.022 seconds.
+◇ Suite AppStateBlockingCoordinatorTests started.
+◇ Test "evaluateAutomaticBlocking normalizes paused ids and keeps blocking false without active focus" started.
+✔ Test "evaluateAutomaticBlocking normalizes paused ids and keeps blocking false without active focus" passed after 0.001 seconds.
+◇ Test "evaluateAutomaticBlocking blocks when pomodoro focus is active and no break overrides" started.
+✔ Test "evaluateAutomaticBlocking blocks when pomodoro focus is active and no break overrides" passed after 0.001 seconds.
+◇ Test "evaluateAutomaticBlocking does not treat mirrored imported focus event as meeting override" started.
+✔ Test "evaluateAutomaticBlocking does not treat mirrored imported focus event as meeting override" passed after 0.001 seconds.
+◇ Test "evaluateAutomaticBlocking still treats unrelated active event as meeting override" started.
+✔ Test "evaluateAutomaticBlocking still treats unrelated active event as meeting override" passed after 0.001 seconds.
+✔ Suite AppStateBlockingCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateBootstrapServiceTests started.
+◇ Test "snapshot falls back to defaults when persisted values are missing" started.
+✔ Test "snapshot falls back to defaults when persisted values are missing" passed after 0.001 seconds.
+◇ Test "snapshot normalizes invalid appearance while preserving persisted rule selection" started.
+✔ Test "snapshot normalizes invalid appearance while preserving persisted rule selection" passed after 0.001 seconds.
+◇ Test "snapshot prunes one-off schedules older than previous week" started.
+✔ Test "snapshot prunes one-off schedules older than previous week" passed after 0.001 seconds.
+✔ Suite AppStateBootstrapServiceTests passed after 0.002 seconds.
+◇ Suite AppStateCalendarSyncCoordinatorTests started.
+◇ Test "rebuildForResync returns nil when calendar integration is disabled" started.
+✔ Test "rebuildForResync returns nil when calendar integration is disabled" passed after 0.001 seconds.
+◇ Test "rebuildForScheduleCheck returns nil while synchronization is in progress" started.
+✔ Test "rebuildForScheduleCheck returns nil while synchronization is in progress" passed after 0.001 seconds.
+◇ Test "rebuildForResync returns rebuilt schedules when importable event changes state" started.
+✔ Test "rebuildForResync returns rebuilt schedules when importable event changes state" passed after 0.001 seconds.
+✔ Suite AppStateCalendarSyncCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateChallengeCoordinatorTests started.
+◇ Test "disableStrict succeeds only with exact challenge phrase" started.
+✔ Test "disableStrict succeeds only with exact challenge phrase" passed after 0.001 seconds.
+◇ Test "stopPomodoro returns temporary and restored strict states" started.
+✔ Test "stopPomodoro returns temporary and restored strict states" passed after 0.001 seconds.
+✔ Suite AppStateChallengeCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateFocusFlowCoordinatorTests started.
+◇ Test "startPomodoro and startBreak return run-timer transitions" started.
+✔ Test "startPomodoro and startBreak return run-timer transitions" passed after 0.001 seconds.
+◇ Test "stopPomodoroIfUnlocked returns nil when locked and stop/check flags when unlocked" started.
+✔ Test "stopPomodoroIfUnlocked returns nil when locked and stop/check flags when unlocked" passed after 0.001 seconds.
+◇ Test "pause transitions cover start guard and cancel behavior" started.
+✔ Test "pause transitions cover start guard and cancel behavior" passed after 0.001 seconds.
+◇ Test "skip phase action maps pomodoro status branches" started.
+✔ Test "skip phase action maps pomodoro status branches" passed after 0.001 seconds.
+◇ Test "tick transitions bridge runtime coordinators for pomodoro and pause" started.
+✔ Test "tick transitions bridge runtime coordinators for pomodoro and pause" passed after 0.001 seconds.
+✔ Suite AppStateFocusFlowCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateLaunchAtLoginCoordinatorTests started.
+◇ Test "preparePromptIfNeeded delegates and returns dependency result" started.
+✔ Test "preparePromptIfNeeded delegates and returns dependency result" passed after 0.001 seconds.
+◇ Test "status and enable delegate to dependency closures" started.
+✔ Test "status and enable delegate to dependency closures" passed after 0.001 seconds.
+◇ Test "setEnabled forwards the boolean parameter" started.
+✔ Test "setEnabled forwards the boolean parameter" passed after 0.001 seconds.
+✔ Suite AppStateLaunchAtLoginCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateLegacyBlockingMigrationCoordinatorTests started.
+◇ Test "resolve returns nil when source metadata already exists" started.
+✔ Test "resolve returns nil when source metadata already exists" passed after 0.001 seconds.
+◇ Test "resolve returns nil when blocking is already disabled" started.
+✔ Test "resolve returns nil when blocking is already disabled" passed after 0.001 seconds.
+◇ Test "resolve maps legacy state to automatic blocking decision" started.
+✔ Test "resolve maps legacy state to automatic blocking decision" passed after 0.001 seconds.
+✔ Suite AppStateLegacyBlockingMigrationCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateLifecycleServiceTests started.
+◇ Test "makeBootstrapProjection maps all snapshot domains" started.
+✔ Test "makeBootstrapProjection maps all snapshot domains" passed after 0.001 seconds.
+◇ Test "resolveLegacyBlockingMigration returns nil when migration is not needed and state when needed" started.
+✔ Test "resolveLegacyBlockingMigration returns nil when migration is not needed and state when needed" passed after 0.001 seconds.
+◇ Test "startRuntime and teardown wire monitor, timers, and cancellables" started.
+✔ Test "startRuntime and teardown wire monitor, timers, and cancellables" passed after 0.001 seconds.
+◇ Test "startRuntime builds monitor from factory when not testing and no injected monitor is provided" started.
+✔ Test "startRuntime builds monitor from factory when not testing and no injected monitor is provided" passed after 0.011 seconds.
+◇ Test "bindPersistence forwards to persistence coordinator and returns cancellables" started.
+✔ Test "bindPersistence forwards to persistence coordinator and returns cancellables" passed after 0.001 seconds.
+✔ Suite AppStateLifecycleServiceTests passed after 0.012 seconds.
+◇ Suite AppStatePauseCoordinatorTests started.
+◇ Test "start returns nil when pause cannot start" started.
+✔ Test "start returns nil when pause cannot start" passed after 0.001 seconds.
+◇ Test "start, tick, and cancel proxy PauseEngine semantics" started.
+✔ Test "start, tick, and cancel proxy PauseEngine semantics" passed after 0.001 seconds.
+✔ Suite AppStatePauseCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStatePomodoroCoordinatorTests started.
+◇ Test "timerAction decrements while remaining time is positive" started.
+✔ Test "timerAction decrements while remaining time is positive" passed after 0.001 seconds.
+◇ Test "timerAction switches phase at zero based on current status" started.
+✔ Test "timerAction switches phase at zero based on current status" passed after 0.001 seconds.
+◇ Test "stopIfUnlocked returns nil for locked sessions and clears status/ruleset when unlocked" started.
+✔ Test "stopIfUnlocked returns nil for locked sessions and clears status/ruleset when unlocked" passed after 0.001 seconds.
+✔ Suite AppStatePomodoroCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateReadModelCoordinatorTests started.
+◇ Test "timeString formats minutes and seconds with zero padding" started.
+✔ Test "timeString formats minutes and seconds with zero padding" passed after 0.001 seconds.
+◇ Test "rule projections delegate to RuleSetService semantics" started.
+✔ Test "rule projections delegate to RuleSetService semantics" passed after 0.001 seconds.
+✔ Suite AppStateReadModelCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateRuleSetCoordinatorTests started.
+◇ Test "mutateRule always applies mutation regardless of strict-mode flag" started.
+✔ Test "mutateRule always applies mutation regardless of strict-mode flag" passed after 0.001 seconds.
+◇ Test "createRuleSet and deleteRuleSet keep active selection coherent" started.
+✔ Test "createRuleSet and deleteRuleSet keep active selection coherent" passed after 0.001 seconds.
+◇ Test "selectActiveRuleSet respects strict mode and unknown ids" started.
+✔ Test "selectActiveRuleSet respects strict mode and unknown ids" passed after 0.001 seconds.
+✔ Suite AppStateRuleSetCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateRuntimeCoordinatorTests started.
+◇ Test "pomodoroTickAction mirrors AppStatePomodoroCoordinator timer semantics" started.
+✔ Test "pomodoroTickAction mirrors AppStatePomodoroCoordinator timer semantics" passed after 0.001 seconds.
+◇ Test "pauseTick returns cancellation intent when pause reaches zero" started.
+✔ Test "pauseTick returns cancellation intent when pause reaches zero" passed after 0.001 seconds.
+✔ Suite AppStateRuntimeCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateRuntimeMonitorFactoryTests started.
+◇ Test "AppStateRuntimeMonitorFactory builds a monitor and allows teardown" started.
+✔ Test "AppStateRuntimeMonitorFactory builds a monitor and allows teardown" passed after 0.001 seconds.
+✔ Suite AppStateRuntimeMonitorFactoryTests passed after 0.001 seconds.
+◇ Suite AppStateRuntimeWiringCoordinatorTests started.
+◇ Test "resolveMonitor prefers injected monitor and skips builder" started.
+✔ Test "resolveMonitor prefers injected monitor and skips builder" passed after 0.001 seconds.
+◇ Test "resolveMonitor returns nil in testing mode when no monitor is injected" started.
+✔ Test "resolveMonitor returns nil in testing mode when no monitor is injected" passed after 0.001 seconds.
+◇ Test "start wires schedule timer and calendar subscription; teardown cancels both" started.
+✔ Test "start wires schedule timer and calendar subscription; teardown cancels both" passed after 0.001 seconds.
+✔ Suite AppStateRuntimeWiringCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateScheduleCheckCoordinatorTests started.
+◇ Test "evaluate starts schedule-driven blocking when automatic focus is active" started.
+✔ Test "evaluate starts schedule-driven blocking when automatic focus is active" passed after 0.001 seconds.
+◇ Test "evaluate stops only schedule-driven blocking when automatic focus is inactive" started.
+✔ Test "evaluate stops only schedule-driven blocking when automatic focus is inactive" passed after 0.001 seconds.
+◇ Test "evaluate keeps manual blocking active and normalizes stale paused ids" started.
+✔ Test "evaluate keeps manual blocking active and normalizes stale paused ids" passed after 0.001 seconds.
+✔ Suite AppStateScheduleCheckCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateScheduleCoordinatorTests started.
+◇ Test "preservedImportedByKey derives mapping from imported schedules" started.
+✔ Test "preservedImportedByKey derives mapping from imported schedules" passed after 0.001 seconds.
+◇ Test "rebuildIfNeeded returns nil when rebuilt schedules are unchanged" started.
+✔ Test "rebuildIfNeeded returns nil when rebuilt schedules are unchanged" passed after 0.001 seconds.
+✔ Suite AppStateScheduleCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateScheduleMutationCoordinatorTests started.
+◇ Test "saveSchedule appends a new schedule through ScheduleEngine" started.
+✔ Test "saveSchedule appends a new schedule through ScheduleEngine" passed after 0.001 seconds.
+◇ Test "deleteSchedule suppresses imported calendar key when deleting imported schedule" started.
+✔ Test "deleteSchedule suppresses imported calendar key when deleting imported schedule" passed after 0.001 seconds.
+◇ Test "deleteSchedule returns no mutation when id is missing" started.
+✔ Test "deleteSchedule returns no mutation when id is missing" passed after 0.001 seconds.
+✔ Suite AppStateScheduleMutationCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateScheduleTickCoordinatorTests started.
+◇ Test "nextInterval targets the nearest upcoming schedule boundary" started.
+✔ Test "nextInterval targets the nearest upcoming schedule boundary" passed after 0.001 seconds.
+◇ Test "nextInterval uses event boundaries when meetings can override blocking" started.
+✔ Test "nextInterval uses event boundaries when meetings can override blocking" passed after 0.001 seconds.
+◇ Test "nextInterval ignores meeting boundaries when strict mode is active" started.
+✔ Test "nextInterval ignores meeting boundaries when strict mode is active" passed after 0.001 seconds.
+✔ Suite AppStateScheduleTickCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateSchedulesMutationServiceTests started.
+◇ Test "deleteSchedule returns nil when no mutation occurs" started.
+✔ Test "deleteSchedule returns nil when no mutation occurs" passed after 0.001 seconds.
+◇ Test "deleteSchedule returns update and persists suppressed imported key when needed" started.
+✔ Test "deleteSchedule returns update and persists suppressed imported key when needed" passed after 0.001 seconds.
+◇ Test "saveSchedule keeps suppressed keys unchanged and does not persist key set" started.
+✔ Test "saveSchedule keeps suppressed keys unchanged and does not persist key set" passed after 0.001 seconds.
+◇ Test "updateScheduleOccurrence keeps suppressed keys and updates schedule timing/day" started.
+✔ Test "updateScheduleOccurrence keeps suppressed keys and updates schedule timing/day" passed after 0.001 seconds.
+✔ Suite AppStateSchedulesMutationServiceTests passed after 0.001 seconds.
+◇ Suite AppStateSessionCoordinatorTests started.
+◇ Test "toggle updates blocking state and pauses active focus schedules" started.
+✔ Test "toggle updates blocking state and pauses active focus schedules" passed after 0.001 seconds.
+◇ Test "check starts schedule-driven blocking when active focus exists" started.
+✔ Test "check starts schedule-driven blocking when active focus exists" passed after 0.001 seconds.
+◇ Test "legacy migration returns nil when source flag already persisted" started.
+✔ Test "legacy migration returns nil when source flag already persisted" passed after 0.001 seconds.
+✔ Suite AppStateSessionCoordinatorTests passed after 0.001 seconds.
+◇ Suite AppStateTests started.
+◇ Test "Pomodoro locking logic works correctly with grace period" started.
+✔ Test "Pomodoro locking logic works correctly with grace period" passed after 0.001 seconds.
+◇ Test "Pomodoro strict grace period read model handles guard and lock branches" started.
+✔ Test "Pomodoro strict grace period read model handles guard and lock branches" passed after 0.001 seconds.
+◇ Test "Strict Mode (Strict) activation logic" started.
+✔ Test "Strict Mode (Strict) activation logic" passed after 0.001 seconds.
+◇ Test "applySessionState clears manual blocking when resulting session is not manual" started.
+✔ Test "applySessionState clears manual blocking when resulting session is not manual" passed after 0.001 seconds.
+◇ Test "Allowed rules aggregation from multiple sources" started.
+✔ Test "Allowed rules aggregation from multiple sources" passed after 0.001 seconds.
+◇ Test "Search-engine allow toggle augments effective allowed rules" started.
+✔ Test "Search-engine allow toggle augments effective allowed rules" passed after 0.001 seconds.
+◇ Test "AI-provider allow toggle augments effective allowed rules" started.
+✔ Test "AI-provider allow toggle augments effective allowed rules" passed after 0.001 seconds.
+◇ Test "Break schedule overrides Focus schedule" started.
+✔ Test "Break schedule overrides Focus schedule" passed after 0.001 seconds.
+◇ Test "Manual focus persists after schedule ends" started.
+✔ Test "Manual focus persists after schedule ends" passed after 0.001 seconds.
+◇ Test "AppState migrates legacy stale blocking state to inactive when no automatic reason exists" started.
+✔ Test "AppState migrates legacy stale blocking state to inactive when no automatic reason exists" passed after 0.001 seconds.
+◇ Test "AppState preserves persisted manual blocking when source is manual" started.
+✔ Test "AppState preserves persisted manual blocking when source is manual" passed after 0.001 seconds.
+◇ Test "AppState auto-disables persisted automatic blocking when focus schedule has ended" started.
+✔ Test "AppState auto-disables persisted automatic blocking when focus schedule has ended" passed after 0.001 seconds.
+◇ Test "AppState prompts for launch-at-login only once on first startup when disabled" started.
+✔ Test "AppState prompts for launch-at-login only once on first startup when disabled" passed after 0.001 seconds.
+◇ Test "AppState does not prompt for launch-at-login when prompting is suppressed" started.
+✔ Test "AppState does not prompt for launch-at-login when prompting is suppressed" passed after 0.001 seconds.
+◇ Test "AppState skips launch-at-login prompt when already enabled" started.
+✔ Test "AppState skips launch-at-login prompt when already enabled" passed after 0.001 seconds.
+◇ Test "AppState enableLaunchAtLogin reports success and failure" started.
+✔ Test "AppState enableLaunchAtLogin reports success and failure" passed after 0.001 seconds.
+◇ Test "AppState setLaunchAtLoginEnabled toggles and handles disable failures" started.
+✔ Test "AppState setLaunchAtLoginEnabled toggles and handles disable failures" passed after 0.001 seconds.
+◇ Test "AppState default launch-at-login prompt closure executes under test runtime" started.
+✔ Test "AppState default launch-at-login prompt closure executes under test runtime" passed after 0.001 seconds.
+◇ Test "Imported calendar event keeps focus active and does not override focus session" started.
+✔ Test "Imported calendar event keeps focus active and does not override focus session" passed after 0.001 seconds.
+◇ Test "Calendar imports always enabled and block time" started.
+✔ Test "Calendar imports always enabled and block time" passed after 0.001 seconds.
+◇ Test "Calendar import sync upserts and removes mirrored schedules without duplication" started.
+✔ Test "Calendar import sync upserts and removes mirrored schedules without duplication" passed after 0.001 seconds.
+◇ Test "Disabling calendar import blocking keeps mirrored schedules while integration remains enabled" started.
+✔ Test "Disabling calendar import blocking keeps mirrored schedules while integration remains enabled" passed after 0.001 seconds.
+◇ Test "Calendar sync prunes schedules and imports older than previous week" started.
+✔ Test "Calendar sync prunes schedules and imports older than previous week" passed after 0.001 seconds.
+◇ Test "Deleting imported schedule suppresses re-import while source event remains present" started.
+✔ Test "Deleting imported schedule suppresses re-import while source event remains present" passed after 0.211 seconds.
+◇ Test "Imported calendar schedules default to the active allowed list" started.
+✔ Test "Imported calendar schedules default to the active allowed list" passed after 0.003 seconds.
+◇ Test "Imported calendar schedules use calendar-configured allowed list when set" started.
+✔ Test "Imported calendar schedules use calendar-configured allowed list when set" passed after 0.004 seconds.
+◇ Test "Resync imported schedules removes legacy duplicates and rebuilds mirrored entries" started.
+✔ Test "Resync imported schedules removes legacy duplicates and rebuilds mirrored entries" passed after 0.003 seconds.
+◇ Test "Pause logic works correctly" started.
+✔ Test "Pause logic works correctly" passed after 0.001 seconds.
+◇ Test "todaySchedules includes matching one-off date sessions" started.
+✔ Test "todaySchedules includes matching one-off date sessions" passed after 0.001 seconds.
+◇ Test "addSpecificRule adds unique entries and respects strict mode" started.
+✔ Test "addSpecificRule adds unique entries and respects strict mode" passed after 0.001 seconds.
+◇ Test "AppState covers primary ruleset and name fallback branches" started.
+✔ Test "AppState covers primary ruleset and name fallback branches" passed after 0.001 seconds.
+◇ Test "AppState initializes with fallback appearance and injected monitor" started.
+✔ Test "AppState initializes with fallback appearance and injected monitor" passed after 0.002 seconds.
+◇ Test "AppState can initialize production calendar path with injected monitor" started.
+✔ Test "AppState can initialize production calendar path with injected monitor" passed after 0.031 seconds.
+◇ Test "isTestingFalseBootstrapsMonitor" started.
+✔ Test "isTestingFalseBootstrapsMonitor" passed after 0.153 seconds.
+◇ Test "skipPomodoroPhase transitions between focus and break" started.
+✔ Test "skipPomodoroPhase transitions between focus and break" passed after 0.004 seconds.
+◇ Test "pause and pomodoro timer handlers execute countdown and transition logic" started.
+✔ Test "pause and pomodoro timer handlers execute countdown and transition logic" passed after 0.001 seconds.
+◇ Test "AppState covers nil self timer closures after deinit" started.
+✔ Test "AppState covers nil self timer closures after deinit" passed after 0.001 seconds.
+◇ Test "refreshCurrentOpenUrls uses monitor-provided URLs" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is true, returned ["https://example.com"]
+✔ Test "refreshCurrentOpenUrls uses monitor-provided URLs" passed after 0.001 seconds.
+◇ Test "refreshCurrentOpenUrls falls back to empty when monitor is missing" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+✔ Test "refreshCurrentOpenUrls falls back to empty when monitor is missing" passed after 0.001 seconds.
+◇ Test "deleteSet updates active selection and saveSchedule empty-name defaults" started.
+✔ Test "deleteSet updates active selection and saveSchedule empty-name defaults" passed after 0.001 seconds.
+◇ Test "save and delete schedule remove empty-day entries" started.
+✔ Test "save and delete schedule remove empty-day entries" passed after 0.001 seconds.
+◇ Test "pomodoro break duration updates remaining during break phase" started.
+✔ Test "pomodoro break duration updates remaining during break phase" passed after 0.001 seconds.
+◇ Test "allowedRules falls back to first ruleset when activeRuleSetId is nil" started.
+✔ Test "allowedRules falls back to first ruleset when activeRuleSetId is nil" passed after 0.001 seconds.
+◇ Test "AppState deinit invalidates schedule, pause, and pomodoro timers" started.
+✔ Test "AppState deinit invalidates schedule, pause, and pomodoro timers" passed after 0.001 seconds.
+◇ Test "AppState replaces active pause and pomodoro timers safely" started.
+✔ Test "AppState replaces active pause and pomodoro timers safely" passed after 0.001 seconds.
+◇ Test "Rules aggregate from all active focus schedules" started.
+✔ Test "Rules aggregate from all active focus schedules" passed after 0.001 seconds.
+◇ Test "todaySchedules filters by current day and sorts by time" started.
+✔ Test "todaySchedules filters by current day and sorts by time" passed after 0.001 seconds.
+◇ Test "saveSchedule logic: Create and Update" started.
+✔ Test "saveSchedule logic: Create and Update" passed after 0.001 seconds.
+◇ Test "saveSchedule logic: Splitting recurring schedule" started.
+✔ Test "saveSchedule logic: Splitting recurring schedule" passed after 0.001 seconds.
+◇ Test "deleteSchedule logic: Full and Partial" started.
+✔ Test "deleteSchedule logic: Full and Partial" passed after 0.001 seconds.
+◇ Test "updateScheduleOccurrence updates one-off, recurring, and split recurring schedules" started.
+✔ Test "updateScheduleOccurrence updates one-off, recurring, and split recurring schedules" passed after 0.001 seconds.
+◇ Test "schedule mutations execute at AppState level regardless of strict mode" started.
+✔ Test "schedule mutations execute at AppState level regardless of strict mode" passed after 0.001 seconds.
+◇ Test "schedule mutations are allowed when strict is on but focus is inactive" started.
+✔ Test "schedule mutations are allowed when strict is on but focus is inactive" passed after 0.001 seconds.
+◇ Test "currentPrimaryRuleSetId priority logic" started.
+✔ Test "currentPrimaryRuleSetId priority logic" passed after 0.001 seconds.
+◇ Test "Pomodoro keeps enforcing the session-captured list while selection changes" started.
+✔ Test "Pomodoro keeps enforcing the session-captured list while selection changes" passed after 0.001 seconds.
+◇ Test "Schedule enforcement ignores active list selection changes while schedule is active" started.
+✔ Test "Schedule enforcement ignores active list selection changes while schedule is active" passed after 0.001 seconds.
+◇ Test "Pomodoro temporarily overrides schedule allow list, then schedule resumes after pomodoro stops" started.
+✔ Test "Pomodoro temporarily overrides schedule allow list, then schedule resumes after pomodoro stops" passed after 0.001 seconds.
+◇ Test "Active pomodoro focus overrides multiple schedules" started.
+✔ Test "Active pomodoro focus overrides multiple schedules" passed after 0.001 seconds.
+◇ Test "Active pomodoro focus overrides break schedule" started.
+✔ Test "Active pomodoro focus overrides break schedule" passed after 0.001 seconds.
+◇ Test "Active pomodoro focus overrides multiple schedules of different types" started.
+✔ Test "Active pomodoro focus overrides multiple schedules of different types" passed after 0.001 seconds.
+◇ Test "currentPrimaryRuleSetName returns Unknown List when active schedule points to missing ruleset" started.
+✔ Test "currentPrimaryRuleSetName returns Unknown List when active schedule points to missing ruleset" passed after 0.001 seconds.
+◇ Test "allowedRules handles pomodoro focus when there are no rulesets" started.
+✔ Test "allowedRules handles pomodoro focus when there are no rulesets" passed after 0.001 seconds.
+◇ Test "allowedRules falls back to first ruleset during schedule-driven blocking without schedule ruleset" started.
+✔ Test "allowedRules falls back to first ruleset during schedule-driven blocking without schedule ruleset" passed after 0.001 seconds.
+◇ Test "startPomodoro rehydrates ruleset from active selection when started from break state" started.
+✔ Test "startPomodoro rehydrates ruleset from active selection when started from break state" passed after 0.001 seconds.
+◇ Test "Manual toggle can stop a schedule-started session" started.
+✔ Test "Manual toggle can stop a schedule-started session" passed after 0.001 seconds.
+◇ Test "Nested schedule priority (Break inside Focus)" started.
+✔ Test "Nested schedule priority (Break inside Focus)" passed after 0.001 seconds.
+◇ Test "Challenge phrase enforcement logic" started.
+✔ Test "Challenge phrase enforcement logic" passed after 0.001 seconds.
+◇ Test "Negative: Challenge phrase is case-sensitive and strict on whitespace" started.
+✔ Test "Negative: Challenge phrase is case-sensitive and strict on whitespace" passed after 0.001 seconds.
+◇ Test "Negative: Pause when not blocking should fail" started.
+✔ Test "Negative: Pause when not blocking should fail" passed after 0.001 seconds.
+◇ Test "Negative: Duplicate rules should not be added" started.
+✔ Test "Negative: Duplicate rules should not be added" passed after 0.001 seconds.
+◇ Test "Negative: Stop Pomodoro when locked without challenge" started.
+✔ Test "Negative: Stop Pomodoro when locked without challenge" passed after 0.001 seconds.
+◇ Test "Negative: Rule management with invalid IDs" started.
+✔ Test "Negative: Rule management with invalid IDs" passed after 0.001 seconds.
+◇ Test "Rule aggregation across concurrent focus schedules" started.
+✔ Test "Rule aggregation across concurrent focus schedules" passed after 0.001 seconds.
+◇ Test "Negative: Prevent rule modifications during strict mode" started.
+✔ Test "Negative: Prevent rule modifications during strict mode" passed after 0.001 seconds.
+◇ Test "Negative: Prevent activeRuleSetId change during blocking" started.
+✔ Test "Negative: Prevent activeRuleSetId change during blocking" passed after 0.001 seconds.
+◇ Test "Negative: startPause with zero or negative duration" started.
+✔ Test "Negative: startPause with zero or negative duration" passed after 0.001 seconds.
+◇ Test "Manual pause takes precedence over Pomodoro focus" started.
+✔ Test "Manual pause takes precedence over Pomodoro focus" passed after 0.001 seconds.
+◇ Test "Quick break pauses active pomodoro countdown and resumes after break ends" started.
+✔ Test "Quick break pauses active pomodoro countdown and resumes after break ends" passed after 0.001 seconds.
+◇ Test "todaySchedules badge count logic" started.
+✔ Test "todaySchedules badge count logic" passed after 0.001 seconds.
+◇ Test "Negative: Toggling blocking OFF pauses ALL currently active schedules" started.
+✔ Test "Negative: Toggling blocking OFF pauses ALL currently active schedules" passed after 0.001 seconds.
+◇ Test "todaySchedules handles duplicate start times gracefully" started.
+✔ Test "todaySchedules handles duplicate start times gracefully" passed after 0.001 seconds.
+◇ Test "currentPrimaryRuleSetName correctly identifies the active list name" started.
+✔ Test "currentPrimaryRuleSetName correctly identifies the active list name" passed after 0.001 seconds.
+◇ Test "Pomodoro remaining time reflects duration changes mid-run" started.
+✔ Test "Pomodoro remaining time reflects duration changes mid-run" passed after 0.001 seconds.
+◇ Test "One-off sessions only appear in their specific week grid" started.
+✔ Test "One-off sessions only appear in their specific week grid" passed after 0.001 seconds.
+✔ Suite AppStateTests passed after 0.490 seconds.
+◇ Suite BlockingSessionServiceTests started.
+◇ Test "toggleBlocking keeps state unchanged when strict mode is active" started.
+✔ Test "toggleBlocking keeps state unchanged when strict mode is active" passed after 0.001 seconds.
+◇ Test "toggleBlocking adds active focus schedules to paused ids when turning off" started.
+✔ Test "toggleBlocking adds active focus schedules to paused ids when turning off" passed after 0.001 seconds.
+◇ Test "scheduleTransition starts schedule-driven blocking when needed" started.
+✔ Test "scheduleTransition starts schedule-driven blocking when needed" passed after 0.001 seconds.
+◇ Test "scheduleTransition stops only schedule-driven blocking" started.
+✔ Test "scheduleTransition stops only schedule-driven blocking" passed after 0.001 seconds.
+✔ Suite BlockingSessionServiceTests passed after 0.001 seconds.
+◇ Suite BrowserMonitorTests started.
+◇ Test "BrowserMonitor permission check updates AppState" started.
+✔ Test "BrowserMonitor permission check updates AppState" passed after 0.055 seconds.
+◇ Test "BrowserMonitor supports default provider wiring without explicit overrides" started.
+✔ Test "BrowserMonitor supports default provider wiring without explicit overrides" passed after 0.052 seconds.
+◇ Test "BrowserMonitor redirects disallowed URL when blocking" started.
+✔ Test "BrowserMonitor redirects disallowed URL when blocking" passed after 0.002 seconds.
+◇ Test "BrowserMonitor does not redirect allowed URL" started.
+✔ Test "BrowserMonitor does not redirect allowed URL" passed after 0.001 seconds.
+◇ Test "BrowserMonitor guard clauses prevent URL fetch when paused or unsupported" started.
+✔ Test "BrowserMonitor guard clauses prevent URL fetch when paused or unsupported" passed after 0.001 seconds.
+◇ Test "BrowserMonitor does not fetch URL when blocking is disabled" started.
+✔ Test "BrowserMonitor does not fetch URL when blocking is disabled" passed after 0.001 seconds.
+◇ Test "BrowserMonitor does not redirect block page itself" started.
+✔ Test "BrowserMonitor does not redirect block page itself" passed after 0.001 seconds.
+◇ Test "BrowserMonitor allows new-tab pages by default" started.
+✔ Test "BrowserMonitor allows new-tab pages by default" passed after 0.001 seconds.
+◇ Test "BrowserMonitor can block new-tab pages when enabled" started.
+✔ Test "BrowserMonitor can block new-tab pages when enabled" passed after 0.001 seconds.
+◇ Test "BrowserMonitor allows localhost and loopback URLs by default" started.
+✔ Test "BrowserMonitor allows localhost and loopback URLs by default" passed after 0.001 seconds.
+◇ Test "BrowserMonitor can block localhost and loopback URLs when enabled" started.
+✔ Test "BrowserMonitor can block localhost and loopback URLs when enabled" passed after 0.001 seconds.
+◇ Test "BrowserMonitor allows private-network router URLs by default" started.
+✔ Test "BrowserMonitor allows private-network router URLs by default" passed after 0.001 seconds.
+◇ Test "BrowserMonitor can block private-network router URLs when enabled" started.
+✔ Test "BrowserMonitor can block private-network router URLs when enabled" passed after 0.001 seconds.
+◇ Test "BrowserMonitor blocks explicit new-tab token URLs when enabled" started.
+✔ Test "BrowserMonitor blocks explicit new-tab token URLs when enabled" passed after 0.001 seconds.
+◇ Test "BrowserMonitor blocks schemeless localhost URL when developer-host blocking is enabled" started.
+✔ Test "BrowserMonitor blocks schemeless localhost URL when developer-host blocking is enabled" passed after 0.001 seconds.
+◇ Test "BrowserMonitor does not redirect when active URL is empty" started.
+✔ Test "BrowserMonitor does not redirect when active URL is empty" passed after 0.001 seconds.
+◇ Test "BrowserMonitor blocks 10.x private-network hosts when enabled" started.
+✔ Test "BrowserMonitor blocks 10.x private-network hosts when enabled" passed after 0.001 seconds.
+◇ Test "BrowserMonitor blocks 172.16-31 private-network hosts when enabled" started.
+✔ Test "BrowserMonitor blocks 172.16-31 private-network hosts when enabled" passed after 0.001 seconds.
+◇ Test "BrowserMonitor allows non-private IP hosts when private-network blocking is enabled" started.
+✔ Test "BrowserMonitor allows non-private IP hosts when private-network blocking is enabled" passed after 0.001 seconds.
+◇ Test "BrowserMonitor treats out-of-range IP octets as non-private hosts" started.
+✔ Test "BrowserMonitor treats out-of-range IP octets as non-private hosts" passed after 0.001 seconds.
+◇ Test "BrowserMonitor throttles repeated redirects per bundle" started.
+✔ Test "BrowserMonitor throttles repeated redirects per bundle" passed after 0.001 seconds.
+◇ Test "BrowserMonitor ignores missing active URL" started.
+✔ Test "BrowserMonitor ignores missing active URL" passed after 0.001 seconds.
+◇ Test "BrowserMonitor default providers can run on frontmost app path" started.
+✔ Test "BrowserMonitor default providers can run on frontmost app path" passed after 0.001 seconds.
+◇ Test "BrowserMonitor forwards supported browser list to open URL query" started.
+✔ Test "BrowserMonitor forwards supported browser list to open URL query" passed after 0.001 seconds.
+◇ Test "BrowserMonitor timer loop triggers tab checks without permission polling" started.
+✔ Test "BrowserMonitor timer loop triggers tab checks without permission polling" passed after 0.105 seconds.
+◇ Test "BrowserMonitor start/stop invalidates replaced timers" started.
+✔ Test "BrowserMonitor start/stop invalidates replaced timers" passed after 0.057 seconds.
+◇ Test "BrowserMonitor deinit invalidates active timer" started.
+✔ Test "BrowserMonitor deinit invalidates active timer" passed after 0.057 seconds.
+◇ Test "BrowserMonitor TestRuntime environment probes cover all early-return branches" started.
+✔ Test "BrowserMonitor TestRuntime environment probes cover all early-return branches" passed after 0.056 seconds.
+◇ Test "BrowserMonitor blocks prefixed new-tab URLs via hasPrefix branch" started.
+✔ Test "BrowserMonitor blocks prefixed new-tab URLs via hasPrefix branch" passed after 0.005 seconds.
+✔ Suite BrowserMonitorTests passed after 0.419 seconds.
+◇ Suite CalendarManagerRuntimeTests started.
+◇ Test "live runtime default initializer path can be constructed" started.
+✔ Test "live runtime default initializer path can be constructed" passed after 0.025 seconds.
+◇ Test "live runtime forwards authorization status through hasEventAuthorization" started.
+✔ Test "live runtime forwards authorization status through hasEventAuthorization" passed after 0.014 seconds.
+◇ Test "live runtime requestEventAccess uses full-access API on modern macOS" started.
+✔ Test "live runtime requestEventAccess uses full-access API on modern macOS" passed after 0.001 seconds.
+◇ Test "live runtime loadEvents maps EventKit events into snapshots" started.
+✔ Test "live runtime loadEvents maps EventKit events into snapshots" passed after 0.014 seconds.
+◇ Test "live runtime dispatchMain enqueues work on the main queue" started.
+✔ Test "live runtime dispatchMain enqueues work on the main queue" passed after 0.001 seconds.
+✔ Suite CalendarManagerRuntimeTests passed after 0.055 seconds.
+◇ Suite CalendarManagerTests started.
+◇ Test "MockCalendarManager allows manual event injection and no-op methods" started.
+✔ Test "MockCalendarManager allows manual event injection and no-op methods" passed after 0.001 seconds.
+◇ Test "RealCalendarManager init without authorization sets up refresh timer only" started.
+✔ Test "RealCalendarManager init without authorization sets up refresh timer only" passed after 0.001 seconds.
+◇ Test "RealCalendarManager init accepts Date.init nowProvider path" started.
+✔ Test "RealCalendarManager init accepts Date.init nowProvider path" passed after 0.001 seconds.
+◇ Test "RealCalendarManager init with authorization performs immediate fetch" started.
+✔ Test "RealCalendarManager init with authorization performs immediate fetch" passed after 0.001 seconds.
+◇ Test "requestAccess denied updates authorization without fetching" started.
+✔ Test "requestAccess denied updates authorization without fetching" passed after 0.001 seconds.
+◇ Test "requestAccess granted enables authorization and fetches" started.
+✔ Test "requestAccess granted enables authorization and fetches" passed after 0.001 seconds.
+◇ Test "requestAccess callback is ignored if manager was released" started.
+✔ Test "requestAccess callback is ignored if manager was released" passed after 0.001 seconds.
+◇ Test "fetchEvents guard prevents work when unauthorized" started.
+✔ Test "fetchEvents guard prevents work when unauthorized" passed after 0.001 seconds.
+◇ Test "fetchEvents maps snapshots, filters all-day, and applies id/title defaults" started.
+✔ Test "fetchEvents maps snapshots, filters all-day, and applies id/title defaults" passed after 0.001 seconds.
+◇ Test "refresh timer triggers periodic fetch when authorized" started.
+✔ Test "refresh timer triggers periodic fetch when authorized" passed after 0.001 seconds.
+◇ Test "AppState reacts to calendar authorization changes" started.
+✔ Test "AppState reacts to calendar authorization changes" passed after 0.001 seconds.
+◇ Test "AppState re-checks schedules when calendar events change" started.
+✔ Test "AppState re-checks schedules when calendar events change" passed after 0.001 seconds.
+◇ Test "RealCalendarManager deinit invalidates refresh timer" started.
+✔ Test "RealCalendarManager deinit invalidates refresh timer" passed after 0.001 seconds.
+✔ Suite CalendarManagerTests passed after 0.003 seconds.
+◇ Suite CalendarSectionViewTests started.
+◇ Test "Calendar section renders integration and import-rules controls" started.
+✔ Test "Calendar section renders integration and import-rules controls" passed after 0.025 seconds.
+◇ Test "Calendar section toggle row title remains visible after disabling integration" started.
+✔ Test "Calendar section toggle row title remains visible after disabling integration" passed after 0.030 seconds.
+◇ Test "Calendar section testing hooks update integration state" started.
+✔ Test "Calendar section testing hooks update integration state" passed after 0.038 seconds.
+◇ Test "Calendar section imported allowed-list selector binds to app state and follows integration lock" started.
+✔ Test "Calendar section imported allowed-list selector binds to app state and follows integration lock" passed after 0.034 seconds.
+◇ Test "Calendar section imported allowed-list index guard keeps nil selection when no lists exist" started.
+✔ Test "Calendar section imported allowed-list index guard keeps nil selection when no lists exist" passed after 0.025 seconds.
+◇ Test "Calendar section add/remove rules covers parsing, dedupe and selection" started.
+✔ Test "Calendar section add/remove rules covers parsing, dedupe and selection" passed after 0.036 seconds.
+◇ Test "Calendar section disables rule actions when integration is off and lock path is exposed" started.
+✔ Test "Calendar section disables rule actions when integration is off and lock path is exposed" passed after 0.027 seconds.
+◇ Test "Calendar section shows title rule controls enabled when strict; challenge cancel blocks mutations" started.
+✔ Test "Calendar section shows title rule controls enabled when strict; challenge cancel blocks mutations" passed after 0.045 seconds.
+◇ Test "Calendar section private rule actions are blocked by challenge cancel when strict mode is active" started.
+✔ Test "Calendar section private rule actions are blocked by challenge cancel when strict mode is active" passed after 0.048 seconds.
+◇ Test "Calendar section resync requests access and falls back to permission alert in test runtime" started.
+✔ Test "Calendar section resync requests access and falls back to permission alert in test runtime" passed after 0.033 seconds.
+◇ Test "Calendar section permission fallback scheduler guards pending and restored-authorization branches" started.
+✔ Test "Calendar section permission fallback scheduler guards pending and restored-authorization branches" passed after 0.023 seconds.
+◇ Test "Calendar section permission fallback immediate test-runtime branch presents alert" started.
+✔ Test "Calendar section permission fallback immediate test-runtime branch presents alert" passed after 0.026 seconds.
+◇ Test "Calendar section permission alert open-settings path handles valid and invalid URLs" started.
+✔ Test "Calendar section permission alert open-settings path handles valid and invalid URLs" passed after 0.036 seconds.
+◇ Test "Calendar section static opener/scheduler hooks cover default getter and setter paths" started.
+✔ Test "Calendar section static opener/scheduler hooks cover default getter and setter paths" passed after 0.108 seconds.
+◇ Test "Calendar section platform workspace opener covers x-free-test guard and native open path" started.
+✔ Test "Calendar section platform workspace opener covers x-free-test guard and native open path" passed after 0.001 seconds.
+◇ Test "Calendar section default workspace helpers expose callable detector and opener closures" started.
+✔ Test "Calendar section default workspace helpers expose callable detector and opener closures" passed after 0.001 seconds.
+◇ Test "Calendar section resync authorized path triggers imported schedule rebuild" started.
+✔ Test "Calendar section resync authorized path triggers imported schedule rebuild" passed after 0.027 seconds.
+◇ Test "Calendar section field action handlers and empty-selection remove guards are covered" started.
+✔ Test "Calendar section field action handlers and empty-selection remove guards are covered" passed after 0.032 seconds.
+◇ Test "Calendar section table callbacks cover weak-self nil and out-of-bounds rule guards" started.
+✔ Test "Calendar section table callbacks cover weak-self nil and out-of-bounds rule guards" passed after 0.025 seconds.
+◇ Test "Calendar section permission fallback closure handles deallocated controller safely" started.
+✔ Test "Calendar section permission fallback closure handles deallocated controller safely" passed after 0.025 seconds.
+◇ Test "Calendar section observation callback reloads view on settings signature changes" started.
+✔ Test "Calendar section observation callback reloads view on settings signature changes" passed after 0.126 seconds.
+◇ Test "Calendar section default alert hooks cover NSAlert runModal fallback and XCTest guard" started.
+✔ Test "Calendar section default alert hooks cover NSAlert runModal fallback and XCTest guard" passed after 0.035 seconds.
+◇ Test "Calendar integration toggle works without challenge when strict is set but not actively blocking" started.
+✔ Test "Calendar integration toggle works without challenge when strict is set but not actively blocking" passed after 0.035 seconds.
+◇ Test "Calendar integration toggle reverts switch and skips update when strict is active and challenge is cancelled" started.
+✔ Test "Calendar integration toggle reverts switch and skips update when strict is active and challenge is cancelled" passed after 0.052 seconds.
+◇ Test "Calendar integration toggle applies change when strict is active and challenge passes" started.
+✔ Test "Calendar integration toggle applies change when strict is active and challenge passes" passed after 0.036 seconds.
+✔ Suite CalendarSectionViewTests passed after 0.940 seconds.
+◇ Suite ContentViewTests started.
+◇ Test "Main shell controller covers sidebar state and section switching" started.
+✔ Test "Main shell controller covers sidebar state and section switching" passed after 0.197 seconds.
+◇ Test "Main shell renders expanded sidebar menu with section entries and settings" started.
+✔ Test "Main shell renders expanded sidebar menu with section entries and settings" passed after 0.099 seconds.
+◇ Test "Main shell schedules section loads full-page schedules calendar" started.
+✔ Test "Main shell schedules section loads full-page schedules calendar" passed after 0.088 seconds.
+◇ Test "Main shell settings section renders AppKit settings controller" started.
+✔ Test "Main shell settings section renders AppKit settings controller" passed after 0.095 seconds.
+◇ Test "Main shell calendar section is always accessible" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Main shell calendar section is always accessible" passed after 0.194 seconds.
+✔ Suite ContentViewTests passed after 0.676 seconds.
+◇ Suite CoverageExpansionTests started.
+◇ Test "AppState domain adapters round-trip settings, schedules, session and pomodoro state" started.
+✔ Test "AppState domain adapters round-trip settings, schedules, session and pomodoro state" passed after 0.009 seconds.
+◇ Test "AppState settings domain adapter no-ops when values are unchanged" started.
+✔ Test "AppState settings domain adapter no-ops when values are unchanged" passed after 0.001 seconds.
+◇ Test "Calendar sync adapters no-op safely when sync is not needed" started.
+✔ Test "Calendar sync adapters no-op safely when sync is not needed" passed after 0.001 seconds.
+◇ Test "Calendar sync mutation service resync returns rebuilt schedule update" started.
+✔ Test "Calendar sync mutation service resync returns rebuilt schedule update" passed after 0.001 seconds.
+◇ Test "AppState calendar sync extension methods apply imported event updates" started.
+✔ Test "AppState calendar sync extension methods apply imported event updates" passed after 0.002 seconds.
+◇ Test "AppState schedules extension delete guard keeps state when id is unknown" started.
+✔ Test "AppState schedules extension delete guard keeps state when id is unknown" passed after 0.001 seconds.
+◇ Test "AppKit observation bind deduplicates signatures and publishes section changes" started.
+✔ Test "AppKit observation bind deduplicates signatures and publishes section changes" passed after 0.001 seconds.
+◇ Test "AppKit primitive controls update style and action wiring" started.
+✔ Test "AppKit primitive controls update style and action wiring" passed after 0.001 seconds.
+◇ Test "Allowed websites floating editor layout and actions mutate selected rule set" started.
+✔ Test "Allowed websites floating editor layout and actions mutate selected rule set" passed after 0.008 seconds.
+◇ Test "Allowed websites import presenters expose default alert-backed closures" started.
+✔ Test "Allowed websites import presenters expose default alert-backed closures" passed after 0.012 seconds.
+◇ Test "Allowed websites import flow covers guard/cancel/success branches" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is true, returned ["https://example.com/path"]
+DEBUG refreshCurrentOpenUrlsAsync: monitor is true, returned ["https://example.com/path"]
+DEBUG emptyCalls: 0 candidateCalls: 2
+✔ Test "Allowed websites import flow covers guard/cancel/success branches" passed after 0.007 seconds.
+◇ Test "Allowed websites table controller and floating sheet wiring" started.
+✔ Test "Allowed websites table controller and floating sheet wiring" passed after 0.059 seconds.
+◇ Test "Window/controller helpers configure expected defaults" started.
+✔ Test "Window/controller helpers configure expected defaults" passed after 0.057 seconds.
+✔ Suite CoverageExpansionTests passed after 0.161 seconds.
+◇ Suite DataIntegrityTests started.
+◇ Test "AppState recovers from corrupted RuleSets JSON" started.
+✔ Test "AppState recovers from corrupted RuleSets JSON" passed after 0.002 seconds.
+◇ Test "AppState recovers from missing activeRuleSetId" started.
+✔ Test "AppState recovers from missing activeRuleSetId" passed after 0.001 seconds.
+◇ Test "AppState recovers from corrupted Schedules JSON" started.
+✔ Test "AppState recovers from corrupted Schedules JSON" passed after 0.001 seconds.
+✔ Suite DataIntegrityTests passed after 0.004 seconds.
+◇ Suite DefaultBrowserAutomatorRuntimeTests started.
+◇ Test "live(bridge:) forwards all runtime calls" started.
+✔ Test "live(bridge:) forwards all runtime calls" passed after 0.001 seconds.
+◇ Test "mapRunningApplication preserves key NSRunningApplication properties" started.
+✔ Test "mapRunningApplication preserves key NSRunningApplication properties" passed after 0.001 seconds.
+◇ Test "live() can be constructed and invoked on all closures" started.
+✔ Test "live() can be constructed and invoked on all closures" passed after 0.023 seconds.
+✔ Suite DefaultBrowserAutomatorRuntimeTests passed after 0.023 seconds.
+◇ Suite DefaultBrowserAutomatorSystemBridgeTests started.
+◇ Test "liveSystem(dependencies:) forwards dependency closures" started.
+✔ Test "liveSystem(dependencies:) forwards dependency closures" passed after 0.001 seconds.
+◇ Test "arcURL uses focused window URL before windows fallback" started.
+✔ Test "arcURL uses focused window URL before windows fallback" passed after 0.001 seconds.
+◇ Test "arcURL falls back to first window when focused window has no URL" started.
+✔ Test "arcURL falls back to first window when focused window has no URL" passed after 0.001 seconds.
+◇ Test "arcURL returns nil when neither focused window nor windows can provide URL" started.
+✔ Test "arcURL returns nil when neither focused window nor windows can provide URL" passed after 0.001 seconds.
+◇ Test "findURL handles role/value parsing and title parsing branches" started.
+✔ Test "findURL handles role/value parsing and title parsing branches" passed after 0.001 seconds.
+◇ Test "findURL recurses through children and respects depth limit" started.
+✔ Test "findURL recurses through children and respects depth limit" passed after 0.001 seconds.
+◇ Test "findURL returns nil when children attribute is unavailable" started.
+✔ Test "findURL returns nil when children attribute is unavailable" passed after 0.001 seconds.
+◇ Test "findURL defaults missing role/title/value attributes to empty strings" started.
+✔ Test "findURL defaults missing role/title/value attributes to empty strings" passed after 0.001 seconds.
+◇ Test "findURL falls through when supported role value is not a URL" started.
+✔ Test "findURL falls through when supported role value is not a URL" passed after 0.001 seconds.
+◇ Test "findURL checks later children when earlier child has no match" started.
+✔ Test "findURL checks later children when earlier child has no match" passed after 0.001 seconds.
+◇ Test "liveSystem and live dependency constructors can execute without crashing" started.
+✔ Test "liveSystem and live dependency constructors can execute without crashing" passed after 0.011 seconds.
+✔ Suite DefaultBrowserAutomatorSystemBridgeTests passed after 0.013 seconds.
+◇ Suite DefaultBrowserAutomatorTests started.
+◇ Test "checkPermissions forwards prompt flag to runtime" started.
+✔ Test "checkPermissions forwards prompt flag to runtime" passed after 0.001 seconds.
+◇ Test "redirect selects Arc AppleScript for Arc bundle" started.
+✔ Test "redirect selects Arc AppleScript for Arc bundle" passed after 0.001 seconds.
+◇ Test "redirect selects Safari script when bundle is Safari or missing" started.
+✔ Test "redirect selects Safari script when bundle is Safari or missing" passed after 0.001 seconds.
+◇ Test "redirect selects Chromium-style script for non-Safari browsers" started.
+✔ Test "redirect selects Chromium-style script for non-Safari browsers" passed after 0.001 seconds.
+◇ Test "getActiveUrl for Arc returns AppleScript result when non-empty" started.
+✔ Test "getActiveUrl for Arc returns AppleScript result when non-empty" passed after 0.001 seconds.
+◇ Test "getActiveUrl for Arc falls back to Accessibility when AppleScript is empty" started.
+✔ Test "getActiveUrl for Arc falls back to Accessibility when AppleScript is empty" passed after 0.001 seconds.
+◇ Test "getActiveUrl uses Safari command for Safari" started.
+✔ Test "getActiveUrl uses Safari command for Safari" passed after 0.001 seconds.
+◇ Test "getActiveUrl uses generic active-tab command for non-Safari browsers" started.
+✔ Test "getActiveUrl uses generic active-tab command for non-Safari browsers" passed after 0.001 seconds.
+◇ Test "getActiveUrl falls back to Safari app name when localizedName is missing" started.
+✔ Test "getActiveUrl falls back to Safari app name when localizedName is missing" passed after 0.001 seconds.
+◇ Test "getAllOpenUrls filters unsupported apps, localhost page, empties, and duplicates" started.
+✔ Test "getAllOpenUrls filters unsupported apps, localhost page, empties, and duplicates" passed after 0.001 seconds.
+◇ Test "getAllOpenUrls wrapper uses runtime-provided app list" started.
+✔ Test "getAllOpenUrls wrapper uses runtime-provided app list" passed after 0.001 seconds.
+◇ Test "getAllOpenUrls handles supported apps with missing localizedName" started.
+✔ Test "getAllOpenUrls handles supported apps with missing localizedName" passed after 0.001 seconds.
+◇ Test "helper functions cover script mappings and parsing edge cases" started.
+✔ Test "helper functions cover script mappings and parsing edge cases" passed after 0.001 seconds.
+◇ Test "NSRunningApplication protocol wrappers can execute" started.
+✔ Test "NSRunningApplication protocol wrappers can execute" passed after 0.001 seconds.
+✔ Suite DefaultBrowserAutomatorTests passed after 0.002 seconds.
+◇ Suite ExternalEventTests started.
+◇ Test "ExternalEvent isActive logic" started.
+✔ Test "ExternalEvent isActive logic" passed after 0.001 seconds.
+◇ Test "ExternalEvent serialization" started.
+✔ Test "ExternalEvent serialization" passed after 0.001 seconds.
+◇ Test "Zero duration events" started.
+✔ Test "Zero duration events" passed after 0.001 seconds.
+✔ Suite ExternalEventTests passed after 0.001 seconds.
+◇ Suite FocusColorTests started.
+◇ Test "FocusColor selection logic" started.
+✔ Test "FocusColor selection logic" passed after 0.001 seconds.
+◇ Test "FocusColor rainbow detection returns false for non-deviceRGB colors" started.
+✔ Test "FocusColor rainbow detection returns false for non-deviceRGB colors" passed after 0.001 seconds.
+✔ Suite FocusColorTests passed after 0.001 seconds.
+◇ Suite FocusViewTests started.
+◇ Test "Focus section support covers warning/icon/status/pause/action paths" started.
+✔ Test "Focus section support covers warning/icon/status/pause/action paths" passed after 0.001 seconds.
+◇ Test "Focus section grant accessibility action delegates through controller factory" started.
+✔ Test "Focus section grant accessibility action delegates through controller factory" passed after 0.018 seconds.
+◇ Test "Focus section grant accessibility uses monitor permission check when available" started.
+✔ Test "Focus section grant accessibility uses monitor permission check when available" passed after 0.123 seconds.
+◇ Test "Focus section cancelPause action clears pause state and keeps reload flags consistent" started.
+✔ Test "Focus section cancelPause action clears pause state and keeps reload flags consistent" passed after 0.021 seconds.
+◇ Test "Focus section end interaction guard does not flush when depth is zero" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Focus section end interaction guard does not flush when depth is zero" passed after 0.045 seconds.
+◇ Test "Focus section end interaction keeps deferred flag when depth flush predicate is false" started.
+✔ Test "Focus section end interaction keeps deferred flag when depth flush predicate is false" passed after 0.042 seconds.
+◇ Test "Focus section shows live overview instead of full widgets" started.
+✔ Test "Focus section shows live overview instead of full widgets" passed after 0.019 seconds.
+◇ Test "Focus section live overview renders active schedules and pomodoro previews" started.
+✔ Test "Focus section live overview renders active schedules and pomodoro previews" passed after 0.021 seconds.
+◇ Test "Focus section pomodoro mode renders AppKit widget without overview" started.
+✔ Test "Focus section pomodoro mode renders AppKit widget without overview" passed after 0.042 seconds.
+◇ Test "Focus section defers pomodoro widget rebuild while a dial drag is active" started.
+✔ Test "Focus section defers pomodoro widget rebuild while a dial drag is active" passed after 0.044 seconds.
+◇ Test "Focus section widget interaction callbacks execute through reloadWidget closure wiring" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Focus section widget interaction callbacks execute through reloadWidget closure wiring" passed after 0.054 seconds.
+◇ Test "Focus section keeps pomodoro widget instance when unrelated app state changes" started.
+✔ Test "Focus section keeps pomodoro widget instance when unrelated app state changes" passed after 0.046 seconds.
+◇ Test "Focus section keeps pomodoro widget instance when switching selected list" started.
+✔ Test "Focus section keeps pomodoro widget instance when switching selected list" passed after 0.056 seconds.
+◇ Test "Focus layout builder overview row clamps width to minimum when available width is non-positive" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Focus layout builder overview row clamps width to minimum when available width is non-positive" passed after 0.006 seconds.
+◇ Test "Focus section keeps pomodoro widget stable when applying a preset" started.
+✔ Test "Focus section keeps pomodoro widget stable when applying a preset" passed after 0.042 seconds.
+◇ Test "Focus section keeps pomodoro widget stable when starting a pomodoro" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Focus section keeps pomodoro widget stable when starting a pomodoro" passed after 0.046 seconds.
+◇ Test "Focus section switching preserves widget reuse behavior when returning to pomodoro" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Focus section switching preserves widget reuse behavior when returning to pomodoro" passed after 0.072 seconds.
+◇ Test "Focus section schedules widget stays mounted for unrelated app-state changes" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Focus section schedules widget stays mounted for unrelated app-state changes" passed after 0.027 seconds.
+◇ Test "Focus section allowed-websites mode renders AppKit widget without overview" started.
+✔ Test "Focus section allowed-websites mode renders AppKit widget without overview" passed after 0.023 seconds.
+◇ Test "Focus section live overview handles missing rule-set context" started.
+✔ Test "Focus section live overview handles missing rule-set context" passed after 0.016 seconds.
+◇ Test "Focus section renders trusted inactive state" started.
+✔ Test "Focus section renders trusted inactive state" passed after 0.016 seconds.
+◇ Test "Focus section renders blocking active strict state with list name" started.
+✔ Test "Focus section renders blocking active strict state with list name" passed after 0.016 seconds.
+◇ Test "Schedule section shows strict mode warning when strict mode is active" started.
+✔ Test "Schedule section shows strict mode warning when strict mode is active" passed after 0.018 seconds.
+◇ Test "Allowed list tab shows strict mode warning when strict mode is active" started.
+✔ Test "Allowed list tab shows strict mode warning when strict mode is active" passed after 0.022 seconds.
+◇ Test "Focus section renders paused dashboard state" started.
+✔ Test "Focus section renders paused dashboard state" passed after 0.019 seconds.
+◇ Test "End Break & Focus button cancels pause from pomodoro section" started.
+✔ Test "End Break & Focus button cancels pause from pomodoro section" passed after 0.040 seconds.
+◇ Test "End Break & Focus button works after starting quick break in pomodoro section" started.
+SHELL APPEARANCE CHANGED
+✔ Test "End Break & Focus button works after starting quick break in pomodoro section" passed after 0.052 seconds.
+◇ Test "Quick Break buttons in main view start pause sessions" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Quick Break buttons in main view start pause sessions" passed after 0.020 seconds.
+◇ Test "Quick Break 15m and 30m buttons in main view start expected pause durations" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Quick Break 15m and 30m buttons in main view start expected pause durations" passed after 0.018 seconds.
+◇ Test "Quick Break custom value in main view starts pause session" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Quick Break custom value in main view starts pause session" passed after 0.016 seconds.
+◇ Test "Quick Break custom start ignores non-numeric value" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Quick Break custom start ignores non-numeric value" passed after 0.016 seconds.
+◇ Test "Quick Break custom field accepts only digits and max 3 characters" started.
+✔ Test "Quick Break custom field accepts only digits and max 3 characters" passed after 0.017 seconds.
+◇ Test "Quick Break custom field ignores unrelated text-change notifications" started.
+✔ Test "Quick Break custom field ignores unrelated text-change notifications" passed after 0.017 seconds.
+◇ Test "Quick Break is blocked when Strict mode dialog is cancelled" started.
+✔ Test "Quick Break is blocked when Strict mode dialog is cancelled" passed after 0.029 seconds.
+◇ Test "Quick Break starts normally when Strict mode dialog is confirmed with correct phrase" started.
+✔ Test "Quick Break starts normally when Strict mode dialog is confirmed with correct phrase" passed after 0.032 seconds.
+◇ Test "Quick Break controls are clickable in Strict mode and trigger the challenge dialog" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Quick Break controls are clickable in Strict mode and trigger the challenge dialog" passed after 0.019 seconds.
+◇ Test "Focus schedules widget reload keeps existing view when signature is unchanged" started.
+✔ Test "Focus schedules widget reload keeps existing view when signature is unchanged" passed after 0.021 seconds.
+◇ Test "Focus allowed websites widget reload keeps existing view when signature is unchanged" started.
+✔ Test "Focus allowed websites widget reload keeps existing view when signature is unchanged" passed after 0.021 seconds.
+✔ Suite FocusViewTests passed after 1.192 seconds.
+◇ Suite FreeAppKitShellTests started.
+◇ Test "VerticalStackScrollContainer uses flipped document coordinates" started.
+✔ Test "VerticalStackScrollContainer uses flipped document coordinates" passed after 0.003 seconds.
+◇ Test "FreeMainViewController updates sidebar selection for the active section" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "FreeMainViewController updates sidebar selection for the active section" passed after 0.163 seconds.
+◇ Test "FreeMainViewController keeps the pomodoro controller and widget stable across tab switches" started.
+✔ Test "FreeMainViewController keeps the pomodoro controller and widget stable across tab switches" passed after 0.073 seconds.
+◇ Test "SchedulesSheetViewController manages editor state without SwiftUI hosting" started.
+✔ Test "SchedulesSheetViewController manages editor state without SwiftUI hosting" passed after 0.012 seconds.
+◇ Test "FreeMainViewController blocks tab switches only while rules window is open" started.
+✔ Test "FreeMainViewController blocks tab switches only while rules window is open" passed after 0.094 seconds.
+◇ Test "FreeMainViewController launch-at-login prompt safely no-ops without a window" started.
+✔ Test "FreeMainViewController launch-at-login prompt safely no-ops without a window" passed after 0.061 seconds.
+◇ Test "FreeMainViewController launch-at-login prompt presents sheet path when window and prompt eligibility exist" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FreeMainViewController launch-at-login prompt presents sheet path when window and prompt eligibility exist" passed after 0.236 seconds.
+◇ Test "FreeMainViewController launch-at-login prompt callback invokes response handler" started.
+✔ Test "FreeMainViewController launch-at-login prompt callback invokes response handler" passed after 0.115 seconds.
+◇ Test "FreeMainViewController testing hooks cover sidebar callback paths and nil-selection fallback" started.
+✔ Test "FreeMainViewController testing hooks cover sidebar callback paths and nil-selection fallback" passed after 0.084 seconds.
+◇ Test "FreeMainViewController launch-at-login response handler toggles only on enable response" started.
+✔ Test "FreeMainViewController launch-at-login response handler toggles only on enable response" passed after 0.067 seconds.
+◇ Test "FreeMainViewController window-hosted flows cover sheet toggles and launch prompt path" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "FreeMainViewController window-hosted flows cover sheet toggles and launch prompt path" passed after 0.676 seconds.
+◇ Test "FreeMainViewController installs and removes cursor overlay as setting changes" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "FreeMainViewController installs and removes cursor overlay as setting changes" passed after 0.342 seconds.
+◇ Test "FreeMainViewController starts without cursor overlay when animation is disabled" started.
+✔ Test "FreeMainViewController starts without cursor overlay when animation is disabled" passed after 0.031 seconds.
+◇ Test "FreeMainViewController disables close button when strict mode is active" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "FreeMainViewController disables close button when strict mode is active" passed after 0.303 seconds.
+◇ Test "FreeMainViewController handles unavailable cursor overlay factory" started.
+✔ Test "FreeMainViewController handles unavailable cursor overlay factory" passed after 0.057 seconds.
+✔ Suite FreeAppKitShellTests passed after 2.326 seconds.
+◇ Suite FreeAppRuntimeTests started.
+◇ Test "FreeAppRuntimeStorage default terminator path can execute in SwiftPM tests" started.
+✔ Test "FreeAppRuntimeStorage default terminator path can execute in SwiftPM tests" passed after 0.004 seconds.
+◇ Test "FreeAppRuntime.quitApplication delegates to configured terminator" started.
+✔ Test "FreeAppRuntime.quitApplication delegates to configured terminator" passed after 0.001 seconds.
+◇ Test "FreeAppRuntime uses latest configured terminator" started.
+✔ Test "FreeAppRuntime uses latest configured terminator" passed after 0.001 seconds.
+◇ Test "FreeApp quit action delegates to FreeAppRuntime" started.
+✔ Test "FreeApp quit action delegates to FreeAppRuntime" passed after 0.001 seconds.
+✔ Suite FreeAppRuntimeTests passed after 0.005 seconds.
+◇ Suite FreeAppTests started.
+◇ Test "FreeApp reflects inactive menu state" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp reflects inactive menu state" passed after 0.209 seconds.
+◇ Test "FreeApp reflects active menu state" started.
+✔ Test "FreeApp reflects active menu state" passed after 0.212 seconds.
+◇ Test "FreeApp menu status summary includes focus, calendar, list, unbreakable and pomodoro details" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp menu status summary includes focus, calendar, list, unbreakable and pomodoro details" passed after 0.218 seconds.
+◇ Test "FreeApp menu status summary shows next calendar schedule when no event is currently active" started.
+✔ Test "FreeApp menu status summary shows next calendar schedule when no event is currently active" passed after 0.219 seconds.
+◇ Test "FreeApp menu status summary chooses earliest upcoming calendar event from unsorted events" started.
+✔ Test "FreeApp menu status summary chooses earliest upcoming calendar event from unsorted events" passed after 0.229 seconds.
+◇ Test "FreeApp menu status summary shows calendar none when integration is enabled with no events" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp menu status summary shows calendar none when integration is enabled with no events" passed after 0.219 seconds.
+◇ Test "FreeApp menu status summary includes pomodoro break phase" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp menu status summary includes pomodoro break phase" passed after 0.215 seconds.
+◇ Test "FreeApp appearance mapping mirrors app settings" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp appearance mapping mirrors app settings" passed after 0.216 seconds.
+◇ Test "FreeApp derives application name from bundle metadata with process fallback" started.
+✔ Test "FreeApp derives application name from bundle metadata with process fallback" passed after 0.213 seconds.
+◇ Test "FreeApp main menu includes Quit item bound to command-Q" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp main menu includes Quit item bound to command-Q" passed after 0.215 seconds.
+◇ Test "FreeApp default initializer can be created" started.
+✔ Test "FreeApp default initializer can be created" passed after 0.250 seconds.
+◇ Test "FreeApp default factories build interface objects on first start" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp default factories build interface objects on first start" passed after 0.364 seconds.
+◇ Test "FreeApp initializer uses default controller factories when omitted" started.
+✔ Test "FreeApp initializer uses default controller factories when omitted" passed after 0.215 seconds.
+◇ Test "FreeApp resolves application name from Bundle/ProcessInfo wrapper" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp resolves application name from Bundle/ProcessInfo wrapper" passed after 0.210 seconds.
+◇ Test "FreeApp falls back to process name when bundle info dictionary is nil" started.
+✔ Test "FreeApp falls back to process name when bundle info dictionary is nil" passed after 0.216 seconds.
+◇ Test "FreeApp launch/start interface and appearance updates are stable" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp launch/start interface and appearance updates are stable" passed after 0.657 seconds.
+◇ Test "FreeApp status-menu Open App action routes through the wired window activation handler" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp status-menu Open App action routes through the wired window activation handler" passed after 0.335 seconds.
+◇ Test "FreeApp Open App handler safely no-ops when app instance is released" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp Open App handler safely no-ops when app instance is released" passed after 0.278 seconds.
+◇ Test "FreeApp observes calendar provider publisher after interface binding" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp observes calendar provider publisher after interface binding" passed after 0.422 seconds.
+◇ Test "FreeApp didBecomeActive observer triggers monitor permission check without prompt" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp didBecomeActive observer triggers monitor permission check without prompt" passed after 0.480 seconds.
+◇ Test "FreeApp launch callback safely no-ops when app is already released" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FreeApp launch callback safely no-ops when app is already released" passed after 0.220 seconds.
+◇ Test "FreeApp quitAction delegates through runtime terminator" started.
+✔ Test "FreeApp quitAction delegates through runtime terminator" passed after 0.228 seconds.
+✔ Suite FreeAppTests passed after 6.054 seconds.
+◇ Suite LaunchAtLoginManagerTests started.
+◇ Test "DefaultLaunchAtLoginManager isEnabled mirrors runtime status" started.
+✔ Test "DefaultLaunchAtLoginManager isEnabled mirrors runtime status" passed after 0.001 seconds.
+◇ Test "DefaultLaunchAtLoginManager enable delegates to runtime register" started.
+✔ Test "DefaultLaunchAtLoginManager enable delegates to runtime register" passed after 0.001 seconds.
+◇ Test "DefaultLaunchAtLoginManager disable delegates to runtime unregister" started.
+✔ Test "DefaultLaunchAtLoginManager disable delegates to runtime unregister" passed after 0.001 seconds.
+◇ Test "DefaultLaunchAtLoginManager rethrows enable/disable runtime errors" started.
+✔ Test "DefaultLaunchAtLoginManager rethrows enable/disable runtime errors" passed after 0.001 seconds.
+◇ Test "DefaultLaunchAtLoginManager live runtime can be constructed safely" started.
+✔ Test "DefaultLaunchAtLoginManager live runtime can be constructed safely" passed after 0.013 seconds.
+✔ Suite LaunchAtLoginManagerTests passed after 0.015 seconds.
+◇ Suite LocalServerTests started.
+◇ Test "LocalServer.start skips default test port in test runtime" started.
+✔ Test "LocalServer.start skips default test port in test runtime" passed after 0.001 seconds.
+◇ Test "LocalServer.start reports listener factory errors" started.
+✔ Test "LocalServer.start reports listener factory errors" passed after 0.001 seconds.
+◇ Test "handleConnection closes immediately when receive completes" started.
+✔ Test "handleConnection closes immediately when receive completes" passed after 0.001 seconds.
+◇ Test "handleConnection sends block page for active request" started.
+✔ Test "handleConnection sends block page for active request" passed after 0.001 seconds.
+◇ Test "LocalServer response payload includes expected headers and block-page content" started.
+✔ Test "LocalServer response payload includes expected headers and block-page content" passed after 0.001 seconds.
+✔ Suite LocalServerTests passed after 0.001 seconds.
+◇ Suite LogicServicesCoverageBoostTests started.
+◇ Test "AppStateScheduleCoordinator uses preferred imported-key map when provided" started.
+✔ Test "AppStateScheduleCoordinator uses preferred imported-key map when provided" passed after 0.001 seconds.
+◇ Test "PauseEngine tick handles non-paused and zero-remaining states" started.
+✔ Test "PauseEngine tick handles non-paused and zero-remaining states" passed after 0.001 seconds.
+◇ Test "LaunchAtLoginService covers prompt guards and disable failure path" started.
+✔ Test "LaunchAtLoginService covers prompt guards and disable failure path" passed after 0.001 seconds.
+◇ Test "LaunchAtLoginService covers default prompt closure, status, enable and disable-success" started.
+✔ Test "LaunchAtLoginService covers default prompt closure, status, enable and disable-success" passed after 0.001 seconds.
+◇ Test "SettingsStore cursor fluid animation defaults to enabled when key is missing" started.
+✔ Test "SettingsStore cursor fluid animation defaults to enabled when key is missing" passed after 0.001 seconds.
+◇ Test "RuleSetCoordinator create and delete cover non-active create and strict delete guard" started.
+✔ Test "RuleSetCoordinator create and delete cover non-active create and strict delete guard" passed after 0.001 seconds.
+◇ Test "CalendarImportService suppress guard and RuleSetService unknown-name path" started.
+✔ Test "CalendarImportService suppress guard and RuleSetService unknown-name path" passed after 0.001 seconds.
+◇ Test "CalendarImportService covers merge, signature and duplicate-removal branches" started.
+✔ Test "CalendarImportService covers merge, signature and duplicate-removal branches" passed after 0.001 seconds.
+◇ Test "ScheduleEngine covers imported guard and save existing with nil initial-day" started.
+✔ Test "ScheduleEngine covers imported guard and save existing with nil initial-day" passed after 0.001 seconds.
+◇ Test "RuleSetService removeRule removes matching existing rule entry" started.
+✔ Test "RuleSetService removeRule removes matching existing rule entry" passed after 0.001 seconds.
+◇ Test "ScheduleEngine update occurrence removes malformed empty-days source schedule" started.
+✔ Test "ScheduleEngine update occurrence removes malformed empty-days source schedule" passed after 0.001 seconds.
+◇ Test "RuleSetService activeScheduleRuleSetIds ignores active break schedules" started.
+✔ Test "RuleSetService activeScheduleRuleSetIds ignores active break schedules" passed after 0.001 seconds.
+◇ Test "RuleSetService allowedRules pomodoro path can include search and AI provider defaults" started.
+✔ Test "RuleSetService allowedRules pomodoro path can include search and AI provider defaults" passed after 0.001 seconds.
+◇ Test "ScheduleEngine updateScheduleOccurrence searches through non-matching IDs" started.
+✔ Test "ScheduleEngine updateScheduleOccurrence searches through non-matching IDs" passed after 0.001 seconds.
+◇ Test "ScheduleEngine deleteSchedule searches through non-matching IDs" started.
+✔ Test "ScheduleEngine deleteSchedule searches through non-matching IDs" passed after 0.001 seconds.
+◇ Test "ScheduleEngine updateScheduleOccurrence returns early when ID is missing" started.
+✔ Test "ScheduleEngine updateScheduleOccurrence returns early when ID is missing" passed after 0.001 seconds.
+◇ Test "ScheduleEngine deleteSchedule returns nil when ID is missing" started.
+✔ Test "ScheduleEngine deleteSchedule returns nil when ID is missing" passed after 0.001 seconds.
+◇ Test "CalendarImportService previous-week fallback uses current day when provider returns empty" started.
+✔ Test "CalendarImportService previous-week fallback uses current day when provider returns empty" passed after 0.001 seconds.
+◇ Test "CalendarImportService title-rule normalization covers duplicate/empty guards" started.
+✔ Test "CalendarImportService title-rule normalization covers duplicate/empty guards" passed after 0.001 seconds.
+◇ Test "CalendarImportService imported schedule id uses UUID event id when parsable" started.
+✔ Test "CalendarImportService imported schedule id uses UUID event id when parsable" passed after 0.001 seconds.
+✔ Suite LogicServicesCoverageBoostTests passed after 0.006 seconds.
+◇ Suite MainSheetPresenterTests started.
+◇ Test "MainSheetPresenter rules sheet handles guard, create, reuse, dismiss, and onClose" started.
+✔ Test "MainSheetPresenter rules sheet handles guard, create, reuse, dismiss, and onClose" passed after 0.008 seconds.
+✔ Suite MainSheetPresenterTests passed after 0.008 seconds.
+◇ Suite ModalAndShellCoverageTests started.
+◇ Test "Schedule editor action coordinator maps popup index and recurring toggle" started.
+✔ Test "Schedule editor action coordinator maps popup index and recurring toggle" passed after 0.001 seconds.
+◇ Test "Rule-set alert presenters default native-modal runners execute through NSAlert.runModal override" started.
+✔ Test "Rule-set alert presenters default native-modal runners execute through NSAlert.runModal override" passed after 0.049 seconds.
+◇ Test "Alert presenters support create/cancel and confirm paths through injected runner" started.
+✔ Test "Alert presenters support create/cancel and confirm paths through injected runner" passed after 0.211 seconds.
+◇ Test "Allowed websites import action uses injected presenter callbacks" started.
+SHELL APPEARANCE CHANGED
+DEBUG refreshCurrentOpenUrlsAsync: monitor is true, returned ["https://swift.org", "https://example.com"]
+✔ Test "Allowed websites import action uses injected presenter callbacks" passed after 0.030 seconds.
+◇ Test "Allowed websites editor actions cover create/delete/import guard branches" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is true, returned []
+✔ Test "Allowed websites editor actions cover create/delete/import guard branches" passed after 0.039 seconds.
+◇ Test "Allowed websites editor action controller covers row taps, strict lock, and add/remove guards" started.
+✔ Test "Allowed websites editor action controller covers row taps, strict lock, and add/remove guards" passed after 0.044 seconds.
+◇ Test "Allowed websites editor covers weak-self closures, add-from-field, and preserved selection" started.
+✔ Test "Allowed websites editor covers weak-self closures, add-from-field, and preserved selection" passed after 0.016 seconds.
+◇ Test "Import support covers default presenters and unresolved-set guard" started.
+✔ Test "Import support covers default presenters and unresolved-set guard" passed after 0.019 seconds.
+◇ Test "Import presenter static defaults and observation-driven reload execute" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "Import presenter static defaults and observation-driven reload execute" passed after 0.537 seconds.
+◇ Test "Free sheet container wires done action and hosted content" started.
+✔ Test "Free sheet container wires done action and hosted content" passed after 0.003 seconds.
+◇ Test "Free sheet window controller supports panel and sheet presentation modes" started.
+✔ Test "Free sheet window controller supports panel and sheet presentation modes" passed after 0.044 seconds.
+◇ Test "Free sheet window controller covers no-op and already-attached branches" started.
+✔ Test "Free sheet window controller covers no-op and already-attached branches" passed after 0.060 seconds.
+◇ Test "Free sheet window controller guard-return branches are covered" started.
+✔ Test "Free sheet window controller guard-return branches are covered" passed after 0.035 seconds.
+◇ Test "Status item controller updates menu state and executes quit callback" started.
+✔ Test "Status item controller updates menu state and executes quit callback" passed after 0.014 seconds.
+◇ Test "Vertically centered text-field support covers drawing/edit/select paths" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Vertically centered text-field support covers drawing/edit/select paths" passed after 0.008 seconds.
+◇ Test "Rule-set alert presenters execute default class lookup" started.
+✔ Test "Rule-set alert presenters execute default class lookup" passed after 0.001 seconds.
+✔ Suite ModalAndShellCoverageTests passed after 1.120 seconds.
+◇ Suite PersistenceTests started.
+◇ Test "Schedule serialization and deserialization" started.
+✔ Test "Schedule serialization and deserialization" passed after 0.001 seconds.
+◇ Test "RuleSet serialization and deserialization" started.
+✔ Test "RuleSet serialization and deserialization" passed after 0.001 seconds.
+◇ Test "AppState correctly persists settings to UserDefaults" started.
+✔ Test "AppState correctly persists settings to UserDefaults" passed after 0.055 seconds.
+◇ Test "AppState rule management persists changes" started.
+✔ Test "AppState rule management persists changes" passed after 0.107 seconds.
+✔ Suite PersistenceTests passed after 0.163 seconds.
+◇ Suite PomodoroTimerViewTests started.
+◇ Test "Pomodoro timer support exposes stable drawing constants" started.
+✔ Test "Pomodoro timer support exposes stable drawing constants" passed after 0.001 seconds.
+◇ Test "Pomodoro duration normalizes negative angle and clamps bounds" started.
+✔ Test "Pomodoro duration normalizes negative angle and clamps bounds" passed after 0.001 seconds.
+◇ Test "Pomodoro timer support applies duration into an inout value" started.
+✔ Test "Pomodoro timer support applies duration into an inout value" passed after 0.001 seconds.
+◇ Test "Pomodoro timer support change handler can be created without updating state" started.
+✔ Test "Pomodoro timer support change handler can be created without updating state" passed after 0.001 seconds.
+◇ Test "Pomodoro timer support change handler updates duration from a point" started.
+✔ Test "Pomodoro timer support change handler updates duration from a point" passed after 0.001 seconds.
+✔ Suite PomodoroTimerViewTests passed after 0.001 seconds.
+◇ Suite PomodoroWidgetTests started.
+◇ Test "FocusPomodoroWidgetView renders setup content when no session is active" started.
+✔ Test "FocusPomodoroWidgetView renders setup content when no session is active" passed after 0.019 seconds.
+◇ Test "FocusPomodoroWidgetView default alert hook closures execute safely" started.
+✔ Test "FocusPomodoroWidgetView default alert hook closures execute safely" passed after 0.050 seconds.
+◇ Test "FocusPomodoroWidgetView applies presets and quick breaks through AppKit buttons" started.
+✔ Test "FocusPomodoroWidgetView applies presets and quick breaks through AppKit buttons" passed after 0.031 seconds.
+◇ Test "FocusPomodoroWidgetView exposes draggable AppKit dials that update durations" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FocusPomodoroWidgetView exposes draggable AppKit dials that update durations" passed after 0.014 seconds.
+◇ Test "FocusPomodoroWidgetView disables quick-break controls when blocking is inactive; enables with challenge in strict mode" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FocusPomodoroWidgetView disables quick-break controls when blocking is inactive; enables with challenge in strict mode" passed after 0.028 seconds.
+◇ Test "FocusPomodoroWidgetView selects rule sets and locks them during strict mode" started.
+✔ Test "FocusPomodoroWidgetView selects rule sets and locks them during strict mode" passed after 0.035 seconds.
+◇ Test "FocusPomodoroWidgetView keeps showing the session rule set after selection changes" started.
+✔ Test "FocusPomodoroWidgetView keeps showing the session rule set after selection changes" passed after 0.015 seconds.
+◇ Test "FocusPomodoroWidgetView start, skip, and stop actions update AppState" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FocusPomodoroWidgetView start, skip, and stop actions update AppState" passed after 0.036 seconds.
+◇ Test "FocusPomodoroWidgetView ignores preset clicks while session is active" started.
+✔ Test "FocusPomodoroWidgetView ignores preset clicks while session is active" passed after 0.012 seconds.
+◇ Test "FocusPomodoroWidgetView stop button is always enabled in strict mode and requires challenge" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FocusPomodoroWidgetView stop button is always enabled in strict mode and requires challenge" passed after 0.026 seconds.
+◇ Test "FocusPomodoroWidgetView stop button triggers challenge in strict mode and stops when accepted" started.
+✔ Test "FocusPomodoroWidgetView stop button triggers challenge in strict mode and stops when accepted" passed after 0.028 seconds.
+◇ Test "FocusPomodoroWidgetSupport helper functions cover selection fallback and recursive labels" started.
+✔ Test "FocusPomodoroWidgetSupport helper functions cover selection fallback and recursive labels" passed after 0.003 seconds.
+◇ Test "FocusPomodoroWidgetView refresh handles mode transitions and active updates" started.
+✔ Test "FocusPomodoroWidgetView refresh handles mode transitions and active updates" passed after 0.022 seconds.
+◇ Test "FocusPomodoroWidgetView dial adjustment symbols change durations" started.
+✔ Test "FocusPomodoroWidgetView dial adjustment symbols change durations" passed after 0.014 seconds.
+◇ Test "FocusPomodoroWidgetView dial adjustment minus path and break-branch currentDuration are exercised" started.
+✔ Test "FocusPomodoroWidgetView dial adjustment minus path and break-branch currentDuration are exercised" passed after 0.012 seconds.
+◇ Test "FocusPomodoroWidgetView idle refresh path updates idle controls and rule-set selection state" started.
+✔ Test "FocusPomodoroWidgetView idle refresh path updates idle controls and rule-set selection state" passed after 0.017 seconds.
+◇ Test "FocusPomodoroWidgetView testing callback hook and default prompt hook closures execute" started.
+✔ Test "FocusPomodoroWidgetView testing callback hook and default prompt hook closures execute" passed after 0.014 seconds.
+◇ Test "Pomodoro dial views cover draw and mouse interaction paths" started.
+✔ Test "Pomodoro dial views cover draw and mouse interaction paths" passed after 0.004 seconds.
+◇ Test "PomodoroDurationDialView guard-return branches handle non-drag and zero-size safely" started.
+✔ Test "PomodoroDurationDialView guard-return branches handle non-drag and zero-size safely" passed after 0.001 seconds.
+◇ Test "FocusPomodoroWidgetView custom break prompt uses simulation hooks" started.
+✔ Test "FocusPomodoroWidgetView custom break prompt uses simulation hooks" passed after 0.035 seconds.
+◇ Test "FocusPomodoroWidgetView refresh rebuilds active badge when rule-set visibility changes" started.
+✔ Test "FocusPomodoroWidgetView refresh rebuilds active badge when rule-set visibility changes" passed after 0.020 seconds.
+◇ Test "FocusPomodoroWidgetView prompt hook paths cover custom-break modal flow" started.
+✔ Test "FocusPomodoroWidgetView prompt hook paths cover custom-break modal flow" passed after 0.018 seconds.
+◇ Test "FocusPomodoroWidgetView prompt branches cover custom-break sheet path" started.
+✔ Test "FocusPomodoroWidgetView prompt branches cover custom-break sheet path" passed after 0.026 seconds.
+◇ Test "FocusPomodoroWidgetView testing hooks cover active-badge rebuild branches" started.
+✔ Test "FocusPomodoroWidgetView testing hooks cover active-badge rebuild branches" passed after 0.017 seconds.
+◇ Test "FocusPomodoroWidgetView default sheet prompt hook executes without custom overrides" started.
+✔ Test "FocusPomodoroWidgetView default sheet prompt hook executes without custom overrides" passed after 0.022 seconds.
+◇ Test "FocusPomodoroWidgetView covers strict-mode row/preset early-return closures and invalid prompt input branches" started.
+✔ Test "FocusPomodoroWidgetView covers strict-mode row/preset early-return closures and invalid prompt input branches" passed after 0.033 seconds.
+◇ Test "FocusPomodoroWidgetView covers missing-button and nil-container guard paths" started.
+✔ Test "FocusPomodoroWidgetView covers missing-button and nil-container guard paths" passed after 0.016 seconds.
+◇ Test "FocusPomodoroWidgetView covers zero-duration active progress fallback branches" started.
+✔ Test "FocusPomodoroWidgetView covers zero-duration active progress fallback branches" passed after 0.012 seconds.
+◇ Test "FocusPomodoroWidgetView custom break prompt rejects invalid numeric input" started.
+✔ Test "FocusPomodoroWidgetView custom break prompt rejects invalid numeric input" passed after 0.018 seconds.
+✔ Suite PomodoroWidgetTests passed after 0.615 seconds.
+◇ Suite RepeatingTimerSchedulerTests started.
+◇ Test "DefaultRepeatingTimerScheduler schedules a live repeating timer" started.
+✔ Test "DefaultRepeatingTimerScheduler schedules a live repeating timer" passed after 0.062 seconds.
+✔ Suite RepeatingTimerSchedulerTests passed after 0.062 seconds.
+◇ Suite RuleMatcherTests started.
+◇ Test "URL normalization logic" started.
+✔ Test "URL normalization logic" passed after 0.001 seconds.
+◇ Test "Exact URL matching" started.
+✔ Test "Exact URL matching" passed after 0.001 seconds.
+◇ Test "Wildcard URL matching" started.
+✔ Test "Wildcard URL matching" passed after 0.001 seconds.
+◇ Test "Internal browser schemes are always allowed" started.
+✔ Test "Internal browser schemes are always allowed" passed after 0.001 seconds.
+◇ Test "Raw localhost block-page URLs are treated as internal" started.
+✔ Test "Raw localhost block-page URLs are treated as internal" passed after 0.001 seconds.
+◇ Test "Invalid URLComponents input does not bypass allow checks" started.
+✔ Test "Invalid URLComponents input does not bypass allow checks" passed after 0.001 seconds.
+◇ Test "Internal scheme tokens inside query/path do not bypass blocking" started.
+✔ Test "Internal scheme tokens inside query/path do not bypass blocking" passed after 0.001 seconds.
+◇ Test "Prefix-based matching" started.
+✔ Test "Prefix-based matching" passed after 0.001 seconds.
+◇ Test "Subdomain matching logic" started.
+✔ Test "Subdomain matching logic" passed after 0.001 seconds.
+◇ Test "Trailing slash and path normalization" started.
+✔ Test "Trailing slash and path normalization" passed after 0.001 seconds.
+◇ Test "Handling empty rules and invalid URLs" started.
+✔ Test "Handling empty rules and invalid URLs" passed after 0.001 seconds.
+◇ Test "Complex subdomain and path matching" started.
+✔ Test "Complex subdomain and path matching" passed after 0.001 seconds.
+◇ Test "Query parameters and fragments" started.
+✔ Test "Query parameters and fragments" passed after 0.001 seconds.
+◇ Test "Multiple trailing slashes" started.
+✔ Test "Multiple trailing slashes" passed after 0.001 seconds.
+◇ Test "Advanced Wildcard patterns" started.
+✔ Test "Advanced Wildcard patterns" passed after 0.001 seconds.
+◇ Test "Case insensitivity exhaustive check" started.
+✔ Test "Case insensitivity exhaustive check" passed after 0.001 seconds.
+◇ Test "Fragment and Query interaction in subdomain matching" started.
+✔ Test "Fragment and Query interaction in subdomain matching" passed after 0.001 seconds.
+◇ Test "Internal scheme variety" started.
+✔ Test "Internal scheme variety" passed after 0.001 seconds.
+◇ Test "YouTube specific matching edge cases" started.
+✔ Test "YouTube specific matching edge cases" passed after 0.001 seconds.
+◇ Test "Negative: Malformed URLs and Rules" started.
+✔ Test "Negative: Malformed URLs and Rules" passed after 0.001 seconds.
+◇ Test "Negative: RuleMatcher extreme edge cases" started.
+✔ Test "Negative: RuleMatcher extreme edge cases" passed after 0.001 seconds.
+◇ Test "Advanced URL formats: Ports and IPs" started.
+✔ Test "Advanced URL formats: Ports and IPs" passed after 0.001 seconds.
+◇ Test "Percent encoding and special characters" started.
+✔ Test "Percent encoding and special characters" passed after 0.001 seconds.
+◇ Test "Multiple wildcards in one rule" started.
+✔ Test "Multiple wildcards in one rule" passed after 0.001 seconds.
+◇ Test "Wildcard full-url fallback handles www patterns on full cleaned URL" started.
+✔ Test "Wildcard full-url fallback handles www patterns on full cleaned URL" passed after 0.001 seconds.
+✔ Suite RuleMatcherTests passed after 0.004 seconds.
+◇ Suite RuleSetTests started.
+◇ Test "RuleSet default initialization" started.
+✔ Test "RuleSet default initialization" passed after 0.001 seconds.
+◇ Test "RuleSet Equatable conformance" started.
+✔ Test "RuleSet Equatable conformance" passed after 0.001 seconds.
+◇ Test "RuleSet unique IDs on default init" started.
+✔ Test "RuleSet unique IDs on default init" passed after 0.001 seconds.
+◇ Test "RuleSet serialization" started.
+✔ Test "RuleSet serialization" passed after 0.001 seconds.
+✔ Suite RuleSetTests passed after 0.001 seconds.
+◇ Suite RulesViewTests started.
+◇ Test "Rules section support covers helper branches" started.
+✔ Test "Rules section support covers helper branches" passed after 0.001 seconds.
+◇ Test "Rules section support import candidates cover duplicate, nil-existing, excluded-scheme, and fallback URL parsing branches" started.
+✔ Test "Rules section support import candidates cover duplicate, nil-existing, excluded-scheme, and fallback URL parsing branches" passed after 0.001 seconds.
+◇ Test "Rules section support delete-set visibility boolean matrix" started.
+✔ Test "Rules section support delete-set visibility boolean matrix" passed after 0.001 seconds.
+◇ Test "Rules sheet controller actions mutate rule-set state and UI state" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+✔ Test "Rules sheet controller actions mutate rule-set state and UI state" passed after 0.024 seconds.
+◇ Test "Rules sheet controller filteredSuggestions bridges app open URLs against selected set" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+✔ Test "Rules sheet controller filteredSuggestions bridges app open URLs against selected set" passed after 0.016 seconds.
+◇ Test "Rules sheet controller renders selected-set paths with collapsed and expanded empty suggestions" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+✔ Test "Rules sheet controller renders selected-set paths with collapsed and expanded empty suggestions" passed after 0.015 seconds.
+◇ Test "Rules sheet controller skips reload for unrelated state changes while suggestions are collapsed" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+SHELL APPEARANCE CHANGED
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+✔ Test "Rules sheet controller skips reload for unrelated state changes while suggestions are collapsed" passed after 0.223 seconds.
+◇ Test "Rules sheet observation signature covers nil-controller fallback and live-controller path" started.
+✔ Test "Rules sheet observation signature covers nil-controller fallback and live-controller path" passed after 0.029 seconds.
+◇ Test "Rules sheet controller reuses sidebar row views when selection changes" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+✔ Test "Rules sheet controller reuses sidebar row views when selection changes" passed after 0.023 seconds.
+◇ Test "Rules sheet canReuseSidebarRows returns false when row IDs are incomplete despite matching count" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+✔ Test "Rules sheet canReuseSidebarRows returns false when row IDs are incomplete despite matching count" passed after 0.021 seconds.
+◇ Test "Rules sheet controller reuses existing rule row views for unchanged rules" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "Rules sheet controller reuses existing rule row views for unchanged rules" passed after 0.230 seconds.
+◇ Test "Rules sheet controller reuses suggestion rows across accent updates and expand toggles" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+✔ Test "Rules sheet controller reuses suggestion rows across accent updates and expand toggles" passed after 0.237 seconds.
+◇ Test "Rules sheet controller renders non-empty suggestions and no-selected-list fallback" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+SHELL APPEARANCE CHANGED
+✔ Test "Rules sheet controller renders non-empty suggestions and no-selected-list fallback" passed after 0.264 seconds.
+◇ Test "Rules sheet objc actions cover add/select/delete/suggestion/done branches" started.
+✔ Test "Rules sheet objc actions cover add/select/delete/suggestion/done branches" passed after 0.068 seconds.
+◇ Test "Rules sheet selectRuleSet returns early when tapping already selected row" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+✔ Test "Rules sheet selectRuleSet returns early when tapping already selected row" passed after 0.023 seconds.
+◇ Test "Rules layout builder covers sidebar delete teardown and row reorder/trim branches" started.
+DEBUG refreshCurrentOpenUrlsAsync: monitor is false, returned []
+✔ Test "Rules layout builder covers sidebar delete teardown and row reorder/trim branches" passed after 0.007 seconds.
+◇ Test "Rules layout row NSCoder init paths return nil" started.
+✔ Test "Rules layout row NSCoder init paths return nil" passed after 0.002 seconds.
+✔ Suite RulesViewTests passed after 1.190 seconds.
+◇ Suite ScheduleTests started.
+◇ Test "anchoredInterval builds same-day and overnight ranges" started.
+✔ Test "anchoredInterval builds same-day and overnight ranges" passed after 0.001 seconds.
+◇ Test "anchoredInterval rejects zero-duration ranges" started.
+✔ Test "anchoredInterval rejects zero-duration ranges" passed after 0.001 seconds.
+◇ Test "Schedule.contains uses inclusive-start exclusive-end semantics" started.
+✔ Test "Schedule.contains uses inclusive-start exclusive-end semantics" passed after 0.001 seconds.
+◇ Test "anchoredInterval normalizes anchorDay to start-of-day" started.
+✔ Test "anchoredInterval normalizes anchorDay to start-of-day" passed after 0.001 seconds.
+◇ Test "Recurring overnight schedule carries correctly across week boundary" started.
+✔ Test "Recurring overnight schedule carries correctly across week boundary" passed after 0.001 seconds.
+◇ Test "One-off overnight schedule has exclusive end on the next day" started.
+✔ Test "One-off overnight schedule has exclusive end on the next day" passed after 0.001 seconds.
+◇ Test "Schedule activates correctly within time range" started.
+✔ Test "Schedule activates correctly within time range" passed after 0.001 seconds.
+◇ Test "Schedule remains inactive on wrong day" started.
+✔ Test "Schedule remains inactive on wrong day" passed after 0.001 seconds.
+◇ Test "Overnight schedule logic works correctly" started.
+✔ Test "Overnight schedule logic works correctly" passed after 0.001 seconds.
+◇ Test "Schedule disabled state" started.
+✔ Test "Schedule disabled state" passed after 0.001 seconds.
+◇ Test "Schedule boundary conditions" started.
+✔ Test "Schedule boundary conditions" passed after 0.001 seconds.
+◇ Test "Default schedule properties" started.
+✔ Test "Default schedule properties" passed after 0.001 seconds.
+◇ Test "Schedule display strings formatting" started.
+✔ Test "Schedule display strings formatting" passed after 0.001 seconds.
+◇ Test "Schedule daysString with various day counts" started.
+✔ Test "Schedule daysString with various day counts" passed after 0.001 seconds.
+◇ Test "Negative: Schedule with no days should never be active" started.
+✔ Test "Negative: Schedule with no days should never be active" passed after 0.001 seconds.
+◇ Test "Negative: Zero duration schedule should not be active" started.
+✔ Test "Negative: Zero duration schedule should not be active" passed after 0.001 seconds.
+◇ Test "Negative: One-off zero duration schedule should not be active" started.
+✔ Test "Negative: One-off zero duration schedule should not be active" passed after 0.001 seconds.
+◇ Test "One-off schedule logic" started.
+✔ Test "One-off schedule logic" passed after 0.001 seconds.
+◇ Test "calculateOneOffDate correctly maps weekdays across offsets" started.
+✔ Test "calculateOneOffDate correctly maps weekdays across offsets" passed after 0.001 seconds.
+✔ Suite ScheduleTests passed after 0.002 seconds.
+◇ Suite SchedulesViewTests started.
+◇ Test "Schedules sheet controller actions cover delete, remove-at-offsets, select, and open add" started.
+✔ Test "Schedules sheet controller actions cover delete, remove-at-offsets, select, and open add" passed after 0.017 seconds.
+◇ Test "Schedules sheet opens editor freely when strict; only save/toggle/delete are challenge-gated" started.
+✔ Test "Schedules sheet opens editor freely when strict; only save/toggle/delete are challenge-gated" passed after 0.027 seconds.
+◇ Test "Schedules sheet opens editor in strict-only mode; direct mutations remain challenge-gated" started.
+✔ Test "Schedules sheet opens editor in strict-only mode; direct mutations remain challenge-gated" passed after 0.028 seconds.
+◇ Test "Schedules sheet openAddSchedule always opens editor regardless of strict mode; no blocked alert shown" started.
+✔ Test "Schedules sheet openAddSchedule always opens editor regardless of strict mode; no blocked alert shown" passed after 0.015 seconds.
+◇ Test "Schedules sheet onSelectSchedule opens editor freely; onUpdateSchedule is still challenge-gated" started.
+✔ Test "Schedules sheet onSelectSchedule opens editor freely; onUpdateSchedule is still challenge-gated" passed after 0.020 seconds.
+◇ Test "Schedules sheet default lock alert runner uses native modal branch outside XCTest env" started.
+✔ Test "Schedules sheet default lock alert runner uses native modal branch outside XCTest env" passed after 0.006 seconds.
+◇ Test "Schedules sheet default native runner fallback path is covered without presenting modal in XCTest" started.
+✔ Test "Schedules sheet default native runner fallback path is covered without presenting modal in XCTest" passed after 0.005 seconds.
+◇ Test "Schedules sheet default fallback branch routes through AppKit system bridge" started.
+✔ Test "Schedules sheet default fallback branch routes through AppKit system bridge" passed after 0.004 seconds.
+◇ Test "Schedules sheet controller does not delete imported schedules from row or swipe actions" started.
+✔ Test "Schedules sheet controller does not delete imported schedules from row or swipe actions" passed after 0.006 seconds.
+◇ Test "Schedules remove-at-offsets skips imported entries in compactMap guard branch" started.
+✔ Test "Schedules remove-at-offsets skips imported entries in compactMap guard branch" passed after 0.006 seconds.
+◇ Test "Schedules sheet controller renders list mode with schedules" started.
+✔ Test "Schedules sheet controller renders list mode with schedules" passed after 0.011 seconds.
+◇ Test "Schedules sheet controller renders calendar mode" started.
+✔ Test "Schedules sheet controller renders calendar mode" passed after 0.010 seconds.
+◇ Test "Schedules sheet controller skips full refresh for unrelated app-state changes" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "Schedules sheet controller skips full refresh for unrelated app-state changes" passed after 0.115 seconds.
+◇ Test "Schedules sheet controller exposes visible AppKit toolbar controls in calendar mode" started.
+✔ Test "Schedules sheet controller exposes visible AppKit toolbar controls in calendar mode" passed after 0.017 seconds.
+◇ Test "Schedules sheet controller supports switching between calendar and list via segmented control" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Schedules sheet controller supports switching between calendar and list via segmented control" passed after 0.120 seconds.
+◇ Test "Schedules sheet controller supports a preset editor context" started.
+✔ Test "Schedules sheet controller supports a preset editor context" passed after 0.019 seconds.
+◇ Test "Schedules sheet AppKit configuration callbacks route to controller actions" started.
+✔ Test "Schedules sheet AppKit configuration callbacks route to controller actions" passed after 0.025 seconds.
+◇ Test "Schedules sheet testing helpers expose calendar month/config and week navigation methods" started.
+✔ Test "Schedules sheet testing helpers expose calendar month/config and week navigation methods" passed after 0.016 seconds.
+◇ Test "Schedules callbacks safely early-return when controller is deallocated" started.
+✔ Test "Schedules callbacks safely early-return when controller is deallocated" passed after 0.008 seconds.
+◇ Test "Schedules list view reuses existing row view identity for unchanged schedules" started.
+✔ Test "Schedules list view reuses existing row view identity for unchanged schedules" passed after 0.118 seconds.
+◇ Test "Schedules list document reorders existing row views when schedule order changes" started.
+✔ Test "Schedules list document reorders existing row views when schedule order changes" passed after 0.003 seconds.
+◇ Test "Schedules list row view handles draw, select, delete, and toggle callbacks" started.
+✔ Test "Schedules list row view handles draw, select, delete, and toggle callbacks" passed after 0.010 seconds.
+◇ Test "Schedules sheet testing helpers cover dismiss callback and non-forced refresh no-op" started.
+✔ Test "Schedules sheet testing helpers cover dismiss callback and non-forced refresh no-op" passed after 0.013 seconds.
+◇ Test "Schedules list row and schedules sheet unavailable coder init paths return nil" started.
+✔ Test "Schedules list row and schedules sheet unavailable coder init paths return nil" passed after 0.004 seconds.
+◇ Test "Schedules container routes toolbar actions and window attachment callback" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Schedules container routes toolbar actions and window attachment callback" passed after 0.247 seconds.
+◇ Test "Schedules container dismiss helper clears injected editor controller" started.
+✔ Test "Schedules container dismiss helper clears injected editor controller" passed after 0.039 seconds.
+◇ Test "Schedules container coder init returns nil and pre-config window attach is safe" started.
+✔ Test "Schedules container coder init returns nil and pre-config window attach is safe" passed after 0.006 seconds.
+◇ Test "Schedules controller testing hooks cover editor and lightweight refresh paths" started.
+✔ Test "Schedules controller testing hooks cover editor and lightweight refresh paths" passed after 0.104 seconds.
+◇ Test "Schedules sheet maps external-event snapshots and routes calendar update callback" started.
+✔ Test "Schedules sheet maps external-event snapshots and routes calendar update callback" passed after 0.141 seconds.
+◇ Test "Schedules modification alert getter uses defaultMakeScheduleModificationBlockedAlert when no override is set" started.
+✔ Test "Schedules modification alert getter uses defaultMakeScheduleModificationBlockedAlert when no override is set" passed after 0.006 seconds.
+◇ Test "Schedules modification alert property setter stores factory via property assignment syntax" started.
+✔ Test "Schedules modification alert property setter stores factory via property assignment syntax" passed after 0.006 seconds.
+◇ Test "Default run alert runner returns alertFirstButtonReturn when running in test process" started.
+✔ Test "Default run alert runner returns alertFirstButtonReturn when running in test process" passed after 0.003 seconds.
+◇ Test "showScheduleModificationBlockedAlert creates and runs the configured alert" started.
+✔ Test "showScheduleModificationBlockedAlert creates and runs the configured alert" passed after 0.010 seconds.
+◇ Test "Schedules sheet hides external overlay entries when mirrored imported schedules already exist" started.
+✔ Test "Schedules sheet hides external overlay entries when mirrored imported schedules already exist" passed after 0.012 seconds.
+✔ Suite SchedulesViewTests passed after 1.218 seconds.
+◇ Suite SchedulesWidgetTests started.
+◇ Test "FocusSchedulesWidget renders empty state and opens the calendar sheet" started.
+✔ Test "FocusSchedulesWidget renders empty state and opens the calendar sheet" passed after 0.004 seconds.
+◇ Test "FocusSchedulesWidget renders enabled and disabled schedule rows" started.
+SHELL APPEARANCE CHANGED
+✔ Test "FocusSchedulesWidget renders enabled and disabled schedule rows" passed after 0.006 seconds.
+✔ Suite SchedulesWidgetTests passed after 0.011 seconds.
+◇ Suite SectionCoordinatorsTests started.
+◇ Test "Focus interaction coordinator gates deferred and flush reloads" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Focus interaction coordinator gates deferred and flush reloads" passed after 0.001 seconds.
+◇ Test "Schedules presentation coordinator derives title and week navigation" started.
+✔ Test "Schedules presentation coordinator derives title and week navigation" passed after 0.001 seconds.
+◇ Test "Focus widget coordinator classifies pomodoro widget reuse actions" started.
+✔ Test "Focus widget coordinator classifies pomodoro widget reuse actions" passed after 0.001 seconds.
+◇ Test "Focus widget factory builds section-specific widget payloads" started.
+✔ Test "Focus widget factory builds section-specific widget payloads" passed after 0.008 seconds.
+◇ Test "Focus widget reload coordinator picks reuse, keep, and rebuild operations" started.
+✔ Test "Focus widget reload coordinator picks reuse, keep, and rebuild operations" passed after 0.003 seconds.
+◇ Test "Focus widget reload coordinator covers widget-kind fallback and allowed-websites keep-existing path" started.
+✔ Test "Focus widget reload coordinator covers widget-kind fallback and allowed-websites keep-existing path" passed after 0.006 seconds.
+◇ Test "Focus observed-change coordinator routes defer, widget update, and full reload" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Focus observed-change coordinator routes defer, widget update, and full reload" passed after 0.001 seconds.
+◇ Test "Focus shared-state coordinator computes header status and visibility flags" started.
+✔ Test "Focus shared-state coordinator computes header status and visibility flags" passed after 0.001 seconds.
+◇ Test "Focus overview render coordinator derives rows and empty-state text" started.
+✔ Test "Focus overview render coordinator derives rows and empty-state text" passed after 0.001 seconds.
+◇ Test "Focus overview view applier renders rows or empty message into stack" started.
+✔ Test "Focus overview view applier renders rows or empty message into stack" passed after 0.001 seconds.
+◇ Test "Focus widget host applier updates container and view hierarchy" started.
+✔ Test "Focus widget host applier updates container and view hierarchy" passed after 0.011 seconds.
+◇ Test "Focus visibility coordinator maps section to overview and widget visibility" started.
+✔ Test "Focus visibility coordinator maps section to overview and widget visibility" passed after 0.002 seconds.
+✔ Suite SectionCoordinatorsTests passed after 0.038 seconds.
+◇ Suite SettingsViewTests started.
+◇ Test "Settings strict-mode initial default hooks execute native modal path with NSAlert override" started.
+✔ Test "Settings strict-mode initial default hooks execute native modal path with NSAlert override" passed after 0.008 seconds.
+◇ Test "Settings controller action helpers cover strict-mode challenge and accent selection" started.
+✔ Test "Settings controller action helpers cover strict-mode challenge and accent selection" passed after 0.046 seconds.
+◇ Test "Settings strict-mode toggle off preserves strict state when dialog is cancelled" started.
+✔ Test "Settings strict-mode toggle off preserves strict state when dialog is cancelled" passed after 0.056 seconds.
+◇ Test "Settings strict-mode toggle off disables strict when dialog is confirmed with correct phrase" started.
+✔ Test "Settings strict-mode toggle off disables strict when dialog is confirmed with correct phrase" passed after 0.058 seconds.
+◇ Test "Settings controller launch-at-login actions load and toggle state with failure fallback" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Settings controller launch-at-login actions load and toggle state with failure fallback" passed after 0.069 seconds.
+◇ Test "Settings controller strict-disable visibility helper covers false branch" started.
+✔ Test "Settings controller strict-disable visibility helper covers false branch" passed after 0.045 seconds.
+◇ Test "Settings controller calendar controls always enabled; challenge guards changes in strict active mode" started.
+✔ Test "Settings controller calendar controls always enabled; challenge guards changes in strict active mode" passed after 0.074 seconds.
+◇ Test "Settings controller browser controls always enabled; strict notice shown and challenge guards changes" started.
+✔ Test "Settings controller browser controls always enabled; strict notice shown and challenge guards changes" passed after 0.095 seconds.
+◇ Test "Settings browser toggle handlers show challenge and revert switch while strict is enabled" started.
+✔ Test "Settings browser toggle handlers show challenge and revert switch while strict is enabled" passed after 0.100 seconds.
+◇ Test "Settings controller renders default toggle branch" started.
+✔ Test "Settings controller renders default toggle branch" passed after 0.048 seconds.
+◇ Test "Settings controller renders strict-mode disable branch" started.
+✔ Test "Settings controller renders strict-mode disable branch" passed after 0.042 seconds.
+◇ Test "Settings controller testing hooks exercise toggle and selection action handlers" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Settings controller testing hooks exercise toggle and selection action handlers" passed after 0.090 seconds.
+◇ Test "Settings controller strict-mode modal action supports unlock/cancel branches via alert hooks" started.
+✔ Test "Settings controller strict-mode modal action supports unlock/cancel branches via alert hooks" passed after 0.068 seconds.
+◇ Test "Settings strict toggle-off no-ops without challenge when already disabled" started.
+✔ Test "Settings strict toggle-off no-ops without challenge when already disabled" passed after 0.052 seconds.
+◇ Test "Settings observation callback reloads after app-state changes" started.
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+SHELL APPEARANCE CHANGED
+✔ Test "Settings observation callback reloads after app-state changes" passed after 0.147 seconds.
+◇ Test "Resync imported schedules requests calendar permission when unauthorized" started.
+✔ Test "Resync imported schedules requests calendar permission when unauthorized" passed after 0.053 seconds.
+◇ Test "Calendar-permission fallback alert can open system settings" started.
+✔ Test "Calendar-permission fallback alert can open system settings" passed after 0.055 seconds.
+◇ Test "Settings strict-mode alert default hooks return cancel response in test environment" started.
+✔ Test "Settings strict-mode alert default hooks return cancel response in test environment" passed after 0.010 seconds.
+◇ Test "Settings native workspace opener default getter instantiates fallback closure" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Settings native workspace opener default getter instantiates fallback closure" passed after 0.001 seconds.
+◇ Test "Settings strict-mode default hook falls back to NSAlert.runModal when XCTest env var is missing" started.
+✔ Test "Settings strict-mode default hook falls back to NSAlert.runModal when XCTest env var is missing" passed after 0.006 seconds.
+◇ Test "Settings calendar-permission default hook falls back to NSAlert.runModal when XCTest env var is missing" started.
+✔ Test "Settings calendar-permission default hook falls back to NSAlert.runModal when XCTest env var is missing" passed after 0.003 seconds.
+◇ Test "Settings async calendar-permission fallback presents alert after delay outside XCTest guard" started.
+✔ Test "Settings async calendar-permission fallback presents alert after delay outside XCTest guard" passed after 0.043 seconds.
+◇ Test "Settings calendar privacy opener guards invalid URLs and opens valid URLs" started.
+✔ Test "Settings calendar privacy opener guards invalid URLs and opens valid URLs" passed after 0.006 seconds.
+◇ Test "Settings default scheduler executes delayed work closure" started.
+✔ Test "Settings default scheduler executes delayed work closure" passed after 0.106 seconds.
+◇ Test "Settings workspace opener default path delegates to platform opener" started.
+✔ Test "Settings workspace opener default path delegates to platform opener" passed after 0.001 seconds.
+◇ Test "Settings workspace opener setter path is exercised" started.
+✔ Test "Settings workspace opener setter path is exercised" passed after 0.001 seconds.
+◇ Test "Settings platform workspace opener covers x-free-test guard and native open path" started.
+✔ Test "Settings platform workspace opener covers x-free-test guard and native open path" passed after 0.001 seconds.
+◇ Test "Settings default workspace helpers expose callable detector and opener closures" started.
+✔ Test "Settings default workspace helpers expose callable detector and opener closures" passed after 0.001 seconds.
+◇ Test "Settings default native workspace opener closure executes through native open hook" started.
+✔ Test "Settings default native workspace opener closure executes through native open hook" passed after 0.001 seconds.
+◇ Test "Settings native opener default branch routes through AppKit system bridge" started.
+✔ Test "Settings native opener default branch routes through AppKit system bridge" passed after 0.001 seconds.
+◇ Test "Settings calendar fallback guard handles pending-true and authorization-restored branches" started.
+✔ Test "Settings calendar fallback guard handles pending-true and authorization-restored branches" passed after 0.052 seconds.
+◇ Test "Settings calendar fallback closure safely returns when controller is deallocated" started.
+✔ Test "Settings calendar fallback closure safely returns when controller is deallocated" passed after 0.051 seconds.
+◇ Test "Settings open strict mode wiki routes URL through workspace opener" started.
+✔ Test "Settings open strict mode wiki routes URL through workspace opener" passed after 0.051 seconds.
+◇ Test "Settings calendar integration toggle reverts switch and skips update when strict is active and challenge is cancelled" started.
+✔ Test "Settings calendar integration toggle reverts switch and skips update when strict is active and challenge is cancelled" passed after 0.063 seconds.
+◇ Test "Settings calendar integration toggle applies change when strict is active and challenge passes" started.
+✔ Test "Settings calendar integration toggle applies change when strict is active and challenge passes" passed after 0.055 seconds.
+◇ Test "Settings controller cursor fluid toggle updates app state and survives reset hooks" started.
+✔ Test "Settings controller cursor fluid toggle updates app state and survives reset hooks" passed after 0.054 seconds.
+✔ Suite SettingsViewTests passed after 1.626 seconds.
+◇ Suite StrictModeChallengeTests started.
+◇ Test "StrictModeChallenge run returns false when cancel button clicked with empty input" started.
+✔ Test "StrictModeChallenge run returns false when cancel button clicked with empty input" passed after 0.016 seconds.
+◇ Test "StrictModeChallenge run returns true when unlock button clicked with correct phrase" started.
+SHELL APPEARANCE CHANGED
+✔ Test "StrictModeChallenge run returns true when unlock button clicked with correct phrase" passed after 0.007 seconds.
+◇ Test "StrictModeChallenge run returns false when unlock button clicked with wrong phrase" started.
+✔ Test "StrictModeChallenge run returns false when unlock button clicked with wrong phrase" passed after 0.009 seconds.
+◇ Test "StrictModeChallenge run returns false when cancel button clicked even with correct phrase" started.
+✔ Test "StrictModeChallenge run returns false when cancel button clicked even with correct phrase" passed after 0.009 seconds.
+◇ Test "StrictModeChallenge shows error alert when wrong phrase is entered" started.
+✔ Test "StrictModeChallenge shows error alert when wrong phrase is entered" passed after 0.014 seconds.
+◇ Test "StrictModeChallenge alert is configured with Unlock and Cancel buttons" started.
+✔ Test "StrictModeChallenge alert is configured with Unlock and Cancel buttons" passed after 0.007 seconds.
+◇ Test "StrictModeChallenge accessory view contains an input text field" started.
+✔ Test "StrictModeChallenge accessory view contains an input text field" passed after 0.009 seconds.
+✔ Suite StrictModeChallengeTests passed after 0.074 seconds.
+◇ Suite UIComponentTests started.
+◇ Test "AddScheduleView configuration logic" started.
+✔ Test "AddScheduleView configuration logic" passed after 0.001 seconds.
+◇ Test "ScheduleEditorContext integrity" started.
+✔ Test "ScheduleEditorContext integrity" passed after 0.001 seconds.
+◇ Test "Negative: AddScheduleView configuration with end before start" started.
+✔ Test "Negative: AddScheduleView configuration with end before start" passed after 0.001 seconds.
+◇ Test "AppKit symbol control button maps shorthand symbols" started.
+✔ Test "AppKit symbol control button maps shorthand symbols" passed after 0.001 seconds.
+◇ Test "AppKit symbol helper returns nil for unknown symbols" started.
+✔ Test "AppKit symbol helper returns nil for unknown symbols" passed after 0.001 seconds.
+◇ Test "AppKit symbol helper supports nil tint color" started.
+✔ Test "AppKit symbol helper supports nil tint color" passed after 0.001 seconds.
+◇ Test "AppKit symbol helper supports default color argument" started.
+✔ Test "AppKit symbol helper supports default color argument" passed after 0.001 seconds.
+◇ Test "AppKit symbol helper supports symbol spec overload" started.
+✔ Test "AppKit symbol helper supports symbol spec overload" passed after 0.001 seconds.
+◇ Test "Shared AppKit icon button helper applies image inset when supported" started.
+✔ Test "Shared AppKit icon button helper applies image inset when supported" passed after 0.001 seconds.
+◇ Test "AppKit button primitives cover action, gradient, and inset-cell geometry" started.
+✔ Test "AppKit button primitives cover action, gradient, and inset-cell geometry" passed after 0.002 seconds.
+◇ Test "Shared AppKit pill and selectable-row helpers configure common controls" started.
+✔ Test "Shared AppKit pill and selectable-row helpers configure common controls" passed after 0.001 seconds.
+◇ Test "AppKit button style helpers cover didSet, appearance refresh, and utility builders" started.
+✔ Test "AppKit button style helpers cover didSet, appearance refresh, and utility builders" passed after 0.012 seconds.
+◇ Test "Schedule editor support views cover arranged-subview removal and safe collection lookup" started.
+✔ Test "Schedule editor support views cover arranged-subview removal and safe collection lookup" passed after 0.001 seconds.
+◇ Test "Shared AppKit selection button group applies accent to selected value" started.
+✔ Test "Shared AppKit selection button group applies accent to selected value" passed after 0.001 seconds.
+◇ Test "Selection button group handles empty options with stable intrinsic size" started.
+✔ Test "Selection button group handles empty options with stable intrinsic size" passed after 0.001 seconds.
+◇ Test "Selection button group routes click selection callback and appearance refresh" started.
+✔ Test "Selection button group routes click selection callback and appearance refresh" passed after 0.001 seconds.
+◇ Test "AppKit toggle switch covers layout, key, and mouse interactions" started.
+✔ Test "AppKit toggle switch covers layout, key, and mouse interactions" passed after 0.001 seconds.
+◇ Test "AppKit card stack view refreshes appearance colors on appearance changes" started.
+✔ Test "AppKit card stack view refreshes appearance colors on appearance changes" passed after 0.001 seconds.
+◇ Test "Shared AppKit stack helpers build consistent row and column layouts" started.
+✔ Test "Shared AppKit stack helpers build consistent row and column layouts" passed after 0.001 seconds.
+◇ Test "Dynamic AppKit color providers resolve inside the requested appearance" started.
+✔ Test "Dynamic AppKit color providers resolve inside the requested appearance" passed after 0.001 seconds.
+◇ Test "Dynamic AppKit color helpers resolve without appearance context" started.
+✔ Test "Dynamic AppKit color helpers resolve without appearance context" passed after 0.001 seconds.
+◇ Test "Dynamic AppKit color helpers cover appearance branch and unfocus emphasis helper" started.
+✔ Test "Dynamic AppKit color helpers cover appearance branch and unfocus emphasis helper" passed after 0.001 seconds.
+◇ Test "Main sidebar selection callback routes to expected section controller" started.
+✔ Test "Main sidebar selection callback routes to expected section controller" passed after 0.018 seconds.
+◇ Test "Main section metadata and router cover all enum cases" started.
+✔ Test "Main section metadata and router cover all enum cases" passed after 0.014 seconds.
+◇ Test "Main sidebar visibility and enable/disable states update style and click routing" started.
+✔ Test "Main sidebar visibility and enable/disable states update style and click routing" passed after 0.014 seconds.
+◇ Test "AppKit color helpers cover rainbow branches and non-rainbow fallback" started.
+✔ Test "AppKit color helpers cover rainbow branches and non-rainbow fallback" passed after 0.001 seconds.
+◇ Test "Cursor fluid overlay and HTML source helpers cover test hooks and parser guards" started.
+✔ Test "Cursor fluid overlay and HTML source helpers cover test hooks and parser guards" passed after 0.029 seconds.
+◇ Test "Cursor fluid overlay lifecycle notifications and setters cover observer/task paths" started.
+✔ Test "Cursor fluid overlay lifecycle notifications and setters cover observer/task paths" passed after 0.093 seconds.
+✔ Suite UIComponentTests passed after 0.198 seconds.
+◇ Suite UITransformationTests started.
+◇ Test "Time string formatting logic" started.
+✔ Test "Time string formatting logic" passed after 0.002 seconds.
+◇ Test "FocusColor hex/integrity check" started.
+✔ Test "FocusColor hex/integrity check" passed after 0.001 seconds.
+◇ Test "Pomodoro duration calculation and snapping" started.
+✔ Test "Pomodoro duration calculation and snapping" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar day ordering" started.
+✔ Test "WeeklyCalendar day ordering" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar rect calculation math" started.
+✔ Test "WeeklyCalendar rect calculation math" passed after 0.001 seconds.
+◇ Test "Rules section suggestion filtering logic" started.
+✔ Test "Rules section suggestion filtering logic" passed after 0.001 seconds.
+◇ Test "Negative: rules section suggestion filtering with edge cases" started.
+✔ Test "Negative: rules section suggestion filtering with edge cases" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar week date ranges" started.
+✔ Test "WeeklyCalendar week date ranges" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar overnight rect math" started.
+✔ Test "WeeklyCalendar overnight rect math" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar formatting helpers" started.
+✔ Test "WeeklyCalendar formatting helpers" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar drag snapping logic" started.
+✔ Test "WeeklyCalendar drag snapping logic" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar year transition edge case" started.
+✔ Test "WeeklyCalendar year transition edge case" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar rect calculation extreme edges" started.
+✔ Test "WeeklyCalendar rect calculation extreme edges" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar zero-duration drag selection" started.
+✔ Test "WeeklyCalendar zero-duration drag selection" passed after 0.001 seconds.
+◇ Test "Negative: WeeklyCalendar rect calculation with invalid range" started.
+✔ Test "Negative: WeeklyCalendar rect calculation with invalid range" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar support models and lane calculation cover initializer-heavy branches" started.
+✔ Test "WeeklyCalendar support models and lane calculation cover initializer-heavy branches" passed after 0.001 seconds.
+◇ Test "Rules section support import candidates cover excluded scheme and malformed fallback paths" started.
+✔ Test "Rules section support import candidates cover excluded scheme and malformed fallback paths" passed after 0.001 seconds.
+✔ Suite UITransformationTests passed after 0.004 seconds.
+◇ Suite WeekDateCalculatorTests started.
+◇ Test "WeekDateCalculator returns seven ordered days with live runtime" started.
+✔ Test "WeekDateCalculator returns seven ordered days with live runtime" passed after 0.001 seconds.
+◇ Test "WeekDateCalculator returns empty array when addWeeks fails" started.
+✔ Test "WeekDateCalculator returns empty array when addWeeks fails" passed after 0.001 seconds.
+◇ Test "WeekDateCalculator returns empty array when weekInterval fails" started.
+✔ Test "WeekDateCalculator returns empty array when weekInterval fails" passed after 0.001 seconds.
+◇ Test "WeekDateCalculator compactMap drops nil day entries" started.
+✔ Test "WeekDateCalculator compactMap drops nil day entries" passed after 0.001 seconds.
+✔ Suite WeekDateCalculatorTests passed after 0.001 seconds.
+◇ Suite WeeklyCalendarSurfaceTests started.
+◇ Test "Weekly calendar support hook fallbacks cover nil builder and overnight normalization" started.
+✔ Test "Weekly calendar support hook fallbacks cover nil builder and overnight normalization" passed after 0.001 seconds.
+◇ Test "Weekly calendar support calendarDateAdder nil fallbacks cover weekBounds and normalizedInterval defensive paths" started.
+✔ Test "Weekly calendar support calendarDateAdder nil fallbacks cover weekBounds and normalizedInterval defensive paths" passed after 0.001 seconds.
+◇ Test "Weekly calendar timeString nil date fallback via calendarDateBuilder hook" started.
+✔ Test "Weekly calendar timeString nil date fallback via calendarDateBuilder hook" passed after 0.001 seconds.
+◇ Test "Weekly calendar support schedule helpers cover visibility, labels, and style metadata" started.
+✔ Test "Weekly calendar support schedule helpers cover visibility, labels, and style metadata" passed after 0.001 seconds.
+◇ Test "Weekly calendar document timer callback marks view for redraw" started.
+✔ Test "Weekly calendar document timer callback marks view for redraw" passed after 0.001 seconds.
+◇ Test "Weekly calendar document interaction-end guard branch keeps pending refresh when not rebuilding immediately" started.
+✔ Test "Weekly calendar document interaction-end guard branch keeps pending refresh when not rebuilding immediately" passed after 0.001 seconds.
+◇ Test "Weekly calendar schedule block supports click, drag, update, and imported draw" started.
+✔ Test "Weekly calendar schedule block supports click, drag, update, and imported draw" passed after 0.003 seconds.
+◇ Test "Weekly calendar schedule block draw covers enabled unfocus color emphasis branch" started.
+✔ Test "Weekly calendar schedule block draw covers enabled unfocus color emphasis branch" passed after 0.001 seconds.
+◇ Test "Weekly calendar schedule block draw covers enabled focus raw color branch" started.
+✔ Test "Weekly calendar schedule block draw covers enabled focus raw color branch" passed after 0.001 seconds.
+◇ Test "Weekly calendar schedule block guard branches handle unconfigured state" started.
+✔ Test "Weekly calendar schedule block guard branches handle unconfigured state" passed after 0.001 seconds.
+◇ Test "Weekly calendar header draws both populated and empty week states" started.
+✔ Test "Weekly calendar header draws both populated and empty week states" passed after 0.001 seconds.
+◇ Test "Weekly calendar header supports rainbow accent draw and flipped coordinates" started.
+✔ Test "Weekly calendar header supports rainbow accent draw and flipped coordinates" passed after 0.001 seconds.
+◇ Test "Weekly calendar document supports selection, quick add, deferred rebuild, and redraw" started.
+✔ Test "Weekly calendar document supports selection, quick add, deferred rebuild, and redraw" passed after 0.005 seconds.
+◇ Test "Weekly calendar schedule block covers cursor rects, disabled draw, and no-superview drag" started.
+✔ Test "Weekly calendar schedule block covers cursor rects, disabled draw, and no-superview drag" passed after 0.001 seconds.
+◇ Test "Weekly calendar document handles selection preview draw and immediate rebuild branch" started.
+✔ Test "Weekly calendar document handles selection preview draw and immediate rebuild branch" passed after 0.005 seconds.
+◇ Test "Weekly calendar document skips entries with unmapped days in schedule and external-event rendering" started.
+✔ Test "Weekly calendar document skips entries with unmapped days in schedule and external-event rendering" passed after 0.004 seconds.
+◇ Test "Weekly calendar document covers unconfigured guard paths and unavailable coder init" started.
+✔ Test "Weekly calendar document covers unconfigured guard paths and unavailable coder init" passed after 0.001 seconds.
+◇ Test "Weekly calendar document current-time indicator covers out-of-week and missing-day guards" started.
+✔ Test "Weekly calendar document current-time indicator covers out-of-week and missing-day guards" passed after 0.008 seconds.
+◇ Test "Weekly calendar document deferred rebuild guard keeps blocks until immediate rebuild" started.
+SHELL APPEARANCE CHANGED
+✔ Test "Weekly calendar document deferred rebuild guard keeps blocks until immediate rebuild" passed after 0.001 seconds.
+◇ Test "Weekly calendar document draws rainbow gradient paths for selection preview and current-time indicator" started.
+✔ Test "Weekly calendar document draws rainbow gradient paths for selection preview and current-time indicator" passed after 0.005 seconds.
+✔ Suite WeeklyCalendarSurfaceTests passed after 0.044 seconds.
+◇ Suite WeeklyCalendarViewTests started.
+◇ Test "WeeklyCalendar support preview and formatting helpers cover shared math" started.
+✔ Test "WeeklyCalendar support preview and formatting helpers cover shared math" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar support normalized interval handles overnight end-time rollover" started.
+✔ Test "WeeklyCalendar support normalized interval handles overnight end-time rollover" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar support schedule drag and resize update helpers produce snapped results" started.
+✔ Test "WeeklyCalendar support schedule drag and resize update helpers produce snapped results" passed after 0.003 seconds.
+◇ Test "WeeklyCalendar support calendar-event and schedule visibility helpers" started.
+✔ Test "WeeklyCalendar support calendar-event and schedule visibility helpers" passed after 0.001 seconds.
+◇ Test "WeeklyCalendar support positioned-schedule sorting covers tie-break and lane-reuse branches" started.
+✔ Test "WeeklyCalendar support positioned-schedule sorting covers tie-break and lane-reuse branches" passed after 0.004 seconds.
+SHELL APPEARANCE CHANGED
+◇ Test "WeeklyCalendar AppKit surface lays out header, scroller, and schedule blocks" started.
+✔ Test "WeeklyCalendar AppKit surface lays out header, scroller, and schedule blocks" passed after 0.001 seconds.
+◇ Test "Schedules sheet controller week navigation updates AppKit calendar configuration" started.
+✔ Test "Schedules sheet controller week navigation updates AppKit calendar configuration" passed after 0.012 seconds.
+✔ Suite WeeklyCalendarViewTests passed after 0.024 seconds.
+SHELL APPEARANCE CHANGED
+✔ Test run with 791 tests in 75 suites passed after 19.812 seconds.

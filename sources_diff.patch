@@ -1,0 +1,1717 @@
+diff --git a/Sources/Free/FreeApp.swift b/Sources/Free/FreeApp.swift
+index a6be2c8..3ab8419 100644
+--- a/Sources/Free/FreeApp.swift
++++ b/Sources/Free/FreeApp.swift
+@@ -232,7 +232,9 @@ final class FreeApp {
+                 object: nil,
+                 queue: .main
+             ) { [weak self] _ in
+-                self?.appState.monitor?.checkPermissions(prompt: false)
++                Task {
++                    await self?.appState.monitor?.checkPermissions(prompt: false)
++                }
+             }
+         }
+         statusItemController?.setOpenAppHandler { [weak self, weak application] in
+@@ -270,36 +272,41 @@ final class FreeApp {
+         guard !hasBoundState else { return }
+         hasBoundState = true
+ 
+-        appState.$isBlocking
+-            .receive(on: RunLoop.main)
+-            .sink { [weak self] _ in
++        startTrackingStatusItem()
++        startTrackingAppearance()
++    }
++
++    private func startTrackingStatusItem() {
++        withObservationTracking {
++            _ = appState.isBlocking
++            _ = appState.isStrict
++            _ = appState.isPaused
++            _ = appState.schedules
++            _ = appState.ruleSets
++            _ = appState.activeRuleSetId
++            _ = appState.pomodoroStatus
++            _ = appState.pomodoroRemaining
++            _ = appState.calendarIntegrationEnabled
++            _ = appState.calendarProvider.events
++        } onChange: { [weak self] in
++            DispatchQueue.main.async {
+                 self?.updateStatusItem()
++                self?.startTrackingStatusItem()
+             }
+-            .store(in: &cancellables)
+-
+-        Publishers.MergeMany(
+-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$isPaused.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$activeRuleSetId.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$pomodoroStatus.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$pomodoroRemaining.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
+-            appState.calendarProvider.objectWillChange.map { _ in () }.eraseToAnyPublisher()
+-        )
+-        .receive(on: RunLoop.main)
+-        .sink { [weak self] _ in
+-            self?.updateStatusItem()
+         }
+-        .store(in: &cancellables)
++    }
+ 
+-        appState.$appearanceMode
+-            .receive(on: RunLoop.main)
+-            .sink { [weak self] mode in
+-                self?.applyMacOSAppearance(mode)
++    private func startTrackingAppearance() {
++        withObservationTracking {
++            _ = appState.appearanceMode
++        } onChange: { [weak self] in
++            DispatchQueue.main.async {
++                if let mode = self?.appState.appearanceMode {
++                    self?.applyMacOSAppearance(mode)
++                }
++                self?.startTrackingAppearance()
+             }
+-            .store(in: &cancellables)
++        }
+     }
+ 
+     private func updateStatusItem() {
+diff --git a/Sources/Free/Logic/AppState.swift b/Sources/Free/Logic/AppState.swift
+index ac66f44..5151cf6 100644
+--- a/Sources/Free/Logic/AppState.swift
++++ b/Sources/Free/Logic/AppState.swift
+@@ -1,3 +1,4 @@
++import Observation
+ import Combine
+ import Foundation
+ 
+@@ -7,13 +8,14 @@ enum AppearanceMode: String, Codable, CaseIterable {
+     case dark = "Dark"
+ }
+ 
+-class AppState: ObservableObject {
++@Observable
++class AppState {
+     static let challengePhrase =
+         "I understand and want to quit!"
+     let settingsStore: SettingsStore
+     let logicFacade: AppStateLogicFacade
+ 
+-    @Published var isBlocking = false {
++    var isBlocking = false {
+         didSet {
+             AppStatePropertyEffectsService.handleIsBlockingDidChange(
+                 isBlocking: isBlocking,
+@@ -21,13 +23,13 @@ class AppState: ObservableObject {
+             )
+         }
+     }
+-    @Published var isStrict = false
+-    @Published var isTrusted = false
+-    @Published var weekStartsOnMonday = false
+-    @Published var accentColorIndex = 0
+-    @Published var appearanceMode: AppearanceMode = .system
+-    @Published var cursorFluidAnimationEnabled = true
+-    @Published var calendarIntegrationEnabled = false {
++    var isStrict = false
++    var isTrusted = false
++    var weekStartsOnMonday = false
++    var accentColorIndex = 0
++    var appearanceMode: AppearanceMode = .system
++    var cursorFluidAnimationEnabled = true
++    var calendarIntegrationEnabled = false {
+         didSet {
+             AppStatePropertyEffectsService.handleCalendarIntegrationEnabledDidChange(
+                 isEnabled: calendarIntegrationEnabled,
+@@ -36,23 +38,23 @@ class AppState: ObservableObject {
+             )
+         }
+     }
+-    @Published var calendarImportFocusTitleRules: [String] = [] {
++    var calendarImportFocusTitleRules: [String] = [] {
+         didSet { checkSchedules() }
+     }
+-    @Published var calendarImportBreakTitleRules: [String] = [] {
++    var calendarImportBreakTitleRules: [String] = [] {
+         didSet { checkSchedules() }
+     }
+-    @Published var calendarImportedScheduleRuleSetId: UUID? = nil {
++    var calendarImportedScheduleRuleSetId: UUID? = nil {
+         didSet { checkSchedules() }
+     }
+-    @Published var blockNewTabs = false
+-    @Published var blockDeveloperHosts = false
+-    @Published var blockLocalNetworkHosts = false
+-    @Published var allowSearchEngineWebsites = false
+-    @Published var allowAIProviderWebsites = false
+-    @Published var ruleSets: [RuleSet] = []
+-    @Published var activeRuleSetId: UUID? = nil
+-    @Published var schedules: [Schedule] = [] {
++    var blockNewTabs = false
++    var blockDeveloperHosts = false
++    var blockLocalNetworkHosts = false
++    var allowSearchEngineWebsites = false
++    var allowAIProviderWebsites = false
++    var ruleSets: [RuleSet] = []
++    var activeRuleSetId: UUID? = nil
++    var schedules: [Schedule] = [] {
+         didSet {
+             AppStatePropertyEffectsService.handleSchedulesDidChange(
+                 schedules: schedules,
+@@ -62,7 +64,7 @@ class AppState: ObservableObject {
+         }
+     }
+ 
+-    @Published var pomodoroFocusDuration: Double = 25 {
++    var pomodoroFocusDuration: Double = 25 {
+         didSet {
+             pomodoroRemaining = AppStatePropertyEffectsService
+                 .updatedPomodoroRemainingAfterFocusDurationDidChange(
+@@ -72,7 +74,7 @@ class AppState: ObservableObject {
+                 )
+         }
+     }
+-    @Published var pomodoroBreakDuration: Double = 5 {
++    var pomodoroBreakDuration: Double = 5 {
+         didSet {
+             pomodoroRemaining = AppStatePropertyEffectsService
+                 .updatedPomodoroRemainingAfterBreakDurationDidChange(
+@@ -83,12 +85,12 @@ class AppState: ObservableObject {
+         }
+     }
+ 
+-    @Published var isPaused = false
+-    @Published var pauseRemaining: TimeInterval = 0
+-    @Published var pomodoroStatus: PomodoroStatus = .none
+-    @Published var pomodoroRemaining: TimeInterval = 0
+-    @Published var pomodoroStartedAt: Date?
+-    @Published var currentOpenUrls: [String] = []
++    var isPaused = false
++    var pauseRemaining: TimeInterval = 0
++    var pomodoroStatus: PomodoroStatus = .none
++    var pomodoroRemaining: TimeInterval = 0
++    var pomodoroStartedAt: Date?
++    var currentOpenUrls: [String] = []
+ 
+     var monitor: BrowserMonitor?
+     let calendarProvider: any CalendarProvider
+@@ -144,7 +146,7 @@ class AppState: ObservableObject {
+         applyScheduleDomainState(bootstrapProjection.schedule)
+         manualBlockingEnabled = snapshot.manualBlockingEnabled
+         persistenceCancellables = AppStateLifecycleService.bindPersistence(
+-            bindings: persistenceBindings,
++            appState: self,
+             settingsStore: settingsStore
+         )
+         scheduleCheckSubject
+@@ -219,7 +221,9 @@ class AppState: ObservableObject {
+         )
+         applySessionState(updated)
+         if !wasBlocking && updated.isBlocking {
+-            monitor?.checkPermissions(prompt: false)
++            Task {
++                await monitor?.checkPermissions(prompt: false)
++            }
+         }
+         if !wasBlocking && updated.isBlocking && !updated.wasStartedBySchedule {
+             setManualBlockingEnabled(true)
+@@ -260,5 +264,16 @@ class AppState: ObservableObject {
+         )
+     }
+ 
+-    func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }
++    func refreshCurrentOpenUrls() { 
++        Task { @MainActor [weak self] in
++            await self?.refreshCurrentOpenUrlsAsync()
++        }
++    }
++
++    @MainActor
++    func refreshCurrentOpenUrlsAsync() async {
++        let urls = await self.monitor?.getAllOpenUrls()
++        print("DEBUG refreshCurrentOpenUrlsAsync: monitor is \(self.monitor != nil), returned \(urls ?? [])")
++        self.currentOpenUrls = urls ?? []
++    }
+ }
+diff --git a/Sources/Free/Logic/BrowserMonitor.swift b/Sources/Free/Logic/BrowserMonitor.swift
+index 0a06c67..b79f726 100644
+--- a/Sources/Free/Logic/BrowserMonitor.swift
++++ b/Sources/Free/Logic/BrowserMonitor.swift
+@@ -8,8 +8,8 @@ protocol BrowserAutomator {
+     func checkPermissions(prompt: Bool) -> Bool
+ }
+ 
+-class BrowserMonitor {
+-    enum Event {
++actor BrowserMonitor {
++    enum Event: Sendable {
+         case trustedStateChanged(Bool)
+     }
+ 
+@@ -24,7 +24,7 @@ class BrowserMonitor {
+         }
+     }
+ 
+-    struct StateSnapshot {
++    struct StateSnapshot: Sendable {
+         let isBlocking: Bool
+         let isPaused: Bool
+         let blockNewTabs: Bool
+@@ -34,17 +34,15 @@ class BrowserMonitor {
+     }
+ 
+     private var timer: (any RepeatingTimer)?
+-    private let timerLock = NSLock()
+-    private let redirectLock = NSLock()
+-    private let stateSnapshotProvider: () -> StateSnapshot?
+-    private let onEvent: (Event) -> Void
++    private let stateSnapshotProvider: @Sendable () -> StateSnapshot?
++    private let onEvent: @Sendable (Event) -> Void
+     private let server: LocalServer?
+     private let automator: BrowserAutomator
+     private let timerScheduler: any RepeatingTimerScheduling
+     private let supportedBrowsers: Set<String>
+-    private let frontmostAppProvider: () -> NSRunningApplication?
+-    private let bundleIdProvider: (NSRunningApplication) -> String?
+-    private let nowProvider: () -> Date
++    private let frontmostAppProvider: @Sendable () -> NSRunningApplication?
++    private let bundleIdProvider: @Sendable (NSRunningApplication) -> String?
++    private let nowProvider: @Sendable () -> Date
+     private let monitorInterval: TimeInterval
+     private var lastRedirectTime: [String: Date] = [:]
+     private static let defaultBrowsers: Set<String> = [
+@@ -73,17 +71,18 @@ class BrowserMonitor {
+     ]
+ 
+     init(
+-        stateSnapshotProvider: @escaping () -> StateSnapshot?,
+-        onEvent: @escaping (Event) -> Void,
++        stateSnapshotProvider: @escaping @Sendable () -> StateSnapshot?,
++        onEvent: @escaping @Sendable (Event) -> Void,
+         server: LocalServer? = LocalServer(),
+         automator: BrowserAutomator = DefaultBrowserAutomator(),
+         supportedBrowsers: Set<String> = BrowserMonitor.defaultBrowsers,
+-        frontmostAppProvider: @escaping () -> NSRunningApplication? = { NSWorkspace.shared.frontmostApplication },
+-        bundleIdProvider: @escaping (NSRunningApplication) -> String? = { $0.bundleIdentifier },
+-        nowProvider: @escaping () -> Date = Date.init,
++        frontmostAppProvider: @escaping @Sendable () -> NSRunningApplication? = { NSWorkspace.shared.frontmostApplication },
++        bundleIdProvider: @escaping @Sendable (NSRunningApplication) -> String? = { $0.bundleIdentifier },
++        nowProvider: @escaping @Sendable () -> Date = { Date() },
+         monitorInterval: TimeInterval = 1.5,
+         timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
+-        startTimer: Bool = true
++        startTimer: Bool = true,
++        testRuntimeActive: Bool? = nil
+     ) {
+         self.stateSnapshotProvider = stateSnapshotProvider
+         self.onEvent = onEvent
+@@ -95,10 +94,13 @@ class BrowserMonitor {
+         self.bundleIdProvider = bundleIdProvider
+         self.nowProvider = nowProvider
+         self.monitorInterval = monitorInterval
+-        checkPermissions(prompt: !TestRuntime.isActive())
+-        server?.start()
+-        if startTimer {
+-            startMonitoring()
++        let shouldPrompt = !(testRuntimeActive ?? TestRuntime.isActive())
++        Task {
++            await self.checkPermissions(prompt: shouldPrompt)
++            await self.server?.start()
++            if startTimer {
++                await self.startMonitoring()
++            }
+         }
+     }
+ 
+@@ -108,14 +110,16 @@ class BrowserMonitor {
+ 
+     func checkPermissions(prompt: Bool = false) {
+         let trusted = automator.checkPermissions(prompt: prompt)
+-        DispatchQueue.main.async { [weak self] in
+-            self?.onEvent(.trustedStateChanged(trusted))
++        Task {
++            self.onEvent(.trustedStateChanged(trusted))
+         }
+     }
+ 
+     func startMonitoring() {
+         let repeatingTimer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: monitorInterval) { [weak self] in
+-            self?.checkActiveTab()
++            Task { [weak self] in
++                await self?.checkActiveTab()
++            }
+         }
+         replaceTimer(with: repeatingTimer)
+     }
+@@ -124,6 +128,16 @@ class BrowserMonitor {
+         replaceTimer(with: nil)
+     }
+ 
++    private var redirectUrlString: String {
++        let port = server?.port?.rawValue ?? 10000
++        return "http://localhost:\(port)"
++    }
++    
++    private var localServerHostPort: String {
++        let port = server?.port?.rawValue ?? 10000
++        return "localhost:\(port)"
++    }
++
+     func checkActiveTab() {
+         guard
+             let snapshot = stateSnapshotProvider(),
+@@ -136,39 +150,38 @@ class BrowserMonitor {
+ 
+         let now = nowProvider()
+ 
+-        // Read lastRedirectTime under lock (background thread, timer can race with stopMonitoring).
+-        redirectLock.lock()
++        // Read lastRedirectTime without lock (isolated by actor).
+         let lastRedirect = lastRedirectTime[bundleId]
+-        redirectLock.unlock()
+         if let lastRedirect, now.timeIntervalSince(lastRedirect) < 2.0 { return }
+ 
+         if let currentURL = automator.getActiveUrl(for: frontApp) {
+-            if currentURL.contains("localhost:10000") { return }
++            if currentURL.contains(localServerHostPort) { return }
+ 
+             if Self.isNewTabLike(currentURL) {
+                 guard snapshot.blockNewTabs else { return }
+-                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
+-                automator.redirect(app: frontApp, to: "http://localhost:10000")
++                lastRedirectTime[bundleId] = now
++                automator.redirect(app: frontApp, to: redirectUrlString)
+                 return
+             }
+ 
+             if Self.isDeveloperLocalUrl(currentURL) {
+                 guard snapshot.blockDeveloperHosts else { return }
+-                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
+-                automator.redirect(app: frontApp, to: "http://localhost:10000")
++                lastRedirectTime[bundleId] = now
++                automator.redirect(app: frontApp, to: redirectUrlString)
+                 return
+             }
+ 
+             if Self.isPrivateNetworkUrl(currentURL) {
+                 guard snapshot.blockLocalNetworkHosts else { return }
+-                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
+-                automator.redirect(app: frontApp, to: "http://localhost:10000")
++                lastRedirectTime[bundleId] = now
++                automator.redirect(app: frontApp, to: redirectUrlString)
+                 return
+             }
+ 
+-            if !RuleMatcher.isAllowed(currentURL, rules: snapshot.allowedRules) {
+-                redirectLock.lock(); lastRedirectTime[bundleId] = now; redirectLock.unlock()
+-                automator.redirect(app: frontApp, to: "http://localhost:10000")
++            let currentPort = server?.port?.rawValue
++            if !RuleMatcher.isAllowed(currentURL, rules: snapshot.allowedRules, localPort: currentPort) {
++                lastRedirectTime[bundleId] = now
++                automator.redirect(app: frontApp, to: redirectUrlString)
+             }
+         }
+     }
+@@ -176,10 +189,8 @@ class BrowserMonitor {
+     func getAllOpenUrls() -> [String] { automator.getAllOpenUrls(browsers: Array(supportedBrowsers)) }
+ 
+     private func replaceTimer(with newTimer: (any RepeatingTimer)?) {
+-        timerLock.lock()
+         let oldTimer = timer
+         timer = newTimer
+-        timerLock.unlock()
+         oldTimer?.invalidate()
+     }
+ 
+diff --git a/Sources/Free/Logic/CalendarManager.swift b/Sources/Free/Logic/CalendarManager.swift
+index 3b1fd0b..df000d3 100644
+--- a/Sources/Free/Logic/CalendarManager.swift
++++ b/Sources/Free/Logic/CalendarManager.swift
+@@ -1,18 +1,18 @@
+-import Combine
++import Observation
+ import EventKit
+ import Foundation
+ 
+-protocol CalendarProvider: ObservableObject
+-where ObjectWillChangePublisher == ObservableObjectPublisher {
++protocol CalendarProvider: AnyObject {
+     var events: [ExternalEvent] { get set }
+     var isAuthorized: Bool { get }
+     func requestAccess()
+     func fetchEvents()
+ }
+ 
++@Observable
+ class RealCalendarManager: CalendarProvider {
+-    @Published var events: [ExternalEvent] = []
+-    @Published var isAuthorized: Bool = false
++    var events: [ExternalEvent] = []
++    var isAuthorized: Bool = false
+ 
+     private let runtime: CalendarManagerRuntime
+     private let timerScheduler: any RepeatingTimerScheduling
+@@ -85,9 +85,10 @@ class RealCalendarManager: CalendarProvider {
+     }
+ }
+ 
++@Observable
+ class MockCalendarManager: CalendarProvider {
+-    @Published var events: [ExternalEvent] = []
+-    @Published var isAuthorized: Bool = true
++    var events: [ExternalEvent] = []
++    var isAuthorized: Bool = true
+     var requestAccessCallCount = 0
+     func requestAccess() {
+         requestAccessCallCount += 1
+diff --git a/Sources/Free/Logic/DefaultBrowserAutomator.swift b/Sources/Free/Logic/DefaultBrowserAutomator.swift
+index 1087c3f..18d4e6d 100644
+--- a/Sources/Free/Logic/DefaultBrowserAutomator.swift
++++ b/Sources/Free/Logic/DefaultBrowserAutomator.swift
+@@ -86,11 +86,17 @@ class DefaultBrowserAutomator: BrowserAutomator {
+         return chromRedirect(appName, url)
+     }
+ 
++    private func escapeForAppleScript(_ string: String) -> String {
++        return string.replacingOccurrences(of: "\\", with: "\\\\")
++                     .replacingOccurrences(of: "\"", with: "\\\"")
++    }
++
+     func activeURLScript(bundleIdentifier: String, appName: String) -> String {
+         if bundleIdentifier == Self.safariBundleIdentifier {
+             return "tell application \"Safari\" to return URL of current tab of front window"
+         }
+-        return "tell application \"\(appName)\" to return URL of active tab of front window"
++        let escapedAppName = escapeForAppleScript(appName)
++        return "tell application \"\(escapedAppName)\" to return URL of active tab of front window"
+     }
+ 
+     func scriptAppName(bundleIdentifier: String, localizedName: String) -> String {
+@@ -100,7 +106,8 @@ class DefaultBrowserAutomator: BrowserAutomator {
+     }
+ 
+     func allTabsScript(appName: String) -> String {
+-        "set o to \"\"\ntell application \"\(appName)\"\nrepeat with w in windows\nrepeat with t in tabs of w\nset o to o & URL of t & \"\n\"\nend repeat\nend repeat\nend tell\nreturn o"
++        let escapedAppName = escapeForAppleScript(appName)
++        return "set o to \"\"\ntell application \"\(escapedAppName)\"\nrepeat with w in windows\nrepeat with t in tabs of w\nset o to o & URL of t & \"\n\"\nend repeat\nend repeat\nend tell\nreturn o"
+     }
+ 
+     func parseScriptOutput(_ output: String?) -> [String] {
+@@ -114,14 +121,18 @@ class DefaultBrowserAutomator: BrowserAutomator {
+     }
+ 
+     func arcRedirect(_ url: String) -> String {
+-        "tell application \"Arc\"\nactivate\nif (count of windows) > 0 then\ntry\nset URL of active tab of front window to \"\(url)\"\non error\ntell application \"System Events\" to tell process \"Arc\"\nkeystroke \"l\" using {command down}\ndelay 0.1\nkeystroke \"\(url)\"\nkey code 36\nend tell\nend try\nelse\nopen location \"\(url)\"\nend if\nend tell"
++        let escapedURL = escapeForAppleScript(url)
++        return "tell application \"Arc\"\nactivate\nif (count of windows) > 0 then\ntry\nset URL of active tab of front window to \"\(escapedURL)\"\non error\ntell application \"System Events\" to tell process \"Arc\"\nkeystroke \"l\" using {command down}\ndelay 0.1\nkeystroke \"\(escapedURL)\"\nkey code 36\nend tell\nend try\nelse\nopen location \"\(escapedURL)\"\nend if\nend tell"
+     }
+ 
+     func safariRedirect(_ url: String) -> String {
+-        "tell application \"Safari\" to if (count of windows) > 0 then set URL of current tab of front window to \"\(url)\""
++        let escapedURL = escapeForAppleScript(url)
++        return "tell application \"Safari\" to if (count of windows) > 0 then set URL of current tab of front window to \"\(escapedURL)\""
+     }
+ 
+     func chromRedirect(_ appName: String, _ url: String) -> String {
+-        "tell application \"\(appName)\" to if (count of windows) > 0 then set URL of active tab of front window to \"\(url)\""
++        let escapedAppName = escapeForAppleScript(appName)
++        let escapedURL = escapeForAppleScript(url)
++        return "tell application \"\(escapedAppName)\" to if (count of windows) > 0 then set URL of active tab of front window to \"\(escapedURL)\""
+     }
+ }
+diff --git a/Sources/Free/Logic/LocalServer.swift b/Sources/Free/Logic/LocalServer.swift
+index 80a1d24..724a3a4 100644
+--- a/Sources/Free/Logic/LocalServer.swift
++++ b/Sources/Free/Logic/LocalServer.swift
+@@ -54,8 +54,8 @@ class LocalServer {
+         try NWListener(using: .tcp, on: port)
+     }
+ 
+-    func start(on requestedPort: NWEndpoint.Port = 10000) {
+-        let isGeneralTesting = processNameProvider().contains("Test") && requestedPort == 10000
++    func start(on requestedPort: NWEndpoint.Port = .any) {
++        let isGeneralTesting = processNameProvider().contains("Test") && requestedPort == .any
+ 
+         if isGeneralTesting {
+             return
+@@ -68,7 +68,7 @@ class LocalServer {
+             listener.stateUpdateHandler = { state in
+                 switch state {
+                 case .ready:
+-                    _ = listener.port
++                    self.port = listener.port
+                 case .failed(let error):
+                     self.onFailure?(error)
+                 default:
+diff --git a/Sources/Free/Logic/RuleMatcher.swift b/Sources/Free/Logic/RuleMatcher.swift
+index 90d90f5..a75a656 100644
+--- a/Sources/Free/Logic/RuleMatcher.swift
++++ b/Sources/Free/Logic/RuleMatcher.swift
+@@ -5,26 +5,12 @@ struct RuleMatcher {
+         "about", "arc", "chrome", "brave", "edge", "viva", "vivaldi", "opera", "file",
+     ]
+ 
+-    // NSCache is thread-safe; keyed by the exact pattern string used in the LIKE[cd] format.
+-    private static let predicateCache: NSCache<NSString, NSPredicate> = {
+-        let c = NSCache<NSString, NSPredicate>()
+-        c.countLimit = 500
+-        return c
+-    }()
+-
+-    private static func cachedPredicate(pattern: String) -> NSPredicate {
+-        let key = pattern as NSString
+-        if let cached = predicateCache.object(forKey: key) { return cached }
+-        let predicate = NSPredicate(format: "SELF LIKE[cd] %@", pattern)
+-        predicateCache.setObject(predicate, forKey: key)
+-        return predicate
+-    }
+ 
+-    static func isAllowed(_ url: String, rules: [String]) -> Bool {
++    static func isAllowed(_ url: String, rules: [String], localPort: UInt16? = nil) -> Bool {
+         let cleanedUrl = url.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+         if cleanedUrl.isEmpty { return true }
+ 
+-        if isInternalBrowserUrl(cleanedUrl) { return true }
++        if isInternalBrowserUrl(cleanedUrl, localPort: localPort) { return true }
+ 
+         let normalizedUrl = normalize(cleanedUrl)
+ 
+@@ -47,10 +33,20 @@ struct RuleMatcher {
+                     return true
+                 }
+ 
+-                if cachedPredicate(pattern: normalize(cleanedRule)).evaluate(with: normalizedUrl) { return true }
++                let regexPattern = NSRegularExpression.escapedPattern(for: normalize(cleanedRule))
++                    .replacingOccurrences(of: "\\*", with: ".*")
++                    .replacingOccurrences(of: "\\?", with: ".")
++                if let regex = try? Regex("^" + regexPattern + "$").ignoresCase() {
++                    if normalizedUrl.contains(regex) { return true }
++                }
+ 
+                 if cleanedRule.contains("://") || cleanedRule.contains("www.") {
+-                    if cachedPredicate(pattern: cleanedRule).evaluate(with: cleanedUrl) { return true }
++                    let regexPattern = NSRegularExpression.escapedPattern(for: cleanedRule)
++                        .replacingOccurrences(of: "\\*", with: ".*")
++                        .replacingOccurrences(of: "\\?", with: ".")
++                    if let regex = try? Regex("^" + regexPattern + "$").ignoresCase() {
++                        if cleanedUrl.contains(regex) { return true }
++                    }
+                 }
+             } else {
+                 let normalizedRule = normalize(cleanedRule)
+@@ -97,8 +93,9 @@ struct RuleMatcher {
+         return false
+     }
+ 
+-    private static func isInternalBrowserUrl(_ rawUrl: String) -> Bool {
+-        if rawUrl == "localhost:10000" || rawUrl.hasPrefix("localhost:10000/") { return true }
++    private static func isInternalBrowserUrl(_ rawUrl: String, localPort: UInt16?) -> Bool {
++        let port = localPort ?? 10000
++        if rawUrl == "localhost:\(port)" || rawUrl.hasPrefix("localhost:\(port)/") { return true }
+ 
+         guard let components = URLComponents(string: rawUrl) else { return false }
+ 
+@@ -108,7 +105,7 @@ struct RuleMatcher {
+ 
+         if let host = components.host?.lowercased(),
+             ["localhost", "127.0.0.1", "::1"].contains(host),
+-            components.port == 10000
++            components.port == Int(port)
+         {
+             return true
+         }
+diff --git a/Sources/Free/Logic/State/AppState+PersistenceBindings.swift b/Sources/Free/Logic/State/AppState+PersistenceBindings.swift
+deleted file mode 100644
+index 76a77c7..0000000
+--- a/Sources/Free/Logic/State/AppState+PersistenceBindings.swift
++++ /dev/null
+@@ -1,28 +0,0 @@
+-import Combine
+-import Foundation
+-
+-extension AppState {
+-    var persistenceBindings: AppStatePersistenceCoordinator.Bindings {
+-        AppStatePersistenceCoordinator.Bindings(
+-            isBlocking: $isBlocking.eraseToAnyPublisher(),
+-            isStrict: $isStrict.eraseToAnyPublisher(),
+-            weekStartsOnMonday: $weekStartsOnMonday.eraseToAnyPublisher(),
+-            accentColorIndex: $accentColorIndex.eraseToAnyPublisher(),
+-            appearanceMode: $appearanceMode.eraseToAnyPublisher(),
+-            cursorFluidAnimationEnabled: $cursorFluidAnimationEnabled.eraseToAnyPublisher(),
+-            calendarIntegrationEnabled: $calendarIntegrationEnabled.eraseToAnyPublisher(),
+-            calendarImportFocusTitleRules: $calendarImportFocusTitleRules.eraseToAnyPublisher(),
+-            calendarImportBreakTitleRules: $calendarImportBreakTitleRules.eraseToAnyPublisher(),
+-            calendarImportedScheduleRuleSetId: $calendarImportedScheduleRuleSetId.eraseToAnyPublisher(),
+-            blockNewTabs: $blockNewTabs.eraseToAnyPublisher(),
+-            blockDeveloperHosts: $blockDeveloperHosts.eraseToAnyPublisher(),
+-            blockLocalNetworkHosts: $blockLocalNetworkHosts.eraseToAnyPublisher(),
+-            allowSearchEngineWebsites: $allowSearchEngineWebsites.eraseToAnyPublisher(),
+-            allowAIProviderWebsites: $allowAIProviderWebsites.eraseToAnyPublisher(),
+-            ruleSets: $ruleSets.eraseToAnyPublisher(),
+-            activeRuleSetId: $activeRuleSetId.eraseToAnyPublisher(),
+-            pomodoroFocusDuration: $pomodoroFocusDuration.eraseToAnyPublisher(),
+-            pomodoroBreakDuration: $pomodoroBreakDuration.eraseToAnyPublisher()
+-        )
+-    }
+-}
+diff --git a/Sources/Free/Logic/State/Services/AppStateLifecycleService.swift b/Sources/Free/Logic/State/Services/AppStateLifecycleService.swift
+index 71dc81b..c2b497d 100644
+--- a/Sources/Free/Logic/State/Services/AppStateLifecycleService.swift
++++ b/Sources/Free/Logic/State/Services/AppStateLifecycleService.swift
+@@ -17,13 +17,14 @@ enum AppStateLifecycleService {
+     }
+ 
+     static func bindPersistence(
+-        bindings: AppStatePersistenceCoordinator.Bindings,
++        appState: AppState,
+         settingsStore: SettingsStore
+     ) -> Set<AnyCancellable> {
+         AppStatePersistenceCoordinator.bind(
+-            bindings: bindings,
++            appState: appState,
+             settingsStore: settingsStore
+         )
++        return Set<AnyCancellable>() // Dummy return to keep signature for now
+     }
+ 
+     static func makeBootstrapProjection(
+diff --git a/Sources/Free/Logic/State/Services/AppStatePersistenceCoordinator.swift b/Sources/Free/Logic/State/Services/AppStatePersistenceCoordinator.swift
+index 76e4ba4..6e11dfc 100644
+--- a/Sources/Free/Logic/State/Services/AppStatePersistenceCoordinator.swift
++++ b/Sources/Free/Logic/State/Services/AppStatePersistenceCoordinator.swift
+@@ -1,29 +1,7 @@
+-import Combine
+ import Foundation
++import Observation
+ 
+ enum AppStatePersistenceCoordinator {
+-    struct Bindings {
+-        let isBlocking: AnyPublisher<Bool, Never>
+-        let isStrict: AnyPublisher<Bool, Never>
+-        let weekStartsOnMonday: AnyPublisher<Bool, Never>
+-        let accentColorIndex: AnyPublisher<Int, Never>
+-        let appearanceMode: AnyPublisher<AppearanceMode, Never>
+-        let cursorFluidAnimationEnabled: AnyPublisher<Bool, Never>
+-        let calendarIntegrationEnabled: AnyPublisher<Bool, Never>
+-        let calendarImportFocusTitleRules: AnyPublisher<[String], Never>
+-        let calendarImportBreakTitleRules: AnyPublisher<[String], Never>
+-        let calendarImportedScheduleRuleSetId: AnyPublisher<UUID?, Never>
+-        let blockNewTabs: AnyPublisher<Bool, Never>
+-        let blockDeveloperHosts: AnyPublisher<Bool, Never>
+-        let blockLocalNetworkHosts: AnyPublisher<Bool, Never>
+-        let allowSearchEngineWebsites: AnyPublisher<Bool, Never>
+-        let allowAIProviderWebsites: AnyPublisher<Bool, Never>
+-        let ruleSets: AnyPublisher<[RuleSet], Never>
+-        let activeRuleSetId: AnyPublisher<UUID?, Never>
+-        let pomodoroFocusDuration: AnyPublisher<Double, Never>
+-        let pomodoroBreakDuration: AnyPublisher<Double, Never>
+-    }
+-
+     static func persistSchedulesSynchronously(
+         _ schedules: [Schedule],
+         settingsStore: SettingsStore
+@@ -32,106 +10,53 @@ enum AppStatePersistenceCoordinator {
+     }
+ 
+     static func bind(
+-        bindings: Bindings,
++        appState: AppState,
+         settingsStore: SettingsStore
+-    ) -> Set<AnyCancellable> {
+-        var cancellables = Set<AnyCancellable>()
+-
+-        bindings.isBlocking
+-            .dropFirst()
+-            .sink { settingsStore.setIsBlocking($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.isStrict
+-            .dropFirst()
+-            .sink { settingsStore.setIsStrict($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.weekStartsOnMonday
+-            .dropFirst()
+-            .sink { settingsStore.setWeekStartsOnMonday($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.accentColorIndex
+-            .dropFirst()
+-            .sink { settingsStore.setAccentColorIndex($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.appearanceMode
+-            .dropFirst()
+-            .sink { settingsStore.setAppearanceModeRawValue($0.rawValue) }
+-            .store(in: &cancellables)
+-
+-        bindings.cursorFluidAnimationEnabled
+-            .dropFirst()
+-            .sink { settingsStore.setCursorFluidAnimationEnabled($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.calendarIntegrationEnabled
+-            .dropFirst()
+-            .sink { settingsStore.setCalendarIntegrationEnabled($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.calendarImportFocusTitleRules
+-            .dropFirst()
+-            .sink { settingsStore.setCalendarImportFocusTitleRules($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.calendarImportBreakTitleRules
+-            .dropFirst()
+-            .sink { settingsStore.setCalendarImportBreakTitleRules($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.calendarImportedScheduleRuleSetId
+-            .dropFirst()
+-            .sink { settingsStore.setCalendarImportedScheduleRuleSetId($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.blockNewTabs
+-            .dropFirst()
+-            .sink { settingsStore.setBlockNewTabs($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.blockDeveloperHosts
+-            .dropFirst()
+-            .sink { settingsStore.setBlockDeveloperHosts($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.blockLocalNetworkHosts
+-            .dropFirst()
+-            .sink { settingsStore.setBlockLocalNetworkHosts($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.allowSearchEngineWebsites
+-            .dropFirst()
+-            .sink { settingsStore.setAllowSearchEngineWebsites($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.allowAIProviderWebsites
+-            .dropFirst()
+-            .sink { settingsStore.setAllowAIProviderWebsites($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.ruleSets
+-            .dropFirst()
+-            .sink { settingsStore.saveRuleSets($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.activeRuleSetId
+-            .dropFirst()
+-            .sink { settingsStore.setActiveRuleSetId($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.pomodoroFocusDuration
+-            .dropFirst()
+-            .sink { settingsStore.setPomodoroFocusDuration($0) }
+-            .store(in: &cancellables)
+-
+-        bindings.pomodoroBreakDuration
+-            .dropFirst()
+-            .sink { settingsStore.setPomodoroBreakDuration($0) }
+-            .store(in: &cancellables)
++    ) {
++        observeAndSave(appState: appState, keyPath: \.isBlocking) { settingsStore.setIsBlocking($0) }
++        observeAndSave(appState: appState, keyPath: \.isStrict) { settingsStore.setIsStrict($0) }
++        observeAndSave(appState: appState, keyPath: \.weekStartsOnMonday) { settingsStore.setWeekStartsOnMonday($0) }
++        observeAndSave(appState: appState, keyPath: \.accentColorIndex) { settingsStore.setAccentColorIndex($0) }
++        observeAndSave(appState: appState, keyPath: \.appearanceMode) { settingsStore.setAppearanceModeRawValue($0.rawValue) }
++        observeAndSave(appState: appState, keyPath: \.cursorFluidAnimationEnabled) { settingsStore.setCursorFluidAnimationEnabled($0) }
++        observeAndSave(appState: appState, keyPath: \.calendarIntegrationEnabled) { settingsStore.setCalendarIntegrationEnabled($0) }
++        observeAndSave(appState: appState, keyPath: \.calendarImportFocusTitleRules) { settingsStore.setCalendarImportFocusTitleRules($0) }
++        observeAndSave(appState: appState, keyPath: \.calendarImportBreakTitleRules) { settingsStore.setCalendarImportBreakTitleRules($0) }
++        observeAndSave(appState: appState, keyPath: \.calendarImportedScheduleRuleSetId) { settingsStore.setCalendarImportedScheduleRuleSetId($0) }
++        observeAndSave(appState: appState, keyPath: \.blockNewTabs) { settingsStore.setBlockNewTabs($0) }
++        observeAndSave(appState: appState, keyPath: \.blockDeveloperHosts) { settingsStore.setBlockDeveloperHosts($0) }
++        observeAndSave(appState: appState, keyPath: \.blockLocalNetworkHosts) { settingsStore.setBlockLocalNetworkHosts($0) }
++        observeAndSave(appState: appState, keyPath: \.allowSearchEngineWebsites) { settingsStore.setAllowSearchEngineWebsites($0) }
++        observeAndSave(appState: appState, keyPath: \.allowAIProviderWebsites) { settingsStore.setAllowAIProviderWebsites($0) }
++        observeAndSave(appState: appState, keyPath: \.ruleSets) { settingsStore.saveRuleSets($0) }
++        observeAndSave(appState: appState, keyPath: \.activeRuleSetId) { settingsStore.setActiveRuleSetId($0) }
++        observeAndSave(appState: appState, keyPath: \.pomodoroFocusDuration) { settingsStore.setPomodoroFocusDuration($0) }
++        observeAndSave(appState: appState, keyPath: \.pomodoroBreakDuration) { settingsStore.setPomodoroBreakDuration($0) }
++    }
+ 
+-        return cancellables
++    private static func observeAndSave<T: Equatable>(
++        appState: AppState,
++        keyPath: KeyPath<AppState, T>,
++        save: @escaping (T) -> Void
++    ) {
++        weak var weakAppState = appState
++        var lastValue: T = appState[keyPath: keyPath]
++        func startTracking() {
++            guard let appState = weakAppState else { return }
++            withObservationTracking {
++                _ = appState[keyPath: keyPath]
++            } onChange: {
++                DispatchQueue.main.async {
++                    guard let appState = weakAppState else { return }
++                    let newValue = appState[keyPath: keyPath]
++                    if newValue != lastValue {
++                        lastValue = newValue
++                        save(newValue)
++                    }
++                    startTracking()
++                }
++            }
++        }
++        startTracking()
+     }
+ }
+diff --git a/Sources/Free/Logic/State/Services/AppStateRuntimeMonitorFactory.swift b/Sources/Free/Logic/State/Services/AppStateRuntimeMonitorFactory.swift
+index 0b6a789..21503c5 100644
+--- a/Sources/Free/Logic/State/Services/AppStateRuntimeMonitorFactory.swift
++++ b/Sources/Free/Logic/State/Services/AppStateRuntimeMonitorFactory.swift
+@@ -2,8 +2,8 @@ import Foundation
+ 
+ enum AppStateRuntimeMonitorFactory {
+     static func makeMonitor(
+-        stateSnapshotProvider: @escaping () -> BrowserMonitor.StateSnapshot?,
+-        onEvent: @escaping (BrowserMonitor.Event) -> Void
++        stateSnapshotProvider: @escaping @Sendable () -> BrowserMonitor.StateSnapshot?,
++        onEvent: @escaping @Sendable (BrowserMonitor.Event) -> Void
+     ) -> BrowserMonitor {
+         BrowserMonitor(
+             stateSnapshotProvider: stateSnapshotProvider,
+diff --git a/Sources/Free/Logic/State/Services/AppStateRuntimeWiringCoordinator.swift b/Sources/Free/Logic/State/Services/AppStateRuntimeWiringCoordinator.swift
+index e36b2e9..8b8e3e5 100644
+--- a/Sources/Free/Logic/State/Services/AppStateRuntimeWiringCoordinator.swift
++++ b/Sources/Free/Logic/State/Services/AppStateRuntimeWiringCoordinator.swift
+@@ -29,17 +29,34 @@ enum AppStateRuntimeWiringCoordinator {
+             DispatchQueue.main.async(execute: block)
+         }
+     ) -> StartResult {
+-        let calendarCancellable = calendarProvider.objectWillChange.sink { _ in
+-            dispatchToMain(onCalendarChange)
++        // Observe calendar provider events
++        var isCancelled = false
++        func observeCalendar() {
++            guard !isCancelled else { return }
++            withObservationTracking {
++                _ = calendarProvider.events
++            } onChange: {
++                dispatchToMain {
++                    guard !isCancelled else { return }
++                    onCalendarChange()
++                    observeCalendar()
++                }
++            }
++        }
++        observeCalendar()
++        let calendarCancellable = AnyCancellable {
++            isCancelled = true
+         }
+ 
++        weak var weakTimerCoordinator = timerCoordinator
+         func armScheduleTimer() {
++            guard let tc = weakTimerCoordinator else { return }
+             let interval = max(1, scheduleTickIntervalProvider())
+-            let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: interval) {
++            let timer = tc.scheduledRepeatingTimer(withTimeInterval: interval) {
+                 onScheduleTick()
+                 armScheduleTimer()
+             }
+-            timerCoordinator.replaceScheduleTimer(with: timer)
++            tc.replaceScheduleTimer(with: timer)
+         }
+ 
+         armScheduleTimer()
+diff --git a/Sources/Free/UI/Common/AppKit/AppKitAppStateObservation.swift b/Sources/Free/UI/Common/AppKit/AppKitAppStateObservation.swift
+index f21984b..067ce33 100644
+--- a/Sources/Free/UI/Common/AppKit/AppKitAppStateObservation.swift
++++ b/Sources/Free/UI/Common/AppKit/AppKitAppStateObservation.swift
+@@ -1,169 +1,69 @@
+-import Combine
+ import Foundation
++import Observation
+ 
+ enum AppKitAppStateObservation {
+-    typealias VoidPublisher = AnyPublisher<Void, Never>
+-
+-    static func bind<Signature: Equatable>(
+-        publisher: VoidPublisher,
+-        signature: @escaping () -> Signature,
+-        cancellables: inout Set<AnyCancellable>,
+-        onChange: @escaping (_ signature: Signature) -> Void
+-    ) {
+-        publisher
+-            .receive(on: RunLoop.main)
+-            .map { signature() }
+-            .prepend(signature())
+-            .removeDuplicates()
+-            .dropFirst()
+-            .sink(receiveValue: onChange)
+-            .store(in: &cancellables)
+-    }
+-
+-    static func bind(
+-        publisher: VoidPublisher,
+-        cancellables: inout Set<AnyCancellable>,
+-        onChange: @escaping () -> Void
+-    ) {
+-        bind(
+-            publisher: publisher,
+-            signature: { UUID() },
+-            cancellables: &cancellables
+-        ) { _ in
+-            onChange()
++    static func shellAppearancePublisher(appState: AppState) -> (@escaping () -> Void) -> Void {
++        return { onChange in
++            func startTracking() {
++                withObservationTracking {
++                    _ = appState.accentColorIndex
++                    _ = appState.calendarIntegrationEnabled
++                    _ = appState.cursorFluidAnimationEnabled
++                    _ = appState.isStrict
++                } onChange: {
++                    DispatchQueue.main.async {
++                        print("SHELL APPEARANCE CHANGED")
++                        onChange()
++                        startTracking()
++                    }
++                }
++            }
++            startTracking()
+         }
+     }
+ 
+-    static func bind<Signature: Equatable>(
++    static func observe<Signature: Equatable>(
+         appState: AppState,
+         signature: @escaping () -> Signature,
+-        cancellables: inout Set<AnyCancellable>,
+         onChange: @escaping (_ signature: Signature) -> Void
+     ) {
+-        bind(
+-            publisher: appStatePublisher(appState: appState),
+-            signature: signature,
+-            cancellables: &cancellables,
+-            onChange: onChange
+-        )
++        var lastSignature: Signature? = nil
++        
++        func startTracking() {
++            withObservationTracking {
++                _ = signature()
++            } onChange: {
++                DispatchQueue.main.async {
++                    let newSignature = signature()
++                    if newSignature != lastSignature {
++                        lastSignature = newSignature
++                        onChange(newSignature)
++                    }
++                    startTracking()
++                }
++            }
++        }
++        
++        lastSignature = signature()
++        startTracking()
+     }
+-
+-    static func bind(
++    
++    static func observe(
+         appState: AppState,
+-        cancellables: inout Set<AnyCancellable>,
++        readProperties: @escaping () -> Void,
+         onChange: @escaping () -> Void
+     ) {
+-        bind(
+-            appState: appState,
+-            signature: { UUID() },
+-            cancellables: &cancellables
+-        ) { _ in
+-            onChange()
++        func startTracking() {
++            withObservationTracking {
++                readProperties()
++            } onChange: {
++                DispatchQueue.main.async {
++                    print("SHELL APPEARANCE CHANGED")
++                        onChange()
++                    startTracking()
++                }
++            }
+         }
+-    }
+-
+-    static func appStatePublisher(appState: AppState) -> VoidPublisher {
+-        appState.objectWillChange
+-            .map { _ in () }
+-            .eraseToAnyPublisher()
+-    }
+-
+-    static func settingsPublisher(appState: AppState) -> VoidPublisher {
+-        merge([
+-            appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$weekStartsOnMonday.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$calendarImportFocusTitleRules.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$calendarImportBreakTitleRules.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$calendarImportedScheduleRuleSetId.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$blockNewTabs.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$blockDeveloperHosts.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$blockLocalNetworkHosts.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$allowSearchEngineWebsites.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$allowAIProviderWebsites.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$cursorFluidAnimationEnabled.map { _ in () }.eraseToAnyPublisher(),
+-        ])
+-    }
+-
+-    static func schedulesPublisher(appState: AppState) -> VoidPublisher {
+-        merge([
+-            appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$weekStartsOnMonday.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
+-            appState.calendarProvider.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
+-        ])
+-    }
+-
+-    static func rulesPublisher(appState: AppState) -> VoidPublisher {
+-        merge([
+-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$activeRuleSetId.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$currentOpenUrls.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
+-        ])
+-    }
+-
+-    static func allowedWebsitesPublisher(appState: AppState) -> VoidPublisher {
+-        merge([
+-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$activeRuleSetId.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
+-        ])
+-    }
+-
+-    static func focusPublisher(appState: AppState) -> VoidPublisher {
+-        merge([
+-            appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$isTrusted.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$isPaused.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$pauseRemaining.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$pomodoroStatus.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$pomodoroRemaining.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$pomodoroStartedAt.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$pomodoroFocusDuration.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$pomodoroBreakDuration.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$activeRuleSetId.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
+-        ])
+-    }
+-
+-    static func calendarPublisher(appState: AppState) -> VoidPublisher {
+-        merge([
+-            appState.$weekStartsOnMonday.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$calendarImportFocusTitleRules.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$calendarImportBreakTitleRules.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$calendarImportedScheduleRuleSetId.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
+-        ])
+-    }
+-
+-    static func shellAppearancePublisher(appState: AppState) -> VoidPublisher {
+-        merge([
+-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$cursorFluidAnimationEnabled.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
+-        ])
+-    }
+-
+-    private static func merge(_ publishers: [VoidPublisher]) -> VoidPublisher {
+-        Publishers.MergeMany(publishers).eraseToAnyPublisher()
++        startTracking()
+     }
+ }
+diff --git a/Sources/Free/UI/Common/AppKit/AppKitSystemBridgeLiveSystemRuntime.swift b/Sources/Free/UI/Common/AppKit/AppKitSystemBridgeLiveSystemRuntime.swift
+index c91934e..0848e8a 100644
+--- a/Sources/Free/UI/Common/AppKit/AppKitSystemBridgeLiveSystemRuntime.swift
++++ b/Sources/Free/UI/Common/AppKit/AppKitSystemBridgeLiveSystemRuntime.swift
+@@ -2,28 +2,34 @@ import AppKit
+ import Foundation
+ 
+ enum AppKitSystemBridgeLiveSystemRuntime {
++    private static let hookLock = NSLock()
+     private static var nativeWorkspaceOpenForTesting: ((URL) -> Bool)?
+     private static var isRunningUnderXCTestForTesting: (() -> Bool)?
+ 
+     static func setNativeWorkspaceOpenForTesting(_ impl: ((URL) -> Bool)?) {
+-        nativeWorkspaceOpenForTesting = impl
++        hookLock.lock(); defer { hookLock.unlock() }; nativeWorkspaceOpenForTesting = impl
+     }
+ 
+     static func setIsRunningUnderXCTestForTesting(_ impl: (() -> Bool)?) {
+-        isRunningUnderXCTestForTesting = impl
++        hookLock.lock(); defer { hookLock.unlock() }; isRunningUnderXCTestForTesting = impl
+     }
+ 
+     static func resetForTesting() {
++        hookLock.lock(); defer { hookLock.unlock() }
+         nativeWorkspaceOpenForTesting = nil
+         isRunningUnderXCTestForTesting = nil
+     }
+ 
+     static func nativeWorkspaceOpen(_ url: URL) -> Bool {
+-        if let impl = nativeWorkspaceOpenForTesting {
++        hookLock.lock()
++        let impl = nativeWorkspaceOpenForTesting
++        let isRunningImpl = isRunningUnderXCTestForTesting
++        hookLock.unlock()
++        if let impl = impl {
+             return impl(url)
+         }
+         let isXCTest =
+-            isRunningUnderXCTestForTesting?()
++            isRunningImpl?()
+             ?? (ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil)
+         if isXCTest {
+             return false
+diff --git a/Sources/Free/UI/Sections/AllowedWebsites/AllowedWebsitesFloatingEditorViewController+Import.swift b/Sources/Free/UI/Sections/AllowedWebsites/AllowedWebsitesFloatingEditorViewController+Import.swift
+index 5ccbcfb..95b8072 100644
+--- a/Sources/Free/UI/Sections/AllowedWebsites/AllowedWebsitesFloatingEditorViewController+Import.swift
++++ b/Sources/Free/UI/Sections/AllowedWebsites/AllowedWebsitesFloatingEditorViewController+Import.swift
+@@ -4,16 +4,13 @@ extension AllowedWebsitesFloatingEditorViewController {
+     typealias EmptyImportStatePresenter = ([String]) -> Void
+     typealias ImportCandidatesPresenter = ([AllowedWebsitesImportCoordinator.Candidate], String) -> [String]?
+ 
+-    private static var customPresentEmptyImportState: EmptyImportStatePresenter?
+-    private static var customPresentImportCandidates: ImportCandidatesPresenter?
+-
+-    static var presentEmptyImportState: EmptyImportStatePresenter {
+-        get { customPresentEmptyImportState ?? defaultPresentEmptyImportState }
++    var presentEmptyImportState: EmptyImportStatePresenter {
++        get { customPresentEmptyImportState ?? Self.defaultPresentEmptyImportState }
+         set { customPresentEmptyImportState = newValue }
+     }
+ 
+-    static var presentImportCandidates: ImportCandidatesPresenter {
+-        get { customPresentImportCandidates ?? defaultPresentImportCandidates }
++    var presentImportCandidates: ImportCandidatesPresenter {
++        get { customPresentImportCandidates ?? Self.defaultPresentImportCandidates }
+         set { customPresentImportCandidates = newValue }
+     }
+ 
+@@ -31,28 +28,34 @@ extension AllowedWebsitesFloatingEditorViewController {
+         )
+     }
+ 
+-    static func resetImportPresentersForTesting() {
++    func resetImportPresentersForTesting() {
+         customPresentEmptyImportState = nil
+         customPresentImportCandidates = nil
+     }
+ 
+     @objc
+     func handleImportOpenTabs() {
++        Task { @MainActor in
++            await handleImportOpenTabsAsync()
++        }
++    }
++
++    func handleImportOpenTabsAsync() async {
+         guard let setId = resolvedRuleSetId(selectedRuleSetId) else { return }
+         guard let selectedSet = appState.ruleSets.first(where: { $0.id == setId }) else { return }
+ 
+-        appState.refreshCurrentOpenUrls()
++        await appState.refreshCurrentOpenUrlsAsync()
+         let candidates = AllowedWebsitesImportCoordinator.buildCandidates(
+             currentOpenUrls: appState.currentOpenUrls,
+             selectedSet: selectedSet
+         )
+ 
+         guard !candidates.isEmpty else {
+-            Self.presentEmptyImportState(appState.currentOpenUrls)
++            presentEmptyImportState(appState.currentOpenUrls)
+             return
+         }
+ 
+-        guard let selectedRules = Self.presentImportCandidates(candidates, selectedSet.name),
++        guard let selectedRules = presentImportCandidates(candidates, selectedSet.name),
+               !selectedRules.isEmpty else { return }
+ 
+         if isAllowedWebsitesEditingLocked {
+diff --git a/Sources/Free/UI/Sections/AllowedWebsites/AllowedWebsitesFloatingEditorViewController.swift b/Sources/Free/UI/Sections/AllowedWebsites/AllowedWebsitesFloatingEditorViewController.swift
+index a70493b..6c91e6d 100644
+--- a/Sources/Free/UI/Sections/AllowedWebsites/AllowedWebsitesFloatingEditorViewController.swift
++++ b/Sources/Free/UI/Sections/AllowedWebsites/AllowedWebsitesFloatingEditorViewController.swift
+@@ -16,6 +16,9 @@ final class AllowedWebsitesFloatingEditorViewController:
+     var visibleRules: [String] = []
+     var cancellables: Set<AnyCancellable> = []
+ 
++    var customPresentEmptyImportState: EmptyImportStatePresenter?
++    var customPresentImportCandidates: ImportCandidatesPresenter?
++
+     let ruleSetScrollView = VerticalStackScrollContainer(
+         contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+     )
+@@ -60,12 +63,11 @@ final class AllowedWebsitesFloatingEditorViewController:
+             guard let self, index >= 0, index < visibleRules.count else { return nil }
+             return visibleRules[index]
+         }
+-        AppKitAppStateObservation.bind(
+-            publisher: AppKitAppStateObservation.allowedWebsitesPublisher(appState: appState),
++        AppKitAppStateObservation.observe(
++            appState: appState,
+             signature: { [appState] in
+                 AllowedWebsitesReloadCoordinator.renderSignature(appState: appState)
+-            },
+-            cancellables: &cancellables
++            }
+         ) { [weak self] _ in
+             self?.reloadContent()
+         }
+diff --git a/Sources/Free/UI/Sections/Calendar/CalendarSectionViewController.swift b/Sources/Free/UI/Sections/Calendar/CalendarSectionViewController.swift
+index 89e4509..eae7bd5 100644
+--- a/Sources/Free/UI/Sections/Calendar/CalendarSectionViewController.swift
++++ b/Sources/Free/UI/Sections/Calendar/CalendarSectionViewController.swift
+@@ -52,39 +52,41 @@ final class CalendarSectionViewController: NSViewController {
+     private static var _isRunningInTestProcess: TestProcessDetector?
+     private static var _nativeWorkspaceURLOpener: URLOpener?
+ 
++    private static let hookLock = NSLock()
++
+     static var makeCalendarPermissionAlert: AlertFactory {
+-        get { _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
+-        set { _makeCalendarPermissionAlert = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _makeCalendarPermissionAlert = newValue }
+     }
+     static var runCalendarPermissionAlert: AlertRunner {
+-        get { _runCalendarPermissionAlert ?? defaultRunCalendarPermissionAlert }
+-        set { _runCalendarPermissionAlert = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _runCalendarPermissionAlert ?? defaultRunCalendarPermissionAlert }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _runCalendarPermissionAlert = newValue }
+     }
+     static var platformWorkspaceURLOpener: URLOpener {
+-        get { _platformWorkspaceURLOpener ?? defaultPlatformWorkspaceURLOpener }
+-        set { _platformWorkspaceURLOpener = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _platformWorkspaceURLOpener ?? defaultPlatformWorkspaceURLOpener }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _platformWorkspaceURLOpener = newValue }
+     }
+     static var isRunningInTestProcess: TestProcessDetector {
+-        get { _isRunningInTestProcess ?? { AppDelegate.isRunningInTestProcess() } }
+-        set { _isRunningInTestProcess = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _isRunningInTestProcess ?? { AppDelegate.isRunningInTestProcess() } }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _isRunningInTestProcess = newValue }
+     }
+     static var nativeWorkspaceURLOpener: URLOpener {
+-        get { _nativeWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
+-        set { _nativeWorkspaceURLOpener = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _nativeWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _nativeWorkspaceURLOpener = newValue }
+     }
+     static var calendarPrivacySettingsURLString =
+         "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
+     static var workspaceURLOpener: URLOpener {
+-        get { _workspaceURLOpener ?? defaultWorkspaceURLOpener }
+-        set { _workspaceURLOpener = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _workspaceURLOpener ?? defaultWorkspaceURLOpener }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _workspaceURLOpener = newValue }
+     }
+     static var scheduleAfter: AsyncAfterScheduler {
+-        get { _scheduleAfter ?? defaultScheduleAfter }
+-        set { _scheduleAfter = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _scheduleAfter ?? defaultScheduleAfter }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _scheduleAfter = newValue }
+     }
+     static var openCalendarPrivacySettings: () -> Void {
+-        get { _openCalendarPrivacySettings ?? defaultOpenCalendarPrivacySettings }
+-        set { _openCalendarPrivacySettings = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _openCalendarPrivacySettings ?? defaultOpenCalendarPrivacySettings }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _openCalendarPrivacySettings = newValue }
+     }
+     static var calendarPermissionFallbackDelay: TimeInterval = 0.6
+ 
+@@ -283,8 +285,8 @@ final class CalendarSectionViewController: NSViewController {
+     override func viewDidLoad() {
+         super.viewDidLoad()
+         let appState = self.appState
+-        AppKitAppStateObservation.bind(
+-            publisher: AppKitAppStateObservation.calendarPublisher(appState: appState),
++        AppKitAppStateObservation.observe(
++            appState: appState,
+             signature: {
+                 ObservationSignature(
+                     weekStartsOnMonday: appState.weekStartsOnMonday,
+@@ -295,8 +297,7 @@ final class CalendarSectionViewController: NSViewController {
+                     calendarImportedScheduleRuleSetId: appState.calendarImportedScheduleRuleSetId,
+                     ruleSetsSignature: appState.ruleSets.map { "\($0.id.uuidString)|\($0.name)" }
+                 )
+-            },
+-            cancellables: &cancellables
++            }
+         ) { [weak self] _ in
+             self?.reload()
+         }
+diff --git a/Sources/Free/UI/Sections/Focus/FocusSectionViewController.swift b/Sources/Free/UI/Sections/Focus/FocusSectionViewController.swift
+index 8d300a7..85f3d69 100644
+--- a/Sources/Free/UI/Sections/Focus/FocusSectionViewController.swift
++++ b/Sources/Free/UI/Sections/Focus/FocusSectionViewController.swift
+@@ -100,10 +100,24 @@ final class FocusSectionViewController: NSViewController {
+     override func viewDidLoad() {
+         super.viewDidLoad()
+ 
+-        AppKitAppStateObservation.bind(
+-            publisher: AppKitAppStateObservation.focusPublisher(appState: appState),
+-            cancellables: &cancellables
+-        ) { [weak self] in
++        let appState = self.appState
++        AppKitAppStateObservation.observe(appState: appState, readProperties: { [appState] in
++            _ = appState.isBlocking
++            _ = appState.isStrict
++            _ = appState.isTrusted
++            _ = appState.isPaused
++            _ = appState.pauseRemaining
++            _ = appState.pomodoroStatus
++            _ = appState.pomodoroRemaining
++            _ = appState.pomodoroStartedAt
++            _ = appState.pomodoroFocusDuration
++            _ = appState.pomodoroBreakDuration
++            _ = appState.ruleSets
++            _ = appState.activeRuleSetId
++            _ = appState.schedules
++            _ = appState.accentColorIndex
++            _ = appState.appearanceMode
++        }) { [weak self] in
+             self?.handleObservedAppStateChange()
+         }
+ 
+diff --git a/Sources/Free/UI/Sections/Focus/Widgets/FocusPomodoroWidgetView.swift b/Sources/Free/UI/Sections/Focus/Widgets/FocusPomodoroWidgetView.swift
+index a716275..748f91f 100644
+--- a/Sources/Free/UI/Sections/Focus/Widgets/FocusPomodoroWidgetView.swift
++++ b/Sources/Free/UI/Sections/Focus/Widgets/FocusPomodoroWidgetView.swift
+@@ -56,18 +56,31 @@ final class FocusPomodoroWidgetView: AppKitCardView {
+         alert.beginSheetModal(for: window, completionHandler: completion)
+     }
+ 
++    private static let hookLock = NSLock()
++
+     private static var makeAlertOverride: AlertFactory?
+     static var makeAlert: AlertFactory {
+-        get { makeAlertOverride ?? defaultMakeAlert }
+-        set { makeAlertOverride = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return makeAlertOverride ?? defaultMakeAlert }
++        set { hookLock.lock(); defer { hookLock.unlock() }; makeAlertOverride = newValue }
++    }
++    
++    private static var _runAlertModal: AlertModalRunner?
++    static var runAlertModal: AlertModalRunner {
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _runAlertModal ?? defaultRunAlertModal }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _runAlertModal = newValue }
++    }
++    
++    private static var _runAlertSheet: AlertSheetRunner?
++    static var runAlertSheet: AlertSheetRunner {
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _runAlertSheet ?? defaultRunAlertSheet }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _runAlertSheet = newValue }
+     }
+-    static var runAlertModal: AlertModalRunner = defaultRunAlertModal
+-    static var runAlertSheet: AlertSheetRunner = defaultRunAlertSheet
+ 
+     static func resetPromptHooksForTesting() {
++        hookLock.lock(); defer { hookLock.unlock() }
+         makeAlertOverride = nil
+-        runAlertModal = defaultRunAlertModal
+-        runAlertSheet = defaultRunAlertSheet
++        _runAlertModal = nil
++        _runAlertSheet = nil
+     }
+ 
+     init(
+diff --git a/Sources/Free/UI/Sections/Rules/RulesSheetViewController+Observation.swift b/Sources/Free/UI/Sections/Rules/RulesSheetViewController+Observation.swift
+index 6d6031e..c1a5f53 100644
+--- a/Sources/Free/UI/Sections/Rules/RulesSheetViewController+Observation.swift
++++ b/Sources/Free/UI/Sections/Rules/RulesSheetViewController+Observation.swift
+@@ -17,15 +17,14 @@ extension RulesSheetViewController {
+ 
+     override func viewDidLoad() {
+         super.viewDidLoad()
+-        AppKitAppStateObservation.bind(
+-            publisher: AppKitAppStateObservation.rulesPublisher(appState: appState),
++        AppKitAppStateObservation.observe(
++            appState: appState,
+             signature: { [weak self, appState] in
+                 RulesSheetViewController.observationSignature(
+                     controller: self,
+                     appState: appState
+                 )
+-            },
+-            cancellables: &cancellables
++            }
+         ) { [weak self] _ in
+             self?.reloadContent()
+         }
+diff --git a/Sources/Free/UI/Sections/Rules/RulesSheetViewController.swift b/Sources/Free/UI/Sections/Rules/RulesSheetViewController.swift
+index 501deb4..6b23b13 100644
+--- a/Sources/Free/UI/Sections/Rules/RulesSheetViewController.swift
++++ b/Sources/Free/UI/Sections/Rules/RulesSheetViewController.swift
+@@ -99,8 +99,8 @@ extension RulesSheetViewController {
+         reloadRuleContent()
+     }
+ 
+-    func refreshSuggestionsForTesting() {
+-        appState.refreshCurrentOpenUrls()
++    func refreshSuggestionsForTestingAsync() async {
++        await appState.refreshCurrentOpenUrlsAsync()
+         reloadRuleContent()
+     }
+ 
+diff --git a/Sources/Free/UI/Sections/Schedules/Views/ScheduleEditorViewController.swift b/Sources/Free/UI/Sections/Schedules/Views/ScheduleEditorViewController.swift
+index 60a82f4..2e78d55 100644
+--- a/Sources/Free/UI/Sections/Schedules/Views/ScheduleEditorViewController.swift
++++ b/Sources/Free/UI/Sections/Schedules/Views/ScheduleEditorViewController.swift
+@@ -4,16 +4,29 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate
+     typealias AlertFactory = () -> NSAlert
+     typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+ 
++    private static let hookLock = NSLock()
+     private static var _makeDeleteConfirmationAlert: AlertFactory?
+     private static var _runDeleteConfirmationAlert: AlertRunner?
+     private static var _isRunningInTestProcess: (() -> Bool)?
+     static var makeDeleteConfirmationAlert: AlertFactory {
+-        get { _makeDeleteConfirmationAlert ?? defaultMakeDeleteConfirmationAlert }
+-        set { _makeDeleteConfirmationAlert = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _makeDeleteConfirmationAlert ?? defaultMakeDeleteConfirmationAlert }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _makeDeleteConfirmationAlert = newValue }
+     }
+     static var runDeleteConfirmationAlert: AlertRunner {
+-        get { _runDeleteConfirmationAlert ?? defaultRunDeleteConfirmationAlert }
+-        set { _runDeleteConfirmationAlert = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _runDeleteConfirmationAlert ?? defaultRunDeleteConfirmationAlert }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _runDeleteConfirmationAlert = newValue }
++    }
++
++    static func resetHooksForTesting() {
++        hookLock.lock(); defer { hookLock.unlock() }
++        _makeDeleteConfirmationAlert = nil
++        _runDeleteConfirmationAlert = nil
++        _isRunningInTestProcess = nil
++    }
++
++    static var isRunningInTestProcess: () -> Bool {
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _isRunningInTestProcess ?? { isRunningUnderXCTest } }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _isRunningInTestProcess = newValue }
+     }
+ 
+     private static func defaultMakeDeleteConfirmationAlert() -> NSAlert { NSAlert() }
+diff --git a/Sources/Free/UI/Sections/Schedules/Views/SchedulesView.swift b/Sources/Free/UI/Sections/Schedules/Views/SchedulesView.swift
+index 4c9fc15..ac657cb 100644
+--- a/Sources/Free/UI/Sections/Schedules/Views/SchedulesView.swift
++++ b/Sources/Free/UI/Sections/Schedules/Views/SchedulesView.swift
+@@ -108,47 +108,31 @@ final class SchedulesSheetViewController: NSViewController {
+     override func viewDidLoad() {
+         super.viewDidLoad()
+ 
+-        AppKitAppStateObservation.bind(
+-            publisher: schedulesObservationPublisher(),
+-            signature: { [unowned self, appState] in
+-                RenderSignature(
+-                    appState: appState,
++        let appState = self.appState
++        AppKitAppStateObservation.observe(
++            appState: appState,
++            signature: { [weak self] () -> RenderSignature? in
++                guard let self = self else { return nil }
++                let _ = self.appState.schedules
++                let _ = self.appState.appearanceMode
++                let _ = self.appState.accentColorIndex
++                if self.viewMode == 0 {
++                    let _ = self.appState.weekStartsOnMonday
++                    let _ = self.appState.calendarIntegrationEnabled
++                    let _ = self.appState.calendarProvider.events
++                }
++                return RenderSignature(
++                    appState: self.appState,
+                     viewMode: self.viewMode,
+                     calendarEventsVersion: self.calendarEventsVersion
+                 )
+-            },
+-            cancellables: &cancellables
++            }
+         ) { [weak self] nextSignature in
++            guard let nextSignature = nextSignature else { return }
+             self?.applyConfiguration(signature: nextSignature)
+         }
+     }
+ 
+-    private func schedulesObservationPublisher() -> AnyPublisher<Void, Never> {
+-        let calendarModeOnly: (()) -> Bool = { [weak self] _ in
+-            self?.viewMode == 0
+-        }
+-
+-        return Publishers.MergeMany(
+-            appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
+-            appState.$weekStartsOnMonday.map { _ in () }
+-                .filter(calendarModeOnly)
+-                .eraseToAnyPublisher(),
+-            appState.$calendarIntegrationEnabled.map { _ in () }
+-                .filter(calendarModeOnly)
+-                .eraseToAnyPublisher(),
+-            appState.calendarProvider.objectWillChange
+-                .filter(calendarModeOnly)
+-                .handleEvents(receiveOutput: { [weak self] _ in
+-                    self?.calendarEventsVersion &+= 1
+-                })
+-                .map { _ in () }
+-                .eraseToAnyPublisher()
+-        )
+-        .eraseToAnyPublisher()
+-    }
+-
+     override func viewDidAppear() {
+         super.viewDidAppear()
+         updateWindowTitle()
+diff --git a/Sources/Free/UI/Sections/Settings/SettingsSectionViewController.swift b/Sources/Free/UI/Sections/Settings/SettingsSectionViewController.swift
+index d6554dc..602eaa3 100644
+--- a/Sources/Free/UI/Sections/Settings/SettingsSectionViewController.swift
++++ b/Sources/Free/UI/Sections/Settings/SettingsSectionViewController.swift
+@@ -53,50 +53,53 @@ final class SettingsSectionViewController: NSViewController {
+     private static var _openCalendarPrivacySettings: CalendarSettingsOpener?
+     private static var _isRunningInTestProcess: TestProcessDetector?
+     private static var _nativeWorkspaceURLOpener: URLOpener?
++    private static let hookLock = NSLock()
++
+     static var makeCalendarPermissionAlert: AlertFactory {
+-        get { _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
+-        set { _makeCalendarPermissionAlert = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _makeCalendarPermissionAlert = newValue }
+     }
+     static var runCalendarPermissionAlert: AlertRunner {
+-        get { _runCalendarPermissionAlert ?? defaultRunCalendarPermissionAlert }
+-        set { _runCalendarPermissionAlert = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _runCalendarPermissionAlert ?? defaultRunCalendarPermissionAlert }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _runCalendarPermissionAlert = newValue }
+     }
+     static var injectedWorkspaceURLOpener: URLOpener?
+     static var isRunningInTestProcess: TestProcessDetector {
+-        get { _isRunningInTestProcess ?? { AppDelegate.isRunningInTestProcess() } }
+-        set { _isRunningInTestProcess = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _isRunningInTestProcess ?? { AppDelegate.isRunningInTestProcess() } }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _isRunningInTestProcess = newValue }
+     }
+     static var nativeWorkspaceURLOpener: URLOpener {
+-        get { _nativeWorkspaceURLOpener ?? { url in workspaceNativeOpenURLOpener(url) } }
+-        set { _nativeWorkspaceURLOpener = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _nativeWorkspaceURLOpener ?? { url in workspaceNativeOpenURLOpener(url) } }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _nativeWorkspaceURLOpener = newValue }
+     }
+     private static var workspaceNativeOpenURLOpener: URLOpener {
+         _workspaceNativeOpenURLOpener ?? AppKitSystemBridges.openURL
+     }
+     static var platformWorkspaceURLOpener: URLOpener {
+         get {
+-            _platformWorkspaceURLOpener ?? { url in
++            hookLock.lock(); defer { hookLock.unlock() }
++            return _platformWorkspaceURLOpener ?? { url in
+                 if url.scheme == "x-free-test" || isRunningInTestProcess() {
+                     return
+                 }
+                 nativeWorkspaceURLOpener(url)
+             }
+         }
+-        set { _platformWorkspaceURLOpener = newValue }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _platformWorkspaceURLOpener = newValue }
+     }
+     static var calendarPrivacySettingsURLString =
+         "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
+     static var workspaceURLOpener: URLOpener {
+-        get { _workspaceURLOpener ?? defaultWorkspaceURLOpener }
+-        set { _workspaceURLOpener = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _workspaceURLOpener ?? defaultWorkspaceURLOpener }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _workspaceURLOpener = newValue }
+     }
+     static var scheduleAfter: AsyncAfterScheduler {
+-        get { _scheduleAfter ?? defaultScheduleAfter }
+-        set { _scheduleAfter = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _scheduleAfter ?? defaultScheduleAfter }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _scheduleAfter = newValue }
+     }
+     static var openCalendarPrivacySettings: CalendarSettingsOpener {
+-        get { _openCalendarPrivacySettings ?? defaultOpenCalendarPrivacySettings }
+-        set { _openCalendarPrivacySettings = newValue }
++        get { hookLock.lock(); defer { hookLock.unlock() }; return _openCalendarPrivacySettings ?? defaultOpenCalendarPrivacySettings }
++        set { hookLock.lock(); defer { hookLock.unlock() }; _openCalendarPrivacySettings = newValue }
+     }
+     static var calendarPermissionFallbackDelay: TimeInterval = 0.6
+ 
+@@ -215,8 +218,8 @@ final class SettingsSectionViewController: NSViewController {
+         super.viewDidLoad()
+         let appState = self.appState
+ 
+-        AppKitAppStateObservation.bind(
+-            publisher: AppKitAppStateObservation.settingsPublisher(appState: appState),
++        AppKitAppStateObservation.observe(
++            appState: appState,
+             signature: {
+                 ObservationSignature(
+                     isBlocking: appState.isBlocking,
+@@ -234,8 +237,7 @@ final class SettingsSectionViewController: NSViewController {
+                     cursorFluidAnimationEnabled: appState.cursorFluidAnimationEnabled,
+                     launchAtLoginEnabled: appState.launchAtLoginStatus()
+                 )
+-            },
+-            cancellables: &cancellables
++            }
+         ) { [weak self] _ in
+             self?.reloadSettings()
+         }
+diff --git a/Sources/Free/UI/Shell/MainShellBindings.swift b/Sources/Free/UI/Shell/MainShellBindings.swift
+index 538831f..673fe39 100644
+--- a/Sources/Free/UI/Shell/MainShellBindings.swift
++++ b/Sources/Free/UI/Shell/MainShellBindings.swift
+@@ -6,7 +6,7 @@ final class MainShellBindings {
+     private var cancellables: Set<AnyCancellable> = []
+ 
+     func bind(
+-        appStateChanges: AnyPublisher<Void, Never>,
++        appStateChanges: (@escaping () -> Void) -> Void,
+         shellState: FreeShellState,
+         onSelectedSectionChanged: @escaping () -> Void,
+         onAppStateChanged: @escaping () -> Void,
+@@ -21,12 +21,9 @@ final class MainShellBindings {
+             }
+             .store(in: &cancellables)
+ 
+-        appStateChanges
+-            .receive(on: RunLoop.main)
+-            .sink {
+-                onAppStateChanged()
+-            }
+-            .store(in: &cancellables)
++        appStateChanges {
++            onAppStateChanged()
++        }
+ 
+         shellState.$showRules
+             .removeDuplicates()

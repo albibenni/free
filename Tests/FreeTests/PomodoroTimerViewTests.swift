@@ -4,16 +4,17 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct PomodoroTimerViewTests {
     @Test("Pomodoro timer support exposes stable drawing constants")
-    func timerConstants() {
+    func timerConstants() async throws {
         #expect(PomodoroTimerSupport.Constants.strokeWidth == 22)
         #expect(PomodoroTimerSupport.Constants.knobSize == 16)
         #expect(PomodoroTimerSupport.Constants.trackOpacity == 0.15)
     }
 
     @Test("Pomodoro duration normalizes negative angle and clamps bounds")
-    func durationNegativeAngleAndClamp() {
+    func durationNegativeAngleAndClamp() async throws {
         let center = CGPoint(x: 100, y: 100)
         let maxMins: Double = 60
 
@@ -45,7 +46,7 @@ struct PomodoroTimerViewTests {
     }
 
     @Test("Pomodoro timer support applies duration into an inout value")
-    func dragHandlerApply() {
+    func dragHandlerApply() async throws {
         var duration = 10.0
 
         PomodoroTimerSupport.apply(
@@ -59,7 +60,7 @@ struct PomodoroTimerViewTests {
     }
 
     @Test("Pomodoro timer support change handler can be created without updating state")
-    func dragHandlerOnChangedCreation() {
+    func dragHandlerOnChangedCreation() async throws {
         var duration = 25.0
 
         let handler = PomodoroTimerSupport.onChanged(
@@ -72,7 +73,7 @@ struct PomodoroTimerViewTests {
     }
 
     @Test("Pomodoro timer support change handler updates duration from a point")
-    func dragHandlerOnChangedInvocation() {
+    func dragHandlerOnChangedInvocation() async throws {
         var duration = 25.0
 
         let handler = PomodoroTimerSupport.onChanged(

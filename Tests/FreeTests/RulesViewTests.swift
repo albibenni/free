@@ -5,6 +5,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct RulesViewTests {
     private final class ActionTarget: NSObject {
         @objc
@@ -48,7 +49,7 @@ struct RulesViewTests {
     }
 
     @Test("Rules section support covers helper branches")
-    func rulesSectionSupportHelpers() {
+    func rulesSectionSupportHelpers() async throws {
         #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: false))
         #expect(!RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 1, isBlocking: false))
         #expect(!RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: true))
@@ -127,7 +128,7 @@ struct RulesViewTests {
     }
 
     @Test("Rules section support import candidates cover duplicate, nil-existing, excluded-scheme, and fallback URL parsing branches")
-    func rulesSectionSupportImportCandidateEdgeBranches() {
+    func rulesSectionSupportImportCandidateEdgeBranches() async throws {
         let candidates = RulesSectionSupport.importableWebsiteCandidates(
             from: [
                 "   ",  // trimmed empty guard
@@ -157,7 +158,7 @@ struct RulesViewTests {
     }
 
     @Test("Rules section support delete-set visibility boolean matrix")
-    func rulesSectionSupportDeleteSetVisibilityMatrix() {
+    func rulesSectionSupportDeleteSetVisibilityMatrix() async throws {
         #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 0, isBlocking: false) == false)
         #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 1, isBlocking: false) == false)
         #expect(RulesSectionSupport.shouldShowDeleteSetButton(ruleSetCount: 2, isBlocking: true) == false)
@@ -212,7 +213,7 @@ struct RulesViewTests {
 
     @Test("Rules sheet controller filteredSuggestions bridges app open URLs against selected set")
     @MainActor
-    func rulesSheetControllerFilteredSuggestions() {
+    func rulesSheetControllerFilteredSuggestions() async throws {
         let appState = isolatedAppState(name: "filteredSuggestions")
         let set = RuleSet(name: "Set", urls: ["google.com"])
         appState.ruleSets = [set]
@@ -228,7 +229,7 @@ struct RulesViewTests {
 
     @Test("Rules sheet controller renders selected-set paths with collapsed and expanded empty suggestions")
     @MainActor
-    func rulesSheetControllerRenderSelectedSetVariants() {
+    func rulesSheetControllerRenderSelectedSetVariants() async throws {
         let appState = isolatedAppState(name: "renderSelectedVariants")
         let setA = RuleSet(name: "Set A", urls: ["a.com"])
         let setB = RuleSet(name: "Set B", urls: ["b.com"])
@@ -250,7 +251,7 @@ struct RulesViewTests {
 
     @Test("Rules sheet controller skips reload for unrelated state changes while suggestions are collapsed")
     @MainActor
-    func rulesSheetControllerSkipsReloadForUnrelatedStateChanges() {
+    func rulesSheetControllerSkipsReloadForUnrelatedStateChanges() async throws {
         let appState = isolatedAppState(name: "unrelatedReload")
         let set = RuleSet(name: "Set", urls: ["a.com"])
         appState.ruleSets = [set]
@@ -261,14 +262,14 @@ struct RulesViewTests {
         let initialReloadGeneration = controller.reloadGenerationForTesting
 
         appState.pomodoroFocusDuration = 50
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 200000000)
 
         #expect(controller.reloadGenerationForTesting == initialReloadGeneration)
     }
 
     @Test("Rules sheet observation signature covers nil-controller fallback and live-controller path")
     @MainActor
-    func rulesSheetObservationSignatureCoverage() {
+    func rulesSheetObservationSignatureCoverage() async throws {
         let appState = isolatedAppState(name: "observationSignatureCoverage")
         let set = RuleSet(name: "Set A", urls: ["a.com"])
         appState.ruleSets = [set]
@@ -295,7 +296,7 @@ struct RulesViewTests {
 
     @Test("Rules sheet controller reuses sidebar row views when selection changes")
     @MainActor
-    func rulesSheetControllerReusesSidebarRowsOnSelection() throws {
+    func rulesSheetControllerReusesSidebarRowsOnSelection() async throws {
         let appState = isolatedAppState(name: "sidebarReuseOnSelection")
         let setA = RuleSet(name: "Set A", urls: ["a.com"])
         let setB = RuleSet(name: "Set B", urls: ["b.com"])
@@ -319,7 +320,7 @@ struct RulesViewTests {
 
     @Test("Rules sheet canReuseSidebarRows returns false when row IDs are incomplete despite matching count")
     @MainActor
-    func rulesSheetCanReuseSidebarRowsIncompleteIds() {
+    func rulesSheetCanReuseSidebarRowsIncompleteIds() async throws {
         let appState = isolatedAppState(name: "sidebarReuseIncompleteIds")
         let setA = RuleSet(name: "Set A", urls: ["a.com"])
         let setB = RuleSet(name: "Set B", urls: ["b.com"])
@@ -353,7 +354,7 @@ struct RulesViewTests {
 
     @Test("Rules sheet controller reuses existing rule row views for unchanged rules")
     @MainActor
-    func rulesSheetControllerReusesRuleRows() throws {
+    func rulesSheetControllerReusesRuleRows() async throws {
         let appState = isolatedAppState(name: "ruleRowsReuse")
         let set = RuleSet(name: "Set", urls: ["a.com"])
         appState.ruleSets = [set]
@@ -365,7 +366,7 @@ struct RulesViewTests {
         let initialRowId = try #require(controller.ruleRowObjectIdentifierForTesting("a.com"))
 
         controller.addRuleForTesting("b.com", setId: set.id)
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 200000000)
 
         #expect(controller.ruleRowObjectIdentifierForTesting("a.com") == initialRowId)
         #expect(controller.ruleRowObjectIdentifierForTesting("b.com") != nil)
@@ -373,7 +374,7 @@ struct RulesViewTests {
 
     @Test("Rules sheet controller reuses suggestion rows across accent updates and expand toggles")
     @MainActor
-    func rulesSheetControllerReusesSuggestionRows() throws {
+    func rulesSheetControllerReusesSuggestionRows() async throws {
         let appState = isolatedAppState(name: "suggestionsReuse")
         let set = RuleSet(name: "Set", urls: ["already.com"])
         appState.ruleSets = [set]
@@ -389,7 +390,7 @@ struct RulesViewTests {
         )
 
         appState.accentColorIndex = 3
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 200000000)
         #expect(
             controller.suggestionRowObjectIdentifierForTesting("https://newsite.com")
                 == initialSuggestionRowId
@@ -405,7 +406,7 @@ struct RulesViewTests {
 
     @Test("Rules sheet controller renders non-empty suggestions and no-selected-list fallback")
     @MainActor
-    func rulesSheetControllerRenderSuggestionsAndFallback() {
+    func rulesSheetControllerRenderSuggestionsAndFallback() async throws {
         let appState = isolatedAppState(name: "renderSuggestionsAndFallback")
         let set = RuleSet(name: "Set", urls: ["already.com"])
         appState.ruleSets = [set]
@@ -424,14 +425,14 @@ struct RulesViewTests {
         let emptyController = RulesSheetViewController(appState: emptyAppState)
         let emptyHosted = host(emptyController)
         emptyAppState.ruleSets = []
-        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        try await Task.sleep(nanoseconds: 200000000)
         texts = visibleText(in: emptyHosted)
         #expect(texts.contains("Select a list to edit"))
     }
 
     @Test("Rules sheet objc actions cover add/select/delete/suggestion/done branches")
     @MainActor
-    func rulesSheetControllerObjcActionsCoverage() throws {
+    func rulesSheetControllerObjcActionsCoverage() async throws {
         defer { RulesSheetAlertPresenter.resetForTesting() }
 
         let appState = isolatedAppState(name: "objcActionsCoverage")
@@ -529,7 +530,7 @@ struct RulesViewTests {
 
     @Test("Rules sheet selectRuleSet returns early when tapping already selected row")
     @MainActor
-    func rulesSheetSelectRuleSetNoOpWhenAlreadySelected() {
+    func rulesSheetSelectRuleSetNoOpWhenAlreadySelected() async throws {
         let appState = isolatedAppState(name: "objcSelectSameRowNoOp")
         let setA = RuleSet(name: "Set A", urls: ["a.com"])
         let setB = RuleSet(name: "Set B", urls: ["b.com"])
@@ -555,7 +556,7 @@ struct RulesViewTests {
 
     @Test("Rules layout builder covers sidebar delete teardown and row reorder/trim branches")
     @MainActor
-    func rulesLayoutBuilderReorderAndTrimCoverage() {
+    func rulesLayoutBuilderReorderAndTrimCoverage() async throws {
         let target = ActionTarget()
         let onSelect = #selector(ActionTarget.noop(_:))
         let onDelete = #selector(ActionTarget.noop(_:))
@@ -702,7 +703,7 @@ struct RulesViewTests {
 
     @Test("Rules layout row NSCoder init paths return nil")
     @MainActor
-    func rulesLayoutRowCoderInitCoverage() throws {
+    func rulesLayoutRowCoderInitCoverage() async throws {
         let archiver = NSKeyedArchiver(requiringSecureCoding: false)
         archiver.finishEncoding()
         let unarchiver = try NSKeyedUnarchiver(forReadingFrom: archiver.encodedData)

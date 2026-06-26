@@ -3,6 +3,7 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateSchedulesMutationServiceTests {
     private func makeSchedule(
         name: String = "Focus",
@@ -23,7 +24,7 @@ struct AppStateSchedulesMutationServiceTests {
     }
 
     @Test("deleteSchedule returns nil when no mutation occurs")
-    func deleteScheduleNoMutationReturnsNil() {
+    func deleteScheduleNoMutationReturnsNil() async throws {
         let existing = makeSchedule()
         let update = AppStateSchedulesMutationService.deleteSchedule(
             logicFacade: .live,
@@ -40,7 +41,7 @@ struct AppStateSchedulesMutationServiceTests {
     }
 
     @Test("deleteSchedule returns update and persists suppressed imported key when needed")
-    func deleteScheduleMutationUpdate() {
+    func deleteScheduleMutationUpdate() async throws {
         let imported = makeSchedule(importedKey: "event-123")
         let update = AppStateSchedulesMutationService.deleteSchedule(
             logicFacade: .live,
@@ -60,7 +61,7 @@ struct AppStateSchedulesMutationServiceTests {
     }
 
     @Test("saveSchedule keeps suppressed keys unchanged and does not persist key set")
-    func saveScheduleUpdatePayload() {
+    func saveScheduleUpdatePayload() async throws {
         let initial = makeSchedule(name: "Existing")
         let suppressed: Set<String> = ["event-1"]
         let start = Date()
@@ -92,7 +93,7 @@ struct AppStateSchedulesMutationServiceTests {
     }
 
     @Test("updateScheduleOccurrence keeps suppressed keys and updates schedule timing/day")
-    func updateScheduleOccurrencePayload() {
+    func updateScheduleOccurrencePayload() async throws {
         let calendar = Calendar.current
         let originalStart = calendar.date(from: DateComponents(hour: 9, minute: 0)) ?? Date()
         let originalEnd = calendar.date(from: DateComponents(hour: 10, minute: 0)) ?? Date()

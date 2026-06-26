@@ -52,39 +52,41 @@ final class CalendarSectionViewController: NSViewController {
     private static var _isRunningInTestProcess: TestProcessDetector?
     private static var _nativeWorkspaceURLOpener: URLOpener?
 
+    private static let hookLock = NSLock()
+
     static var makeCalendarPermissionAlert: AlertFactory {
-        get { _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
-        set { _makeCalendarPermissionAlert = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _makeCalendarPermissionAlert = newValue }
     }
     static var runCalendarPermissionAlert: AlertRunner {
-        get { _runCalendarPermissionAlert ?? defaultRunCalendarPermissionAlert }
-        set { _runCalendarPermissionAlert = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _runCalendarPermissionAlert ?? defaultRunCalendarPermissionAlert }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _runCalendarPermissionAlert = newValue }
     }
     static var platformWorkspaceURLOpener: URLOpener {
-        get { _platformWorkspaceURLOpener ?? defaultPlatformWorkspaceURLOpener }
-        set { _platformWorkspaceURLOpener = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _platformWorkspaceURLOpener ?? defaultPlatformWorkspaceURLOpener }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _platformWorkspaceURLOpener = newValue }
     }
     static var isRunningInTestProcess: TestProcessDetector {
-        get { _isRunningInTestProcess ?? { AppDelegate.isRunningInTestProcess() } }
-        set { _isRunningInTestProcess = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _isRunningInTestProcess ?? { AppDelegate.isRunningInTestProcess() } }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _isRunningInTestProcess = newValue }
     }
     static var nativeWorkspaceURLOpener: URLOpener {
-        get { _nativeWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
-        set { _nativeWorkspaceURLOpener = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _nativeWorkspaceURLOpener ?? { url in NSWorkspace.shared.open(url) } }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _nativeWorkspaceURLOpener = newValue }
     }
     static var calendarPrivacySettingsURLString =
         "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
     static var workspaceURLOpener: URLOpener {
-        get { _workspaceURLOpener ?? defaultWorkspaceURLOpener }
-        set { _workspaceURLOpener = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _workspaceURLOpener ?? defaultWorkspaceURLOpener }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _workspaceURLOpener = newValue }
     }
     static var scheduleAfter: AsyncAfterScheduler {
-        get { _scheduleAfter ?? defaultScheduleAfter }
-        set { _scheduleAfter = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _scheduleAfter ?? defaultScheduleAfter }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _scheduleAfter = newValue }
     }
     static var openCalendarPrivacySettings: () -> Void {
-        get { _openCalendarPrivacySettings ?? defaultOpenCalendarPrivacySettings }
-        set { _openCalendarPrivacySettings = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _openCalendarPrivacySettings ?? defaultOpenCalendarPrivacySettings }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _openCalendarPrivacySettings = newValue }
     }
     static var calendarPermissionFallbackDelay: TimeInterval = 0.6
 
@@ -283,10 +285,11 @@ final class CalendarSectionViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         let appState = self.appState
-        AppKitAppStateObservation.bind(
-            publisher: AppKitAppStateObservation.calendarPublisher(appState: appState),
-            signature: {
-                ObservationSignature(
+        AppKitAppStateObservation.observe(
+            appState: appState,
+            signature: { [weak self, weak appState] () -> ObservationSignature? in
+                guard self != nil, let appState = appState else { return nil }
+                return ObservationSignature(
                     weekStartsOnMonday: appState.weekStartsOnMonday,
                     calendarIntegrationEnabled: appState.calendarIntegrationEnabled,
                     isStrictActive: appState.isStrictActive,
@@ -295,8 +298,7 @@ final class CalendarSectionViewController: NSViewController {
                     calendarImportedScheduleRuleSetId: appState.calendarImportedScheduleRuleSetId,
                     ruleSetsSignature: appState.ruleSets.map { "\($0.id.uuidString)|\($0.name)" }
                 )
-            },
-            cancellables: &cancellables
+            }
         ) { [weak self] _ in
             self?.reload()
         }

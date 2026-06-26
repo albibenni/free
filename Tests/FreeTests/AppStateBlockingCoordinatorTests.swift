@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateBlockingCoordinatorTests {
     @Test("evaluateAutomaticBlocking normalizes paused ids and keeps blocking false without active focus")
-    func evaluateAutomaticBlockingNoFocus() {
+    func evaluateAutomaticBlockingNoFocus() async throws {
         let result = AppStateBlockingCoordinator.evaluateAutomaticBlocking(
             schedules: [],
             manuallyPausedScheduleIds: [UUID()],
@@ -20,7 +21,7 @@ struct AppStateBlockingCoordinatorTests {
     }
 
     @Test("evaluateAutomaticBlocking blocks when pomodoro focus is active and no break overrides")
-    func evaluateAutomaticBlockingPomodoroFocus() {
+    func evaluateAutomaticBlockingPomodoroFocus() async throws {
         let result = AppStateBlockingCoordinator.evaluateAutomaticBlocking(
             schedules: [],
             manuallyPausedScheduleIds: [],
@@ -35,7 +36,7 @@ struct AppStateBlockingCoordinatorTests {
     }
 
     @Test("evaluateAutomaticBlocking does not treat mirrored imported focus event as meeting override")
-    func evaluateAutomaticBlockingMirroredImportedFocus() {
+    func evaluateAutomaticBlockingMirroredImportedFocus() async throws {
         let now = Date()
         let importedFocus = Schedule(
             name: "Work",
@@ -67,7 +68,7 @@ struct AppStateBlockingCoordinatorTests {
     }
 
     @Test("evaluateAutomaticBlocking still treats unrelated active event as meeting override")
-    func evaluateAutomaticBlockingUnrelatedMeetingOverride() {
+    func evaluateAutomaticBlockingUnrelatedMeetingOverride() async throws {
         let now = Date()
         let importedFocus = Schedule(
             name: "Work",

@@ -5,6 +5,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct SchedulesWidgetTests {
     private func isolatedAppState(name: String) -> AppState {
         let suite = "SchedulesWidgetTests.\(name)"
@@ -75,7 +76,7 @@ struct SchedulesWidgetTests {
 
     @Test("FocusSchedulesWidget renders empty state and opens the calendar sheet")
     @MainActor
-    func schedulesWidgetEmptyStateAndOpenAction() {
+    func schedulesWidgetEmptyStateAndOpenAction() async throws {
         let appState = isolatedAppState(name: "emptyState")
         appState.schedules = []
 
@@ -95,7 +96,7 @@ struct SchedulesWidgetTests {
 
     @Test("FocusSchedulesWidget renders enabled and disabled schedule rows")
     @MainActor
-    func schedulesWidgetRowsRender() {
+    func schedulesWidgetRowsRender() async throws {
         let appState = isolatedAppState(name: "rowsRender")
         let active = schedule(name: "Deep Work", enabled: true, startOffsetMinutes: -30, endOffsetMinutes: 30)
         let inactiveEnabled = schedule(

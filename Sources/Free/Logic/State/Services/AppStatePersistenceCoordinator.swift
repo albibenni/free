@@ -1,29 +1,8 @@
-import Combine
 import Foundation
+import Combine
+import Observation
 
 enum AppStatePersistenceCoordinator {
-    struct Bindings {
-        let isBlocking: AnyPublisher<Bool, Never>
-        let isStrict: AnyPublisher<Bool, Never>
-        let weekStartsOnMonday: AnyPublisher<Bool, Never>
-        let accentColorIndex: AnyPublisher<Int, Never>
-        let appearanceMode: AnyPublisher<AppearanceMode, Never>
-        let cursorFluidAnimationEnabled: AnyPublisher<Bool, Never>
-        let calendarIntegrationEnabled: AnyPublisher<Bool, Never>
-        let calendarImportFocusTitleRules: AnyPublisher<[String], Never>
-        let calendarImportBreakTitleRules: AnyPublisher<[String], Never>
-        let calendarImportedScheduleRuleSetId: AnyPublisher<UUID?, Never>
-        let blockNewTabs: AnyPublisher<Bool, Never>
-        let blockDeveloperHosts: AnyPublisher<Bool, Never>
-        let blockLocalNetworkHosts: AnyPublisher<Bool, Never>
-        let allowSearchEngineWebsites: AnyPublisher<Bool, Never>
-        let allowAIProviderWebsites: AnyPublisher<Bool, Never>
-        let ruleSets: AnyPublisher<[RuleSet], Never>
-        let activeRuleSetId: AnyPublisher<UUID?, Never>
-        let pomodoroFocusDuration: AnyPublisher<Double, Never>
-        let pomodoroBreakDuration: AnyPublisher<Double, Never>
-    }
-
     static func persistSchedulesSynchronously(
         _ schedules: [Schedule],
         settingsStore: SettingsStore
@@ -31,107 +10,84 @@ enum AppStatePersistenceCoordinator {
         settingsStore.saveSchedules(schedules)
     }
 
+    @MainActor
     static func bind(
-        bindings: Bindings,
+        appState: AppState,
         settingsStore: SettingsStore
     ) -> Set<AnyCancellable> {
         var cancellables = Set<AnyCancellable>()
-
-        bindings.isBlocking
-            .dropFirst()
-            .sink { settingsStore.setIsBlocking($0) }
-            .store(in: &cancellables)
-
-        bindings.isStrict
-            .dropFirst()
-            .sink { settingsStore.setIsStrict($0) }
-            .store(in: &cancellables)
-
-        bindings.weekStartsOnMonday
-            .dropFirst()
-            .sink { settingsStore.setWeekStartsOnMonday($0) }
-            .store(in: &cancellables)
-
-        bindings.accentColorIndex
-            .dropFirst()
-            .sink { settingsStore.setAccentColorIndex($0) }
-            .store(in: &cancellables)
-
-        bindings.appearanceMode
-            .dropFirst()
-            .sink { settingsStore.setAppearanceModeRawValue($0.rawValue) }
-            .store(in: &cancellables)
-
-        bindings.cursorFluidAnimationEnabled
-            .dropFirst()
-            .sink { settingsStore.setCursorFluidAnimationEnabled($0) }
-            .store(in: &cancellables)
-
-        bindings.calendarIntegrationEnabled
-            .dropFirst()
-            .sink { settingsStore.setCalendarIntegrationEnabled($0) }
-            .store(in: &cancellables)
-
-        bindings.calendarImportFocusTitleRules
-            .dropFirst()
-            .sink { settingsStore.setCalendarImportFocusTitleRules($0) }
-            .store(in: &cancellables)
-
-        bindings.calendarImportBreakTitleRules
-            .dropFirst()
-            .sink { settingsStore.setCalendarImportBreakTitleRules($0) }
-            .store(in: &cancellables)
-
-        bindings.calendarImportedScheduleRuleSetId
-            .dropFirst()
-            .sink { settingsStore.setCalendarImportedScheduleRuleSetId($0) }
-            .store(in: &cancellables)
-
-        bindings.blockNewTabs
-            .dropFirst()
-            .sink { settingsStore.setBlockNewTabs($0) }
-            .store(in: &cancellables)
-
-        bindings.blockDeveloperHosts
-            .dropFirst()
-            .sink { settingsStore.setBlockDeveloperHosts($0) }
-            .store(in: &cancellables)
-
-        bindings.blockLocalNetworkHosts
-            .dropFirst()
-            .sink { settingsStore.setBlockLocalNetworkHosts($0) }
-            .store(in: &cancellables)
-
-        bindings.allowSearchEngineWebsites
-            .dropFirst()
-            .sink { settingsStore.setAllowSearchEngineWebsites($0) }
-            .store(in: &cancellables)
-
-        bindings.allowAIProviderWebsites
-            .dropFirst()
-            .sink { settingsStore.setAllowAIProviderWebsites($0) }
-            .store(in: &cancellables)
-
-        bindings.ruleSets
-            .dropFirst()
-            .sink { settingsStore.saveRuleSets($0) }
-            .store(in: &cancellables)
-
-        bindings.activeRuleSetId
-            .dropFirst()
-            .sink { settingsStore.setActiveRuleSetId($0) }
-            .store(in: &cancellables)
-
-        bindings.pomodoroFocusDuration
-            .dropFirst()
-            .sink { settingsStore.setPomodoroFocusDuration($0) }
-            .store(in: &cancellables)
-
-        bindings.pomodoroBreakDuration
-            .dropFirst()
-            .sink { settingsStore.setPomodoroBreakDuration($0) }
-            .store(in: &cancellables)
-
+        observeAndSave(appState: appState, keyPath: \.isBlocking) { settingsStore.setIsBlocking($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.isStrict) { settingsStore.setIsStrict($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.weekStartsOnMonday) { settingsStore.setWeekStartsOnMonday($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.accentColorIndex) { settingsStore.setAccentColorIndex($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.appearanceMode) { settingsStore.setAppearanceModeRawValue($0.rawValue) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.cursorFluidAnimationEnabled) { settingsStore.setCursorFluidAnimationEnabled($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.calendarIntegrationEnabled) { settingsStore.setCalendarIntegrationEnabled($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.calendarImportFocusTitleRules) { settingsStore.setCalendarImportFocusTitleRules($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.calendarImportBreakTitleRules) { settingsStore.setCalendarImportBreakTitleRules($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.calendarImportedScheduleRuleSetId) { settingsStore.setCalendarImportedScheduleRuleSetId($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.blockNewTabs) { settingsStore.setBlockNewTabs($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.blockDeveloperHosts) { settingsStore.setBlockDeveloperHosts($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.blockLocalNetworkHosts) { settingsStore.setBlockLocalNetworkHosts($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.allowSearchEngineWebsites) { settingsStore.setAllowSearchEngineWebsites($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.allowAIProviderWebsites) { settingsStore.setAllowAIProviderWebsites($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.ruleSets) { settingsStore.saveRuleSets($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.activeRuleSetId) { settingsStore.setActiveRuleSetId($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.pomodoroFocusDuration) { settingsStore.setPomodoroFocusDuration($0) }.store(in: &cancellables)
+        observeAndSave(appState: appState, keyPath: \.pomodoroBreakDuration) { settingsStore.setPomodoroBreakDuration($0) }.store(in: &cancellables)
         return cancellables
+    }
+
+    private final class ObservationState<T>: @unchecked Sendable {
+        var lastValue: T
+        init(lastValue: T) { self.lastValue = lastValue }
+    }
+
+    private struct SendableKeyPath<Root, Value>: @unchecked Sendable {
+        let keyPath: KeyPath<Root, Value>
+    }
+
+    @MainActor
+    private static func observeAndSave<T: Equatable>(
+        appState: AppState,
+        keyPath: KeyPath<AppState, T>,
+        save: @escaping @MainActor (T) -> Void
+    ) -> AnyCancellable {
+        let tracker = Tracker(keyPath: keyPath, save: save)
+        tracker.startTracking(appState: appState)
+        return AnyCancellable {
+            _ = tracker // Retain tracker until cancelled
+        }
+    }
+
+    private final class Tracker<T: Equatable>: @unchecked Sendable {
+        private let keyPath: KeyPath<AppState, T>
+        private let save: @MainActor (T) -> Void
+        private var lastValue: T?
+
+        init(keyPath: KeyPath<AppState, T>, save: @escaping @MainActor (T) -> Void) {
+            self.keyPath = keyPath
+            self.save = save
+        }
+
+        @MainActor
+        func startTracking(appState: AppState?) {
+            guard let appState else { return }
+            let current = appState[keyPath: keyPath]
+            if let last = lastValue, last != current {
+                save(current)
+            }
+            lastValue = current
+
+            withObservationTracking {
+                MainActor.assumeIsolated {
+                    _ = appState[keyPath: keyPath]
+                }
+            } onChange: { [weak self, weak appState] in
+                DispatchQueue.main.async { [weak appState] in
+                    self?.startTracking(appState: appState)
+                }
+            }
+        }
     }
 }

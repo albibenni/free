@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStatePauseCoordinatorTests {
     @Test("start returns nil when pause cannot start")
-    func startReturnsNilWhenNoStateChange() {
+    func startReturnsNilWhenNoStateChange() async throws {
         let blockedOff = AppStatePauseCoordinator.start(
             from: PauseEngine.State(isPaused: false, remaining: 0),
             minutes: 5,
@@ -22,7 +23,7 @@ struct AppStatePauseCoordinatorTests {
     }
 
     @Test("start, tick, and cancel proxy PauseEngine semantics")
-    func startTickCancelSemantics() {
+    func startTickCancelSemantics() async throws {
         let started = AppStatePauseCoordinator.start(
             from: PauseEngine.State(isPaused: false, remaining: 0),
             minutes: 2,

@@ -29,8 +29,36 @@ enum AppStateRuntimeWiringCoordinator {
             DispatchQueue.main.async(execute: block)
         }
     ) -> StartResult {
-        let calendarCancellable = calendarProvider.objectWillChange.sink { _ in
-            dispatchToMain(onCalendarChange)
+        // Observe calendar provider events
+        final class CancellableState: @unchecked Sendable {
+            private let lock = NSLock()
+            private var _isCancelled = false
+            var isCancelled: Bool {
+                lock.lock(); defer { lock.unlock() }
+                return _isCancelled
+            }
+            func cancel() {
+                lock.lock(); defer { lock.unlock() }
+                _isCancelled = true
+            }
+        }
+        let state = CancellableState()
+        
+        @Sendable func observeCalendar() {
+            guard !state.isCancelled else { return }
+            withObservationTracking {
+                _ = calendarProvider.events
+            } onChange: {
+                dispatchToMain {
+                    guard !state.isCancelled else { return }
+                    onCalendarChange()
+                    observeCalendar()
+                }
+            }
+        }
+        observeCalendar()
+        let calendarCancellable = AnyCancellable {
+            state.cancel()
         }
 
         func armScheduleTimer() {
@@ -51,11 +79,8 @@ enum AppStateRuntimeWiringCoordinator {
     }
 
     static func teardown(
-        timerCoordinator: AppStateTimerCoordinator,
-        calendarCancellable: inout AnyCancellable?
+        timerCoordinator: AppStateTimerCoordinator
     ) {
         timerCoordinator.invalidateAllTimers()
-        calendarCancellable?.cancel()
-        calendarCancellable = nil
     }
 }

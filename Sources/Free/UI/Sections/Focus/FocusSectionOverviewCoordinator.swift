@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum FocusSectionOverviewCoordinator {
     struct Row: Equatable {
         let iconName: String

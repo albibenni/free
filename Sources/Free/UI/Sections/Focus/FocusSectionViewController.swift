@@ -100,10 +100,26 @@ final class FocusSectionViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        AppKitAppStateObservation.bind(
-            publisher: AppKitAppStateObservation.focusPublisher(appState: appState),
-            cancellables: &cancellables
-        ) { [weak self] in
+        let appState = self.appState
+        AppKitAppStateObservation.observe(appState: appState, readProperties: { [weak self, weak appState] () -> Bool in
+            guard self != nil, let appState = appState else { return false }
+            _ = appState.isBlocking
+            _ = appState.isStrict
+            _ = appState.isTrusted
+            _ = appState.isPaused
+            _ = appState.pauseRemaining
+            _ = appState.pomodoroStatus
+            _ = appState.pomodoroRemaining
+            _ = appState.pomodoroStartedAt
+            _ = appState.pomodoroFocusDuration
+            _ = appState.pomodoroBreakDuration
+            _ = appState.ruleSets
+            _ = appState.activeRuleSetId
+            _ = appState.schedules
+            _ = appState.accentColorIndex
+            _ = appState.appearanceMode
+            return true
+        }) { [weak self] _ in
             self?.handleObservedAppStateChange()
         }
 

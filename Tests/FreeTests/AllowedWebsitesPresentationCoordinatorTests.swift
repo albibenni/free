@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AllowedWebsitesPresentationCoordinatorTests {
     @Test("Presentation coordinator derives visible rules and list height")
-    func visibleRulesAndListHeight() {
+    func visibleRulesAndListHeight() async throws {
         let a = RuleSet(id: UUID(), name: "A", urls: ["a.com"])
         let b = RuleSet(id: UUID(), name: "B", urls: ["b.com", "c.com"])
 
@@ -40,7 +41,7 @@ struct AllowedWebsitesPresentationCoordinatorTests {
     }
 
     @Test("Presentation coordinator computes control state flags")
-    func controlState() {
+    func controlState() async throws {
         let editable = AllowedWebsitesPresentationCoordinator.controlState(
             selectedRuleSetId: UUID(),
             isStrictActive: false,
@@ -79,7 +80,7 @@ struct AllowedWebsitesPresentationCoordinatorTests {
     }
 
     @Test("Presentation coordinator preserves selection across rules-content reload")
-    func rulesContentState() {
+    func rulesContentState() async throws {
         let selectedId = UUID()
         let set = RuleSet(
             id: selectedId,

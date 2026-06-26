@@ -44,14 +44,14 @@ struct FreeAppKitShellTests {
     }
 
     @Test("VerticalStackScrollContainer uses flipped document coordinates")
-    func verticalStackScrollContainerUsesFlippedCoordinates() {
+    func verticalStackScrollContainerUsesFlippedCoordinates() async throws {
         let scrollView = VerticalStackScrollContainer()
 
         #expect(scrollView.usesFlippedDocumentCoordinatesForTesting)
     }
 
     @Test("FreeMainViewController updates sidebar selection for the active section")
-    func mainViewControllerUpdatesSidebarSelection() {
+    func mainViewControllerUpdatesSidebarSelection() async throws {
         let appState = isolatedAppState(name: "sidebarSelection")
         let controller = FreeMainViewController(
             appState: appState,
@@ -73,13 +73,13 @@ struct FreeAppKitShellTests {
         #expect(controller.isSidebarButtonSelectedForTesting(.pomodoro))
 
         appState.accentColorIndex = 2
-        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        try await Task.sleep(nanoseconds: 100_000_000)
         let expectedColor = FocusColor.nsColor(for: 2).withAlphaComponent(0.18)
         #expect(controller.selectedSidebarBackgroundColorForTesting == expectedColor)
     }
 
     @Test("FreeMainViewController keeps the pomodoro controller and widget stable across tab switches")
-    func mainViewControllerKeepsPomodoroStableAcrossTabSwitches() {
+    func mainViewControllerKeepsPomodoroStableAcrossTabSwitches() async throws {
         let appState = isolatedAppState(name: "pomodoroTabSwitch")
         appState.isTrusted = true
         let controller = FreeMainViewController(
@@ -108,7 +108,7 @@ struct FreeAppKitShellTests {
     }
 
     @Test("SchedulesSheetViewController manages editor state without SwiftUI hosting")
-    func schedulesSheetViewControllerEditorFlow() {
+    func schedulesSheetViewControllerEditorFlow() async throws {
         let controller = SchedulesSheetViewController(
             appState: isolatedAppState(name: "schedulesSheet"),
             onDismiss: {}
@@ -125,7 +125,7 @@ struct FreeAppKitShellTests {
     }
 
     @Test("FreeMainViewController blocks tab switches only while rules window is open")
-    func mainViewControllerBlocksTabSwitchesWhenFloatingWindowIsOpen() {
+    func mainViewControllerBlocksTabSwitchesWhenFloatingWindowIsOpen() async throws {
         let appState = isolatedAppState(name: "tabSwitchBlockedByWindow")
         let controller = FreeMainViewController(
             appState: appState,
@@ -150,7 +150,7 @@ struct FreeAppKitShellTests {
     }
 
     @Test("FreeMainViewController launch-at-login prompt safely no-ops without a window")
-    func mainViewControllerLaunchAtLoginPromptNoWindow() {
+    func mainViewControllerLaunchAtLoginPromptNoWindow() async throws {
         let appState = isolatedAppState(name: "launchPromptNoWindow")
         let controller = FreeMainViewController(
             appState: appState,
@@ -164,7 +164,7 @@ struct FreeAppKitShellTests {
     }
 
     @Test("FreeMainViewController launch-at-login prompt presents sheet path when window and prompt eligibility exist")
-    func mainViewControllerLaunchAtLoginPromptWithWindow() {
+    func mainViewControllerLaunchAtLoginPromptWithWindow() async throws {
         let appState = isolatedAppStateWithLaunchPrompt(name: "launchPromptWithWindow")
         let controller = FreeMainViewController(
             appState: appState,
@@ -184,12 +184,12 @@ struct FreeAppKitShellTests {
         defer { window.orderOut(nil) }
 
         controller.presentLaunchAtLoginPromptIfNeeded()
-        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        try await Task.sleep(nanoseconds: 100_000_000)
         #expect(controller.selectedSectionForTesting == .focus)
     }
 
     @Test("FreeMainViewController launch-at-login prompt callback invokes response handler")
-    func mainViewControllerLaunchAtLoginPromptCallbackCoverage() {
+    func mainViewControllerLaunchAtLoginPromptCallbackCoverage() async throws {
         defer { FreeMainViewController.resetLaunchAtLoginAlertPresenterForTesting() }
 
         let appState = isolatedAppStateWithLaunchPrompt(name: "launchPromptCallbackCoverage")
@@ -235,7 +235,7 @@ struct FreeAppKitShellTests {
     }
 
     @Test("FreeMainViewController testing hooks cover sidebar callback paths and nil-selection fallback")
-    func mainViewControllerTestingHooksCoverage() {
+    func mainViewControllerTestingHooksCoverage() async throws {
         let appState = isolatedAppState(name: "testingHooksCoverage")
         let controller = FreeMainViewController(
             appState: appState,
@@ -254,7 +254,7 @@ struct FreeAppKitShellTests {
     }
 
     @Test("FreeMainViewController launch-at-login response handler toggles only on enable response")
-    func mainViewControllerLaunchAtLoginResponseHandlerCoverage() {
+    func mainViewControllerLaunchAtLoginResponseHandlerCoverage() async throws {
         let appState = isolatedAppState(name: "launchPromptResponseHandler")
         let controller = FreeMainViewController(
             appState: appState,
@@ -272,7 +272,7 @@ struct FreeAppKitShellTests {
     }
 
     @Test("FreeMainViewController window-hosted flows cover sheet toggles and launch prompt path")
-    func mainViewControllerWindowHostedFlowsCoverage() {
+    func mainViewControllerWindowHostedFlowsCoverage() async throws {
         let appState = isolatedAppState(name: "windowHostedFlows")
         let controller = FreeMainViewController(
             appState: appState,
@@ -295,22 +295,22 @@ struct FreeAppKitShellTests {
 
         // Cover present + dismiss paths for both rules and schedules sheets.
         controller.setPresentedWindowStatesForTesting(showRules: true, showSchedules: false)
-        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        try await Task.sleep(nanoseconds: 100_000_000)
         controller.setPresentedWindowStatesForTesting(showRules: false, showSchedules: false)
-        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        try await Task.sleep(nanoseconds: 100_000_000)
 
         controller.setPresentedWindowStatesForTesting(showRules: false, showSchedules: true)
-        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        try await Task.sleep(nanoseconds: 100_000_000)
         controller.setPresentedWindowStatesForTesting(showRules: false, showSchedules: false)
-        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        try await Task.sleep(nanoseconds: 100_000_000)
 
         // Cover guarded launch prompt path when window exists.
         controller.presentLaunchAtLoginPromptIfNeeded()
-        RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        try await Task.sleep(nanoseconds: 100_000_000)
     }
 
     @Test("FreeMainViewController installs and removes cursor overlay as setting changes")
-    func mainViewControllerCursorOverlayVisibilityCoverage() {
+    func mainViewControllerCursorOverlayVisibilityCoverage() async throws {
         let appState = isolatedAppState(name: "cursorOverlayVisibility")
         appState.cursorFluidAnimationEnabled = true
         let controller = FreeMainViewController(
@@ -327,7 +327,7 @@ struct FreeAppKitShellTests {
         #expect(initialOverlay != nil)
 
         appState.cursorFluidAnimationEnabled = false
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100_000_000)
         let removedOverlay: AppKitCursorFluidOverlayView? = mirrorValue(
             "cursorFluidOverlayView",
             in: controller
@@ -336,7 +336,7 @@ struct FreeAppKitShellTests {
 
         appState.cursorFluidAnimationEnabled = true
         appState.accentColorIndex = FocusColor.rainbowAccentIndex
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100_000_000)
         let restoredOverlay: AppKitCursorFluidOverlayView? = mirrorValue(
             "cursorFluidOverlayView",
             in: controller
@@ -345,7 +345,7 @@ struct FreeAppKitShellTests {
     }
 
     @Test("FreeMainViewController starts without cursor overlay when animation is disabled")
-    func mainViewControllerCursorOverlayDisabledInitialStateCoverage() {
+    func mainViewControllerCursorOverlayDisabledInitialStateCoverage() async throws {
         let appState = isolatedAppState(name: "cursorOverlayDisabledInitial")
         appState.cursorFluidAnimationEnabled = false
         let controller = FreeMainViewController(
@@ -366,7 +366,7 @@ struct FreeAppKitShellTests {
     }
 
     @Test("FreeMainViewController disables close button when strict mode is active")
-    func mainViewControllerDisablesCloseButtonInStrictMode() {
+    func mainViewControllerDisablesCloseButtonInStrictMode() async throws {
         let appState = isolatedAppState(name: "closeButtonStrictMode")
         let controller = FreeMainViewController(
             appState: appState,
@@ -388,16 +388,16 @@ struct FreeAppKitShellTests {
         #expect(controller.isCloseButtonEnabledForTesting)
 
         appState.isStrict = true
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100_000_000)
         #expect(controller.isCloseButtonEnabledForTesting == false)
 
         appState.isStrict = false
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100_000_000)
         #expect(controller.isCloseButtonEnabledForTesting)
     }
 
     @Test("FreeMainViewController handles unavailable cursor overlay factory")
-    func mainViewControllerCursorOverlayFactoryNilCoverage() {
+    func mainViewControllerCursorOverlayFactoryNilCoverage() async throws {
         defer { FreeMainViewController.resetLaunchAtLoginAlertPresenterForTesting() }
         FreeMainViewController.setCursorFluidOverlayFactoryForTesting { nil }
 

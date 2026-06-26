@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct WeekDateCalculatorTests {
     @Test("WeekDateCalculator returns seven ordered days with live runtime")
-    func liveRuntimeWeekDates() {
+    func liveRuntimeWeekDates() async throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let anchor = Date(timeIntervalSince1970: 1_708_387_200)
@@ -28,7 +29,7 @@ struct WeekDateCalculatorTests {
     }
 
     @Test("WeekDateCalculator returns empty array when addWeeks fails")
-    func addWeeksFailure() {
+    func addWeeksFailure() async throws {
         let runtime = WeekDateCalculatorRuntime(
             addWeeks: { _, _, _ in nil },
             weekInterval: { _, _ in
@@ -48,7 +49,7 @@ struct WeekDateCalculatorTests {
     }
 
     @Test("WeekDateCalculator returns empty array when weekInterval fails")
-    func weekIntervalFailure() {
+    func weekIntervalFailure() async throws {
         let runtime = WeekDateCalculatorRuntime(
             addWeeks: { _, _, date in date },
             weekInterval: { _, _ in nil },
@@ -65,7 +66,7 @@ struct WeekDateCalculatorTests {
     }
 
     @Test("WeekDateCalculator compactMap drops nil day entries")
-    func compactMapDropsNilDays() {
+    func compactMapDropsNilDays() async throws {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let runtime = WeekDateCalculatorRuntime(
             addWeeks: { _, _, _ in start },

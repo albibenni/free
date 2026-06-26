@@ -16,6 +16,9 @@ final class AllowedWebsitesFloatingEditorViewController:
     var visibleRules: [String] = []
     var cancellables: Set<AnyCancellable> = []
 
+    var customPresentEmptyImportState: EmptyImportStatePresenter?
+    var customPresentImportCandidates: ImportCandidatesPresenter?
+
     let ruleSetScrollView = VerticalStackScrollContainer(
         contentInsets: NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
     )
@@ -60,12 +63,12 @@ final class AllowedWebsitesFloatingEditorViewController:
             guard let self, index >= 0, index < visibleRules.count else { return nil }
             return visibleRules[index]
         }
-        AppKitAppStateObservation.bind(
-            publisher: AppKitAppStateObservation.allowedWebsitesPublisher(appState: appState),
-            signature: { [appState] in
-                AllowedWebsitesReloadCoordinator.renderSignature(appState: appState)
-            },
-            cancellables: &cancellables
+        AppKitAppStateObservation.observe(
+            appState: appState,
+            signature: { [weak self, weak appState] () -> AllowedWebsitesFloatingEditorViewController.RenderSignature? in
+                guard self != nil, let appState = appState else { return nil }
+                return AllowedWebsitesReloadCoordinator.renderSignature(appState: appState)
+            }
         ) { [weak self] _ in
             self?.reloadContent()
         }

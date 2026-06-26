@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 protocol RulesSheetPresenting: AnyObject {
     func present(for parentWindow: NSWindow, selectedRuleSetId: UUID?)
     func dismiss()
@@ -7,6 +8,7 @@ protocol RulesSheetPresenting: AnyObject {
 
 extension AllowedWebsitesSheetController: RulesSheetPresenting {}
 
+@MainActor
 final class MainSheetPresenter {
     typealias RulesSheetFactory = (_ onClose: @escaping () -> Void) -> any RulesSheetPresenting
 

@@ -5,9 +5,10 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct SectionCoordinatorsTests {
     @Test("Focus interaction coordinator gates deferred and flush reloads")
-    func focusInteractionReloadCoordinator() {
+    func focusInteractionReloadCoordinator() async throws {
         #expect(
             FocusInteractionReloadCoordinator.shouldDeferObservedChange(
                 section: .pomodoro,
@@ -35,7 +36,7 @@ struct SectionCoordinatorsTests {
     }
 
     @Test("Schedules presentation coordinator derives title and week navigation")
-    func schedulesSheetPresentationCoordinator() {
+    func schedulesSheetPresentationCoordinator() async throws {
         #expect(
             SchedulesSheetPresentationCoordinator.windowTitle(viewMode: 0) == "Schedules · Calendar"
         )
@@ -69,7 +70,7 @@ struct SectionCoordinatorsTests {
     }
 
     @Test("Focus widget coordinator classifies pomodoro widget reuse actions")
-    func focusWidgetCoordinator() {
+    func focusWidgetCoordinator() async throws {
         let state = AppState(isTesting: true)
         let base = FocusPomodoroWidgetSignature(appState: state)
 
@@ -110,7 +111,7 @@ struct SectionCoordinatorsTests {
 
     @Test("Focus widget factory builds section-specific widget payloads")
     @MainActor
-    func focusWidgetFactory() {
+    func focusWidgetFactory() async throws {
         let appState = AppState(isTesting: true)
         let shellState = FreeShellState()
 
@@ -165,7 +166,7 @@ struct SectionCoordinatorsTests {
 
     @Test("Focus widget reload coordinator picks reuse, keep, and rebuild operations")
     @MainActor
-    func focusWidgetReloadCoordinator() {
+    func focusWidgetReloadCoordinator() async throws {
         let appState = AppState(isTesting: true)
         let shellState = FreeShellState()
 
@@ -227,7 +228,7 @@ struct SectionCoordinatorsTests {
 
     @Test("Focus widget reload coordinator covers widget-kind fallback and allowed-websites keep-existing path")
     @MainActor
-    func focusWidgetReloadCoordinatorAdditionalBranches() {
+    func focusWidgetReloadCoordinatorAdditionalBranches() async throws {
         let appState = AppState(isTesting: true)
         appState.ruleSets = [RuleSet(name: "Default", urls: ["example.com"])]
         appState.activeRuleSetId = appState.ruleSets.first?.id
@@ -314,7 +315,7 @@ struct SectionCoordinatorsTests {
     }
 
     @Test("Focus observed-change coordinator routes defer, widget update, and full reload")
-    func focusObservedChangeCoordinator() {
+    func focusObservedChangeCoordinator() async throws {
         #expect(
             FocusSectionObservedChangeCoordinator.action(
                 section: .pomodoro,
@@ -343,7 +344,7 @@ struct SectionCoordinatorsTests {
 
     @Test("Focus shared-state coordinator computes header status and visibility flags")
     @MainActor
-    func focusSharedStateCoordinator() {
+    func focusSharedStateCoordinator() async throws {
         let appState = AppState(isTesting: true)
         appState.isTrusted = false
         appState.isBlocking = true
@@ -361,7 +362,7 @@ struct SectionCoordinatorsTests {
 
     @Test("Focus overview render coordinator derives rows and empty-state text")
     @MainActor
-    func focusOverviewRenderCoordinator() {
+    func focusOverviewRenderCoordinator() async throws {
         let defaults = UserDefaults(suiteName: "SectionCoordinatorsTests.focusOverviewRenderCoordinator.\(UUID().uuidString)")!
         let appState = AppState(defaults: defaults, isTesting: true)
         appState.ruleSets = []
@@ -384,7 +385,7 @@ struct SectionCoordinatorsTests {
     }
 
     @Test("Focus overview view applier renders rows or empty message into stack")
-    func focusOverviewViewApplier() {
+    func focusOverviewViewApplier() async throws {
         let stack = NSStackView()
         let rowModel = FocusSectionOverviewRenderCoordinator.RenderModel(
             rows: [
@@ -421,7 +422,7 @@ struct SectionCoordinatorsTests {
 
     @Test("Focus widget host applier updates container and view hierarchy")
     @MainActor
-    func focusWidgetHostApplier() {
+    func focusWidgetHostApplier() async throws {
         let container = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 300))
         let current = NSView(frame: NSRect(x: 0, y: 0, width: 10, height: 10))
         container.addSubview(current)
@@ -498,7 +499,7 @@ struct SectionCoordinatorsTests {
     }
 
     @Test("Focus visibility coordinator maps section to overview and widget visibility")
-    func focusVisibilityCoordinator() {
+    func focusVisibilityCoordinator() async throws {
         let all = FocusSectionVisibilityCoordinator.visibility(for: .all)
         #expect(all.shouldShowOverview)
         #expect(all.isWidgetContainerHidden)

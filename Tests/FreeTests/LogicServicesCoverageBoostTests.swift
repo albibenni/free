@@ -4,6 +4,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct LogicServicesCoverageBoostTests {
     private final class LaunchAtLoginManagerMock: LaunchAtLoginManaging {
         var isEnabled: Bool = false
@@ -26,7 +27,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("AppStateScheduleCoordinator uses preferred imported-key map when provided")
-    func preservedImportedByKeyPrefersExplicitDictionary() {
+    func preservedImportedByKeyPrefersExplicitDictionary() async throws {
         let imported = Schedule(
             name: "Imported",
             days: [],
@@ -48,7 +49,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("PauseEngine tick handles non-paused and zero-remaining states")
-    func pauseEngineEdgeTicks() {
+    func pauseEngineEdgeTicks() async throws {
         let idle = PauseEngine.State(isPaused: false, remaining: 42)
         let idleTick = PauseEngine.tick(from: idle)
         #expect(idleTick == idle)
@@ -60,7 +61,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("LaunchAtLoginService covers prompt guards and disable failure path")
-    func launchAtLoginServicePromptAndDisableFailure() {
+    func launchAtLoginServicePromptAndDisableFailure() async throws {
         let suite = "LogicServicesCoverageBoostTests.launchAtLogin"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -88,7 +89,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("LaunchAtLoginService covers default prompt closure, status, enable and disable-success")
-    func launchAtLoginServiceRemainingCoverage() {
+    func launchAtLoginServiceRemainingCoverage() async throws {
         let suite = "LogicServicesCoverageBoostTests.launchAtLogin.remaining"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -113,7 +114,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("SettingsStore cursor fluid animation defaults to enabled when key is missing")
-    func settingsStoreCursorFluidDefaultEnabled() {
+    func settingsStoreCursorFluidDefaultEnabled() async throws {
         let suite = "LogicServicesCoverageBoostTests.settingsStoreCursorFluidDefaultEnabled"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -125,7 +126,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("RuleSetCoordinator create and delete cover non-active create and strict delete guard")
-    func ruleSetCoordinatorEdgeBranches() {
+    func ruleSetCoordinatorEdgeBranches() async throws {
         var ruleSets = [RuleSet.defaultSet()]
         var active: UUID? = ruleSets[0].id
 
@@ -149,7 +150,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("CalendarImportService suppress guard and RuleSetService unknown-name path")
-    func calendarImportAndRuleSetServiceEdges() {
+    func calendarImportAndRuleSetServiceEdges() async throws {
         var suppressed = Set<String>()
         let local = Schedule(
             name: "Local",
@@ -178,7 +179,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("CalendarImportService covers merge, signature and duplicate-removal branches")
-    func calendarImportServiceRemainingCoverage() {
+    func calendarImportServiceRemainingCoverage() async throws {
         let baseStart = Date(timeIntervalSince1970: 1_000)
         let baseEnd = Date(timeIntervalSince1970: 1_600)
         let eventA = ExternalEvent(
@@ -487,7 +488,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("ScheduleEngine covers imported guard and save existing with nil initial-day")
-    func scheduleEngineEdgeBranches() {
+    func scheduleEngineEdgeBranches() async throws {
         let imported = Schedule(
             name: "Imported",
             days: [],
@@ -538,7 +539,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("RuleSetService removeRule removes matching existing rule entry")
-    func ruleSetServiceRemoveRuleExistingEntry() {
+    func ruleSetServiceRemoveRuleExistingEntry() async throws {
         var ruleSets = [RuleSet(name: "Main", urls: ["keep.com", "drop.com"])]
         let setId = ruleSets[0].id
 
@@ -549,7 +550,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("ScheduleEngine update occurrence removes malformed empty-days source schedule")
-    func scheduleEngineUpdateOccurrenceRemovesEmptySourceDays() {
+    func scheduleEngineUpdateOccurrenceRemovesEmptySourceDays() async throws {
         let start = Date()
         let end = start.addingTimeInterval(600)
         let malformed = Schedule(
@@ -578,7 +579,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("RuleSetService activeScheduleRuleSetIds ignores active break schedules")
-    func ruleSetServiceActiveIdsIgnoresBreakSchedules() {
+    func ruleSetServiceActiveIdsIgnoresBreakSchedules() async throws {
         let now = Date()
         let weekday = Calendar.current.component(.weekday, from: now)
         let focusId = UUID()
@@ -607,7 +608,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("RuleSetService allowedRules pomodoro path can include search and AI provider defaults")
-    func ruleSetServiceAllowedRulesPomodoroKnownProviders() {
+    func ruleSetServiceAllowedRulesPomodoroKnownProviders() async throws {
         let set = RuleSet(name: "Focus", urls: ["example.com"])
         let urls = Set(
             RuleSetService.allowedRules(
@@ -629,7 +630,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("ScheduleEngine updateScheduleOccurrence searches through non-matching IDs")
-    func scheduleEngineUpdateOccurrenceFirstIndexClosureCoverage() {
+    func scheduleEngineUpdateOccurrenceFirstIndexClosureCoverage() async throws {
         let start = Date()
         let end = start.addingTimeInterval(600)
 
@@ -663,7 +664,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("ScheduleEngine deleteSchedule searches through non-matching IDs")
-    func scheduleEngineDeleteScheduleFirstIndexClosureCoverage() {
+    func scheduleEngineDeleteScheduleFirstIndexClosureCoverage() async throws {
         let start = Date()
         let end = start.addingTimeInterval(600)
 
@@ -696,7 +697,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("ScheduleEngine updateScheduleOccurrence returns early when ID is missing")
-    func scheduleEngineUpdateOccurrenceMissingIdCoverage() {
+    func scheduleEngineUpdateOccurrenceMissingIdCoverage() async throws {
         let start = Date()
         let end = start.addingTimeInterval(600)
         let schedule = Schedule(
@@ -723,7 +724,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("ScheduleEngine deleteSchedule returns nil when ID is missing")
-    func scheduleEngineDeleteScheduleMissingIdCoverage() {
+    func scheduleEngineDeleteScheduleMissingIdCoverage() async throws {
         let start = Date()
         let end = start.addingTimeInterval(600)
         let schedule = Schedule(
@@ -748,7 +749,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("CalendarImportService previous-week fallback uses current day when provider returns empty")
-    func calendarImportServicePreviousWeekFallback() {
+    func calendarImportServicePreviousWeekFallback() async throws {
         let now = Date(timeIntervalSince1970: 2_000_000)
         let calendar = Calendar(identifier: .gregorian)
         let todayStart = calendar.startOfDay(for: now)
@@ -800,7 +801,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("CalendarImportService title-rule normalization covers duplicate/empty guards")
-    func calendarImportServiceTitleRuleNormalizationGuards() {
+    func calendarImportServiceTitleRuleNormalizationGuards() async throws {
         let event = ExternalEvent(
             id: "norm-1",
             title: "   ",
@@ -826,7 +827,7 @@ struct LogicServicesCoverageBoostTests {
     }
 
     @Test("CalendarImportService imported schedule id uses UUID event id when parsable")
-    func calendarImportServiceUsesParsableUUIDEventId() {
+    func calendarImportServiceUsesParsableUUIDEventId() async throws {
         let parsedID = UUID()
         let event = ExternalEvent(
             id: parsedID.uuidString,

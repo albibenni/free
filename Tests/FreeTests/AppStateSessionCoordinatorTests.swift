@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateSessionCoordinatorTests {
     @Test("toggle updates blocking state and pauses active focus schedules")
-    func toggleUpdatesBlockingAndPausedIds() {
+    func toggleUpdatesBlockingAndPausedIds() async throws {
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
         let focus = Schedule(
@@ -33,7 +34,7 @@ struct AppStateSessionCoordinatorTests {
     }
 
     @Test("check starts schedule-driven blocking when active focus exists")
-    func checkStartsScheduleBlocking() {
+    func checkStartsScheduleBlocking() async throws {
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
         let focus = Schedule(
@@ -64,7 +65,7 @@ struct AppStateSessionCoordinatorTests {
     }
 
     @Test("legacy migration returns nil when source flag already persisted")
-    func legacyMigrationNoopWhenPersisted() {
+    func legacyMigrationNoopWhenPersisted() async throws {
         let current = AppStateSessionCoordinator.SessionState(
             isBlocking: true,
             wasStartedBySchedule: false,

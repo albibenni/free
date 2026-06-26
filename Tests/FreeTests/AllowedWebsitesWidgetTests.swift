@@ -5,6 +5,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct AllowedWebsitesWidgetTests {
     private func isolatedAppState(name: String) -> AppState {
         let suite = "AllowedWebsitesWidgetTests.\(name)"
@@ -66,7 +67,7 @@ struct AllowedWebsitesWidgetTests {
 
     @Test("FocusAllowedWebsitesWidget renders rule sets and opens list management")
     @MainActor
-    func allowedWebsitesWidgetRenderAndManageAction() {
+    func allowedWebsitesWidgetRenderAndManageAction() async throws {
         let appState = isolatedAppState(name: "renderAndManage")
         let work = sampleRuleSet(name: "Work", url: "https://work.example")
         let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
@@ -91,7 +92,7 @@ struct AllowedWebsitesWidgetTests {
 
     @Test("FocusAllowedWebsitesWidget updates the active rule set when selection is allowed")
     @MainActor
-    func allowedWebsitesWidgetSelectionUpdatesAppState() {
+    func allowedWebsitesWidgetSelectionUpdatesAppState() async throws {
         let appState = isolatedAppState(name: "selectionUpdates")
         let work = sampleRuleSet(name: "Work", url: "https://work.example")
         let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
@@ -110,7 +111,7 @@ struct AllowedWebsitesWidgetTests {
 
     @Test("FocusAllowedWebsitesWidget disables rule-set switching during strict mode")
     @MainActor
-    func allowedWebsitesWidgetStrictModeLocksSelection() {
+    func allowedWebsitesWidgetStrictModeLocksSelection() async throws {
         let appState = isolatedAppState(name: "strictLock")
         let work = sampleRuleSet(name: "Work", url: "https://work.example")
         let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
@@ -129,7 +130,7 @@ struct AllowedWebsitesWidgetTests {
 
     @Test("FocusAllowedWebsitesWidget renders an empty state when no rule sets exist")
     @MainActor
-    func allowedWebsitesWidgetEmptyState() {
+    func allowedWebsitesWidgetEmptyState() async throws {
         let appState = isolatedAppState(name: "emptyState")
         appState.ruleSets = []
 

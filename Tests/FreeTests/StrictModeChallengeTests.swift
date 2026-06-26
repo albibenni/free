@@ -4,6 +4,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct StrictModeChallengeTests {
     private func isolatedAppState(name: String) -> AppState {
         let suite = "StrictModeChallengeTests.\(name)"
@@ -14,7 +15,7 @@ struct StrictModeChallengeTests {
 
     @Test("StrictModeChallenge run returns false when cancel button clicked with empty input")
     @MainActor
-    func runReturnsFalseOnCancelWithEmptyInput() {
+    func runReturnsFalseOnCancelWithEmptyInput() async throws {
         let appState = isolatedAppState(name: "cancelEmptyInput")
         let result = StrictModeChallenge.run(
             title: "Test",
@@ -28,7 +29,7 @@ struct StrictModeChallengeTests {
 
     @Test("StrictModeChallenge run returns true when unlock button clicked with correct phrase")
     @MainActor
-    func runReturnsTrueWithCorrectPhraseAndUnlockButton() {
+    func runReturnsTrueWithCorrectPhraseAndUnlockButton() async throws {
         let appState = isolatedAppState(name: "correctPhrase")
         let result = StrictModeChallenge.run(
             title: "Test",
@@ -49,7 +50,7 @@ struct StrictModeChallengeTests {
 
     @Test("StrictModeChallenge run returns false when unlock button clicked with wrong phrase")
     @MainActor
-    func runReturnsFalseWithWrongPhraseAndUnlockButton() {
+    func runReturnsFalseWithWrongPhraseAndUnlockButton() async throws {
         let appState = isolatedAppState(name: "wrongPhrase")
         let result = StrictModeChallenge.run(
             title: "Test",
@@ -70,7 +71,7 @@ struct StrictModeChallengeTests {
 
     @Test("StrictModeChallenge run returns false when cancel button clicked even with correct phrase")
     @MainActor
-    func runReturnsFalseOnCancelWithCorrectPhrase() {
+    func runReturnsFalseOnCancelWithCorrectPhrase() async throws {
         let appState = isolatedAppState(name: "cancelWithCorrect")
         let result = StrictModeChallenge.run(
             title: "Test",
@@ -91,7 +92,7 @@ struct StrictModeChallengeTests {
 
     @Test("StrictModeChallenge shows error alert when wrong phrase is entered")
     @MainActor
-    func showsErrorAlertOnWrongPhrase() {
+    func showsErrorAlertOnWrongPhrase() async throws {
         let appState = isolatedAppState(name: "wrongPhraseAlert")
         var errorAlertShown = false
         var alertCallCount = 0
@@ -120,7 +121,7 @@ struct StrictModeChallengeTests {
 
     @Test("StrictModeChallenge alert is configured with Unlock and Cancel buttons")
     @MainActor
-    func alertHasUnlockAndCancelButtons() {
+    func alertHasUnlockAndCancelButtons() async throws {
         let appState = isolatedAppState(name: "buttonTitles")
         var capturedAlert: NSAlert?
         _ = StrictModeChallenge.run(
@@ -142,7 +143,7 @@ struct StrictModeChallengeTests {
 
     @Test("StrictModeChallenge accessory view contains an input text field")
     @MainActor
-    func accessoryViewContainsInputTextField() {
+    func accessoryViewContainsInputTextField() async throws {
         let appState = isolatedAppState(name: "accessoryView")
         var capturedAlert: NSAlert?
         _ = StrictModeChallenge.run(

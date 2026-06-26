@@ -34,6 +34,7 @@ class MockBrowserAutomator: BrowserAutomator {
 }
 
 @Suite(.serialized)
+@MainActor
 struct BrowserMonitorTests {
     
     private func isolatedAppState(name: String) -> AppState {
@@ -55,7 +56,7 @@ struct BrowserMonitorTests {
         testRuntimeActive: Bool? = nil
     ) -> BrowserMonitor {
         BrowserMonitor(
-            stateSnapshotProvider: {
+            stateSnapshotProvider: { @MainActor in
                 BrowserMonitor.StateSnapshot(
                     isBlocking: appState.isBlocking,
                     isPaused: appState.isPaused,
@@ -66,7 +67,9 @@ struct BrowserMonitorTests {
                 )
             },
             onEvent: { event in
-                if case .trustedStateChanged(let trusted) = event { appState.isTrusted = trusted }
+                Task { @MainActor in
+                    if case .trustedStateChanged(let trusted) = event { appState.isTrusted = trusted }
+                }
             },
             server: nil,
             automator: mock,
@@ -98,7 +101,7 @@ struct BrowserMonitorTests {
         let mock = MockBrowserAutomator()
 
         _ = BrowserMonitor(
-            stateSnapshotProvider: {
+            stateSnapshotProvider: { @MainActor in
                 BrowserMonitor.StateSnapshot(
                     isBlocking: appState.isBlocking,
                     isPaused: appState.isPaused,
@@ -109,7 +112,9 @@ struct BrowserMonitorTests {
                 )
             },
             onEvent: { event in
-                if case .trustedStateChanged(let trusted) = event { appState.isTrusted = trusted }
+                Task { @MainActor in
+                    if case .trustedStateChanged(let trusted) = event { appState.isTrusted = trusted }
+                }
             },
             server: nil,
             automator: mock,
@@ -450,7 +455,7 @@ struct BrowserMonitorTests {
         let mock = MockBrowserAutomator()
         mock.activeUrl = nil
         let monitor = BrowserMonitor(
-            stateSnapshotProvider: {
+            stateSnapshotProvider: { @MainActor in
                 BrowserMonitor.StateSnapshot(
                     isBlocking: appState.isBlocking,
                     isPaused: appState.isPaused,
@@ -461,7 +466,9 @@ struct BrowserMonitorTests {
                 )
             },
             onEvent: { event in
-                if case .trustedStateChanged(let trusted) = event { appState.isTrusted = trusted }
+                Task { @MainActor in
+                    if case .trustedStateChanged(let trusted) = event { appState.isTrusted = trusted }
+                }
             },
             server: nil,
             automator: mock,

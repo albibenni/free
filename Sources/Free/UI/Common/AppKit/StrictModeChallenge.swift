@@ -25,6 +25,7 @@ private final class NoPasteTextField: NSTextField, NSTextViewDelegate {
     ) -> NSMenu? { nil }
 }
 
+@MainActor
 enum StrictModeChallenge {
     typealias AlertFactory = () -> NSAlert
     typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse

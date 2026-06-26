@@ -40,9 +40,10 @@ private final class FakeAXState {
 }
 
 @Suite(.serialized)
+@MainActor
 struct DefaultBrowserAutomatorSystemBridgeTests {
     @Test("liveSystem(dependencies:) forwards dependency closures")
-    func bridgeDependencyForwarding() {
+    func bridgeDependencyForwarding() async throws {
         var promptCalls: [Bool] = []
         var scriptCalls: [String] = []
         var runningCalls = 0
@@ -88,7 +89,7 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
     }
 
     @Test("arcURL uses focused window URL before windows fallback")
-    func arcURLFocusedWindowPreferred() {
+    func arcURLFocusedWindowPreferred() async throws {
         let state = FakeAXState()
         let app = FakeAXElement()
         let focused = FakeAXElement()
@@ -110,7 +111,7 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
     }
 
     @Test("arcURL falls back to first window when focused window has no URL")
-    func arcURLWindowsFallback() {
+    func arcURLWindowsFallback() async throws {
         let state = FakeAXState()
         let app = FakeAXElement()
         let focused = FakeAXElement()
@@ -135,7 +136,7 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
     }
 
     @Test("arcURL returns nil when neither focused window nor windows can provide URL")
-    func arcURLNoData() {
+    func arcURLNoData() async throws {
         let state = FakeAXState()
         let app = FakeAXElement()
         state.appByPID[3] = app
@@ -149,7 +150,7 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
     }
 
     @Test("findURL handles role/value parsing and title parsing branches")
-    func findURLRoleAndTitlePaths() {
+    func findURLRoleAndTitlePaths() async throws {
         let state = FakeAXState()
         let element = FakeAXElement()
         let api = state.makeAPI()
@@ -186,7 +187,7 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
     }
 
     @Test("findURL recurses through children and respects depth limit")
-    func findURLRecursionAndDepth() {
+    func findURLRecursionAndDepth() async throws {
         let state = FakeAXState()
         let parent = FakeAXElement()
         let child = FakeAXElement()
@@ -218,7 +219,7 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
     }
 
     @Test("findURL returns nil when children attribute is unavailable")
-    func findURLChildrenUnavailable() {
+    func findURLChildrenUnavailable() async throws {
         let state = FakeAXState()
         let element = FakeAXElement()
         let api = state.makeAPI()
@@ -233,7 +234,7 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
     }
 
     @Test("findURL defaults missing role/title/value attributes to empty strings")
-    func findURLMissingStringAttributes() {
+    func findURLMissingStringAttributes() async throws {
         let state = FakeAXState()
         let element = FakeAXElement()
         let api = state.makeAPI()
@@ -247,7 +248,7 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
     }
 
     @Test("findURL falls through when supported role value is not a URL")
-    func findURLSupportedRoleNonURLValue() {
+    func findURLSupportedRoleNonURLValue() async throws {
         let state = FakeAXState()
         let element = FakeAXElement()
         let api = state.makeAPI()
@@ -261,7 +262,7 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
     }
 
     @Test("findURL checks later children when earlier child has no match")
-    func findURLContinuesAcrossChildren() {
+    func findURLContinuesAcrossChildren() async throws {
         let state = FakeAXState()
         let parent = FakeAXElement()
         let firstChild = FakeAXElement()
@@ -293,7 +294,7 @@ struct DefaultBrowserAutomatorSystemBridgeTests {
     }
 
     @Test("liveSystem and live dependency constructors can execute without crashing")
-    func liveConstructorsExecute() {
+    func liveConstructorsExecute() async throws {
         let dependencies = DefaultBrowserAutomatorSystemDependencies.live()
         let axAPI = dependencies.axAPI
         let app = axAPI.makeApplication(0)

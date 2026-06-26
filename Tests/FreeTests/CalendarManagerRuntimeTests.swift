@@ -55,9 +55,10 @@ private final class RuntimeEventStoreDouble: EKEventStore {
 }
 
 @Suite(.serialized)
+@MainActor
 struct CalendarManagerRuntimeTests {
     @Test("live runtime default initializer path can be constructed")
-    func liveDefaultInitializerPath() {
+    func liveDefaultInitializerPath() async throws {
         let runtime = CalendarManagerRuntime.live(eventStore: EKEventStore())
         let status = EKEventStore.authorizationStatus(for: .event)
         let expected = status == .fullAccess || status.rawValue == 3
@@ -66,7 +67,7 @@ struct CalendarManagerRuntimeTests {
     }
 
     @Test("live runtime forwards authorization status through hasEventAuthorization")
-    func liveAuthorizationStatus() {
+    func liveAuthorizationStatus() async throws {
         let store = RuntimeEventStoreDouble()
         let runtime = CalendarManagerRuntime.live(eventStore: store)
         let status = EKEventStore.authorizationStatus(for: .event)
@@ -76,7 +77,7 @@ struct CalendarManagerRuntimeTests {
     }
 
     @Test("live runtime requestEventAccess uses full-access API on modern macOS")
-    func liveRequestAccessUsesModernApi() {
+    func liveRequestAccessUsesModernApi() async throws {
         let store = RuntimeEventStoreDouble()
         store.requestFullAccessResult = true
         store.requestAccessResult = false
@@ -93,7 +94,7 @@ struct CalendarManagerRuntimeTests {
     }
 
     @Test("live runtime loadEvents maps EventKit events into snapshots")
-    func liveLoadEventsMapping() {
+    func liveLoadEventsMapping() async throws {
         let store = RuntimeEventStoreDouble()
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let end = start.addingTimeInterval(7200)

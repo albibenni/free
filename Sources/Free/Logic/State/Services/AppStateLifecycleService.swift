@@ -16,12 +16,13 @@ enum AppStateLifecycleService {
         let rescheduleScheduleTimer: () -> Void
     }
 
+    @MainActor
     static func bindPersistence(
-        bindings: AppStatePersistenceCoordinator.Bindings,
+        appState: AppState,
         settingsStore: SettingsStore
     ) -> Set<AnyCancellable> {
-        AppStatePersistenceCoordinator.bind(
-            bindings: bindings,
+        return AppStatePersistenceCoordinator.bind(
+            appState: appState,
             settingsStore: settingsStore
         )
     }
@@ -99,8 +100,8 @@ enum AppStateLifecycleService {
         isTesting: Bool,
         calendarProvider: any CalendarProvider,
         timerCoordinator: AppStateTimerCoordinator,
-        monitorStateSnapshotProvider: @escaping () -> BrowserMonitor.StateSnapshot?,
-        onMonitorEvent: @escaping (BrowserMonitor.Event) -> Void,
+        monitorStateSnapshotProvider: @escaping @Sendable () async -> BrowserMonitor.StateSnapshot?,
+        onMonitorEvent: @escaping @Sendable (BrowserMonitor.Event) -> Void,
         onScheduleUpdate: @escaping () -> Void,
         scheduleTickIntervalProvider: @escaping () -> TimeInterval
     ) -> RuntimeBindings {
@@ -130,14 +131,10 @@ enum AppStateLifecycleService {
     }
 
     static func teardown(
-        timerCoordinator: AppStateTimerCoordinator,
-        calendarCancellable: inout AnyCancellable?,
-        persistenceCancellables: inout Set<AnyCancellable>
+        timerCoordinator: AppStateTimerCoordinator
     ) {
         AppStateRuntimeWiringCoordinator.teardown(
-            timerCoordinator: timerCoordinator,
-            calendarCancellable: &calendarCancellable
+            timerCoordinator: timerCoordinator
         )
-        persistenceCancellables.removeAll()
     }
 }

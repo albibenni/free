@@ -4,6 +4,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct AllowedWebsitesActionsCoordinatorsTests {
     private func isolatedAppState(name: String) -> AppState {
         let suite = "AllowedWebsitesActionsCoordinatorsTests.\(name)"
@@ -13,7 +14,7 @@ struct AllowedWebsitesActionsCoordinatorsTests {
     }
 
     @Test("Rule-set actions coordinator guards create/delete and mutates via AppState")
-    func ruleSetActionsCoordinator() {
+    func ruleSetActionsCoordinator() async throws {
         #expect(AllowedWebsitesRuleSetActionsCoordinator.canCreateRuleSet(isStrictActive: false))
         #expect(!AllowedWebsitesRuleSetActionsCoordinator.canCreateRuleSet(isStrictActive: true))
         #expect(
@@ -64,7 +65,7 @@ struct AllowedWebsitesActionsCoordinatorsTests {
     }
 
     @Test("Rule actions coordinator normalizes/adds/removes rules")
-    func ruleActionsCoordinator() {
+    func ruleActionsCoordinator() async throws {
         let appState = isolatedAppState(name: "ruleActions")
         let set = AllowedWebsitesRuleSetActionsCoordinator.createRuleSet(appState: appState, name: "A")
 
@@ -108,7 +109,7 @@ struct AllowedWebsitesActionsCoordinatorsTests {
     }
 
     @Test("Reload coordinator resolves signature and selected rule-set fallback")
-    func reloadCoordinatorState() {
+    func reloadCoordinatorState() async throws {
         let appState = isolatedAppState(name: "reloadCoordinator")
         let a = AllowedWebsitesRuleSetActionsCoordinator.createRuleSet(appState: appState, name: "A")
         let b = AllowedWebsitesRuleSetActionsCoordinator.createRuleSet(appState: appState, name: "B")
@@ -130,7 +131,7 @@ struct AllowedWebsitesActionsCoordinatorsTests {
     }
 
     @Test("Rule-set actions coordinator function references execute runtime paths")
-    func ruleSetActionsCoordinatorFunctionReferences() {
+    func ruleSetActionsCoordinatorFunctionReferences() async throws {
         let createAllowed: (Bool) -> Bool = AllowedWebsitesRuleSetActionsCoordinator.canCreateRuleSet
         let deleteAllowed: (Bool, Int) -> Bool = AllowedWebsitesRuleSetActionsCoordinator.canDeleteRuleSet
         let selectRuleSet: (UUID?, [RuleSet]) -> RuleSet? = AllowedWebsitesRuleSetActionsCoordinator.selectedRuleSet

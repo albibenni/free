@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateScheduleCoordinatorTests {
     @Test("preservedImportedByKey derives mapping from imported schedules")
-    func preservedImportedByKeyDerivesFromSchedules() {
+    func preservedImportedByKeyDerivesFromSchedules() async throws {
         let imported = Schedule(
             name: "Imported",
             days: [],
@@ -27,7 +28,7 @@ struct AppStateScheduleCoordinatorTests {
     }
 
     @Test("rebuildIfNeeded returns nil when rebuilt schedules are unchanged")
-    func rebuildIfNeededNoChangeReturnsNil() {
+    func rebuildIfNeededNoChangeReturnsNil() async throws {
         let now = Date()
         let local = Schedule(
             name: "Local",

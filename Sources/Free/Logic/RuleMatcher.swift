@@ -5,26 +5,12 @@ struct RuleMatcher {
         "about", "arc", "chrome", "brave", "edge", "viva", "vivaldi", "opera", "file",
     ]
 
-    // NSCache is thread-safe; keyed by the exact pattern string used in the LIKE[cd] format.
-    private static let predicateCache: NSCache<NSString, NSPredicate> = {
-        let c = NSCache<NSString, NSPredicate>()
-        c.countLimit = 500
-        return c
-    }()
 
-    private static func cachedPredicate(pattern: String) -> NSPredicate {
-        let key = pattern as NSString
-        if let cached = predicateCache.object(forKey: key) { return cached }
-        let predicate = NSPredicate(format: "SELF LIKE[cd] %@", pattern)
-        predicateCache.setObject(predicate, forKey: key)
-        return predicate
-    }
-
-    static func isAllowed(_ url: String, rules: [String]) -> Bool {
+    static func isAllowed(_ url: String, rules: [String], localPort: UInt16? = nil) -> Bool {
         let cleanedUrl = url.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         if cleanedUrl.isEmpty { return true }
 
-        if isInternalBrowserUrl(cleanedUrl) { return true }
+        if isInternalBrowserUrl(cleanedUrl, localPort: localPort) { return true }
 
         let normalizedUrl = normalize(cleanedUrl)
 
@@ -47,10 +33,20 @@ struct RuleMatcher {
                     return true
                 }
 
-                if cachedPredicate(pattern: normalize(cleanedRule)).evaluate(with: normalizedUrl) { return true }
+                let regexPattern = NSRegularExpression.escapedPattern(for: normalize(cleanedRule))
+                    .replacingOccurrences(of: "\\*", with: ".*")
+                    .replacingOccurrences(of: "\\?", with: ".")
+                if let regex = try? Regex("^" + regexPattern + "$").ignoresCase() {
+                    if normalizedUrl.contains(regex) { return true }
+                }
 
                 if cleanedRule.contains("://") || cleanedRule.contains("www.") {
-                    if cachedPredicate(pattern: cleanedRule).evaluate(with: cleanedUrl) { return true }
+                    let regexPattern = NSRegularExpression.escapedPattern(for: cleanedRule)
+                        .replacingOccurrences(of: "\\*", with: ".*")
+                        .replacingOccurrences(of: "\\?", with: ".")
+                    if let regex = try? Regex("^" + regexPattern + "$").ignoresCase() {
+                        if cleanedUrl.contains(regex) { return true }
+                    }
                 }
             } else {
                 let normalizedRule = normalize(cleanedRule)
@@ -97,8 +93,9 @@ struct RuleMatcher {
         return false
     }
 
-    private static func isInternalBrowserUrl(_ rawUrl: String) -> Bool {
-        if rawUrl == "localhost:10000" || rawUrl.hasPrefix("localhost:10000/") { return true }
+    private static func isInternalBrowserUrl(_ rawUrl: String, localPort: UInt16?) -> Bool {
+        let port = localPort ?? 10000
+        if rawUrl == "localhost:\(port)" || rawUrl.hasPrefix("localhost:\(port)/") { return true }
 
         guard let components = URLComponents(string: rawUrl) else { return false }
 
@@ -108,7 +105,7 @@ struct RuleMatcher {
 
         if let host = components.host?.lowercased(),
             ["localhost", "127.0.0.1", "::1"].contains(host),
-            components.port == 10000
+            components.port == Int(port)
         {
             return true
         }

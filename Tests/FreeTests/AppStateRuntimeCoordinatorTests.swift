@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateRuntimeCoordinatorTests {
     @Test("pomodoroTickAction mirrors AppStatePomodoroCoordinator timer semantics")
-    func pomodoroTickAction() {
+    func pomodoroTickAction() async throws {
         #expect(
             AppStateRuntimeCoordinator.pomodoroTickAction(status: .focus, remaining: 10)
                 == .decrement
@@ -21,7 +22,7 @@ struct AppStateRuntimeCoordinatorTests {
     }
 
     @Test("pauseTick returns cancellation intent when pause reaches zero")
-    func pauseTickCancellationIntent() {
+    func pauseTickCancellationIntent() async throws {
         let active = PauseEngine.State(isPaused: true, remaining: 2)
         let activeResult = AppStateRuntimeCoordinator.pauseTick(from: active)
         #expect(activeResult.state.isPaused)

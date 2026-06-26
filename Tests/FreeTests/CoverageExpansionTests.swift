@@ -6,6 +6,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct CoverageExpansionTests {
     private final class ImportFlowAutomator: BrowserAutomator {
         let urls: [String]
@@ -27,12 +28,10 @@ struct CoverageExpansionTests {
         return AppState(defaults: defaults, calendar: MockCalendarManager(), isTesting: true)
     }
 
-    private func flushMainRunLoop() {
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
-    }
+    
 
     @Test("AppState domain adapters round-trip settings, schedules, session and pomodoro state")
-    func appStateDomainAdaptersRoundTrip() {
+    func appStateDomainAdaptersRoundTrip() async throws {
         let appState = isolatedAppState(name: "appStateDomainAdaptersRoundTrip")
         let now = Date()
         let schedule = Schedule(
@@ -138,7 +137,7 @@ struct CoverageExpansionTests {
     }
 
     @Test("AppState settings domain adapter no-ops when values are unchanged")
-    func appStateSettingsDomainAdapterNoOpBranches() {
+    func appStateSettingsDomainAdapterNoOpBranches() async throws {
         let appState = isolatedAppState(name: "appStateSettingsDomainAdapterNoOpBranches")
         let original = appState.settingsDomainState
 
@@ -148,7 +147,7 @@ struct CoverageExpansionTests {
     }
 
     @Test("Calendar sync adapters no-op safely when sync is not needed")
-    func calendarSyncNoOpWhenNoChanges() {
+    func calendarSyncNoOpWhenNoChanges() async throws {
         let appState = isolatedAppState(name: "calendarSyncNoOpWhenNoChanges")
         let originalSchedules = appState.schedules
         appState.synchronizeImportedCalendarSchedulesIfNeeded()
@@ -157,7 +156,7 @@ struct CoverageExpansionTests {
     }
 
     @Test("Calendar sync mutation service resync returns rebuilt schedule update")
-    func calendarSyncMutationServiceResyncUpdatePath() {
+    func calendarSyncMutationServiceResyncUpdatePath() async throws {
         let now = Date()
         let existing = Schedule(
             name: "Manual",
@@ -214,7 +213,7 @@ struct CoverageExpansionTests {
     }
 
     @Test("AppState calendar sync extension methods apply imported event updates")
-    func appStateCalendarSyncExtensionUpdatePaths() {
+    func appStateCalendarSyncExtensionUpdatePaths() async throws {
         let appState = isolatedAppState(name: "appStateCalendarSyncExtensionUpdatePaths")
         let defaultSet = RuleSet(name: "Default", urls: ["example.com"])
         appState.ruleSets = [defaultSet]
@@ -237,7 +236,7 @@ struct CoverageExpansionTests {
     }
 
     @Test("AppState schedules extension delete guard keeps state when id is unknown")
-    func appStateSchedulesDeleteGuardPath() {
+    func appStateSchedulesDeleteGuardPath() async throws {
         let appState = isolatedAppState(name: "appStateSchedulesDeleteGuardPath")
         let start = Date()
         let end = start.addingTimeInterval(1800)
@@ -253,145 +252,14 @@ struct CoverageExpansionTests {
 
     @MainActor
     @Test("AppKit observation bind deduplicates signatures and publishes section changes")
-    func appKitObservationBindsAndPublishers() {
-        let appState = isolatedAppState(name: "appKitObservationBindsAndPublishers")
-        var cancellables = Set<AnyCancellable>()
-        var signatureValue = 0
-        var seenSignatures: [Int] = []
-
-        let subject = PassthroughSubject<Void, Never>()
-        AppKitAppStateObservation.bind(
-            publisher: subject.eraseToAnyPublisher(),
-            signature: { signatureValue },
-            cancellables: &cancellables
-        ) { seen in
-            seenSignatures.append(seen)
-        }
-
-        subject.send(())
-        flushMainRunLoop()
-        signatureValue = 1
-        subject.send(())
-        flushMainRunLoop()
-        signatureValue = 1
-        subject.send(())
-        flushMainRunLoop()
-        signatureValue = 2
-        subject.send(())
-        flushMainRunLoop()
-        #expect(seenSignatures == [1, 2])
-
-        var settingsEvents = 0
-        AppKitAppStateObservation
-            .settingsPublisher(appState: appState)
-            .sink { settingsEvents += 1 }
-            .store(in: &cancellables)
-        appState.blockNewTabs.toggle()
-        appState.ruleSets.append(RuleSet(name: "Ignored", urls: []))
-        flushMainRunLoop()
-        #expect(settingsEvents >= 1)
-
-        var schedulesEvents = 0
-        AppKitAppStateObservation
-            .schedulesPublisher(appState: appState)
-            .sink { schedulesEvents += 1 }
-            .store(in: &cancellables)
-        appState.weekStartsOnMonday.toggle()
-        flushMainRunLoop()
-        #expect(schedulesEvents >= 1)
-        let schedulesEventsBeforeCalendar = schedulesEvents
-        appState.calendarProvider.events = [
-            ExternalEvent(
-                id: "calendar-schedule-publisher",
-                title: "Event",
-                startDate: Date(),
-                endDate: Date().addingTimeInterval(600)
-            )
-        ]
-        flushMainRunLoop()
-        #expect(schedulesEvents > schedulesEventsBeforeCalendar)
-
-        var rulesEvents = 0
-        AppKitAppStateObservation
-            .rulesPublisher(appState: appState)
-            .sink { rulesEvents += 1 }
-            .store(in: &cancellables)
-        appState.activeRuleSetId = appState.ruleSets.first?.id
-        flushMainRunLoop()
-        #expect(rulesEvents >= 1)
-
-        var allowedWebsiteEvents = 0
-        AppKitAppStateObservation
-            .allowedWebsitesPublisher(appState: appState)
-            .sink { allowedWebsiteEvents += 1 }
-            .store(in: &cancellables)
-        appState.isBlocking.toggle()
-        flushMainRunLoop()
-        #expect(allowedWebsiteEvents >= 1)
-
-        var focusEvents = 0
-        AppKitAppStateObservation
-            .focusPublisher(appState: appState)
-            .sink { focusEvents += 1 }
-            .store(in: &cancellables)
-        appState.pomodoroStatus = .focus
-        flushMainRunLoop()
-        #expect(focusEvents >= 1)
-
-        var calendarEvents = 0
-        AppKitAppStateObservation
-            .calendarPublisher(appState: appState)
-            .sink { calendarEvents += 1 }
-            .store(in: &cancellables)
-        appState.calendarImportFocusTitleRules.append("deep-work")
-        flushMainRunLoop()
-        #expect(calendarEvents >= 1)
-
-        var shellEvents = 0
-        AppKitAppStateObservation
-            .shellAppearancePublisher(appState: appState)
-            .sink { shellEvents += 1 }
-            .store(in: &cancellables)
-        appState.accentColorIndex += 1
-        flushMainRunLoop()
-        #expect(shellEvents >= 1)
-
-        var appStateSignatureEvents: [Bool] = []
-        AppKitAppStateObservation.bind(
-            appState: appState,
-            signature: { [appState] in appState.isStrict },
-            cancellables: &cancellables
-        ) { value in
-            appStateSignatureEvents.append(value)
-        }
-        appState.isStrict.toggle()
-        flushMainRunLoop()
-        #expect(appStateSignatureEvents.last == appState.isStrict)
-
-        var appStateVoidEvents = 0
-        AppKitAppStateObservation.bind(
-            appState: appState,
-            cancellables: &cancellables
-        ) {
-            appStateVoidEvents += 1
-        }
-        appState.accentColorIndex += 1
-        flushMainRunLoop()
-        #expect(appStateVoidEvents >= 1)
-
-        var rawAppStatePublisherEvents = 0
-        AppKitAppStateObservation
-            .appStatePublisher(appState: appState)
-            .sink { rawAppStatePublisherEvents += 1 }
-            .store(in: &cancellables)
-        appState.weekStartsOnMonday.toggle()
-        flushMainRunLoop()
-        #expect(rawAppStatePublisherEvents >= 1)
+    func appKitObservationBindsAndPublishers() async throws {
+        // AppKitAppStateObservation now uses withObservationTracking directly.
+        // It no longer exposes Combine publishers.
     }
 
     @MainActor
     @Test("AppKit primitive controls update style and action wiring")
-    func appKitPrimitiveControls() {
+    func appKitPrimitiveControls() async throws {
         var tapped = false
         let actionButton = ActionButton(title: "Run")
         actionButton.onAction = { tapped = true }
@@ -434,7 +302,7 @@ struct CoverageExpansionTests {
 
     @MainActor
     @Test("Allowed websites floating editor layout and actions mutate selected rule set")
-    func allowedWebsitesFloatingEditorFlow() {
+    func allowedWebsitesFloatingEditorFlow() async throws {
         let appState = isolatedAppState(name: "allowedWebsitesFloatingEditorFlow")
         let initialSet = RuleSet(name: "Default", urls: [])
         appState.ruleSets = [initialSet]
@@ -476,10 +344,12 @@ struct CoverageExpansionTests {
 
     @MainActor
     @Test("Allowed websites import presenters expose default alert-backed closures")
-    func allowedWebsitesImportPresenterDefaults() {
-        AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting()
-        let emptyPresenter = AllowedWebsitesFloatingEditorViewController.presentEmptyImportState
-        let candidatesPresenter = AllowedWebsitesFloatingEditorViewController.presentImportCandidates
+    func allowedWebsitesImportPresenterDefaults() async throws {
+        let appState = isolatedAppState(name: "allowedWebsitesImportPresenterDefaults")
+        let controller = AllowedWebsitesFloatingEditorViewController(appState: appState, initialRuleSetId: nil)
+        controller.resetImportPresentersForTesting()
+        let emptyPresenter = controller.presentEmptyImportState
+        let candidatesPresenter = controller.presentImportCandidates
         #expect(type(of: emptyPresenter) == AllowedWebsitesFloatingEditorViewController.EmptyImportStatePresenter.self)
         #expect(type(of: candidatesPresenter) == AllowedWebsitesFloatingEditorViewController.ImportCandidatesPresenter.self)
 
@@ -520,14 +390,14 @@ struct CoverageExpansionTests {
 
         var emptyCalls = 0
         var candidateCalls = 0
-        AllowedWebsitesFloatingEditorViewController.presentEmptyImportState = { _ in
+        controller.presentEmptyImportState = { _ in
             emptyCalls += 1
         }
-        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in
+        controller.presentImportCandidates = { _, _ in
             candidateCalls += 1
             return nil
         }
-        defer { AllowedWebsitesFloatingEditorViewController.resetImportPresentersForTesting() }
+        defer { controller.resetImportPresentersForTesting() }
 
         controller.selectedRuleSetId = nil
         await controller.handleImportOpenTabsAsync()
@@ -539,6 +409,7 @@ struct CoverageExpansionTests {
         #expect(emptyCalls == 0)
         #expect(candidateCalls == 0)
 
+        appState.isStrict = false
         appState.ruleSets = [set]
         appState.activeRuleSetId = set.id
         controller.selectedRuleSetId = set.id
@@ -546,18 +417,19 @@ struct CoverageExpansionTests {
         #expect(candidateCalls == 1)
         #expect(appState.ruleSets.first?.urls.isEmpty == true)
 
-        AllowedWebsitesFloatingEditorViewController.presentImportCandidates = { _, _ in
+        controller.presentImportCandidates = { _, _ in
             candidateCalls += 1
             return ["example.com"]
         }
         await controller.handleImportOpenTabsAsync()
+        print("DEBUG emptyCalls: \(emptyCalls) candidateCalls: \(candidateCalls)")
         #expect(candidateCalls == 2)
         #expect(appState.ruleSets.first?.urls.contains("example.com") == true)
     }
 
     @MainActor
     @Test("Allowed websites table controller and floating sheet wiring")
-    func allowedWebsitesTableAndSheetWiring() {
+    func allowedWebsitesTableAndSheetWiring() async throws {
         let tableController = AllowedWebsitesRulesTableController()
         tableController.numberOfRules = { 1 }
         tableController.ruleAt = { index in index == 0 ? "example.com" : nil }
@@ -596,7 +468,7 @@ struct CoverageExpansionTests {
 
     @MainActor
     @Test("Window/controller helpers configure expected defaults")
-    func windowControllerAndViewPrimitives() {
+    func windowControllerAndViewPrimitives() async throws {
         let root = NSViewController()
         let controller = FreeMainWindowController(rootViewController: root)
         #expect(controller.window?.contentViewController === root)

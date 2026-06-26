@@ -6,6 +6,7 @@ import Testing
 
 #if false
 @Suite(.serialized)
+@MainActor
 struct WeeklyCalendarViewTests {
     private func isolatedAppState(name: String) -> AppState {
         let suite = "WeeklyCalendarViewTests.\(name)"
@@ -77,7 +78,7 @@ struct WeeklyCalendarViewTests {
 
     @Test("WeeklyCalendarView action helpers cover drag, quick add, and schedule editor actions")
     @MainActor
-    func weeklyCalendarActionHelpers() {
+    func weeklyCalendarActionHelpers() async throws {
         let appState = isolatedAppState(name: "actions")
         var context: ScheduleEditorContext?
         let binding = Binding<ScheduleEditorContext?>(
@@ -136,7 +137,7 @@ struct WeeklyCalendarViewTests {
 
     @Test("WeeklyCalendarView preview and formatting helpers cover static and instance paths")
     @MainActor
-    func weeklyCalendarPreviewAndFormattingHelpers() {
+    func weeklyCalendarPreviewAndFormattingHelpers() async throws {
         let appState = isolatedAppState(name: "preview")
         appState.weekStartsOnMonday = false
 
@@ -290,7 +291,7 @@ struct WeeklyCalendarViewTests {
     }
 
     @Test("WeeklyCalendarView schedule drag and resize update helpers produce snapped results")
-    func weeklyCalendarScheduleUpdateHelpers() {
+    func weeklyCalendarScheduleUpdateHelpers() async throws {
         let calendar = Calendar.current
         let anchorDay = calendar.startOfDay(for: Date())
         let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
@@ -421,7 +422,7 @@ struct WeeklyCalendarViewTests {
 
     @Test("WeeklyCalendarView calendar-event and schedule visibility helpers")
     @MainActor
-    func weeklyCalendarVisibilityHelpers() {
+    func weeklyCalendarVisibilityHelpers() async throws {
         let appState = isolatedAppState(name: "visibility")
 
         let calendar = Calendar.current
@@ -653,7 +654,7 @@ struct WeeklyCalendarViewTests {
 
     @Test("WeeklyCalendarView toolbar buttons can be tapped via ViewInspector")
     @MainActor
-    func weeklyCalendarToolbarButtonsViaInspector() throws {
+    func weeklyCalendarToolbarButtonsViaInspector() async throws {
         let appState = isolatedAppState(name: "inspectorToolbar")
         var context: ScheduleEditorContext?
         let binding = Binding<ScheduleEditorContext?>(
@@ -678,7 +679,7 @@ struct WeeklyCalendarViewTests {
 
     @Test("WeeklyCalendarView uses environment fallback and CurrentTimeIndicator receives timer ticks")
     @MainActor
-    func weeklyCalendarEnvironmentAndTimerReceivePaths() {
+    func weeklyCalendarEnvironmentAndTimerReceivePaths() async throws {
         let appState = isolatedAppState(name: "envFallback")
         var context: ScheduleEditorContext?
         let binding = Binding<ScheduleEditorContext?>(
@@ -701,13 +702,14 @@ struct WeeklyCalendarViewTests {
             timer: fastTimer
         )
         let indicatorHost = host(indicator, size: CGSize(width: 900, height: 120))
-        RunLoop.main.run(until: Date().addingTimeInterval(0.08))
+        try await Task.sleep(nanoseconds: 80000000)
         #expect(indicatorHost.fittingSize.height >= 0)
     }
 }
 #endif
 
 @Suite(.serialized)
+@MainActor
 struct WeeklyCalendarViewTests {
     private func isolatedAppState(name: String) -> AppState {
         let suite = "WeeklyCalendarViewTests.\(name)"
@@ -749,7 +751,7 @@ struct WeeklyCalendarViewTests {
     }
 
     @Test("WeeklyCalendar support preview and formatting helpers cover shared math")
-    func weeklyCalendarPreviewAndFormattingHelpers() {
+    func weeklyCalendarPreviewAndFormattingHelpers() async throws {
         let mondayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: true)
         #expect(mondayOrder == [2, 3, 4, 5, 6, 7, 1])
 
@@ -882,7 +884,7 @@ struct WeeklyCalendarViewTests {
     }
 
     @Test("WeeklyCalendar support normalized interval handles overnight end-time rollover")
-    func weeklyCalendarNormalizedIntervalOvernightRollover() {
+    func weeklyCalendarNormalizedIntervalOvernightRollover() async throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
         let base = Date(timeIntervalSince1970: 1_700_000_000)
@@ -899,7 +901,7 @@ struct WeeklyCalendarViewTests {
     }
 
     @Test("WeeklyCalendar support schedule drag and resize update helpers produce snapped results")
-    func weeklyCalendarScheduleUpdateHelpers() {
+    func weeklyCalendarScheduleUpdateHelpers() async throws {
         let calendar = Calendar.current
         let anchorDay = calendar.startOfDay(for: Date())
         let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
@@ -1031,7 +1033,7 @@ struct WeeklyCalendarViewTests {
     }
 
     @Test("WeeklyCalendar support calendar-event and schedule visibility helpers")
-    func weeklyCalendarVisibilityHelpers() {
+    func weeklyCalendarVisibilityHelpers() async throws {
         let calendar = Calendar.current
         let week = WeeklyCalendarSupport.getWeekDates(
             at: Date(),
@@ -1158,7 +1160,7 @@ struct WeeklyCalendarViewTests {
     }
 
     @Test("WeeklyCalendar support positioned-schedule sorting covers tie-break and lane-reuse branches")
-    func weeklyCalendarPositionedScheduleSortAndLaneBranches() {
+    func weeklyCalendarPositionedScheduleSortAndLaneBranches() async throws {
         let calendar = Calendar.current
         let baseDay = calendar.startOfDay(for: Date())
         let start9 = calendar.date(byAdding: .hour, value: 9, to: baseDay)!
@@ -1215,7 +1217,7 @@ struct WeeklyCalendarViewTests {
 
     @Test("WeeklyCalendar AppKit surface lays out header, scroller, and schedule blocks")
     @MainActor
-    func weeklyCalendarSurfaceLayout() {
+    func weeklyCalendarSurfaceLayout() async throws {
         let calendar = Calendar.current
         let weekRange = WeeklyCalendarSupport.getWeekDates(
             at: Date(),
@@ -1301,7 +1303,7 @@ struct WeeklyCalendarViewTests {
 
     @Test("Schedules sheet controller week navigation updates AppKit calendar configuration")
     @MainActor
-    func schedulesSheetWeekNavigation() {
+    func schedulesSheetWeekNavigation() async throws {
         let appState = isolatedAppState(name: "calendar-navigation")
         let weekday = Calendar.current.component(.weekday, from: Date())
         appState.schedules = [sampleSchedule(day: weekday)]

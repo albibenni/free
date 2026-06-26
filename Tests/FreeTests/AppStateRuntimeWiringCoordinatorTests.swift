@@ -4,6 +4,7 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateRuntimeWiringCoordinatorTests {
     private func makeMonitor(startTimer: Bool = false) -> BrowserMonitor {
         BrowserMonitor(
@@ -24,7 +25,7 @@ struct AppStateRuntimeWiringCoordinatorTests {
     }
 
     @Test("resolveMonitor prefers injected monitor and skips builder")
-    func resolveMonitorPrefersInjected() {
+    func resolveMonitorPrefersInjected() async throws {
         let injected = makeMonitor()
         var buildCallCount = 0
 
@@ -41,7 +42,7 @@ struct AppStateRuntimeWiringCoordinatorTests {
     }
 
     @Test("resolveMonitor returns nil in testing mode when no monitor is injected")
-    func resolveMonitorSkipsBuilderInTesting() {
+    func resolveMonitorSkipsBuilderInTesting() async throws {
         var buildCallCount = 0
 
         let resolved = AppStateRuntimeWiringCoordinator.resolveMonitor(
@@ -57,7 +58,7 @@ struct AppStateRuntimeWiringCoordinatorTests {
     }
 
     @Test("start wires schedule timer and calendar subscription; teardown cancels both")
-    func startAndTeardown() {
+    func startAndTeardown() async throws {
         let calendar = MockCalendarManager()
         let scheduler = MockRepeatingTimerScheduler()
         let timerCoordinator = AppStateTimerCoordinator(timerScheduler: scheduler)
@@ -72,7 +73,6 @@ struct AppStateRuntimeWiringCoordinatorTests {
             scheduleTickIntervalProvider: { 600 },
             dispatchToMain: { $0() }
         )
-        var cancellable: AnyCancellable? = startResult.calendarCancellable
 
         #expect(scheduler.intervals == [600])
         scheduler.fire(at: 0)
@@ -89,11 +89,11 @@ struct AppStateRuntimeWiringCoordinatorTests {
         #expect(calendarChangeCount == 1)
 
         AppStateRuntimeWiringCoordinator.teardown(
-            timerCoordinator: timerCoordinator,
-            calendarCancellable: &cancellable
+            timerCoordinator: timerCoordinator
         )
-        #expect(cancellable == nil)
         #expect(scheduler.timers.first?.invalidateCallCount == 1)
+
+        startResult.calendarCancellable.cancel()
 
         calendar.events = []
         #expect(calendarChangeCount == 1)

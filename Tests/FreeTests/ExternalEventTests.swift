@@ -3,10 +3,11 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct ExternalEventTests {
 
     @Test("ExternalEvent isActive logic")
-    func eventActive() {
+    func eventActive() async throws {
         let now = Date()
         let event = ExternalEvent(
             id: "test",
@@ -23,7 +24,7 @@ struct ExternalEventTests {
     }
 
     @Test("ExternalEvent serialization")
-    func eventSerialization() throws {
+    func eventSerialization() async throws {
         let event = ExternalEvent(
             id: "123",
             title: "Meeting",
@@ -44,7 +45,7 @@ struct ExternalEventTests {
     }
 
     @Test("Zero duration events")
-    func zeroDuration() {
+    func zeroDuration() async throws {
         let now = Date()
         let event = ExternalEvent(id: "z", title: "Instant", startDate: now, endDate: now)
 

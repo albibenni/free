@@ -36,9 +36,10 @@ private final class BrowserAutomatorRuntimeState {
 }
 
 @Suite(.serialized)
+@MainActor
 struct DefaultBrowserAutomatorTests {
     @Test("checkPermissions forwards prompt flag to runtime")
-    func checkPermissionsForwardsPrompt() {
+    func checkPermissionsForwardsPrompt() async throws {
         let state = BrowserAutomatorRuntimeState()
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
 
@@ -51,7 +52,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("redirect selects Arc AppleScript for Arc bundle")
-    func redirectArcScript() {
+    func redirectArcScript() async throws {
         let state = BrowserAutomatorRuntimeState()
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
         automator.redirect(
@@ -64,7 +65,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("redirect selects Safari script when bundle is Safari or missing")
-    func redirectSafariScript() {
+    func redirectSafariScript() async throws {
         let state = BrowserAutomatorRuntimeState()
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
         automator.redirect(
@@ -78,7 +79,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("redirect selects Chromium-style script for non-Safari browsers")
-    func redirectChromiumScript() {
+    func redirectChromiumScript() async throws {
         let state = BrowserAutomatorRuntimeState()
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
         automator.redirect(
@@ -91,7 +92,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("getActiveUrl for Arc returns AppleScript result when non-empty")
-    func activeURLArcAppleScriptPath() {
+    func activeURLArcAppleScriptPath() async throws {
         let state = BrowserAutomatorRuntimeState()
         state.scriptResults = ["https://arc.example"]
         state.arcFallbackURL = "https://fallback.example"
@@ -109,7 +110,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("getActiveUrl for Arc falls back to Accessibility when AppleScript is empty")
-    func activeURLArcAccessibilityFallback() {
+    func activeURLArcAccessibilityFallback() async throws {
         let state = BrowserAutomatorRuntimeState()
         state.scriptResults = [""]
         state.arcFallbackURL = "https://accessibility.example"
@@ -127,7 +128,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("getActiveUrl uses Safari command for Safari")
-    func activeURLSafariPath() {
+    func activeURLSafariPath() async throws {
         let state = BrowserAutomatorRuntimeState()
         state.scriptResults = ["https://safari.example"]
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
@@ -146,7 +147,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("getActiveUrl uses generic active-tab command for non-Safari browsers")
-    func activeURLGenericPath() {
+    func activeURLGenericPath() async throws {
         let state = BrowserAutomatorRuntimeState()
         state.scriptResults = ["https://generic.example"]
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
@@ -163,7 +164,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("getActiveUrl falls back to Safari app name when localizedName is missing")
-    func activeURLMissingLocalizedName() {
+    func activeURLMissingLocalizedName() async throws {
         let state = BrowserAutomatorRuntimeState()
         state.scriptResults = ["https://missing-name.example"]
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
@@ -182,7 +183,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("getAllOpenUrls filters unsupported apps, localhost page, empties, and duplicates")
-    func allOpenURLsFilteringAndSorting() {
+    func allOpenURLsFilteringAndSorting() async throws {
         let state = BrowserAutomatorRuntimeState()
         state.applications = [
             BrowserAutomationApplication(
@@ -219,7 +220,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("getAllOpenUrls wrapper uses runtime-provided app list")
-    func allOpenURLsWrapper() {
+    func allOpenURLsWrapper() async throws {
         let state = BrowserAutomatorRuntimeState()
         state.applications = [
             BrowserAutomationApplication(
@@ -237,7 +238,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("getAllOpenUrls handles supported apps with missing localizedName")
-    func allOpenURLsMissingLocalizedName() {
+    func allOpenURLsMissingLocalizedName() async throws {
         let state = BrowserAutomatorRuntimeState()
         state.applications = [
             BrowserAutomationApplication(
@@ -260,7 +261,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("helper functions cover script mappings and parsing edge cases")
-    func helperFunctions() {
+    func helperFunctions() async throws {
         let state = BrowserAutomatorRuntimeState()
         let automator = DefaultBrowserAutomator(runtime: state.makeRuntime())
 
@@ -297,7 +298,7 @@ struct DefaultBrowserAutomatorTests {
     }
 
     @Test("NSRunningApplication protocol wrappers can execute")
-    func runningApplicationWrappers() {
+    func runningApplicationWrappers() async throws {
         let state = BrowserAutomatorRuntimeState()
         state.scriptResults = ["ignored", "https://wrapper.example"]
         state.arcFallbackURL = "https://fallback.example"

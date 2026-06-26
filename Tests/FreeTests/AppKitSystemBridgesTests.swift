@@ -4,10 +4,11 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct AppKitSystemBridgesTests {
     @Test("AppKitSystemBridges uses injected openURL implementation")
     @MainActor
-    func openURLUsesInjectedImplementation() throws {
+    func openURLUsesInjectedImplementation() async throws {
         defer { AppKitSystemBridges.resetForTesting() }
 
         var opened: [URL] = []
@@ -19,7 +20,7 @@ struct AppKitSystemBridgesTests {
 
     @Test("AppKitSystemBridges default openURL implementation is test-safe")
     @MainActor
-    func openURLDefaultImplementationCoverage() throws {
+    func openURLDefaultImplementationCoverage() async throws {
         defer { AppKitSystemBridges.resetForTesting() }
 
         AppKitSystemBridges.setOpenURLForTesting(nil)
@@ -29,7 +30,7 @@ struct AppKitSystemBridgesTests {
 
     @Test("AppKitSystemBridges uses injected runModal implementation")
     @MainActor
-    func runModalUsesInjectedImplementation() {
+    func runModalUsesInjectedImplementation() async throws {
         defer { AppKitSystemBridges.resetForTesting() }
 
         AppKitSystemBridges.setRunModalForTesting { _ in .alertSecondButtonReturn }
@@ -39,7 +40,7 @@ struct AppKitSystemBridgesTests {
 
     @Test("AppKitSystemBridges default runModal implementation is test-safe")
     @MainActor
-    func runModalDefaultImplementationCoverage() {
+    func runModalDefaultImplementationCoverage() async throws {
         defer { AppKitSystemBridges.resetForTesting() }
 
         AppKitSystemBridges.setRunModalForTesting(nil)
@@ -49,7 +50,7 @@ struct AppKitSystemBridgesTests {
 
     @Test("AppKitSystemBridges default openURL calls native bridge outside test runtime")
     @MainActor
-    func defaultOpenURLUsesNativeBridgeWhenNotTesting() throws {
+    func defaultOpenURLUsesNativeBridgeWhenNotTesting() async throws {
         defer { AppKitSystemBridges.resetForTesting() }
 
         let expected = try #require(URL(string: "https://example.com/native"))
@@ -67,7 +68,7 @@ struct AppKitSystemBridgesTests {
 
     @Test("AppKitSystemBridges default runModal calls native bridge outside test runtime")
     @MainActor
-    func defaultRunModalUsesNativeBridgeWhenNotTesting() {
+    func defaultRunModalUsesNativeBridgeWhenNotTesting() async throws {
         defer { AppKitSystemBridges.resetForTesting() }
 
         AppKitSystemBridges.setRunModalForTesting(nil)
@@ -80,7 +81,7 @@ struct AppKitSystemBridgesTests {
 
     @Test("AppKitSystemBridges openURL native fallback uses system bridge")
     @MainActor
-    func openURLNativeFallbackUsesSystemBridge() throws {
+    func openURLNativeFallbackUsesSystemBridge() async throws {
         defer { AppKitSystemBridges.resetForTesting() }
 
         let expected = try #require(URL(string: "https://example.com/system"))
@@ -100,7 +101,7 @@ struct AppKitSystemBridgesTests {
 
     @Test("AppKitSystemBridges runModal native fallback uses system bridge")
     @MainActor
-    func runModalNativeFallbackUsesSystemBridge() {
+    func runModalNativeFallbackUsesSystemBridge() async throws {
         defer { AppKitSystemBridges.resetForTesting() }
 
         AppKitSystemBridges.setRunModalForTesting(nil)
@@ -115,7 +116,7 @@ struct AppKitSystemBridgesTests {
 
     @Test("AppKitSystemBridges openURL can run with live system executor in tests")
     @MainActor
-    func openURLFallbackUsesLiveExecutorSafelyInTests() throws {
+    func openURLFallbackUsesLiveExecutorSafelyInTests() async throws {
         defer { AppKitSystemBridges.resetForTesting() }
 
         let url = try #require(URL(string: "https://example.com/live"))
@@ -130,7 +131,7 @@ struct AppKitSystemBridgesTests {
 
     @Test("AppKitSystemBridges runModal can run with live system executor in tests")
     @MainActor
-    func runModalFallbackUsesLiveExecutorSafelyInTests() {
+    func runModalFallbackUsesLiveExecutorSafelyInTests() async throws {
         defer { AppKitSystemBridges.resetForTesting() }
 
         AppKitSystemBridges.setRunModalForTesting(nil)
@@ -145,7 +146,7 @@ struct AppKitSystemBridgesTests {
 
     @Test("AppKitSystemBridges resetForTesting clears custom hooks")
     @MainActor
-    func resetForTestingClearsHooks() {
+    func resetForTestingClearsHooks() async throws {
         defer { AppKitSystemBridges.resetForTesting() }
 
         AppKitSystemBridges.setRunModalForTesting { _ in .alertThirdButtonReturn }

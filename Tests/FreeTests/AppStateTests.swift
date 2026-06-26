@@ -42,6 +42,7 @@ private final class MockLaunchAtLoginManager: LaunchAtLoginManaging {
 }
 
 @Suite(.serialized)
+@MainActor
 struct AppStateTests {
 
     private func isolatedAppState(
@@ -60,7 +61,7 @@ struct AppStateTests {
         startTimer: Bool = false
     ) -> BrowserMonitor {
         BrowserMonitor(
-            stateSnapshotProvider: {
+            stateSnapshotProvider: { @MainActor in
                 BrowserMonitor.StateSnapshot(
                     isBlocking: appState.isBlocking,
                     isPaused: appState.isPaused,
@@ -71,7 +72,9 @@ struct AppStateTests {
                 )
             },
             onEvent: { event in
-                if case .trustedStateChanged(let trusted) = event { appState.isTrusted = trusted }
+                Task { @MainActor in
+                    if case .trustedStateChanged(let trusted) = event { appState.isTrusted = trusted }
+                }
             },
             server: nil,
             automator: automator,
@@ -80,7 +83,7 @@ struct AppStateTests {
     }
 
     @Test("Pomodoro locking logic works correctly with grace period")
-    func pomodoroLocking() {
+    func pomodoroLocking() async throws {
         let appState = isolatedAppState(name: "pomodoroLocking")
 
         appState.isStrict = true
@@ -97,7 +100,7 @@ struct AppStateTests {
     }
 
     @Test("Pomodoro strict grace period read model handles guard and lock branches")
-    func pomodoroStrictGracePeriodReadModelCoverage() {
+    func pomodoroStrictGracePeriodReadModelCoverage() async throws {
         let appState = isolatedAppState(name: "pomodoroStrictGracePeriodReadModelCoverage")
 
         appState.isStrict = false
@@ -121,7 +124,7 @@ struct AppStateTests {
     }
 
     @Test("Strict Mode (Strict) activation logic")
-    func strictActive() {
+    func strictActive() async throws {
         let appState = isolatedAppState(name: "strictActive")
         appState.isBlocking = true
         appState.isStrict = true
@@ -133,7 +136,7 @@ struct AppStateTests {
     }
 
     @Test("applySessionState clears manual blocking when resulting session is not manual")
-    func applySessionStateClearsManualBlocking() {
+    func applySessionStateClearsManualBlocking() async throws {
         let appState = isolatedAppState(name: "applySessionStateClearsManualBlocking")
         appState.setManualBlockingEnabled(true)
         #expect(appState.manualBlockingEnabled)
@@ -150,7 +153,7 @@ struct AppStateTests {
     }
 
     @Test("Allowed rules aggregation from multiple sources")
-    func allowedRulesAggregation() {
+    func allowedRulesAggregation() async throws {
         let appState = isolatedAppState(name: "allowedRulesAggregation")
         let ruleSet1 = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
         let ruleSet2 = RuleSet(id: UUID(), name: "Set 2", urls: ["url2.com"])
@@ -164,7 +167,7 @@ struct AppStateTests {
     }
 
     @Test("Search-engine allow toggle augments effective allowed rules")
-    func searchEngineAllowToggleAffectsAllowedRules() {
+    func searchEngineAllowToggleAffectsAllowedRules() async throws {
         let appState = isolatedAppState(name: "searchEngineAllowToggleAffectsAllowedRules")
         let ruleSet = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
         appState.ruleSets = [ruleSet]
@@ -181,7 +184,7 @@ struct AppStateTests {
     }
 
     @Test("AI-provider allow toggle augments effective allowed rules")
-    func aiProviderAllowToggleAffectsAllowedRules() {
+    func aiProviderAllowToggleAffectsAllowedRules() async throws {
         let appState = isolatedAppState(name: "aiProviderAllowToggleAffectsAllowedRules")
         let ruleSet = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
         appState.ruleSets = [ruleSet]
@@ -198,7 +201,7 @@ struct AppStateTests {
     }
 
     @Test("Break schedule overrides Focus schedule")
-    func schedulePriorityBreakOverridesFocus() {
+    func schedulePriorityBreakOverridesFocus() async throws {
         let appState = isolatedAppState(name: "schedulePriorityBreakOverridesFocus")
         appState.isBlocking = false
         appState.isStrict = false
@@ -240,7 +243,7 @@ struct AppStateTests {
     }
 
     @Test("Manual focus persists after schedule ends")
-    func manualFocusOverridesScheduleStop() {
+    func manualFocusOverridesScheduleStop() async throws {
         let appState = AppState(isTesting: true)
 
         appState.isBlocking = true
@@ -284,7 +287,7 @@ struct AppStateTests {
     }
 
     @Test("AppState preserves persisted manual blocking when source is manual")
-    func persistedManualBlockingRemainsActive() {
+    func persistedManualBlockingRemainsActive() async throws {
         let suite = "AppStateTests.persistedManualBlockingRemainsActive"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -298,7 +301,7 @@ struct AppStateTests {
     }
 
     @Test("AppState auto-disables persisted automatic blocking when focus schedule has ended")
-    func persistedAutomaticBlockingStopsWhenScheduleEnds() {
+    func persistedAutomaticBlockingStopsWhenScheduleEnds() async throws {
         let suite = "AppStateTests.persistedAutomaticBlockingStopsWhenScheduleEnds"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -313,7 +316,7 @@ struct AppStateTests {
     }
 
     @Test("AppState prompts for launch-at-login only once on first startup when disabled")
-    func launchAtLoginPromptOnceWhenDisabled() {
+    func launchAtLoginPromptOnceWhenDisabled() async throws {
         let suite = "AppStateTests.launchAtLoginPromptOnceWhenDisabled"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -332,7 +335,7 @@ struct AppStateTests {
     }
 
     @Test("AppState does not prompt for launch-at-login when prompting is suppressed")
-    func launchAtLoginPromptSuppressed() {
+    func launchAtLoginPromptSuppressed() async throws {
         let suite = "AppStateTests.launchAtLoginPromptSuppressed"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -350,7 +353,7 @@ struct AppStateTests {
     }
 
     @Test("AppState skips launch-at-login prompt when already enabled")
-    func launchAtLoginPromptSkippedWhenAlreadyEnabled() {
+    func launchAtLoginPromptSkippedWhenAlreadyEnabled() async throws {
         let suite = "AppStateTests.launchAtLoginPromptSkippedWhenAlreadyEnabled"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -368,7 +371,7 @@ struct AppStateTests {
     }
 
     @Test("AppState enableLaunchAtLogin reports success and failure")
-    func enableLaunchAtLoginResultHandling() {
+    func enableLaunchAtLoginResultHandling() async throws {
         let successSuite = "AppStateTests.enableLaunchAtLoginResultHandling.success"
         let successDefaults = UserDefaults(suiteName: successSuite)!
         successDefaults.removePersistentDomain(forName: successSuite)
@@ -400,7 +403,7 @@ struct AppStateTests {
     }
 
     @Test("AppState setLaunchAtLoginEnabled toggles and handles disable failures")
-    func setLaunchAtLoginEnabledResultHandling() {
+    func setLaunchAtLoginEnabledResultHandling() async throws {
         let suite = "AppStateTests.setLaunchAtLoginEnabledResultHandling"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -430,7 +433,7 @@ struct AppStateTests {
     }
 
     @Test("AppState default launch-at-login prompt closure executes under test runtime")
-    func defaultLaunchAtLoginPromptClosureCoverage() {
+    func defaultLaunchAtLoginPromptClosureCoverage() async throws {
         let suite = "AppStateTests.defaultLaunchAtLoginPromptClosureCoverage"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -442,7 +445,7 @@ struct AppStateTests {
     }
 
     @Test("Imported calendar event keeps focus active and does not override focus session")
-    func importedCalendarEventKeepsFocusActive() {
+    func importedCalendarEventKeepsFocusActive() async throws {
         let appState = isolatedAppState(name: "importedCalendarEventKeepsFocusActive")
         appState.calendarIntegrationEnabled = true
         appState.isBlocking = false
@@ -485,7 +488,7 @@ struct AppStateTests {
     }
 
     @Test("Calendar imports always enabled and block time")
-    func calendarImportsBlockTimeToggle() {
+    func calendarImportsBlockTimeToggle() async throws {
         let appState = isolatedAppState(name: "calendarImportsBlockTimeToggle")
         appState.calendarIntegrationEnabled = true
         appState.isBlocking = false
@@ -504,7 +507,7 @@ struct AppStateTests {
     }
 
     @Test("Calendar import sync upserts and removes mirrored schedules without duplication")
-    func calendarImportSyncUpsertAndRemove() {
+    func calendarImportSyncUpsertAndRemove() async throws {
         let appState = isolatedAppState(name: "calendarImportSyncUpsertAndRemove")
         appState.calendarIntegrationEnabled = true
 
@@ -596,7 +599,7 @@ struct AppStateTests {
     }
 
     @Test("Calendar sync prunes schedules and imports older than previous week")
-    func calendarSyncPrunesOlderThanPreviousWeek() {
+    func calendarSyncPrunesOlderThanPreviousWeek() async throws {
         let appState = isolatedAppState(name: "calendarSyncPrunesOlderThanPreviousWeek")
         appState.calendarIntegrationEnabled = true
 
@@ -665,7 +668,7 @@ struct AppStateTests {
     }
 
     @Test("Deleting imported schedule suppresses re-import while source event remains present")
-    func deletingImportedScheduleSuppressesReimport() {
+    func deletingImportedScheduleSuppressesReimport() async throws {
         let appState = isolatedAppState(name: "deletingImportedScheduleSuppressesReimport")
         appState.calendarIntegrationEnabled = true
 
@@ -680,7 +683,7 @@ struct AppStateTests {
         appState.calendarProvider.events = [event]
         appState.checkSchedules()
         // Drain async calendar publisher callbacks queued by MockCalendarManager objectWillChange.
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100000000)
         let imported = appState.schedules.first(where: {
             $0.importedCalendarEventKey == "event-suppress"
         })
@@ -694,14 +697,14 @@ struct AppStateTests {
         }
 
         appState.checkSchedules()
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100000000)
         #expect(
             !appState.schedules.contains(where: { $0.importedCalendarEventKey == "event-suppress" })
         )
     }
 
     @Test("Imported calendar schedules default to the active allowed list")
-    func calendarImportDefaultsToActiveRuleSet() {
+    func calendarImportDefaultsToActiveRuleSet() async throws {
         let appState = isolatedAppState(name: "calendarImportDefaultsToActiveRuleSet")
         appState.calendarIntegrationEnabled = true
 
@@ -729,7 +732,7 @@ struct AppStateTests {
     }
 
     @Test("Imported calendar schedules use calendar-configured allowed list when set")
-    func calendarImportUsesConfiguredImportedRuleSet() {
+    func calendarImportUsesConfiguredImportedRuleSet() async throws {
         let appState = isolatedAppState(name: "calendarImportUsesConfiguredImportedRuleSet")
         appState.calendarIntegrationEnabled = true
 
@@ -758,7 +761,7 @@ struct AppStateTests {
     }
 
     @Test("Resync imported schedules removes legacy duplicates and rebuilds mirrored entries")
-    func resyncImportedSchedulesDeduplicatesLegacy() {
+    func resyncImportedSchedulesDeduplicatesLegacy() async throws {
         let appState = isolatedAppState(name: "resyncImportedSchedulesDeduplicatesLegacy")
         appState.calendarIntegrationEnabled = true
 
@@ -832,7 +835,7 @@ struct AppStateTests {
     }
 
     @Test("Pause logic works correctly")
-    func pauseLogic() {
+    func pauseLogic() async throws {
         let appState = isolatedAppState(name: "pauseLogic")
         appState.isBlocking = true
 
@@ -851,7 +854,7 @@ struct AppStateTests {
     }
 
     @Test("todaySchedules includes matching one-off date sessions")
-    func todaySchedulesSpecificDate() {
+    func todaySchedulesSpecificDate() async throws {
         let appState = isolatedAppState(name: "todaySchedulesSpecificDate")
         let now = Date()
         let calendar = Calendar.current
@@ -872,7 +875,7 @@ struct AppStateTests {
     }
 
     @Test("addSpecificRule adds unique entries and respects strict mode")
-    func addSpecificRuleCoverage() {
+    func addSpecificRuleCoverage() async throws {
         let appState = isolatedAppState(name: "addSpecificRuleCoverage")
         let setId = appState.ruleSets[0].id
 
@@ -890,7 +893,7 @@ struct AppStateTests {
     }
 
     @Test("AppState covers primary ruleset and name fallback branches")
-    func primaryRuleSetFallbackCoverage() {
+    func primaryRuleSetFallbackCoverage() async throws {
         let appState = isolatedAppState(name: "primaryRuleSetFallbackCoverage")
 
         appState.ruleSets = []
@@ -929,7 +932,7 @@ struct AppStateTests {
     }
 
     @Test("AppState initializes with fallback appearance and injected monitor")
-    func initFallbackAndInjectedMonitorCoverage() {
+    func initFallbackAndInjectedMonitorCoverage() async throws {
         let suiteA = "AppStateTests.initFallbackAndInjectedMonitorCoverage.A"
         let defaultsA = UserDefaults(suiteName: suiteA)!
         defaultsA.removePersistentDomain(forName: suiteA)
@@ -947,7 +950,7 @@ struct AppStateTests {
     }
 
     @Test("AppState can initialize production calendar path with injected monitor")
-    func initProductionCalendarPathCoverage() {
+    func initProductionCalendarPathCoverage() async throws {
         let sourceSuite = "AppStateTests.initProductionCalendarPathCoverage.source"
         let sourceDefaults = UserDefaults(suiteName: sourceSuite)!
         sourceDefaults.removePersistentDomain(forName: sourceSuite)
@@ -998,7 +1001,7 @@ struct AppStateTests {
     }
 
     @Test("skipPomodoroPhase transitions between focus and break")
-    func skipPomodoroPhaseCoverage() {
+    func skipPomodoroPhaseCoverage() async throws {
         let scheduler = MockRepeatingTimerScheduler()
         let appState = isolatedAppState(
             name: "skipPomodoroPhaseCoverage", timerScheduler: scheduler)
@@ -1018,7 +1021,7 @@ struct AppStateTests {
     }
 
     @Test("pause and pomodoro timer handlers execute countdown and transition logic")
-    func timerHandlerCoverage() {
+    func timerHandlerCoverage() async throws {
         let scheduler = MockRepeatingTimerScheduler()
         let appState = isolatedAppState(name: "timerHandlerCoverage", timerScheduler: scheduler)
         appState.isBlocking = true
@@ -1054,7 +1057,7 @@ struct AppStateTests {
     }
 
     @Test("AppState covers nil self timer closures after deinit")
-    func timerWeakSelfNilCoverage() {
+    func timerWeakSelfNilCoverage() async throws {
         let scheduler = MockRepeatingTimerScheduler()
         var appState: AppState? = isolatedAppState(
             name: "timerWeakSelfNilCoverage", timerScheduler: scheduler)
@@ -1093,7 +1096,7 @@ struct AppStateTests {
     }
 
     @Test("deleteSet updates active selection and saveSchedule empty-name defaults")
-    func deleteAndDefaultNameCoverage() {
+    func deleteAndDefaultNameCoverage() async throws {
         let appState = isolatedAppState(name: "deleteAndDefaultNameCoverage")
         let set1 = RuleSet(id: UUID(), name: "Set 1", urls: [])
         let set2 = RuleSet(id: UUID(), name: "Set 2", urls: [])
@@ -1135,7 +1138,7 @@ struct AppStateTests {
     }
 
     @Test("save and delete schedule remove empty-day entries")
-    func emptyDayRemovalCoverage() {
+    func emptyDayRemovalCoverage() async throws {
         let appState = isolatedAppState(name: "emptyDayRemovalCoverage")
         let start = Date()
         let end = start.addingTimeInterval(3600)
@@ -1169,7 +1172,7 @@ struct AppStateTests {
     }
 
     @Test("pomodoro break duration updates remaining during break phase")
-    func breakDurationUpdateCoverage() {
+    func breakDurationUpdateCoverage() async throws {
         let appState = isolatedAppState(name: "breakDurationUpdateCoverage")
         appState.pomodoroStatus = .breakTime
         appState.pomodoroBreakDuration = 7
@@ -1177,7 +1180,7 @@ struct AppStateTests {
     }
 
     @Test("allowedRules falls back to first ruleset when activeRuleSetId is nil")
-    func allowedRulesNilActiveRuleSetFallbackCoverage() {
+    func allowedRulesNilActiveRuleSetFallbackCoverage() async throws {
         let appState = isolatedAppState(name: "allowedRulesNilActiveRuleSetFallbackCoverage")
         let fallbackSet = RuleSet(id: UUID(), name: "Fallback", urls: ["fallback.com"])
         appState.ruleSets = [fallbackSet]
@@ -1189,7 +1192,7 @@ struct AppStateTests {
     }
 
     @Test("AppState deinit invalidates schedule, pause, and pomodoro timers")
-    func appStateDeinitInvalidatesTimers() {
+    func appStateDeinitInvalidatesTimers() async throws {
         let scheduler = MockRepeatingTimerScheduler()
         var appState: AppState? = isolatedAppState(
             name: "appStateDeinitInvalidatesTimers", timerScheduler: scheduler)
@@ -1210,7 +1213,7 @@ struct AppStateTests {
     }
 
     @Test("AppState replaces active pause and pomodoro timers safely")
-    func appStateReplacesTimersSafely() {
+    func appStateReplacesTimersSafely() async throws {
         let scheduler = MockRepeatingTimerScheduler()
         let appState = isolatedAppState(
             name: "appStateReplacesTimersSafely", timerScheduler: scheduler)
@@ -1234,7 +1237,7 @@ struct AppStateTests {
     }
 
     @Test("Rules aggregate from all active focus schedules")
-    func multipleSchedulesRules() {
+    func multipleSchedulesRules() async throws {
         let appState = isolatedAppState(name: "multipleSchedulesRules")
         let ruleSet1 = RuleSet(id: UUID(), name: "Set 1", urls: ["url1.com"])
         let ruleSet2 = RuleSet(id: UUID(), name: "Set 2", urls: ["url2.com"])
@@ -1263,7 +1266,7 @@ struct AppStateTests {
     }
 
     @Test("todaySchedules filters by current day and sorts by time")
-    func todaySchedulesLogic() {
+    func todaySchedulesLogic() async throws {
         let appState = isolatedAppState(name: "todaySchedulesLogic")
         let now = Date()
         let calendar = Calendar.current
@@ -1292,7 +1295,7 @@ struct AppStateTests {
     }
 
     @Test("saveSchedule logic: Create and Update")
-    func saveScheduleLogic() {
+    func saveScheduleLogic() async throws {
         let appState = isolatedAppState(name: "saveScheduleLogic")
         let start = Date()
         let end = start.addingTimeInterval(3600)
@@ -1313,7 +1316,7 @@ struct AppStateTests {
     }
 
     @Test("saveSchedule logic: Splitting recurring schedule")
-    func splitScheduleLogic() {
+    func splitScheduleLogic() async throws {
         let appState = isolatedAppState(name: "splitScheduleLogic")
         let start = Date()
         let end = start.addingTimeInterval(3600)
@@ -1336,7 +1339,7 @@ struct AppStateTests {
     }
 
     @Test("deleteSchedule logic: Full and Partial")
-    func deleteScheduleLogic() {
+    func deleteScheduleLogic() async throws {
         let appState = isolatedAppState(name: "deleteScheduleLogic")
         let start = Date()
         let end = start.addingTimeInterval(3600)
@@ -1355,7 +1358,7 @@ struct AppStateTests {
     }
 
     @Test("updateScheduleOccurrence updates one-off, recurring, and split recurring schedules")
-    func updateScheduleOccurrenceLogic() {
+    func updateScheduleOccurrenceLogic() async throws {
         let appState = isolatedAppState(name: "updateScheduleOccurrenceLogic")
         let calendar = Calendar.current
         let oneOffDate = calendar.startOfDay(for: Date())
@@ -1430,7 +1433,7 @@ struct AppStateTests {
     }
 
     @Test("schedule mutations execute at AppState level regardless of strict mode")
-    func scheduleMutationsBlockedOnlyWhenStrictActive() {
+    func scheduleMutationsBlockedOnlyWhenStrictActive() async throws {
         let appState = isolatedAppState(name: "scheduleMutationsBlockedOnlyWhenStrictActive")
         let start = Date()
         let end = start.addingTimeInterval(3600)
@@ -1487,7 +1490,7 @@ struct AppStateTests {
     }
 
     @Test("schedule mutations are allowed when strict is on but focus is inactive")
-    func scheduleMutationsAllowedWhenStrictButNotBlocking() {
+    func scheduleMutationsAllowedWhenStrictButNotBlocking() async throws {
         let appState = isolatedAppState(name: "scheduleMutationsAllowedWhenStrictButNotBlocking")
         let start = Date()
         let end = start.addingTimeInterval(3600)
@@ -1522,7 +1525,7 @@ struct AppStateTests {
     }
 
     @Test("currentPrimaryRuleSetId priority logic")
-    func ruleSetPriority() {
+    func ruleSetPriority() async throws {
         let appState = isolatedAppState(name: "ruleSetPriority")
         let set1 = RuleSet(id: UUID(), name: "Manual", urls: [])
         let set2 = RuleSet(id: UUID(), name: "Schedule", urls: [])
@@ -1552,7 +1555,7 @@ struct AppStateTests {
     }
 
     @Test("Pomodoro keeps enforcing the session-captured list while selection changes")
-    func pomodoroUsesCapturedRuleSetDuringActiveSession() {
+    func pomodoroUsesCapturedRuleSetDuringActiveSession() async throws {
         let appState = isolatedAppState(name: "pomodoroUsesCapturedRuleSetDuringActiveSession")
         let set1 = RuleSet(id: UUID(), name: "Set 1", urls: ["set1.example"])
         let set2 = RuleSet(id: UUID(), name: "Set 2", urls: ["set2.example"])
@@ -1571,7 +1574,7 @@ struct AppStateTests {
     }
 
     @Test("Schedule enforcement ignores active list selection changes while schedule is active")
-    func scheduleUsesAssignedRuleSetDuringActiveSession() {
+    func scheduleUsesAssignedRuleSetDuringActiveSession() async throws {
         let appState = isolatedAppState(name: "scheduleUsesAssignedRuleSetDuringActiveSession")
         let set1 = RuleSet(id: UUID(), name: "Schedule Set", urls: ["schedule.example"])
         let set2 = RuleSet(id: UUID(), name: "Manual Set", urls: ["manual.example"])
@@ -1649,7 +1652,7 @@ struct AppStateTests {
         #expect(!appState.allowedRules.contains("pomodoro.example"))
     }
     @Test("Active pomodoro focus overrides multiple schedules")
-    func pomodoroFocusOverridesMultipleSchedules() {
+    func pomodoroFocusOverridesMultipleSchedules() async throws {
         let appState = isolatedAppState(name: "pomodoroFocusOverridesMultipleSchedules")
         appState.isBlocking = false
         appState.isStrict = false
@@ -1691,7 +1694,7 @@ struct AppStateTests {
     }
 
     @Test("Active pomodoro focus overrides break schedule")
-    func pomodoroFocusOverridesBreakSchedule() {
+    func pomodoroFocusOverridesBreakSchedule() async throws {
         let appState = isolatedAppState(name: "pomodoroFocusOverridesBreakSchedule")
         appState.isBlocking = false
         appState.isStrict = false
@@ -1733,7 +1736,7 @@ struct AppStateTests {
     }
 
     @Test("Active pomodoro focus overrides multiple schedules of different types")
-    func pomodoroFocusOverridesMultipleSchedulesOfDifferentTypes() {
+    func pomodoroFocusOverridesMultipleSchedulesOfDifferentTypes() async throws {
         let appState = isolatedAppState(name: "pomodoroFocusOverridesBreakScheduleOFDifferentTypes")
         appState.isBlocking = false
         appState.isStrict = false
@@ -1811,7 +1814,7 @@ struct AppStateTests {
     }
 
     @Test("allowedRules handles pomodoro focus when there are no rulesets")
-    func allowedRulesPomodoroWithNoRuleSets() {
+    func allowedRulesPomodoroWithNoRuleSets() async throws {
         let appState = isolatedAppState(name: "allowedRulesPomodoroWithNoRuleSets")
         appState.ruleSets = []
         appState.activeRuleSetId = nil
@@ -1851,7 +1854,7 @@ struct AppStateTests {
     }
 
     @Test("startPomodoro rehydrates ruleset from active selection when started from break state")
-    func startPomodoroFromBreakUsesActiveRuleSetSelection() {
+    func startPomodoroFromBreakUsesActiveRuleSetSelection() async throws {
         let appState = isolatedAppState(name: "startPomodoroFromBreakUsesActiveRuleSetSelection")
         let set = RuleSet(id: UUID(), name: "Selected", urls: ["selected.example"])
         appState.ruleSets = [set]
@@ -1866,7 +1869,7 @@ struct AppStateTests {
     }
 
     @Test("Manual toggle can stop a schedule-started session")
-    func manualOverrideOfSchedule() {
+    func manualOverrideOfSchedule() async throws {
         let appState = isolatedAppState(name: "manualOverrideOfSchedule")
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
@@ -1888,7 +1891,7 @@ struct AppStateTests {
     }
 
     @Test("Nested schedule priority (Break inside Focus)")
-    func nestedSchedulePriority() {
+    func nestedSchedulePriority() async throws {
         let appState = isolatedAppState(name: "nestedSchedulePriority")
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
@@ -1908,7 +1911,7 @@ struct AppStateTests {
     }
 
     @Test("Challenge phrase enforcement logic")
-    func challengePhraseEnforcement() {
+    func challengePhraseEnforcement() async throws {
         let appState = isolatedAppState(name: "challengePhraseEnforcement")
 
         appState.isStrict = true
@@ -1931,7 +1934,7 @@ struct AppStateTests {
     }
 
     @Test("Negative: Challenge phrase is case-sensitive and strict on whitespace")
-    func challengePhraseStrictness() {
+    func challengePhraseStrictness() async throws {
         let appState = isolatedAppState(name: "challengePhraseStrictness")
         appState.isStrict = true
 
@@ -1945,7 +1948,7 @@ struct AppStateTests {
     }
 
     @Test("Negative: Pause when not blocking should fail")
-    func pauseWhileNotBlocking() {
+    func pauseWhileNotBlocking() async throws {
         let appState = isolatedAppState(name: "pauseWhileNotBlocking")
         appState.isBlocking = false
 
@@ -1954,7 +1957,7 @@ struct AppStateTests {
     }
 
     @Test("Negative: Duplicate rules should not be added")
-    func duplicateRules() {
+    func duplicateRules() async throws {
         let appState = isolatedAppState(name: "duplicateRules")
         let id = appState.ruleSets[0].id
 
@@ -1973,7 +1976,7 @@ struct AppStateTests {
     }
 
     @Test("Negative: Stop Pomodoro when locked without challenge")
-    func stopLockedPomodoro() {
+    func stopLockedPomodoro() async throws {
         let appState = isolatedAppState(name: "stopLockedPomodoro")
         appState.isStrict = true
         appState.startPomodoro()
@@ -1985,7 +1988,7 @@ struct AppStateTests {
     }
 
     @Test("Negative: Rule management with invalid IDs")
-    func ruleManagementInvalidIds() {
+    func ruleManagementInvalidIds() async throws {
         let appState = isolatedAppState(name: "ruleManagementInvalidIds")
         let fakeId = UUID()
 
@@ -2000,7 +2003,7 @@ struct AppStateTests {
     }
 
     @Test("Rule aggregation across concurrent focus schedules")
-    func concurrentSchedulesRuleAggregation() {
+    func concurrentSchedulesRuleAggregation() async throws {
         let appState = isolatedAppState(name: "concurrentSchedulesRuleAggregation")
 
         let set1 = RuleSet(id: UUID(), name: "Set 1", urls: ["site1.com"])
@@ -2027,7 +2030,7 @@ struct AppStateTests {
     }
 
     @Test("Negative: Prevent rule modifications during strict mode")
-    func strictRuleModificationProtection() {
+    func strictRuleModificationProtection() async throws {
         let appState = isolatedAppState(name: "strictRuleModificationProtection")
         let setId = appState.ruleSets[0].id
         let originalCount = appState.ruleSets[0].urls.count
@@ -2050,7 +2053,7 @@ struct AppStateTests {
     }
 
     @Test("Negative: Prevent activeRuleSetId change during blocking")
-    func ruleSetSwitchDuringBlocking() {
+    func ruleSetSwitchDuringBlocking() async throws {
         let appState = isolatedAppState(name: "ruleSetSwitchDuringBlocking")
         let set1 = RuleSet(id: UUID(), name: "S1", urls: [])
         let set2 = RuleSet(id: UUID(), name: "S2", urls: [])
@@ -2063,7 +2066,7 @@ struct AppStateTests {
     }
 
     @Test("Negative: startPause with zero or negative duration")
-    func pauseDurationEdgeCases() {
+    func pauseDurationEdgeCases() async throws {
         let appState = isolatedAppState(name: "pauseDurationEdgeCases")
         appState.isBlocking = true
 
@@ -2075,7 +2078,7 @@ struct AppStateTests {
     }
 
     @Test("Manual pause takes precedence over Pomodoro focus")
-    func pausePrecedence() {
+    func pausePrecedence() async throws {
         let appState = isolatedAppState(name: "pausePrecedence")
         appState.isBlocking = true
 
@@ -2089,7 +2092,7 @@ struct AppStateTests {
     }
 
     @Test("Quick break pauses active pomodoro countdown and resumes after break ends")
-    func quickBreakPausesPomodoroTimer() {
+    func quickBreakPausesPomodoroTimer() async throws {
         let scheduler = MockRepeatingTimerScheduler()
         let appState = isolatedAppState(
             name: "quickBreakPausesPomodoroTimer", timerScheduler: scheduler)
@@ -2113,7 +2116,7 @@ struct AppStateTests {
     }
 
     @Test("todaySchedules badge count logic")
-    func todaySchedulesBadgeCount() {
+    func todaySchedulesBadgeCount() async throws {
         let appState = isolatedAppState(name: "todaySchedulesBadgeCount")
         let today = Calendar.current.component(.weekday, from: Date())
 
@@ -2132,7 +2135,7 @@ struct AppStateTests {
     }
 
     @Test("Negative: Toggling blocking OFF pauses ALL currently active schedules")
-    func pauseMultipleOverlappingSchedules() {
+    func pauseMultipleOverlappingSchedules() async throws {
         let appState = isolatedAppState(name: "pauseMultipleOverlappingSchedules")
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
@@ -2156,7 +2159,7 @@ struct AppStateTests {
     }
 
     @Test("todaySchedules handles duplicate start times gracefully")
-    func todaySchedulesDuplicateTimes() {
+    func todaySchedulesDuplicateTimes() async throws {
         let appState = isolatedAppState(name: "todaySchedulesDuplicateTimes")
         let now = Date()
         let today = Calendar.current.component(.weekday, from: now)
@@ -2173,7 +2176,7 @@ struct AppStateTests {
     }
 
     @Test("currentPrimaryRuleSetName correctly identifies the active list name")
-    func primaryRuleSetNameLogic() {
+    func primaryRuleSetNameLogic() async throws {
         let appState = isolatedAppState(name: "primaryRuleSetNameLogic")
 
         let set1 = RuleSet(id: UUID(), name: "Manual Set", urls: [])
@@ -2204,7 +2207,7 @@ struct AppStateTests {
     }
 
     @Test("Pomodoro remaining time reflects duration changes mid-run")
-    func pomodoroMidRunDurationChange() {
+    func pomodoroMidRunDurationChange() async throws {
         let appState = isolatedAppState(name: "pomodoroMidRunDurationChange")
         appState.pomodoroFocusDuration = 25
         appState.startPomodoro()
@@ -2216,7 +2219,7 @@ struct AppStateTests {
     }
 
     @Test("One-off sessions only appear in their specific week grid")
-    func calendarGridFilteringLogic() {
+    func calendarGridFilteringLogic() async throws {
         let calendar = Calendar.current
         let components = DateComponents(year: 2026, month: 2, day: 18, hour: 12)
         let testDate = calendar.date(from: components)!

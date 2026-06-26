@@ -33,6 +33,7 @@ private final class CalendarRuntimeState {
 }
 
 @Suite(.serialized)
+@MainActor
 struct CalendarManagerTests {
 
     private func isolatedAppState(name: String, calendar: any CalendarProvider) -> AppState {
@@ -43,7 +44,7 @@ struct CalendarManagerTests {
     }
 
     @Test("MockCalendarManager allows manual event injection and no-op methods")
-    func mockCalendarLogic() {
+    func mockCalendarLogic() async throws {
         let mock = MockCalendarManager()
         let now = Date()
         let event = ExternalEvent(
@@ -59,7 +60,7 @@ struct CalendarManagerTests {
     }
 
     @Test("RealCalendarManager init without authorization sets up refresh timer only")
-    func initUnauthorizedPath() {
+    func initUnauthorizedPath() async throws {
         let runtimeState = CalendarRuntimeState()
         runtimeState.hasAuthorization = false
         let scheduler = MockRepeatingTimerScheduler()
@@ -79,7 +80,7 @@ struct CalendarManagerTests {
     }
 
     @Test("RealCalendarManager init accepts Date.init nowProvider path")
-    func initWithDateNowProvider() {
+    func initWithDateNowProvider() async throws {
         let runtimeState = CalendarRuntimeState()
         runtimeState.hasAuthorization = false
         let scheduler = MockRepeatingTimerScheduler()
@@ -95,7 +96,7 @@ struct CalendarManagerTests {
     }
 
     @Test("RealCalendarManager init with authorization performs immediate fetch")
-    func initAuthorizedPath() {
+    func initAuthorizedPath() async throws {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let runtimeState = CalendarRuntimeState()
         runtimeState.hasAuthorization = true
@@ -138,7 +139,7 @@ struct CalendarManagerTests {
     }
 
     @Test("requestAccess denied updates authorization without fetching")
-    func requestAccessDenied() {
+    func requestAccessDenied() async throws {
         let runtimeState = CalendarRuntimeState()
         let manager = RealCalendarManager(
             timerScheduler: MockRepeatingTimerScheduler(),
@@ -156,7 +157,7 @@ struct CalendarManagerTests {
     }
 
     @Test("requestAccess granted enables authorization and fetches")
-    func requestAccessGranted() {
+    func requestAccessGranted() async throws {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let runtimeState = CalendarRuntimeState()
         runtimeState.snapshots = [
@@ -184,7 +185,7 @@ struct CalendarManagerTests {
     }
 
     @Test("requestAccess callback is ignored if manager was released")
-    func requestAccessAfterDeinit() {
+    func requestAccessAfterDeinit() async throws {
         let runtimeState = CalendarRuntimeState()
         var manager: RealCalendarManager? = RealCalendarManager(
             timerScheduler: MockRepeatingTimerScheduler(),
@@ -201,7 +202,7 @@ struct CalendarManagerTests {
     }
 
     @Test("fetchEvents guard prevents work when unauthorized")
-    func fetchGuardUnauthorized() {
+    func fetchGuardUnauthorized() async throws {
         let runtimeState = CalendarRuntimeState()
         let manager = RealCalendarManager(
             timerScheduler: MockRepeatingTimerScheduler(),
@@ -215,7 +216,7 @@ struct CalendarManagerTests {
     }
 
     @Test("fetchEvents maps snapshots, filters all-day, and applies id/title defaults")
-    func fetchMappingAndFiltering() {
+    func fetchMappingAndFiltering() async throws {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let runtimeState = CalendarRuntimeState()
         runtimeState.snapshots = [
@@ -266,7 +267,7 @@ struct CalendarManagerTests {
     }
 
     @Test("refresh timer triggers periodic fetch when authorized")
-    func timerDrivenRefresh() {
+    func timerDrivenRefresh() async throws {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let runtimeState = CalendarRuntimeState()
         let scheduler = MockRepeatingTimerScheduler()
@@ -282,7 +283,7 @@ struct CalendarManagerTests {
     }
 
     @Test("AppState reacts to calendar authorization changes")
-    func appStateCalendarAuth() {
+    func appStateCalendarAuth() async throws {
         let mock = MockCalendarManager()
         mock.isAuthorized = false
 
@@ -294,7 +295,7 @@ struct CalendarManagerTests {
     }
 
     @Test("AppState re-checks schedules when calendar events change")
-    func appStateReactsToEvents() {
+    func appStateReactsToEvents() async throws {
         let mock = MockCalendarManager()
         let appState = isolatedAppState(name: "appStateReactsToEvents", calendar: mock)
         appState.calendarIntegrationEnabled = true
@@ -326,7 +327,7 @@ struct CalendarManagerTests {
     }
 
     @Test("RealCalendarManager deinit invalidates refresh timer")
-    func realCalendarManagerDeinitInvalidatesTimer() {
+    func realCalendarManagerDeinitInvalidatesTimer() async throws {
         let scheduler = MockRepeatingTimerScheduler()
         let runtimeState = CalendarRuntimeState()
         var manager: RealCalendarManager? = RealCalendarManager(
@@ -343,7 +344,7 @@ struct CalendarManagerTests {
         manager = nil
         let deadline = Date().addingTimeInterval(0.2)
         while timer.invalidateCallCount == 0 && Date() < deadline {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+            try await Task.sleep(nanoseconds: 100_000_000)
         }
         #expect(timer.invalidateCallCount == 1)
     }

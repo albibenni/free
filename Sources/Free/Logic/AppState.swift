@@ -1,3 +1,4 @@
+import Observation
 import Combine
 import Foundation
 
@@ -7,13 +8,15 @@ enum AppearanceMode: String, Codable, CaseIterable {
     case dark = "Dark"
 }
 
-class AppState: ObservableObject {
+@MainActor
+@Observable
+class AppState {
     static let challengePhrase =
         "I understand and want to quit!"
     let settingsStore: SettingsStore
     let logicFacade: AppStateLogicFacade
 
-    @Published var isBlocking = false {
+    var isBlocking = false {
         didSet {
             AppStatePropertyEffectsService.handleIsBlockingDidChange(
                 isBlocking: isBlocking,
@@ -21,13 +24,13 @@ class AppState: ObservableObject {
             )
         }
     }
-    @Published var isStrict = false
-    @Published var isTrusted = false
-    @Published var weekStartsOnMonday = false
-    @Published var accentColorIndex = 0
-    @Published var appearanceMode: AppearanceMode = .system
-    @Published var cursorFluidAnimationEnabled = true
-    @Published var calendarIntegrationEnabled = false {
+    var isStrict = false
+    var isTrusted = false
+    var weekStartsOnMonday = false
+    var accentColorIndex = 0
+    var appearanceMode: AppearanceMode = .system
+    var cursorFluidAnimationEnabled = true
+    var calendarIntegrationEnabled = false {
         didSet {
             AppStatePropertyEffectsService.handleCalendarIntegrationEnabledDidChange(
                 isEnabled: calendarIntegrationEnabled,
@@ -36,23 +39,23 @@ class AppState: ObservableObject {
             )
         }
     }
-    @Published var calendarImportFocusTitleRules: [String] = [] {
+    var calendarImportFocusTitleRules: [String] = [] {
         didSet { checkSchedules() }
     }
-    @Published var calendarImportBreakTitleRules: [String] = [] {
+    var calendarImportBreakTitleRules: [String] = [] {
         didSet { checkSchedules() }
     }
-    @Published var calendarImportedScheduleRuleSetId: UUID? = nil {
+    var calendarImportedScheduleRuleSetId: UUID? = nil {
         didSet { checkSchedules() }
     }
-    @Published var blockNewTabs = false
-    @Published var blockDeveloperHosts = false
-    @Published var blockLocalNetworkHosts = false
-    @Published var allowSearchEngineWebsites = false
-    @Published var allowAIProviderWebsites = false
-    @Published var ruleSets: [RuleSet] = []
-    @Published var activeRuleSetId: UUID? = nil
-    @Published var schedules: [Schedule] = [] {
+    var blockNewTabs = false
+    var blockDeveloperHosts = false
+    var blockLocalNetworkHosts = false
+    var allowSearchEngineWebsites = false
+    var allowAIProviderWebsites = false
+    var ruleSets: [RuleSet] = []
+    var activeRuleSetId: UUID? = nil
+    var schedules: [Schedule] = [] {
         didSet {
             AppStatePropertyEffectsService.handleSchedulesDidChange(
                 schedules: schedules,
@@ -62,7 +65,7 @@ class AppState: ObservableObject {
         }
     }
 
-    @Published var pomodoroFocusDuration: Double = 25 {
+    var pomodoroFocusDuration: Double = 25 {
         didSet {
             pomodoroRemaining = AppStatePropertyEffectsService
                 .updatedPomodoroRemainingAfterFocusDurationDidChange(
@@ -72,7 +75,7 @@ class AppState: ObservableObject {
                 )
         }
     }
-    @Published var pomodoroBreakDuration: Double = 5 {
+    var pomodoroBreakDuration: Double = 5 {
         didSet {
             pomodoroRemaining = AppStatePropertyEffectsService
                 .updatedPomodoroRemainingAfterBreakDurationDidChange(
@@ -83,12 +86,12 @@ class AppState: ObservableObject {
         }
     }
 
-    @Published var isPaused = false
-    @Published var pauseRemaining: TimeInterval = 0
-    @Published var pomodoroStatus: PomodoroStatus = .none
-    @Published var pomodoroRemaining: TimeInterval = 0
-    @Published var pomodoroStartedAt: Date?
-    @Published var currentOpenUrls: [String] = []
+    var isPaused = false
+    var pauseRemaining: TimeInterval = 0
+    var pomodoroStatus: PomodoroStatus = .none
+    var pomodoroRemaining: TimeInterval = 0
+    var pomodoroStartedAt: Date?
+    var currentOpenUrls: [String] = []
 
     var monitor: BrowserMonitor?
     let calendarProvider: any CalendarProvider
@@ -144,7 +147,7 @@ class AppState: ObservableObject {
         applyScheduleDomainState(bootstrapProjection.schedule)
         manualBlockingEnabled = snapshot.manualBlockingEnabled
         persistenceCancellables = AppStateLifecycleService.bindPersistence(
-            bindings: persistenceBindings,
+            appState: self,
             settingsStore: settingsStore
         )
         scheduleCheckSubject
@@ -171,26 +174,31 @@ class AppState: ObservableObject {
             calendarProvider: calendarProvider,
             timerCoordinator: timerCoordinator,
             monitorStateSnapshotProvider: { [weak self] in
-                self.map { state in
+                guard let self else { return nil }
+                return await MainActor.run {
                     BrowserMonitor.StateSnapshot(
-                        isBlocking: state.isBlocking,
-                        isPaused: state.isPaused,
-                        blockNewTabs: state.blockNewTabs,
-                        blockDeveloperHosts: state.blockDeveloperHosts,
-                        blockLocalNetworkHosts: state.blockLocalNetworkHosts,
-                        allowedRules: state.allowedRules
+                        isBlocking: self.isBlocking,
+                        isPaused: self.isPaused,
+                        blockNewTabs: self.blockNewTabs,
+                        blockDeveloperHosts: self.blockDeveloperHosts,
+                        blockLocalNetworkHosts: self.blockLocalNetworkHosts,
+                        allowedRules: self.allowedRules
                     )
                 }
             },
             onMonitorEvent: { [weak self] event in
-                switch event {
-                case .trustedStateChanged(let trusted):
-                    self?.isTrusted = trusted
+                Task { @MainActor in
+                    switch event {
+                    case .trustedStateChanged(let trusted):
+                        self?.isTrusted = trusted
+                    }
                 }
             },
-            onScheduleUpdate: { [weak self] in self?.checkSchedules() },
+            onScheduleUpdate: { [weak self] in Task { @MainActor in self?.checkSchedules() } },
             scheduleTickIntervalProvider: { [weak self] in
-                self?.nextScheduleTickInterval() ?? 60
+                MainActor.assumeIsolated {
+                    self?.nextScheduleTickInterval() ?? 60
+                }
             }
         )
         self.monitor = runtimeBindings.monitor
@@ -204,9 +212,7 @@ class AppState: ObservableObject {
 
     deinit {
         AppStateLifecycleService.teardown(
-            timerCoordinator: timerCoordinator,
-            calendarCancellable: &calendarCancellable,
-            persistenceCancellables: &persistenceCancellables
+            timerCoordinator: timerCoordinator
         )
     }
 

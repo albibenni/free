@@ -17,15 +17,15 @@ extension RulesSheetViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        AppKitAppStateObservation.bind(
-            publisher: AppKitAppStateObservation.rulesPublisher(appState: appState),
-            signature: { [weak self, appState] in
-                RulesSheetViewController.observationSignature(
+        AppKitAppStateObservation.observe(
+            appState: appState,
+            signature: { [weak self, weak appState] () -> RulesSheetRenderSignature? in
+                guard let self = self, let appState = appState else { return nil }
+                return RulesSheetViewController.observationSignature(
                     controller: self,
                     appState: appState
                 )
-            },
-            cancellables: &cancellables
+            }
         ) { [weak self] _ in
             self?.reloadContent()
         }
