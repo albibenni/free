@@ -19,6 +19,7 @@ class RealCalendarManager: CalendarProvider {
     private let runtime: CalendarManagerRuntime
     private let timerScheduler: any RepeatingTimerScheduling
     private let nowProvider: () -> Date
+    @ObservationIgnored
     private nonisolated(unsafe) var refreshTimer: (any RepeatingTimer)?
 
     init(
