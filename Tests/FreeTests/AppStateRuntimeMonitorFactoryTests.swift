@@ -10,7 +10,8 @@ struct AppStateRuntimeMonitorFactoryTests {
     func makeMonitorBuildsBrowserMonitor() async {
         let monitor = AppStateRuntimeMonitorFactory.makeMonitor(
             stateSnapshotProvider: { nil as BrowserMonitor.StateSnapshot? },
-            onEvent: { _ in }
+            onEvent: { _ in },
+            isTesting: false
         )
 
         await monitor.checkActiveTab()

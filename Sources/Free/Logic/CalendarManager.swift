@@ -2,6 +2,7 @@ import Observation
 import EventKit
 import Foundation
 
+@MainActor
 protocol CalendarProvider: AnyObject {
     var events: [ExternalEvent] { get set }
     var isAuthorized: Bool { get }
@@ -9,6 +10,7 @@ protocol CalendarProvider: AnyObject {
     func fetchEvents()
 }
 
+@MainActor
 @Observable
 class RealCalendarManager: CalendarProvider {
     var events: [ExternalEvent] = []
@@ -17,7 +19,7 @@ class RealCalendarManager: CalendarProvider {
     private let runtime: CalendarManagerRuntime
     private let timerScheduler: any RepeatingTimerScheduling
     private let nowProvider: () -> Date
-    private var refreshTimer: (any RepeatingTimer)?
+    private nonisolated(unsafe) var refreshTimer: (any RepeatingTimer)?
 
     init(
         timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
@@ -35,7 +37,9 @@ class RealCalendarManager: CalendarProvider {
 
         refreshTimer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 5 * 60) {
             [weak self] in
-            self?.fetchEvents()
+            Task { @MainActor [weak self] in
+                self?.fetchEvents()
+            }
         }
     }
 
@@ -47,8 +51,8 @@ class RealCalendarManager: CalendarProvider {
     func requestAccess() {
         let runtime = self.runtime
         runtime.requestEventAccess { [weak self] granted in
-            guard let self else { return }
-            runtime.dispatchMain {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
                 self.isAuthorized = granted
                 if granted {
                     self.fetchEvents()
@@ -79,12 +83,11 @@ class RealCalendarManager: CalendarProvider {
             )
         }
 
-        runtime.dispatchMain { [weak self] in
-            self?.events = mapped
-        }
+        self.events = mapped
     }
 }
 
+@MainActor
 @Observable
 class MockCalendarManager: CalendarProvider {
     var events: [ExternalEvent] = []

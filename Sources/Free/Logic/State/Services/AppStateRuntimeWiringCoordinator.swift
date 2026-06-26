@@ -47,7 +47,9 @@ enum AppStateRuntimeWiringCoordinator {
         @Sendable func observeCalendar() {
             guard !state.isCancelled else { return }
             withObservationTracking {
-                _ = calendarProvider.events
+                MainActor.assumeIsolated {
+                    _ = calendarProvider.events
+                }
             } onChange: {
                 dispatchToMain {
                     guard !state.isCancelled else { return }

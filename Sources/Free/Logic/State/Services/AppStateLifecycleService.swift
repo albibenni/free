@@ -111,7 +111,8 @@ enum AppStateLifecycleService {
         ) {
             AppStateRuntimeMonitorFactory.makeMonitor(
                 stateSnapshotProvider: monitorStateSnapshotProvider,
-                onEvent: onMonitorEvent
+                onEvent: onMonitorEvent,
+                isTesting: isTesting
             )
         }
 

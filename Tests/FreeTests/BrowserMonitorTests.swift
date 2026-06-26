@@ -80,7 +80,7 @@ struct BrowserMonitorTests {
             monitorInterval: monitorInterval,
             timerScheduler: timerScheduler,
             startTimer: startTimer,
-            testRuntimeActive: testRuntimeActive
+            isTesting: testRuntimeActive ?? true
         )
     }
 

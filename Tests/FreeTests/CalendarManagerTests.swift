@@ -118,7 +118,6 @@ struct CalendarManagerTests {
 
         #expect(manager.isAuthorized == true)
         #expect(runtimeState.loadedRanges.count == 1)
-        #expect(runtimeState.dispatchCalls == 1)
         #expect(manager.events.count == 1)
         #expect(manager.events[0].title == "Focus Session")
 
@@ -150,10 +149,14 @@ struct CalendarManagerTests {
         manager.requestAccess()
         #expect(runtimeState.accessRequests.count == 1)
         runtimeState.accessRequests[0](false)
+        
+        for _ in 0..<10 {
+            if manager.isAuthorized == false { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
 
         #expect(manager.isAuthorized == false)
         #expect(runtimeState.loadedRanges.isEmpty)
-        #expect(runtimeState.dispatchCalls == 1)
     }
 
     @Test("requestAccess granted enables authorization and fetches")
@@ -177,11 +180,16 @@ struct CalendarManagerTests {
 
         manager.requestAccess()
         runtimeState.accessRequests[0](true)
+        
+        for _ in 0..<10 {
+            if manager.isAuthorized { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
 
         #expect(manager.isAuthorized == true)
         #expect(runtimeState.loadedRanges.count == 1)
         #expect(manager.events.count == 1)
-        #expect(manager.events[0].title == "Meeting")
+        #expect(manager.events.first?.title == "Meeting")
     }
 
     @Test("requestAccess callback is ignored if manager was released")
@@ -252,7 +260,6 @@ struct CalendarManagerTests {
         manager.fetchEvents()
 
         #expect(runtimeState.loadedRanges.count == 1)
-        #expect(runtimeState.dispatchCalls == 1)
         #expect(manager.events.count == 2)
         #expect(manager.events[0].title == "Untitled Event")
         #expect(
@@ -279,6 +286,12 @@ struct CalendarManagerTests {
         manager.isAuthorized = true
 
         scheduler.fire(at: 0)
+        
+        for _ in 0..<10 {
+            if runtimeState.loadedRanges.count == 1 { break }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        
         #expect(runtimeState.loadedRanges.count == 1)
     }
 

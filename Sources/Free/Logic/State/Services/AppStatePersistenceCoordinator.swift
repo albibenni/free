@@ -84,7 +84,7 @@ enum AppStatePersistenceCoordinator {
                     _ = appState[keyPath: keyPath]
                 }
             } onChange: { [weak self, weak appState] in
-                DispatchQueue.main.async { [weak appState] in
+                Task { @MainActor [weak appState] in
                     self?.startTracking(appState: appState)
                 }
             }

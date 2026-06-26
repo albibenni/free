@@ -13,16 +13,6 @@ actor BrowserMonitor {
         case trustedStateChanged(Bool)
     }
 
-    private enum TestRuntime {
-        static func isActive() -> Bool {
-            let environment = ProcessInfo.processInfo.environment
-            if environment["XCTestConfigurationFilePath"] != nil { return true }
-            if environment["XCTestBundlePath"] != nil { return true }
-            if environment["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES"] != nil { return true }
-            if environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil { return true }
-            return NSClassFromString("XCTestCase") != nil
-        }
-    }
 
     struct StateSnapshot: Sendable {
         let isBlocking: Bool
@@ -82,7 +72,7 @@ actor BrowserMonitor {
         monitorInterval: TimeInterval = 1.5,
         timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
         startTimer: Bool = true,
-        testRuntimeActive: Bool? = nil
+        isTesting: Bool = false
     ) {
         self.stateSnapshotProvider = stateSnapshotProvider
         self.onEvent = onEvent
@@ -94,7 +84,7 @@ actor BrowserMonitor {
         self.bundleIdProvider = bundleIdProvider
         self.nowProvider = nowProvider
         self.monitorInterval = monitorInterval
-        let shouldPrompt = !(testRuntimeActive ?? TestRuntime.isActive())
+        let shouldPrompt = !isTesting
         Task {
             await self.checkPermissions(prompt: shouldPrompt)
             await self.server?.start()
