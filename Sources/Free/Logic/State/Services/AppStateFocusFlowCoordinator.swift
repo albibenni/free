@@ -88,20 +88,15 @@ enum AppStateFocusFlowCoordinator {
         minutes: Double,
         isBlocking: Bool
     ) -> PauseTransition? {
-        guard
-            let updated = AppStatePauseCoordinator.start(
-                from: state,
-                minutes: minutes,
-                isBlocking: isBlocking
-            )
-        else { return nil }
+        let updated = PauseEngine.start(from: state, minutes: minutes, isBlocking: isBlocking)
+        guard updated != state else { return nil }
 
         return PauseTransition(state: updated, shouldStartTimer: true, shouldStopTimer: false, shouldCheckSchedules: false)
     }
 
     static func cancelPause(state: PauseEngine.State) -> PauseTransition {
         PauseTransition(
-            state: AppStatePauseCoordinator.cancel(from: state),
+            state: PauseEngine.cancel(from: state),
             shouldStartTimer: false,
             shouldStopTimer: true,
             shouldCheckSchedules: true
@@ -123,7 +118,7 @@ enum AppStateFocusFlowCoordinator {
         status: PomodoroStatus,
         remaining: TimeInterval
     ) -> PomodoroTickAction {
-        switch AppStateRuntimeCoordinator.pomodoroTickAction(status: status, remaining: remaining) {
+        switch AppStatePomodoroCoordinator.timerAction(status: status, remaining: remaining) {
         case .decrement:
             return .decrement
         case .startBreak:
@@ -134,7 +129,7 @@ enum AppStateFocusFlowCoordinator {
     }
 
     static func pauseTick(state: PauseEngine.State) -> PauseTickTransition {
-        let result = AppStateRuntimeCoordinator.pauseTick(from: state)
-        return PauseTickTransition(state: result.state, shouldCancelPause: result.shouldCancel)
+        let ticked = PauseEngine.tick(from: state)
+        return PauseTickTransition(state: ticked, shouldCancelPause: !ticked.isPaused)
     }
 }

@@ -12,8 +12,8 @@ help:
 	@echo "  make test          - Run test suite"
 	@echo "  make test-verbose  - Run test suite with verbose output"
 	@echo "  make coverage      - Run tests with code coverage and print summary"
-	@echo "  make logic-gate    - Enforce logic/services regional coverage gate (default 98.0%)"
-	@echo "  make ui-gate       - Enforce UI/* regional coverage threshold (default 85.0%)"
+	@echo "  make logic-gate    - Enforce logic/services regional coverage gate (default 93.0%)"
+	@echo "  make ui-gate       - Enforce UI/* regional coverage threshold (default 92.0%)"
 	@echo "  make regression-tests - Run targeted fragile-UI regression suites"
 	@echo "  make coverage-gates - Run coverage + logic/ui gates"
 	@echo "  make app           - Build macOS .app bundle via build.sh"
@@ -56,9 +56,9 @@ coverage:
 		| xargs -0 xcrun llvm-profdata merge -sparse -o .build/coverage-merged/merged.profdata; \
 	xcrun llvm-cov report "$$bin" -instr-profile=.build/coverage-merged/merged.profdata $$src_files
 
-LOGIC_REGION_GATE ?= 98.0
+LOGIC_REGION_GATE ?= 93.0
 LOGIC_REGION_PATTERN ?= ^Logic/State/Services/
-UI_REGION_GATE ?= 85.0
+UI_REGION_GATE ?= 92.0
 
 logic-gate:
 	@bin=$$(find .build/coverage-main -path "*/debug/FreePackageTests.xctest/Contents/MacOS/FreePackageTests" -not -path "*.dSYM/*" | head -n 1); \

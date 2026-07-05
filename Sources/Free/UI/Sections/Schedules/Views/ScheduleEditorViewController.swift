@@ -17,13 +17,6 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
         set { hookLock.lock(); defer { hookLock.unlock() }; _runDeleteConfirmationAlert = newValue }
     }
 
-    static func resetHooksForTesting() {
-        hookLock.lock(); defer { hookLock.unlock() }
-        _makeDeleteConfirmationAlert = nil
-        _runDeleteConfirmationAlert = nil
-        _isRunningInTestProcess = nil
-    }
-
     static var isRunningInTestProcess: () -> Bool {
         get { hookLock.lock(); defer { hookLock.unlock() }; return _isRunningInTestProcess ?? { isRunningUnderXCTest } }
         set { hookLock.lock(); defer { hookLock.unlock() }; _isRunningInTestProcess = newValue }

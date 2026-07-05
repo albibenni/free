@@ -14,17 +14,6 @@ struct CalendarImportService {
         )
     }
 
-    static func resetWeekDateProviderForTesting() {
-        weekDateProvider = { now, weekStartsOnMonday, offset, calendar in
-            WeekDateCalculator.getWeekDates(
-                at: now,
-                weekStartsOnMonday: weekStartsOnMonday,
-                offset: offset,
-                calendar: calendar
-            )
-        }
-    }
-
     struct LegacyImportedEventSignature: Hashable {
         let title: String
         let start: TimeInterval

@@ -154,15 +154,4 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
 }
 
 extension FreeSheetWindowController {
-    func reconcileWindowFrameForTesting() {
-        guard let window else { return }
-        let target = window.frameRect(
-            forContentRect: NSRect(origin: .zero, size: desiredContentSize)
-        )
-        reconcileWindowFrameIfNeeded(window, targetFrameRect: target)
-    }
-
-    func setClosingProgrammaticallyForTesting(_ value: Bool) {
-        isClosingProgrammatically = value
-    }
 }

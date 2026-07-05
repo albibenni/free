@@ -1,18 +1,11 @@
 import Foundation
 
 extension AppState {
-    private var challengeContext: AppStateActionsMutationService.ChallengeContext {
-        AppStateActionsMutationService.ChallengeContext(
-            currentIsStrict: isStrict,
-            challengePhrase: AppState.challengePhrase
-        )
-    }
-
     func stopPomodoroWithChallenge(phrase: String) -> Bool {
-        let result = AppStateActionsMutationService.stopPomodoroWithChallenge(
-            logicFacade: logicFacade,
+        let result = logicFacade.stopPomodoroChallenge(
             phrase: phrase,
-            context: challengeContext
+            challengePhrase: AppState.challengePhrase,
+            currentIsStrict: isStrict
         )
         guard result.didSucceed else { return false }
 
@@ -21,10 +14,10 @@ extension AppState {
     }
 
     func disableStrictWithChallenge(phrase: String) -> Bool {
-        let result = AppStateActionsMutationService.disableStrictWithChallenge(
-            logicFacade: logicFacade,
+        let result = logicFacade.disableStrictChallenge(
             phrase: phrase,
-            context: challengeContext
+            challengePhrase: AppState.challengePhrase,
+            currentIsStrict: isStrict
         )
         guard result.didSucceed else { return false }
         isStrict = result.isStrict
@@ -32,40 +25,24 @@ extension AppState {
     }
 
     func prepareLaunchAtLoginPromptIfNeeded() -> Bool {
-        AppStateActionsMutationService.prepareLaunchAtLoginPromptIfNeeded(
-            logicFacade: logicFacade,
-            launchService: launchAtLoginService
-        )
+        logicFacade.prepareLaunchAtLoginPromptIfNeeded(service: launchAtLoginService)
     }
 
     func launchAtLoginStatus() -> Bool {
-        AppStateActionsMutationService.launchAtLoginStatus(
-            logicFacade: logicFacade,
-            launchService: launchAtLoginService
-        )
+        logicFacade.launchAtLoginStatus(service: launchAtLoginService)
     }
 
     @discardableResult
     func enableLaunchAtLogin() -> Bool {
-        AppStateActionsMutationService.enableLaunchAtLogin(
-            logicFacade: logicFacade,
-            launchService: launchAtLoginService
-        )
+        logicFacade.enableLaunchAtLogin(service: launchAtLoginService)
     }
 
     @discardableResult
     func setLaunchAtLoginEnabled(_ enabled: Bool) -> Bool {
-        AppStateActionsMutationService.setLaunchAtLoginEnabled(
-            logicFacade: logicFacade,
-            launchService: launchAtLoginService,
-            enabled: enabled
-        )
+        logicFacade.setLaunchAtLoginEnabled(enabled, service: launchAtLoginService)
     }
 
     func timeString(time: TimeInterval) -> String {
-        AppStateActionsMutationService.formatTimeString(
-            logicFacade: logicFacade,
-            time: time
-        )
+        logicFacade.timeString(time: time)
     }
 }
