@@ -2,6 +2,10 @@ import Foundation
 
 extension AppState {
     private var pomodoroMutationContext: AppStatePomodoroMutationService.Context {
+        pomodoroMutationContext(isLocked: isPomodoroLocked)
+    }
+
+    private func pomodoroMutationContext(isLocked: Bool) -> AppStatePomodoroMutationService.Context {
         AppStatePomodoroMutationService.Context(
             state: pomodoroEngineState,
             status: pomodoroStatus,
@@ -10,7 +14,7 @@ extension AppState {
             breakDurationMinutes: pomodoroBreakDuration,
             activeRuleSetId: activeRuleSetId,
             ruleSets: ruleSets,
-            isLocked: isPomodoroLocked
+            isLocked: isLocked
         )
     }
 
@@ -37,11 +41,14 @@ extension AppState {
         applyPomodoroTransition(transition)
     }
 
-    func stopPomodoro() {
+    /// `bypassingStrictLock` is only for callers that have already passed the
+    /// strict-mode challenge; it avoids round-tripping `isStrict` through
+    /// persisted state to unlock the stop.
+    func stopPomodoro(bypassingStrictLock: Bool = false) {
         guard
             let transition = AppStatePomodoroMutationService.stopPomodoroIfUnlocked(
                 logicFacade: logicFacade,
-                context: pomodoroMutationContext
+                context: pomodoroMutationContext(isLocked: bypassingStrictLock ? false : isPomodoroLocked)
             )
         else { return }
         applyPomodoroTransition(transition)

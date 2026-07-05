@@ -251,13 +251,13 @@ final class FreeApp {
             self.mainWindowController?.showWindow(nil)
             self.mainWindowController?.window?.makeKeyAndOrderFront(nil)
             self.mainWindowController?.window?.orderFrontRegardless()
-            application.activate(ignoringOtherApps: true)
+            application.activate()
         }
 
         bindStateIfNeeded()
         applyMacOSAppearance(appState.appearanceMode)
         updateStatusItem()
-        application.activate(ignoringOtherApps: true)
+        application.activate()
     }
 
     isolated deinit {

@@ -99,7 +99,7 @@ class AppState {
     let launchAtLoginService: LaunchAtLoginService
     let timerCoordinator: AppStateTimerCoordinator
     private var persistenceCancellables = Set<AnyCancellable>()
-    private let scheduleCheckSubject = PassthroughSubject<Void, Never>()
+    private var scheduleCheckDebounceTask: Task<Void, Never>?
     private let isTesting: Bool
     var internalState = AppStateInternalState()
     private var rescheduleScheduleTimer: (@MainActor () -> Void)?
@@ -150,11 +150,6 @@ class AppState {
             appState: self,
             settingsStore: settingsStore
         )
-        scheduleCheckSubject
-            .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
-            .sink { [weak self] in self?.performCheckSchedules() }
-            .store(in: &persistenceCancellables)
-
         // Migration for older builds that persisted IsBlocking but not its source.
         if let migration = AppStateLifecycleService.resolveLegacyBlockingMigration(
             logicFacade: logicFacade,
@@ -242,7 +237,13 @@ class AppState {
             performCheckSchedules()
         } else {
             rescheduleScheduleTimer?()
-            scheduleCheckSubject.send()
+            // Debounce bursts of state changes into a single schedule check.
+            scheduleCheckDebounceTask?.cancel()
+            scheduleCheckDebounceTask = Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(100))
+                guard !Task.isCancelled else { return }
+                self?.performCheckSchedules()
+            }
         }
     }
 

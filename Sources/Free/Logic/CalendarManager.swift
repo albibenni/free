@@ -20,7 +20,7 @@ class RealCalendarManager: CalendarProvider {
     private let timerScheduler: any RepeatingTimerScheduling
     private let nowProvider: () -> Date
     @ObservationIgnored
-    private nonisolated(unsafe) var refreshTimer: (any RepeatingTimer)?
+    private var refreshTimer: (any RepeatingTimer)?
 
     init(
         timerScheduler: any RepeatingTimerScheduling = DefaultRepeatingTimerScheduler(),
@@ -44,7 +44,7 @@ class RealCalendarManager: CalendarProvider {
         }
     }
 
-    deinit {
+    isolated deinit {
         refreshTimer?.invalidate()
         refreshTimer = nil
     }

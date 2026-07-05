@@ -16,9 +16,7 @@ extension AppState {
         )
         guard result.didSucceed else { return false }
 
-        isStrict = result.temporaryIsStrict
-        stopPomodoro()
-        isStrict = result.restoredIsStrict
+        stopPomodoro(bypassingStrictLock: true)
         return true
     }
 

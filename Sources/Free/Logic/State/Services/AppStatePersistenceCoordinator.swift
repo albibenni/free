@@ -38,15 +38,6 @@ enum AppStatePersistenceCoordinator {
         return cancellables
     }
 
-    private final class ObservationState<T>: @unchecked Sendable {
-        var lastValue: T
-        init(lastValue: T) { self.lastValue = lastValue }
-    }
-
-    private struct SendableKeyPath<Root, Value>: @unchecked Sendable {
-        let keyPath: KeyPath<Root, Value>
-    }
-
     @MainActor
     private static func observeAndSave<T: Equatable>(
         appState: AppState,

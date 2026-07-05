@@ -1,9 +1,10 @@
-import Combine
+import Observation
 
 @MainActor
-final class FreeShellState: ObservableObject {
-    @Published var showSidebar = false
-    @Published var selectedSection: MainContentSection = .focus
-    @Published var showRules = false
-    @Published var showSchedules = false
+@Observable
+final class FreeShellState {
+    var showSidebar = false
+    var selectedSection: MainContentSection = .focus
+    var showRules = false
+    var showSchedules = false
 }

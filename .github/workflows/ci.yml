@@ -20,6 +20,10 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
+            - name: Select latest Xcode
+              # The macOS 26 deployment target needs the newest toolchain on the runner.
+              run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer"
+
             - name: Show tool versions
               run: |
                   sw_vers
@@ -58,6 +62,9 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+
+            - name: Select latest Xcode
+              run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer"
 
             - name: Build DMG
               run: make package

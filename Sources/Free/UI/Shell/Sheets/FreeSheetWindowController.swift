@@ -102,7 +102,7 @@ final class FreeSheetWindowController: NSWindowController, NSWindowDelegate {
             parentWindow.addChildWindow(window, ordered: .above)
         }
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
     }
 
     func restoreDesiredContentSize() {

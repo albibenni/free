@@ -87,8 +87,12 @@ class DefaultBrowserAutomator: BrowserAutomator {
     }
 
     private func escapeForAppleScript(_ string: String) -> String {
+        // Newlines/CR must be escaped too: interpolated values (e.g. a browser's
+        // localizedName) could otherwise break out of the script string literal.
         return string.replacingOccurrences(of: "\\", with: "\\\\")
                      .replacingOccurrences(of: "\"", with: "\\\"")
+                     .replacingOccurrences(of: "\n", with: "\\n")
+                     .replacingOccurrences(of: "\r", with: "\\r")
     }
 
     func activeURLScript(bundleIdentifier: String, appName: String) -> String {

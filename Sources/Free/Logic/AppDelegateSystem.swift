@@ -82,7 +82,7 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
 #else
             let activate: () -> Void = {
                 NSApp.setActivationPolicy(.regular)
-                NSApp.activate(ignoringOtherApps: true)
+                NSApp.activate()
             }
             let terminate: () -> Void = { NSApplication.shared.terminate(nil) }
 #endif
