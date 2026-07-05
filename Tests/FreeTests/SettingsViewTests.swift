@@ -151,18 +151,17 @@ struct SettingsViewTests {
     @MainActor
     func settingsStrictModeInitialDefaultHooksCoverage() async throws {
         defer {
-            _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
         }
 
-        unsetenv("XCTestConfigurationFilePath")
+        SettingsSectionViewController.isRunningInTestProcess = { false }
         _ = SettingsSectionViewController.makeStrictModeAlert()
         #expect(
             SettingsSectionViewController.runStrictModeAlert(TestModalAlert())
                 == .alertFirstButtonReturn
         )
 
-        _ = setenv("XCTestConfigurationFilePath", "1", 1)
+        SettingsSectionViewController.isRunningInTestProcess = { true }
         #expect(
             SettingsSectionViewController.runStrictModeAlert(TestModalAlert())
                 == .alertSecondButtonReturn
@@ -598,12 +597,11 @@ struct SettingsViewTests {
     @MainActor
     func settingsStrictModeDefaultAlertHooksRunModalPath() async throws {
         defer {
-            _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
         }
 
-        unsetenv("XCTestConfigurationFilePath")
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        SettingsSectionViewController.isRunningInTestProcess = { false }
         let alert = TestModalAlert()
         #expect(
             SettingsSectionViewController.runStrictModeAlert(alert)
@@ -615,12 +613,11 @@ struct SettingsViewTests {
     @MainActor
     func settingsCalendarPermissionDefaultAlertHooksRunModalPath() async throws {
         defer {
-            _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
         }
 
-        unsetenv("XCTestConfigurationFilePath")
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        SettingsSectionViewController.isRunningInTestProcess = { false }
         let alert = TestModalAlert()
         #expect(
             SettingsSectionViewController.runCalendarPermissionAlert(alert)
@@ -632,12 +629,11 @@ struct SettingsViewTests {
     @MainActor
     func settingsCalendarPermissionAsyncFallbackCoverage() async throws {
         defer {
-            _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
         }
 
-        unsetenv("XCTestConfigurationFilePath")
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        SettingsSectionViewController.isRunningInTestProcess = { false }
         SettingsSectionViewController.calendarPermissionFallbackDelay = 0.01
         SettingsSectionViewController.scheduleAfter = { _, work in work() }
 
@@ -785,12 +781,11 @@ struct SettingsViewTests {
     @MainActor
     func settingsCalendarFallbackPendingAndAuthorizedGuardsCoverage() async throws {
         defer {
-            _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
         }
 
-        unsetenv("XCTestConfigurationFilePath")
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        SettingsSectionViewController.isRunningInTestProcess = { false }
 
         var scheduled: [() -> Void] = []
         SettingsSectionViewController.scheduleAfter = { _, work in scheduled.append(work) }
@@ -824,12 +819,11 @@ struct SettingsViewTests {
     @MainActor
     func settingsCalendarFallbackClosureNilSelfGuardCoverage() async throws {
         defer {
-            _ = setenv("XCTestConfigurationFilePath", "1", 1)
             SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
         }
 
-        unsetenv("XCTestConfigurationFilePath")
         SettingsSectionViewController.resetStrictModeAlertHooksForTesting()
+        SettingsSectionViewController.isRunningInTestProcess = { false }
 
         var scheduled: [() -> Void] = []
         SettingsSectionViewController.scheduleAfter = { _, work in scheduled.append(work) }

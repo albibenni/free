@@ -14,7 +14,9 @@ struct DefaultBrowserAutomatorRuntime {
     var arcAccessibilityURL: (_ pid: pid_t) -> String?
 }
 
-class DefaultBrowserAutomator: BrowserAutomator {
+// @unchecked Sendable: `runtime` is immutable after init and its closures
+// wrap thread-safe system calls.
+final class DefaultBrowserAutomator: BrowserAutomator, @unchecked Sendable {
     static let arcBundleIdentifier = "company.thebrowser.Browser"
     static let safariBundleIdentifier = "com.apple.Safari"
     static let blockPageHost = "localhost:10000"

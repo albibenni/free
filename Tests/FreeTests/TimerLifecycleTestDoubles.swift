@@ -1,7 +1,7 @@
 import Foundation
 @testable import FreeLogic
 
-final class MockRepeatingTimer: RepeatingTimer {
+final class MockRepeatingTimer: RepeatingTimer, @unchecked Sendable {
     private(set) var invalidateCallCount = 0
 
     func invalidate() {
@@ -9,7 +9,7 @@ final class MockRepeatingTimer: RepeatingTimer {
     }
 }
 
-final class MockRepeatingTimerScheduler: RepeatingTimerScheduling {
+final class MockRepeatingTimerScheduler: RepeatingTimerScheduling, @unchecked Sendable {
     private(set) var intervals: [TimeInterval] = []
     private(set) var timers: [MockRepeatingTimer] = []
     private(set) var handlers: [() -> Void] = []

@@ -11,7 +11,7 @@ final class SettingsSectionViewController: NSViewController {
 
     private static func defaultMakeStrictModeAlert() -> NSAlert { NSAlert() }
     private static func defaultRunStrictModeAlert(_ alert: NSAlert) -> NSApplication.ModalResponse {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if Self.isRunningInTestProcess() {
             return .alertSecondButtonReturn
         }
         return alert.runModal()
@@ -20,7 +20,7 @@ final class SettingsSectionViewController: NSViewController {
     private static func defaultRunCalendarPermissionAlert(
         _ alert: NSAlert
     ) -> NSApplication.ModalResponse {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if Self.isRunningInTestProcess() {
             return .alertSecondButtonReturn
         }
         return alert.runModal()
@@ -650,7 +650,7 @@ final class SettingsSectionViewController: NSViewController {
 
     private func scheduleCalendarPermissionFallbackIfNeeded() {
         guard pendingCalendarPermissionFallback == false else { return }
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if Self.isRunningInTestProcess() {
             presentCalendarPermissionAlert()
             return
         }

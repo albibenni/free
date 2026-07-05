@@ -392,19 +392,27 @@ final class FreeApp {
     }()
 }
 
+/// Public entry point shared by the raw-swiftc bundle build (`FreeAppMain`
+/// below) and the SPM executable target (`Sources/FreeApp/main.swift`).
+public enum FreeAppEntry {
+    @MainActor public static func run() {
+        let application = NSApplication.shared
+        let app = FreeApp(
+            appState: AppState(defaults: .standard),
+            appDelegate: AppDelegate()
+        )
+        app.launch(application: application)
+        withExtendedLifetime(app) {
+            application.run()
+        }
+    }
+}
+
 #if !SWIFT_PACKAGE
     @main
     enum FreeAppMain {
         @MainActor static func main() {
-            let application = NSApplication.shared
-            let app = FreeApp(
-                appState: AppState(defaults: .standard),
-                appDelegate: AppDelegate()
-            )
-            app.launch(application: application)
-            withExtendedLifetime(app) {
-                application.run()
-            }
+            FreeAppEntry.run()
         }
     }
 #endif

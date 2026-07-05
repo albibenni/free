@@ -12,7 +12,7 @@ final class CalendarSectionViewController: NSViewController {
     private static func defaultRunCalendarPermissionAlert(
         _ alert: NSAlert
     ) -> NSApplication.ModalResponse {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if Self.isRunningInTestProcess() {
             return .alertSecondButtonReturn
         }
         return alert.runModal()
@@ -688,7 +688,7 @@ final class CalendarSectionViewController: NSViewController {
 
     private func scheduleCalendarPermissionFallbackIfNeeded() {
         guard pendingCalendarPermissionFallback == false else { return }
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if Self.isRunningInTestProcess() {
             presentCalendarPermissionAlert()
             return
         }

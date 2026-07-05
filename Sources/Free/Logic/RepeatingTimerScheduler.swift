@@ -1,19 +1,17 @@
 import Foundation
 
-protocol RepeatingTimer {
+protocol RepeatingTimer: Sendable {
     func invalidate()
 }
 
-extension Timer: RepeatingTimer {}
-
-protocol RepeatingTimerScheduling {
+protocol RepeatingTimerScheduling: Sendable {
     func scheduledRepeatingTimer(withTimeInterval interval: TimeInterval, _ block: @escaping () -> Void) -> any RepeatingTimer
 }
 
 /// Fires on the main queue regardless of the scheduling thread. `Timer.scheduledTimer`
 /// installs on the calling thread's run loop, which never runs on actor executor
 /// threads (e.g. `BrowserMonitor`), so such a timer would never fire.
-final class DispatchRepeatingTimer: RepeatingTimer {
+final class DispatchRepeatingTimer: RepeatingTimer, @unchecked Sendable {
     private let source: DispatchSourceTimer
 
     init(interval: TimeInterval, block: @escaping () -> Void) {

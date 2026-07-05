@@ -31,7 +31,7 @@ enum AppKitSystemBridgeLiveSystemRuntime {
         }
         let isXCTest =
             isRunningImpl?()
-            ?? (ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil)
+            ?? (TestProcessDetector.isRunningTests())
         if isXCTest {
             return false
         }

@@ -532,7 +532,7 @@ struct FreeAppTests {
     @MainActor
     @Test("FreeApp didBecomeActive observer triggers monitor permission check without prompt")
     func appDidBecomeActiveChecksPermissions() async throws {
-        final class PermissionAutomator: BrowserAutomator {
+        final class PermissionAutomator: BrowserAutomator, @unchecked Sendable {
             var promptValues: [Bool] = []
             func getActiveUrl(for _: NSRunningApplication) -> String? { nil }
             func redirect(app _: NSRunningApplication, to _: String) {}

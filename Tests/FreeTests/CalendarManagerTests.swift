@@ -9,7 +9,6 @@ private final class CalendarRuntimeState {
     var accessRequests: [((Bool) -> Void)] = []
     var loadedRanges: [DateInterval] = []
     var snapshots: [CalendarEventSnapshot] = []
-    var dispatchCalls = 0
 
     func makeRuntime() -> CalendarManagerRuntime {
         CalendarManagerRuntime(
@@ -23,10 +22,6 @@ private final class CalendarRuntimeState {
                 guard let self else { return [] }
                 self.loadedRanges.append(DateInterval(start: start, end: end))
                 return self.snapshots
-            },
-            dispatchMain: { [weak self] work in
-                self?.dispatchCalls += 1
-                work()
             }
         )
     }
@@ -72,7 +67,6 @@ struct CalendarManagerTests {
 
         #expect(manager.isAuthorized == false)
         #expect(runtimeState.loadedRanges.isEmpty)
-        #expect(runtimeState.dispatchCalls == 0)
         #expect(scheduler.intervals == [300.0])
 
         scheduler.fire(at: 0)
@@ -206,7 +200,6 @@ struct CalendarManagerTests {
         manager = nil
         runtimeState.accessRequests[0](true)
 
-        #expect(runtimeState.dispatchCalls == 0)
     }
 
     @Test("fetchEvents guard prevents work when unauthorized")
@@ -220,7 +213,6 @@ struct CalendarManagerTests {
 
         manager.fetchEvents()
         #expect(runtimeState.loadedRanges.isEmpty)
-        #expect(runtimeState.dispatchCalls == 0)
     }
 
     @Test("fetchEvents maps snapshots, filters all-day, and applies id/title defaults")

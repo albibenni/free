@@ -69,7 +69,9 @@ final class LocalServer: @unchecked Sendable {
     }
 
     func start(on requestedPort: NWEndpoint.Port = .any) {
-        let isGeneralTesting = processNameProvider().contains("Test") && requestedPort == .any
+        let isGeneralTesting = requestedPort == .any
+            && (processNameProvider().localizedCaseInsensitiveContains("test")
+                || TestProcessDetector.isRunningTests())
 
         if isGeneralTesting {
             return

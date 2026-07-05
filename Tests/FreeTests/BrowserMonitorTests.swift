@@ -3,7 +3,7 @@ import Foundation
 import AppKit
 @testable import FreeLogic
 
-class MockBrowserAutomator: BrowserAutomator {
+final class MockBrowserAutomator: BrowserAutomator, @unchecked Sendable {
     var activeUrl: String?
     var redirectedUrls: [String] = []
     var getActiveUrlCalls = 0

@@ -343,13 +343,29 @@ struct AppDelegateSystemTests {
         #expect(
             DefaultAppDelegateSystem.isRunningInTestProcess(
                 environment: [:],
+                processName: "Free",
                 classLookup: { _ in nil }
             ) == false
         )
         #expect(
             DefaultAppDelegateSystem.isRunningInTestProcess(
                 environment: [:],
+                processName: "Free",
                 classLookup: { _ in NSObject.self }
+            )
+        )
+        #expect(
+            DefaultAppDelegateSystem.isRunningInTestProcess(
+                environment: [:],
+                processName: "swiftpm-testing-helper",
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            DefaultAppDelegateSystem.isRunningInTestProcess(
+                environment: [:],
+                processName: "FreePackageTests.xctest",
+                classLookup: { _ in nil }
             )
         )
     }

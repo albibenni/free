@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-protocol BrowserAutomator {
+protocol BrowserAutomator: Sendable {
     func getActiveUrl(for app: NSRunningApplication) -> String?
     func redirect(app: NSRunningApplication, to url: String)
     func getAllOpenUrls(browsers: [String]) -> [String]
@@ -9,6 +9,14 @@ protocol BrowserAutomator {
 }
 
 actor BrowserMonitor {
+    // Own serial executor: checkActiveTab runs AppleScript round-trips
+    // synchronously, which can take tens of milliseconds. Isolating to a private
+    // queue keeps that blocking work off the shared cooperative thread pool.
+    private nonisolated let executorQueue = DispatchSerialQueue(label: "com.benni.Free.BrowserMonitor")
+    nonisolated var unownedExecutor: UnownedSerialExecutor {
+        executorQueue.asUnownedSerialExecutor()
+    }
+
     enum Event: Sendable {
         case trustedStateChanged(Bool)
     }

@@ -403,13 +403,29 @@ struct AppDelegateTests {
         #expect(
             AppDelegate.isRunningInTestProcess(
                 environment: [:],
+                processName: "Free",
                 classLookup: { _ in nil }
             ) == false
         )
         #expect(
             AppDelegate.isRunningInTestProcess(
                 environment: [:],
+                processName: "Free",
                 classLookup: { _ in NSObject.self }
+            )
+        )
+        #expect(
+            AppDelegate.isRunningInTestProcess(
+                environment: [:],
+                processName: "swiftpm-testing-helper",
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            AppDelegate.isRunningInTestProcess(
+                environment: [:],
+                processName: "FreePackageTests.xctest",
+                classLookup: { _ in nil }
             )
         )
     }

@@ -396,15 +396,7 @@ struct CalendarSectionViewTests {
     @MainActor
     func calendarSectionPermissionFallbackSchedulerGuards() async throws {
         defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
-        let originalEnv = getenv("XCTestConfigurationFilePath").map { String(cString: $0) }
-        unsetenv("XCTestConfigurationFilePath")
-        defer {
-            if let originalEnv {
-                setenv("XCTestConfigurationFilePath", originalEnv, 1)
-            } else {
-                unsetenv("XCTestConfigurationFilePath")
-            }
-        }
+        CalendarSectionViewController.isRunningInTestProcess = { false }
 
         let appState = isolatedAppState(name: "permissionFallbackSchedulerGuards")
         guard let calendar = appState.calendarProvider as? MockCalendarManager else {
@@ -670,15 +662,7 @@ struct CalendarSectionViewTests {
     @MainActor
     func calendarSectionPermissionFallbackNilSelfGuard() async throws {
         defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
-        let originalEnv = getenv("XCTestConfigurationFilePath").map { String(cString: $0) }
-        unsetenv("XCTestConfigurationFilePath")
-        defer {
-            if let originalEnv {
-                setenv("XCTestConfigurationFilePath", originalEnv, 1)
-            } else {
-                unsetenv("XCTestConfigurationFilePath")
-            }
-        }
+        CalendarSectionViewController.isRunningInTestProcess = { false }
 
         let appState = isolatedAppState(name: "permissionFallbackNilSelfGuard")
         guard let calendar = appState.calendarProvider as? MockCalendarManager else {
@@ -736,18 +720,17 @@ struct CalendarSectionViewTests {
     @Test("Calendar section default alert hooks cover NSAlert runModal fallback and XCTest guard")
     func calendarSectionDefaultAlertHooksCoverage() async throws {
         defer {
-            _ = setenv("XCTestConfigurationFilePath", "1", 1)
             CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting()
         }
 
-        unsetenv("XCTestConfigurationFilePath")
+        CalendarSectionViewController.isRunningInTestProcess = { false }
         _ = CalendarSectionViewController.makeCalendarPermissionAlert()
         #expect(
             CalendarSectionViewController.runCalendarPermissionAlert(TestModalAlert())
                 == .alertFirstButtonReturn
         )
 
-        _ = setenv("XCTestConfigurationFilePath", "1", 1)
+        CalendarSectionViewController.isRunningInTestProcess = { true }
         #expect(
             CalendarSectionViewController.runCalendarPermissionAlert(TestModalAlert())
                 == .alertSecondButtonReturn

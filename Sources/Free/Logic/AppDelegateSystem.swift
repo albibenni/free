@@ -103,13 +103,14 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
 
     nonisolated static func isRunningInTestProcess(
         environment: [String: String] = ProcessInfo.processInfo.environment,
+        processName: String = ProcessInfo.processInfo.processName,
         classLookup: (String) -> AnyClass? = NSClassFromString
     ) -> Bool {
-        if environment["XCTestConfigurationFilePath"] != nil { return true }
-        if environment["XCTestBundlePath"] != nil { return true }
-        if environment["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES"] != nil { return true }
-        if environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil { return true }
-        return classLookup("XCTestCase") != nil
+        TestProcessDetector.isRunningTests(
+            environment: environment,
+            processName: processName,
+            classLookup: classLookup
+        )
     }
 
     init(runtime: Runtime = .live) {

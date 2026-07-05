@@ -51,7 +51,10 @@ enum AppStatePersistenceCoordinator {
         }
     }
 
-    private final class Tracker<T: Equatable>: @unchecked Sendable {
+    // @MainActor class: implicitly Sendable, so it can re-arm from
+    // withObservationTracking's @Sendable onChange without an escape hatch.
+    @MainActor
+    private final class Tracker<T: Equatable> {
         private let keyPath: KeyPath<AppState, T>
         private let save: @MainActor (T) -> Void
         private var lastValue: T?
@@ -61,7 +64,6 @@ enum AppStatePersistenceCoordinator {
             self.save = save
         }
 
-        @MainActor
         func startTracking(appState: AppState?) {
             guard let appState else { return }
             let current = appState[keyPath: keyPath]
@@ -71,9 +73,7 @@ enum AppStatePersistenceCoordinator {
             lastValue = current
 
             withObservationTracking {
-                MainActor.assumeIsolated {
-                    _ = appState[keyPath: keyPath]
-                }
+                _ = appState[keyPath: keyPath]
             } onChange: { [weak self, weak appState] in
                 Task { @MainActor [weak appState] in
                     self?.startTracking(appState: appState)

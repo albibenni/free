@@ -13,7 +13,6 @@ struct CalendarManagerRuntime {
     var hasEventAuthorization: () -> Bool
     var requestEventAccess: (@escaping (Bool) -> Void) -> Void
     var loadEvents: (_ start: Date, _ end: Date) -> [CalendarEventSnapshot]
-    var dispatchMain: (@escaping () -> Void) -> Void
 }
 
 extension CalendarManagerRuntime {
@@ -44,9 +43,6 @@ extension CalendarManagerRuntime {
                         isAllDay: event.isAllDay
                     )
                 }
-            },
-            dispatchMain: { work in
-                DispatchQueue.main.async(execute: work)
             }
         )
     }

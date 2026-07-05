@@ -4,7 +4,7 @@ import Testing
 
 @testable import FreeLogic
 
-private final class ImportCoverageAutomator: BrowserAutomator {
+private final class ImportCoverageAutomator: BrowserAutomator, @unchecked Sendable {
     var openUrls: [String]
 
     init(openUrls: [String]) {

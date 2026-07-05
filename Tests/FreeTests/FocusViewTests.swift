@@ -72,7 +72,7 @@ struct FocusViewTests {
         #expect(!FocusSectionSupport.shouldShowStrictWarning(isBlocking: false, isStrict: true))
         #expect(!FocusSectionSupport.shouldShowStrictWarning(isBlocking: true, isStrict: false))
 
-        let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        let key = "AXTrustedCheckOptionPrompt"
         let options = FocusSectionSupport.accessibilityPromptOptions() as NSDictionary
         #expect((options[key] as? Bool) == true)
 
@@ -179,7 +179,7 @@ struct FocusViewTests {
     @Test("Focus section grant accessibility uses monitor permission check when available")
     @MainActor
     func focusGrantAccessibilityUsesMonitorBranch() async throws {
-        final class PermissionAutomator: BrowserAutomator {
+        final class PermissionAutomator: BrowserAutomator, @unchecked Sendable {
             var checkCallCount = 0
             func getActiveUrl(for _: NSRunningApplication) -> String? { nil }
             func redirect(app _: NSRunningApplication, to _: String) {}

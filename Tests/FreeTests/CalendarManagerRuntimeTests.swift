@@ -136,32 +136,4 @@ struct CalendarManagerRuntimeTests {
         #expect(snapshots[1].isAllDay == true)
     }
 
-    @Test("live runtime dispatchMain enqueues work on the main queue")
-    func liveDispatchMain() async {
-        let store = RuntimeEventStoreDouble()
-        let runtime = CalendarManagerRuntime.live(eventStore: store)
-        let didRunOnMain = await withTaskGroup(of: Bool?.self) { group in
-            group.addTask {
-                await withCheckedContinuation { continuation in
-                    runtime.dispatchMain {
-                        continuation.resume(returning: Thread.isMainThread)
-                    }
-                }
-            }
-            group.addTask {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                return nil
-            }
-
-            for await result in group {
-                if let value = result {
-                    group.cancelAll()
-                    return value
-                }
-            }
-            return false
-        }
-
-        #expect(didRunOnMain == true)
-    }
 }

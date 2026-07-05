@@ -14,6 +14,14 @@ let package = Package(
                 .swiftLanguageMode(.v6)
             ]
         ),
+        .executableTarget(
+            name: "FreeApp",
+            dependencies: ["FreeLogic"],
+            path: "Sources/FreeApp",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
         .testTarget(
             name: "FreeTests",
             dependencies: [
@@ -21,7 +29,7 @@ let package = Package(
             ],
             path: "Tests/FreeTests",
             swiftSettings: [
-                .swiftLanguageMode(.v5)
+                .swiftLanguageMode(.v6)
             ]
         ),
     ]

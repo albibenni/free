@@ -111,14 +111,7 @@ class AppState {
         logicFacade: AppStateLogicFacade = .live,
         launchAtLoginManager: any LaunchAtLoginManaging = DefaultLaunchAtLoginManager(),
         canPromptForLaunchAtLogin: @escaping () -> Bool = {
-            let processInfo = ProcessInfo.processInfo
-            let processName = processInfo.processName.lowercased()
-            let isXCTestEnvironment = processInfo.environment["XCTestConfigurationFilePath"] != nil
-            let isSwiftPMTestingHelper = processName.contains("swiftpm-testing-helper")
-            let isXCTestProcess = processName.contains("xctest")
-            let blockers = [isXCTestEnvironment, isSwiftPMTestingHelper, isXCTestProcess]
-            let isBlocked = blockers.reduce(false) { $0 || $1 }
-            return !isBlocked
+            !TestProcessDetector.isRunningTests()
         },
         isTesting: Bool = ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] == "1"
     ) {

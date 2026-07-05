@@ -254,15 +254,6 @@ struct SchedulesViewTests {
     @MainActor
     func schedulesViewDefaultLockAlertRunnerFallback() async throws {
         defer { SchedulesSheetViewController.resetScheduleModificationAlertHooksForTesting() }
-        let originalEnv = getenv("XCTestConfigurationFilePath").map { String(cString: $0) }
-        unsetenv("XCTestConfigurationFilePath")
-        defer {
-            if let originalEnv {
-                setenv("XCTestConfigurationFilePath", originalEnv, 1)
-            } else {
-                unsetenv("XCTestConfigurationFilePath")
-            }
-        }
 
         var nativeRunCount = 0
         SchedulesSheetViewController.setScheduleModificationAlertHooksForTesting(
