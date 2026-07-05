@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum AppKitSystemBridgeLiveSystemRuntime {
     private static let hookLock = NSLock()
     private static var nativeWorkspaceOpenForTesting: ((URL) -> Bool)?

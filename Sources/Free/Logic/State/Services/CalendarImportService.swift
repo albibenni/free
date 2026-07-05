@@ -1,6 +1,7 @@
 import CryptoKit
 import Foundation
 
+@MainActor
 struct CalendarImportService {
     typealias WeekDateProvider = (_ now: Date, _ weekStartsOnMonday: Bool, _ offset: Int, _ calendar: Calendar) -> [Date]
 

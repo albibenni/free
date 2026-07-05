@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 
+@MainActor
 enum AppStateLifecycleService {
     struct BootstrapProjection {
         let session: AppSessionDomainState
@@ -13,7 +14,7 @@ enum AppStateLifecycleService {
     struct RuntimeBindings {
         let monitor: BrowserMonitor?
         let calendarCancellable: AnyCancellable
-        let rescheduleScheduleTimer: () -> Void
+        let rescheduleScheduleTimer: @MainActor () -> Void
     }
 
     @MainActor
@@ -102,8 +103,8 @@ enum AppStateLifecycleService {
         timerCoordinator: AppStateTimerCoordinator,
         monitorStateSnapshotProvider: @escaping @Sendable () async -> BrowserMonitor.StateSnapshot?,
         onMonitorEvent: @escaping @Sendable (BrowserMonitor.Event) -> Void,
-        onScheduleUpdate: @escaping () -> Void,
-        scheduleTickIntervalProvider: @escaping () -> TimeInterval
+        onScheduleUpdate: @escaping @MainActor () -> Void,
+        scheduleTickIntervalProvider: @escaping @MainActor () -> TimeInterval
     ) -> RuntimeBindings {
         let monitor = AppStateRuntimeWiringCoordinator.resolveMonitor(
             injectedMonitor: injectedMonitor,

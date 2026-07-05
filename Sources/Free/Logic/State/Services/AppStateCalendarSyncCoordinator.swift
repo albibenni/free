@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct AppStateCalendarSyncCoordinator {
     static func rebuildForResync(
         calendarIntegrationEnabled: Bool,

@@ -9,7 +9,7 @@ APP_BUNDLE="$APP_NAME.app"
 echo "Compiling..."
 mkdir -p .build/debug
 # Deployment target must match Package.swift and Info.plist (macOS 26.0)
-swiftc $(find Sources/Free -name "*.swift") -o "$BUILD_DIR/$APP_NAME" -target arm64-apple-macosx26.0
+swiftc $(find Sources/Free -name "*.swift") -o "$BUILD_DIR/$APP_NAME" -swift-version 6 -target arm64-apple-macosx26.0
 
 # Create App Bundle Structure
 echo "Creating Bundle..."

@@ -37,7 +37,7 @@ struct DefaultBrowserAutomatorSystemDependencies {
         let automationDenied = OSAllocatedUnfairLock(initialState: false)
         return DefaultBrowserAutomatorSystemDependencies(
             checkPermissions: { prompt in
-                let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: prompt] as CFDictionary
+                let options = ["AXTrustedCheckOptionPrompt": prompt] as CFDictionary
                 let axTrusted = AXIsProcessTrustedWithOptions(options)
                 return axTrusted && !automationDenied.withLock { $0 }
             },

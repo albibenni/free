@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 enum AppKitSystemBridgeLiveSystem {
     private static var isRunningInTestProcessForTesting: (() -> Bool)?
     private static var workspaceOpenForTesting: ((URL) -> Bool)?

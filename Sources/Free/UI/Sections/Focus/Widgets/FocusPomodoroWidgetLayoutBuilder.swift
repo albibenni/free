@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum FocusPomodoroWidgetLayoutBuilder {
     static func makePomodoroHeader() -> NSView {
         let chevronView = NSImageView()

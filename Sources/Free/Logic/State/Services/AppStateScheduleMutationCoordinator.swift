@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum AppStateScheduleMutationCoordinator {
     struct DeletionResult {
         let schedules: [Schedule]

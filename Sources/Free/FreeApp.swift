@@ -260,7 +260,7 @@ final class FreeApp {
         application.activate(ignoringOtherApps: true)
     }
 
-    deinit {
+    isolated deinit {
         if let didBecomeActiveObserver {
             NotificationCenter.default.removeObserver(didBecomeActiveObserver)
         }

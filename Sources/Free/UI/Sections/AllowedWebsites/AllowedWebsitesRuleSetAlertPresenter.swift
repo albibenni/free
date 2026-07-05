@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum AllowedWebsitesRuleSetAlertPresenter {
     typealias AlertFactory = () -> NSAlert
     typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse

@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct AppStateLogicFacade {
     typealias SessionState = AppStateSessionCoordinator.SessionState
     typealias RuleContext = AppStateReadModelCoordinator.RuleContext

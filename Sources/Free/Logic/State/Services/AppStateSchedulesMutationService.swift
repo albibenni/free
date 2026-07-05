@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum AppStateSchedulesMutationService {
     struct Context {
         let schedules: [Schedule]

@@ -11,7 +11,7 @@ let package = Package(
             name: "FreeLogic",
             path: "Sources/Free",
             swiftSettings: [
-                .swiftLanguageMode(.v5)
+                .swiftLanguageMode(.v6)
             ]
         ),
         .testTarget(

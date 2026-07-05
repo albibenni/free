@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 enum FreeAppRuntimeTerminatorState {
 #if SWIFT_PACKAGE
     static var terminator: (NSApplication, Any?) -> Void = { _, _ in }

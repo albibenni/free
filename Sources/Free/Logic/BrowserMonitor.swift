@@ -97,7 +97,7 @@ actor BrowserMonitor {
         }
     }
 
-    deinit {
+    isolated deinit {
         timer?.invalidate()
     }
 

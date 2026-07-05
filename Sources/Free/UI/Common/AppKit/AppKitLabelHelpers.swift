@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 func makeAppKitHeaderRow(
     title: String,
     symbolName: String,
@@ -34,6 +35,7 @@ func makeAppKitHeaderRow(
     return row
 }
 
+@MainActor
 func makeAppKitSectionLabel(_ text: String) -> NSTextField {
     let label = NSTextField(labelWithString: text)
     label.font = AppKitUIConstants.Typography.helperLabel
@@ -41,6 +43,7 @@ func makeAppKitSectionLabel(_ text: String) -> NSTextField {
     return label
 }
 
+@MainActor
 func makeAppKitBodyLabel(_ text: String, alignment: NSTextAlignment = .left) -> NSTextField {
     let label = NSTextField(labelWithString: text)
     label.font = AppKitUIConstants.Typography.body

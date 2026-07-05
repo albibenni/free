@@ -102,7 +102,7 @@ class AppState {
     private let scheduleCheckSubject = PassthroughSubject<Void, Never>()
     private let isTesting: Bool
     var internalState = AppStateInternalState()
-    private var rescheduleScheduleTimer: (() -> Void)?
+    private var rescheduleScheduleTimer: (@MainActor () -> Void)?
 
     init(
         defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil,
@@ -211,7 +211,7 @@ class AppState {
         performCheckSchedules()
     }
 
-    deinit {
+    isolated deinit {
         AppStateLifecycleService.teardown(
             timerCoordinator: timerCoordinator
         )

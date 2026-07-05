@@ -12,7 +12,7 @@ echo "🚀 Starting packaging process..."
 echo "📦 Building Release binary..."
 mkdir -p .build/release
 # Deployment target must match Package.swift and Info.plist (macOS 26.0)
-swiftc $(find Sources/Free -name "*.swift") -O -whole-module-optimization -o ".build/release/$APP_NAME" -target arm64-apple-macosx26.0
+swiftc $(find Sources/Free -name "*.swift") -O -whole-module-optimization -o ".build/release/$APP_NAME" -swift-version 6 -target arm64-apple-macosx26.0
 
 # 2. Create the .app bundle structure
 echo "🏗️  Creating .app bundle..."

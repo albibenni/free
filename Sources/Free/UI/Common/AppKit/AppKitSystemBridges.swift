@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum AppKitSystemBridges {
     private static var _openURLImpl: ((URL) -> Void)?
     private static var _runModalImpl: ((NSAlert) -> NSApplication.ModalResponse)?

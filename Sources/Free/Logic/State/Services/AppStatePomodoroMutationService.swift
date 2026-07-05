@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum AppStatePomodoroMutationService {
     struct Context {
         let state: PomodoroEngine.State

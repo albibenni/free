@@ -2,10 +2,10 @@ import AppKit
 import Combine
 
 final class SettingsSectionViewController: NSViewController {
-    typealias AlertFactory = () -> NSAlert
-    typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+    typealias AlertFactory = @MainActor () -> NSAlert
+    typealias AlertRunner = @MainActor (NSAlert) -> NSApplication.ModalResponse
     typealias CalendarSettingsOpener = () -> Void
-    typealias URLOpener = (URL) -> Void
+    typealias URLOpener = @MainActor (URL) -> Void
     typealias AsyncAfterScheduler = (TimeInterval, @escaping () -> Void) -> Void
     typealias TestProcessDetector = () -> Bool
 

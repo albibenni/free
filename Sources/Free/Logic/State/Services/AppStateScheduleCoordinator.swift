@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct AppStateScheduleCoordinator {
     static func rebuildIfNeeded(
         currentSchedules: [Schedule],

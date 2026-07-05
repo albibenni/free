@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum AppStatePauseMutationService {
     struct Context {
         let state: PauseEngine.State

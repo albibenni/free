@@ -6,10 +6,10 @@ final class MainShellBindings {
     private var cancellables: Set<AnyCancellable> = []
 
     func bind(
-        appStateChanges: (@escaping () -> Void) -> Void,
+        appStateChanges: (@escaping @MainActor () -> Void) -> Void,
         shellState: FreeShellState,
         onSelectedSectionChanged: @escaping () -> Void,
-        onAppStateChanged: @escaping () -> Void,
+        onAppStateChanged: @escaping @MainActor () -> Void,
         onShowRulesChanged: @escaping (Bool) -> Void,
         onShowSchedulesChanged: @escaping (Bool) -> Void
     ) {

@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum AppStateRulesMutationService {
     struct Context {
         let ruleSets: [RuleSet]

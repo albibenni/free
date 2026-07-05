@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct ScheduleCalendarService {
     static func rebuildSchedulesFromCalendarEvents(
         schedules: [Schedule],

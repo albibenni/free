@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum AllowedWebsitesRuleSetListBuilder {
     static func updateOrRebuild(
         in stack: NSStackView,

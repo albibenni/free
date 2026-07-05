@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum AppStateActionsMutationService {
     struct ChallengeContext {
         let currentIsStrict: Bool

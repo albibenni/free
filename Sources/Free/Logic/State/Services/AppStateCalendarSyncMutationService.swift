@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum AppStateCalendarSyncMutationService {
     struct Context {
         let schedule: AppScheduleDomainState

@@ -45,7 +45,10 @@ private final class LocalServerNWConnectionAdapter: LocalServerConnection {
     }
 }
 
-class LocalServer {
+// @unchecked Sendable: `port` is lock-protected; `listener`, `onFailure`, and the
+// factory/provider seams are configured before `start()` and never mutated
+// concurrently (tests set them during setup, production uses the defaults).
+final class LocalServer: @unchecked Sendable {
     var listener: NWListener?
     var onFailure: ((Error) -> Void)?
     var processNameProvider: () -> String = { ProcessInfo.processInfo.processName }

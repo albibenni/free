@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 public class AppDelegate: NSObject, NSApplicationDelegate {
     public var defaults: UserDefaults = .standard
     public var onShowAlert: (() -> Void)?
@@ -38,7 +39,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         return path.hasPrefix("/Applications") || path.hasPrefix("/System/Applications")
     }
 
-    static func isRunningInTestProcess(
+    nonisolated static func isRunningInTestProcess(
         environment: [String: String] = ProcessInfo.processInfo.environment,
         classLookup: (String) -> AnyClass? = NSClassFromString
     ) -> Bool {

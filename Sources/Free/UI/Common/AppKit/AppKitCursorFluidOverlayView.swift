@@ -147,7 +147,7 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
         isAnimationActive = NSApplication.shared.isActive
     }
 
-    deinit {
+    isolated deinit {
         if let didBecomeActiveObserver {
             NotificationCenter.default.removeObserver(didBecomeActiveObserver)
         }

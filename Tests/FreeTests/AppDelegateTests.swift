@@ -91,8 +91,9 @@ struct AppDelegateTests {
 
     private func setupIsolatedDelegate(
         name: String,
-        system: MockAppDelegateSystem = MockAppDelegateSystem()
+        system: MockAppDelegateSystem? = nil
     ) -> (AppDelegate, MockAppDelegateSystem, UserDefaults) {
+        let system = system ?? MockAppDelegateSystem()
         let suite = "AppDelegateTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
