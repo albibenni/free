@@ -25,6 +25,7 @@ Free is a native macOS focus blocker with strict allowlist enforcement.
 ./package.sh
 swift test
 make coverage
+make hooks     # install git hooks (pre-commit runs scripts/validate.sh)
 ```
 
 ## Getting Started

@@ -90,7 +90,7 @@ actor BrowserMonitor {
         let shouldPrompt = !isTesting
         Task {
             await self.checkPermissions(prompt: shouldPrompt)
-            await self.server?.start()
+            self.server?.start()
             if startTimer {
                 await self.startMonitoring()
             }
