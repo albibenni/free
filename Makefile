@@ -4,7 +4,7 @@ SHELL := /bin/bash
 APP_NAME := Free
 SWIFT := swift
 
-.PHONY: help build test test-verbose coverage logic-gate ui-gate regression-tests coverage-gates app dmg package run clean deep-clean
+.PHONY: help build test test-verbose coverage logic-gate ui-gate regression-tests coverage-gates app dmg package run clean deep-clean hooks
 
 help:
 	@echo "Available targets:"
@@ -22,6 +22,7 @@ help:
 	@echo "  make run           - Launch Free.app"
 	@echo "  make clean         - Clean package artifacts and generated app bundle"
 	@echo "  make deep-clean    - Remove all generated artifacts including dmg"
+	@echo "  make hooks         - Install git hooks from scripts/githooks"
 
 build:
 	@$(SWIFT) build
@@ -108,3 +109,8 @@ clean:
 
 deep-clean:
 	@rm -rf .build "$(APP_NAME).app" "$(APP_NAME).dmg" dist
+
+hooks:
+	@chmod +x scripts/githooks/*
+	@git config core.hooksPath scripts/githooks
+	@echo "Git hooks installed (core.hooksPath -> scripts/githooks)"
