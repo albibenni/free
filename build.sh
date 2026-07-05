@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e # Exit on error
+set -euo pipefail
 
 APP_NAME="Free"
 BUILD_DIR=".build/debug"
@@ -8,8 +8,8 @@ APP_BUNDLE="$APP_NAME.app"
 # Compile
 echo "Compiling..."
 mkdir -p .build/debug
-# Target macOS 15.0+ (Sequoia)
-swiftc $(find Sources/Free -name "*.swift") -o "$BUILD_DIR/$APP_NAME" -target arm64-apple-macosx15.0
+# Deployment target must match Package.swift and Info.plist (macOS 26.0)
+swiftc $(find Sources/Free -name "*.swift") -o "$BUILD_DIR/$APP_NAME" -target arm64-apple-macosx26.0
 
 # Create App Bundle Structure
 echo "Creating Bundle..."

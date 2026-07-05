@@ -206,6 +206,12 @@ final class FreeApp {
     func launch(application: NSApplication? = nil) {
         let application = application ?? NSApplication.shared
         application.setActivationPolicy(.regular)
+        appDelegate.isStrictProvider = { [weak appState] in
+            MainActor.assumeIsolated { appState?.isStrict ?? false }
+        }
+        appDelegate.isBlockingProvider = { [weak appState] in
+            MainActor.assumeIsolated { appState?.isBlocking ?? false }
+        }
         appDelegate.onApplicationDidFinishLaunching = { [weak self, weak application] in
             guard let self, let application else { return }
             self.startInterface(application: application)

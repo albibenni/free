@@ -35,6 +35,9 @@ actor BrowserMonitor {
     private let nowProvider: @Sendable () -> Date
     private let monitorInterval: TimeInterval
     private var lastRedirectTime: [String: Date] = [:]
+    private var lastEmittedTrusted: Bool?
+    private var lastPermissionRecheck: Date?
+    private static let permissionRecheckInterval: TimeInterval = 30
     private static let defaultBrowsers: Set<String> = [
         "com.google.Chrome",
         "com.apple.Safari",
@@ -100,6 +103,8 @@ actor BrowserMonitor {
 
     func checkPermissions(prompt: Bool = false) {
         let trusted = automator.checkPermissions(prompt: prompt)
+        guard trusted != lastEmittedTrusted else { return }
+        lastEmittedTrusted = trusted
         Task {
             self.onEvent(.trustedStateChanged(trusted))
         }
@@ -129,6 +134,14 @@ actor BrowserMonitor {
     }
 
     func checkActiveTab() async {
+        // Re-check permissions on a slow cadence so a revoked grant (Accessibility
+        // or Automation) surfaces in the UI instead of blocking failing silently.
+        let recheckNow = nowProvider()
+        if lastPermissionRecheck.map({ recheckNow.timeIntervalSince($0) >= Self.permissionRecheckInterval }) ?? true {
+            lastPermissionRecheck = recheckNow
+            checkPermissions()
+        }
+
         guard
             let snapshot = await stateSnapshotProvider(),
             snapshot.isBlocking,

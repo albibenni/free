@@ -15,7 +15,6 @@ enum AppKitAppStateObservation {
                     }
                 } onChange: {
                     DispatchQueue.main.async {
-                        print("SHELL APPEARANCE CHANGED")
                         onChange()
                         startTracking()
                     }

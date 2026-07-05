@@ -176,7 +176,8 @@ class AppState {
             monitorStateSnapshotProvider: { [weak self] in
                 guard let self else { return nil }
                 return await MainActor.run {
-                    BrowserMonitor.StateSnapshot(
+                    self.reassertPersistedSessionFlags()
+                    return BrowserMonitor.StateSnapshot(
                         isBlocking: self.isBlocking,
                         isPaused: self.isPaused,
                         blockNewTabs: self.blockNewTabs,
@@ -245,8 +246,22 @@ class AppState {
         }
     }
 
+    /// In-memory session state is authoritative while the app runs. The persisted
+    /// flags are externally writable (`defaults write com.benni.Free IsStrict -bool NO`),
+    /// so tampering is repaired here — called on every monitor snapshot and schedule
+    /// tick — rather than letting an external edit unlock strict mode or blocking.
+    func reassertPersistedSessionFlags() {
+        if settingsStore.isStrict() != isStrict {
+            settingsStore.setIsStrict(isStrict)
+        }
+        if settingsStore.isBlocking() != isBlocking {
+            settingsStore.setIsBlocking(isBlocking)
+        }
+    }
+
     private func performCheckSchedules() {
         synchronizeImportedCalendarSchedulesIfNeeded()
+        reassertPersistedSessionFlags()
         let updated = logicFacade.checkSession(
             current: sessionState,
             schedules: scheduleDomainState.schedules,
@@ -277,7 +292,6 @@ class AppState {
     @MainActor
     func refreshCurrentOpenUrlsAsync() async {
         let urls = await self.monitor?.getAllOpenUrls()
-        print("DEBUG refreshCurrentOpenUrlsAsync: monitor is \(self.monitor != nil), returned \(urls ?? [])")
         self.currentOpenUrls = urls ?? []
     }
 }

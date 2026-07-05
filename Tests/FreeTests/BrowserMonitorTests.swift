@@ -495,7 +495,7 @@ struct BrowserMonitorTests {
         #expect(Set(mock.forwardedBrowsers) == supported)
     }
 
-    @Test("BrowserMonitor timer loop triggers tab checks without permission polling")
+    @Test("BrowserMonitor timer loop triggers tab checks and rechecks permissions at most once per cadence")
     func timerLoop() async {
         let appState = isolatedAppState(name: "timerLoop")
         appState.isBlocking = true
@@ -521,8 +521,16 @@ struct BrowserMonitorTests {
         scheduler.fire(at: 0)
         try? await Task.sleep(nanoseconds: 50_000_000)
 
-        #expect(mock.checkedPermissions == false)
+        // The first tick re-checks permissions so a revoked grant surfaces in the UI.
+        #expect(mock.checkedPermissions == true)
         #expect(mock.getActiveUrlCalls > 0)
+
+        // Within the recheck cadence, subsequent ticks must not poll again.
+        mock.checkedPermissions = false
+        scheduler.fire(at: 0)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        #expect(mock.checkedPermissions == false)
         _ = monitor
     }
 

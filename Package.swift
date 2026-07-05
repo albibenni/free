@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
@@ -6,22 +6,23 @@ let package = Package(
     platforms: [
         .macOS("26.0")
     ],
-    dependencies: [
-        .package(url: "https://github.com/nalexn/ViewInspector.git", from: "0.9.11")
-    ],
     targets: [
         .target(
             name: "FreeLogic",
             path: "Sources/Free",
-            exclude: []
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
         ),
         .testTarget(
             name: "FreeTests",
             dependencies: [
-                "FreeLogic",
-                "ViewInspector"
+                "FreeLogic"
             ],
-            path: "Tests/FreeTests"
+            path: "Tests/FreeTests",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
         ),
     ]
 )

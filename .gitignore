@@ -1,6 +1,10 @@
 # Swift Package Manager & Build
 .build/
 .build_log
+*.log
+*.patch
+dist/
+coverage-report.txt
 Packages/
 .swiftpm/
 node_modules/

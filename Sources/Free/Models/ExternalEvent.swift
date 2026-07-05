@@ -7,6 +7,8 @@ struct ExternalEvent: Identifiable, Codable {
     let endDate: Date
     
     func isActive(at now: Date = Date()) -> Bool {
-        return now >= startDate && now <= endDate
+        // Half-open interval, matching Schedule.contains, so an event ending at
+        // the same instant another begins never yields two active intervals.
+        return now >= startDate && now < endDate
     }
 }
