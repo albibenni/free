@@ -22,6 +22,7 @@ class AppState {
                 isBlocking: isBlocking,
                 cancelPause: { cancelPause() }
             )
+            publishSharedFilterState()
         }
     }
     var isStrict = false
@@ -53,8 +54,12 @@ class AppState {
     var blockLocalNetworkHosts = false
     var allowSearchEngineWebsites = false
     var allowAIProviderWebsites = false
-    var ruleSets: [RuleSet] = []
-    var activeRuleSetId: UUID? = nil
+    var ruleSets: [RuleSet] = [] {
+        didSet { publishSharedFilterState() }
+    }
+    var activeRuleSetId: UUID? = nil {
+        didSet { publishSharedFilterState() }
+    }
     var schedules: [Schedule] = [] {
         didSet {
             AppStatePropertyEffectsService.handleSchedulesDidChange(
@@ -86,7 +91,9 @@ class AppState {
         }
     }
 
-    var isPaused = false
+    var isPaused = false {
+        didSet { publishSharedFilterState() }
+    }
     var pauseRemaining: TimeInterval = 0
     var pomodoroStatus: PomodoroStatus = .none
     var pomodoroRemaining: TimeInterval = 0
@@ -101,6 +108,7 @@ class AppState {
     private var persistenceCancellables = Set<AnyCancellable>()
     private var scheduleCheckDebounceTask: Task<Void, Never>?
     private let isTesting: Bool
+    private let startBrowserMonitor: Bool
     var internalState = AppStateInternalState()
     private var rescheduleScheduleTimer: (@MainActor () -> Void)?
 
@@ -113,8 +121,10 @@ class AppState {
         canPromptForLaunchAtLogin: @escaping () -> Bool = {
             !TestProcessDetector.isRunningTests()
         },
-        isTesting: Bool = ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] == "1"
+        isTesting: Bool = ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] == "1",
+        startBrowserMonitor: Bool = true
     ) {
+        self.startBrowserMonitor = startBrowserMonitor
         let dependencies = AppStateDependencyFactory.make(
             defaults: defaults,
             injectedCalendar: calendar,
@@ -159,6 +169,7 @@ class AppState {
         let runtimeBindings = AppStateLifecycleService.startRuntime(
             injectedMonitor: monitor,
             isTesting: isTesting,
+            startBrowserMonitor: startBrowserMonitor,
             calendarProvider: calendarProvider,
             timerCoordinator: timerCoordinator,
             monitorStateSnapshotProvider: { [weak self] in
@@ -251,6 +262,16 @@ class AppState {
         if settingsStore.isBlocking() != isBlocking {
             settingsStore.setIsBlocking(isBlocking)
         }
+        publishSharedFilterState()
+    }
+
+    /// Mirror the effective blocking state + active allowed rules into the shared
+    /// App Group so the v2 content-filter extension can enforce them. Only the v2
+    /// build (which disables the legacy monitor) publishes; the v1 build skips it
+    /// so it never writes an App Group plist it doesn't read.
+    func publishSharedFilterState() {
+        guard !startBrowserMonitor else { return }
+        SharedRuleStore.publish(isBlocking: isBlocking && !isPaused, allowedRules: allowedRules)
     }
 
     private func performCheckSchedules() {

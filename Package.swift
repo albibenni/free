@@ -6,6 +6,10 @@ let package = Package(
     platforms: [
         .macOS("26.0")
     ],
+    products: [
+        // Exposed so the v2 Xcode targets (app + content-filter extension) can link it.
+        .library(name: "FreeLogic", targets: ["FreeLogic"])
+    ],
     targets: [
         .target(
             name: "FreeLogic",

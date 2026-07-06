@@ -1,12 +1,12 @@
 import Foundation
 
-struct RuleMatcher {
+public struct RuleMatcher {
     private static let internalSchemes: Set<String> = [
         "about", "arc", "chrome", "brave", "edge", "viva", "vivaldi", "opera", "file",
     ]
 
 
-    static func isAllowed(_ url: String, rules: [String], localPort: UInt16? = nil) -> Bool {
+    public static func isAllowed(_ url: String, rules: [String], localPort: UInt16? = nil) -> Bool {
         let cleanedUrl = url.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         if cleanedUrl.isEmpty { return true }
 

@@ -10,12 +10,15 @@ enum AppStateRuntimeWiringCoordinator {
     static func resolveMonitor(
         injectedMonitor: BrowserMonitor?,
         isTesting: Bool,
+        startBrowserMonitor: Bool = true,
         buildMonitor: () -> BrowserMonitor
     ) -> BrowserMonitor? {
         if let injectedMonitor {
             return injectedMonitor
         }
-        guard !isTesting else { return nil }
+        // v2 (App Store) disables the AppleScript engine — the content-filter
+        // extension enforces blocking instead.
+        guard !isTesting, startBrowserMonitor else { return nil }
         return buildMonitor()
     }
 

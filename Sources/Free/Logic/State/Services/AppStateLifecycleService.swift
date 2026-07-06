@@ -99,6 +99,7 @@ enum AppStateLifecycleService {
     static func startRuntime(
         injectedMonitor: BrowserMonitor?,
         isTesting: Bool,
+        startBrowserMonitor: Bool = true,
         calendarProvider: any CalendarProvider,
         timerCoordinator: AppStateTimerCoordinator,
         monitorStateSnapshotProvider: @escaping @Sendable () async -> BrowserMonitor.StateSnapshot?,
@@ -108,7 +109,8 @@ enum AppStateLifecycleService {
     ) -> RuntimeBindings {
         let monitor = AppStateRuntimeWiringCoordinator.resolveMonitor(
             injectedMonitor: injectedMonitor,
-            isTesting: isTesting
+            isTesting: isTesting,
+            startBrowserMonitor: startBrowserMonitor
         ) {
             AppStateRuntimeMonitorFactory.makeMonitor(
                 stateSnapshotProvider: monitorStateSnapshotProvider,

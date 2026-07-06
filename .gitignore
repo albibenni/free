@@ -17,3 +17,6 @@ Free.app/
 Free.dmg
 # Release signing config
 release.env
+
+# Generated Xcode project (source of truth is project.yml)
+Free.xcodeproj/

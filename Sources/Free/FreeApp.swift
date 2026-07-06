@@ -395,15 +395,53 @@ final class FreeApp {
 /// Public entry point shared by the raw-swiftc bundle build (`FreeAppMain`
 /// below) and the SPM executable target (`Sources/FreeApp/main.swift`).
 public enum FreeAppEntry {
-    @MainActor public static func run() {
+    /// - Parameters:
+    ///   - startBrowserMonitor: v1 (Developer ID) leaves this true to run the
+    ///     AppleScript engine; v2 (App Store) passes false — the content-filter
+    ///     extension enforces blocking instead.
+    ///   - onBlockingChanged: fired on the main actor whenever the effective
+    ///     blocking state changes, so the v2 app can enable its filter on first
+    ///     session start without needing access to AppState internals.
+    @MainActor public static func run(
+        startBrowserMonitor: Bool = true,
+        onBlockingChanged: (@MainActor (Bool) -> Void)? = nil
+    ) {
         let application = NSApplication.shared
-        let app = FreeApp(
-            appState: AppState(defaults: .standard),
-            appDelegate: AppDelegate()
-        )
+        let appState = AppState(defaults: .standard, startBrowserMonitor: startBrowserMonitor)
+        let app = FreeApp(appState: appState, appDelegate: AppDelegate())
         app.launch(application: application)
+        let blockingObserver = onBlockingChanged.map {
+            BlockingObserver(appState: appState, onChange: $0)
+        }
+        blockingObserver?.start()
         withExtendedLifetime(app) {
-            application.run()
+            withExtendedLifetime(blockingObserver) {
+                application.run()
+            }
+        }
+    }
+
+    // @MainActor class (implicitly Sendable) so it can re-arm itself from
+    // withObservationTracking's @Sendable onChange, mirroring the observation
+    // trackers in AppKitAppStateObservation.
+    @MainActor private final class BlockingObserver {
+        private let appState: AppState
+        private let onChange: @MainActor (Bool) -> Void
+
+        init(appState: AppState, onChange: @escaping @MainActor (Bool) -> Void) {
+            self.appState = appState
+            self.onChange = onChange
+        }
+
+        func start() {
+            withObservationTracking {
+                _ = appState.isBlocking
+            } onChange: { [self] in
+                Task { @MainActor in
+                    self.onChange(self.appState.isBlocking)
+                    self.start()
+                }
+            }
         }
     }
 }

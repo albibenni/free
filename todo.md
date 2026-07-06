@@ -1,13 +1,20 @@
 # TODO
 
-## v2
+## v2 — App Store (Network Extension)
 
-- [ ] Network Extension rewrite (`NEFilterDataProvider`) — replaces the AppleScript/AX
-      blocking engine with a system-wide content filter. Sandbox-compatible, so it
-      unlocks Mac App Store distribution, and blocks all browsers/apps with no polling
-      window. Requires applying to Apple for the Network Extension entitlement first.
-      Context: App Sandbox blocks NSAppleScript events and the Accessibility API, so
-      the current engine can never pass App Store review (see Docs/build-and-release.md).
+Scaffold landed (project.yml, Sources/ContentFilter, Sources/FreeAppStore,
+SharedRuleStore, Support/*.entitlements). See Docs/v2-app-store.md. Remaining:
+
+- [ ] Request Network Extension entitlement (content-filter-provider) on the portal — gated by Apple, start first
+- [ ] Register App Group `group.com.benni.Free` on both App IDs
+- [ ] `brew install xcodegen && xcodegen generate`, resolve any target/build settings
+- [x] Publish blocking flag + allowed rules to shared App Group (AppState.publishSharedFilterState, called from reassertPersistedSessionFlags)
+- [x] Enable the filter at launch (FreeAppStore/main.swift) — installs/activates the system extension
+- [ ] Move filter enable/disable behind a Settings toggle (currently auto-enables at launch)
+- [ ] Disable the v1 AppleScript BrowserMonitor in the v2 app (avoids benign sandboxed AppleScript permission errors)
+- [ ] Validate hostname extraction + verdicts in `FilterDataProvider.handleNewFlow` against real traffic (needs the running signed extension)
+- [ ] Block-page UX (dropped flow = browser error, not the v1 localhost page)
+- [ ] App Store Connect record + App Store provisioning + submission flow
 
 ## UI
 

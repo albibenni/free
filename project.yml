@@ -1,0 +1,54 @@
+# XcodeGen project for the v2 (App Store) build.
+# Generate the .xcodeproj with:  xcodegen generate   (brew install xcodegen)
+# The v1 Developer-ID DMG build is unaffected — it still uses build.sh/package.sh.
+#
+# The .xcodeproj is generated and gitignored; this file is the source of truth.
+name: Free
+options:
+  bundleIdPrefix: com.benni
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+
+packages:
+  FreeLogic:
+    path: .
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "2.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: YVZG5QKT42
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  Free:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/FreeAppStore
+    dependencies:
+      - package: FreeLogic
+        product: FreeLogic
+      - target: ContentFilterExtension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.benni.Free
+        INFOPLIST_FILE: Support/FreeAppStore-Info.plist
+        CODE_SIGN_ENTITLEMENTS: Support/Free.entitlements
+        ENABLE_APP_SANDBOX: YES
+
+  ContentFilterExtension:
+    type: system-extension
+    platform: macOS
+    sources:
+      - Sources/ContentFilter
+    dependencies:
+      - package: FreeLogic
+        product: FreeLogic
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.benni.Free.ContentFilter
+        INFOPLIST_FILE: Sources/ContentFilter/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Support/ContentFilter.entitlements
