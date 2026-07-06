@@ -60,6 +60,27 @@ make hooks   # once per clone
 
 Points `core.hooksPath` at `scripts/githooks/`; the pre-commit hook runs `scripts/validate.sh` (build + tests).
 
+## Releases
+
+Pushing a tag like `v1.2.0` triggers `.github/workflows/release.yml`, which builds, signs, notarizes, Gatekeeper-verifies, and publishes the DMG as a GitHub Release (version stamped into `Info.plist` from the tag).
+
+One-time repo secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `MACOS_CERTIFICATE` | Developer ID Application cert + key, exported as `.p12`, base64-encoded (`base64 -i cert.p12 \| pbcopy`) |
+| `MACOS_CERTIFICATE_PWD` | The password chosen when exporting the `.p12` |
+| `CODESIGN_IDENTITY` | `Developer ID Application: Alberto Benatti (YVZG5QKT42)` |
+| `NOTARY_APPLE_ID` | Apple ID email for notarization |
+| `NOTARY_PASSWORD` | App-specific password (account.apple.com) |
+| `NOTARY_TEAM_ID` | `YVZG5QKT42` |
+
+Export the `.p12` from Keychain Access: My Certificates → right-click the "Developer ID Application" certificate → Export (choose a password).
+
+## Distribution note (why not the Mac App Store)
+
+The App Store requires the App Sandbox, which blocks both of Free's blocking mechanisms: `NSAppleScript` events to browsers and the Accessibility API. Direct distribution of the notarized DMG is the standard channel for this app category. An App Store path exists but means replacing the engine with a Network Extension content filter (`NEFilterDataProvider`) — tracked as a v2 idea in `todo.md`.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on pushes to `main` and PRs:

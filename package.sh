@@ -57,10 +57,20 @@ rm -f "$DMG_NAME"
 hdiutil create -volname "$APP_NAME" -srcfolder "$DIST_DIR" -ov -format UDZO "$DMG_NAME"
 codesign --force --sign "$CODESIGN_IDENTITY" "$DMG_NAME"
 
-# 5. Notarize + staple (only when a real identity and notary profile are configured)
+# 5. Notarize + staple (only when a real identity and notary credentials are configured)
+# Locally: NOTARY_PROFILE (a `notarytool store-credentials` keychain profile).
+# CI: NOTARY_APPLE_ID + NOTARY_PASSWORD + NOTARY_TEAM_ID passed directly.
 if [[ "$CODESIGN_IDENTITY" != "-" && -n "${NOTARY_PROFILE:-}" ]]; then
-    echo "🛂 Notarizing..."
+    echo "🛂 Notarizing (keychain profile)..."
     xcrun notarytool submit "$DMG_NAME" --keychain-profile "$NOTARY_PROFILE" --wait
+    xcrun stapler staple "$DMG_NAME"
+elif [[ "$CODESIGN_IDENTITY" != "-" && -n "${NOTARY_APPLE_ID:-}" && -n "${NOTARY_PASSWORD:-}" && -n "${NOTARY_TEAM_ID:-}" ]]; then
+    echo "🛂 Notarizing (direct credentials)..."
+    xcrun notarytool submit "$DMG_NAME" \
+        --apple-id "$NOTARY_APPLE_ID" \
+        --password "$NOTARY_PASSWORD" \
+        --team-id "$NOTARY_TEAM_ID" \
+        --wait
     xcrun stapler staple "$DMG_NAME"
 fi
 
