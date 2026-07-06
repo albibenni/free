@@ -26,4 +26,6 @@ cp Resources/Info.plist "$APP_BUNDLE/Contents/Info.plist"
 # Copy Icon
 cp AppIcon.icns "$APP_BUNDLE/Contents/Resources/"
 
+printf 'APPL????' > "$APP_BUNDLE/Contents/PkgInfo"
+
 echo "Done! You can run the app with: open $APP_BUNDLE"

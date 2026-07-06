@@ -6,6 +6,13 @@ APP_BUNDLE="$APP_NAME.app"
 DMG_NAME="$APP_NAME.dmg"
 DIST_DIR="dist"
 
+# Optional local release config (gitignored): export CODESIGN_IDENTITY and
+# NOTARY_PROFILE there so every ./package.sh is signed + notarized.
+if [[ -f release.env ]]; then
+    # shellcheck disable=SC1091
+    source release.env
+fi
+
 echo "🚀 Starting packaging process..."
 
 # 1. Build in Release mode (with optimizations)
@@ -24,6 +31,7 @@ mkdir -p "$APP_BUNDLE/Contents/Resources"
 cp ".build/release/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/"
 cp Resources/Info.plist "$APP_BUNDLE/Contents/Info.plist"
 cp AppIcon.icns "$APP_BUNDLE/Contents/Resources/"
+printf 'APPL????' > "$APP_BUNDLE/Contents/PkgInfo"
 
 # 3. Code sign
 # Set CODESIGN_IDENTITY to a "Developer ID Application: ..." identity for
@@ -47,6 +55,7 @@ ln -s /Applications "$DIST_DIR/Applications"
 # Use hdiutil to create the DMG
 rm -f "$DMG_NAME"
 hdiutil create -volname "$APP_NAME" -srcfolder "$DIST_DIR" -ov -format UDZO "$DMG_NAME"
+codesign --force --sign "$CODESIGN_IDENTITY" "$DMG_NAME"
 
 # 5. Notarize + staple (only when a real identity and notary profile are configured)
 if [[ "$CODESIGN_IDENTITY" != "-" && -n "${NOTARY_PROFILE:-}" ]]; then
