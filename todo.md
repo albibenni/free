@@ -2,20 +2,28 @@
 
 ## v2 — App Store (Network Extension)
 
-Scaffold landed (project.yml, Sources/ContentFilter, Sources/FreeAppStore,
-SharedRuleStore, Support/*.entitlements). See Docs/v2-app-store.md. Remaining:
+Full scaffold + build/sign/notarize pipeline done. See Docs/v2-app-store.md.
 
-- [ ] Request Network Extension entitlement (content-filter-provider) on the portal — gated by Apple, start first
-- [ ] Register App Group `group.com.benni.Free` on both App IDs
-- [ ] `brew install xcodegen && xcodegen generate`, resolve any target/build settings
-- [x] Publish blocking flag + allowed rules to shared App Group (AppState.publishSharedFilterState, called from reassertPersistedSessionFlags)
-- [x] Enable the filter at launch (FreeAppStore/main.swift) — installs/activates the system extension
-- [ ] Hide v1-only UI in the v2 build (reused from FreeLogic but meaningless under sandbox + content filter): the "Accessibility Permission Needed" banner (v2 uses no Accessibility) and "Import Open Tabs" (AppleScript, sandbox-blocked → "No open tabs detected"). Manual "Add URL" works.
+DONE:
+- [x] System-extension packaging (project.yml `system-extension`, Sources/ContentFilter, main.swift, SYSX Info.plist w/ NEProviderClasses)
+- [x] Portal: App IDs (com.benni.Free, com.benni.Free.ContentFilter) + App Group + Developer ID provisioning profiles (Free DevID / Free CF DevID)
+- [x] Correct entitlement: `content-filter-provider-systemextension` (NOT the plain app-extension variant)
+- [x] App Group file bridge SharedRuleStore (file in container, not UserDefaults — cfprefsd bug); AppState publishes blocking flag + rules
+- [x] Manual Developer-ID signing + Hardened Runtime; scripts/package-v2.sh archives → exports → notarizes → installs (notarization Accepted, Gatekeeper accepted)
+- [x] App unsandboxed (Developer-ID sysext host must be); extension stays sandboxed
+
+BLOCKED — system extension won't activate:
+- OSSystemExtensionRequest returns "Extension not found in App bundle" for a build that is correct by every check (notarized, right identifier/entitlement, in /Applications, single LS registration, SIP off, dev mode on, DB reset). Xcode ⌘R also fails.
+- [ ] NEXT: build Apple's "Filtering Network Traffic" NEFilterDataProvider sample and try to activate it. Fails too → machine/OS state; works → diff its project against ours to find the delta.
+
+AFTER ACTIVATION WORKS:
+- [ ] Validate hostname extraction + verdicts in FilterDataProvider.handleNewFlow vs real traffic (per-flow logging already added; watch for IP/QUIC flows with no hostname)
+- [ ] Block-page UX (dropped flow = browser connection error, not the v1 localhost page)
+- [ ] Hide v1-only UI in v2 (Accessibility banner, Import Open Tabs — both meaningless under sandbox/content-filter)
 - [ ] Move filter enable/disable behind a Settings toggle (currently auto-enables at launch)
-- [ ] Disable the v1 AppleScript BrowserMonitor in the v2 app (avoids benign sandboxed AppleScript permission errors)
-- [ ] Validate hostname extraction + verdicts in `FilterDataProvider.handleNewFlow` against real traffic (needs the running signed extension)
-- [ ] Block-page UX (dropped flow = browser error, not the v1 localhost page)
-- [ ] App Store Connect record + App Store provisioning + submission flow
+- [ ] App Store path: re-add App Sandbox to the app, switch to App Store provisioning + Apple Distribution cert, App Store Connect record, TestFlight
+
+NOTE: project is currently in Developer-ID test config (manual signing, app unsandboxed). Machine is at reduced security + SIP disabled for testing — re-enable SIP (`csrutil enable`) when done.
 
 ## UI
 

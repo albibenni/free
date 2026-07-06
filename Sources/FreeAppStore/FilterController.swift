@@ -20,7 +20,24 @@ final class FilterController: NSObject, OSSystemExtensionRequestDelegate {
     /// Activate the system extension; NEFilterManager is enabled once activation
     /// succeeds (see requestDidFinish).
     func enable() {
-        log.info("Requesting system extension activation…")
+        // DIAGNOSTIC: log what the app itself sees in its own bundle, so we can
+        // tell a missing-file problem from an API/recognition one when activation
+        // reports "Extension not found in App bundle".
+        let bundleURL = Bundle.main.bundleURL
+        let sysExtDir = bundleURL.appendingPathComponent("Contents/Library/SystemExtensions")
+        log.notice("DIAG main bundle: \(bundleURL.path, privacy: .public)")
+        if let contents = try? FileManager.default.contentsOfDirectory(atPath: sysExtDir.path) {
+            log.notice("DIAG SystemExtensions dir contents: \(contents.joined(separator: ", "), privacy: .public)")
+            for name in contents where name.hasSuffix(".systemextension") {
+                let infoURL = sysExtDir.appendingPathComponent(name).appendingPathComponent("Contents/Info.plist")
+                let id = (NSDictionary(contentsOf: infoURL)?["CFBundleIdentifier"] as? String) ?? "??"
+                log.notice("DIAG found sysext '\(name, privacy: .public)' id=\(id, privacy: .public)")
+            }
+        } else {
+            log.error("DIAG SystemExtensions dir NOT readable at \(sysExtDir.path, privacy: .public)")
+        }
+        log.notice("DIAG requesting activation for id=\(self.extensionIdentifier, privacy: .public)")
+
         let request = OSSystemExtensionRequest.activationRequest(
             forExtensionWithIdentifier: extensionIdentifier,
             queue: .main
