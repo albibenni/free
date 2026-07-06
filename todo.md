@@ -10,6 +10,7 @@ SharedRuleStore, Support/*.entitlements). See Docs/v2-app-store.md. Remaining:
 - [ ] `brew install xcodegen && xcodegen generate`, resolve any target/build settings
 - [x] Publish blocking flag + allowed rules to shared App Group (AppState.publishSharedFilterState, called from reassertPersistedSessionFlags)
 - [x] Enable the filter at launch (FreeAppStore/main.swift) — installs/activates the system extension
+- [ ] Hide v1-only UI in the v2 build (reused from FreeLogic but meaningless under sandbox + content filter): the "Accessibility Permission Needed" banner (v2 uses no Accessibility) and "Import Open Tabs" (AppleScript, sandbox-blocked → "No open tabs detected"). Manual "Add URL" works.
 - [ ] Move filter enable/disable behind a Settings toggle (currently auto-enables at launch)
 - [ ] Disable the v1 AppleScript BrowserMonitor in the v2 app (avoids benign sandboxed AppleScript permission errors)
 - [ ] Validate hostname extraction + verdicts in `FilterDataProvider.handleNewFlow` against real traffic (needs the running signed extension)

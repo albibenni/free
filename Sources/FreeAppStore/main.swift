@@ -2,22 +2,25 @@ import Foundation
 import FreeLogic
 
 // v2 (App Store) entry point. Reuses the shared UI and state from FreeLogic.
-// Blocking is enforced by the ContentFilterExtension system extension: AppState
+// Blocking is enforced by the ContentFilterExtension system extension; AppState
 // publishes the effective blocking flag + allowed rules into the shared App Group
 // (AppState.publishSharedFilterState), and the extension reads them per flow.
 //
-// - startBrowserMonitor: false — the v1 AppleScript engine stays off (the filter
-//   replaces it), which also avoids sandboxed Apple Events permission noise.
-// - The filter is enabled the first time a focus session starts, so the one-time
-//   System Settings approval prompt appears on user intent rather than at launch.
+// Install/activate the system extension once at launch (prompts for approval the
+// first time, and installs it via OSSystemExtensionRequest). This is done at
+// launch rather than on session-start because blocking state is persisted: if a
+// session is already active at launch, a change-observer would never fire. The
+// extension passes all flows through when not blocking, so always-installed is
+// harmless. The Task runs after application.run() starts the main run loop.
+//
+// startBrowserMonitor: false keeps the v1 AppleScript engine off (the filter
+// replaces it) and avoids sandboxed Apple Events noise.
+//
+// TODO: move activation behind a Settings toggle with explanation once the flow
+// is validated, so the approval prompt is tied to explicit user intent.
 let filterController = FilterController()
-var filterEnabled = false
+Task { @MainActor in
+    filterController.enable()
+}
 
-FreeAppEntry.run(
-    startBrowserMonitor: false,
-    onBlockingChanged: { isBlocking in
-        guard isBlocking, !filterEnabled else { return }
-        filterEnabled = true
-        filterController.enable()
-    }
-)
+FreeAppEntry.run(startBrowserMonitor: false)

@@ -20,7 +20,13 @@ settings:
     MARKETING_VERSION: "2.0.0"
     CURRENT_PROJECT_VERSION: "1"
     DEVELOPMENT_TEAM: YVZG5QKT42
-    CODE_SIGN_STYLE: Automatic
+    # Manual Developer ID signing: a Network Extension system extension needs
+    # Developer-ID provisioning profiles that grant the
+    # content-filter-provider-systemextension entitlement (auto-signing can't
+    # generate these). Notarized Developer-ID builds also activate with SIP on.
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Developer ID Application"
+    ENABLE_HARDENED_RUNTIME: YES
 
 targets:
   Free:
@@ -37,7 +43,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.benni.Free
         INFOPLIST_FILE: Support/FreeAppStore-Info.plist
         CODE_SIGN_ENTITLEMENTS: Support/Free.entitlements
-        ENABLE_APP_SANDBOX: YES
+        PROVISIONING_PROFILE_SPECIFIER: "Free DevID"
 
   ContentFilterExtension:
     # System extension: on macOS content filters MUST run as system extensions
@@ -56,6 +62,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.benni.Free.ContentFilter
         INFOPLIST_FILE: Sources/ContentFilter/Info.plist
         CODE_SIGN_ENTITLEMENTS: Support/ContentFilter.entitlements
+        PROVISIONING_PROFILE_SPECIFIER: "Free CF DevID"
 
 # Explicit shared scheme so ⌘R unambiguously runs the Free app (building the app
 # also builds + embeds the extension via the target dependency). Without this,
