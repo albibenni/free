@@ -40,6 +40,10 @@ targets:
         ENABLE_APP_SANDBOX: YES
 
   ContentFilterExtension:
+    # System extension: on macOS content filters MUST run as system extensions
+    # (the app-extension filter-data point doesn't exist on macOS). The app
+    # installs/activates it via OSSystemExtensionRequest; requires the app to run
+    # from /Applications and the user to approve it in System Settings.
     type: system-extension
     platform: macOS
     sources:
@@ -52,3 +56,16 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.benni.Free.ContentFilter
         INFOPLIST_FILE: Sources/ContentFilter/Info.plist
         CODE_SIGN_ENTITLEMENTS: Support/ContentFilter.entitlements
+
+# Explicit shared scheme so ⌘R unambiguously runs the Free app (building the app
+# also builds + embeds the extension via the target dependency). Without this,
+# Xcode auto-selects the alphabetically-first target — the non-runnable extension.
+schemes:
+  Free:
+    build:
+      targets:
+        Free: all
+    run:
+      config: Debug
+    archive:
+      config: Release

@@ -18,9 +18,6 @@ FreeAppEntry.run(
     onBlockingChanged: { isBlocking in
         guard isBlocking, !filterEnabled else { return }
         filterEnabled = true
-        Task { @MainActor in
-            do { try await filterController.enable() }
-            catch { NSLog("Free: content filter enable failed: \(error.localizedDescription)") }
-        }
+        filterController.enable()
     }
 )

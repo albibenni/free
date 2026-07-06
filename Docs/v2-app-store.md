@@ -1,6 +1,6 @@
 # v2 — App Store build (Network Extension)
 
-v2 ships Free on the **Mac App Store** using a content-filter system extension
+v2 ships Free on the **Mac App Store** using a content-filter app extension
 instead of the v1 AppleScript engine. Both builds coexist: v1 remains the
 Developer-ID DMG (`build.sh`/`package.sh`), v2 is an Xcode project.
 
@@ -17,7 +17,7 @@ scripting, has no polling window, and blocks system-wide.
 |---|---|
 | `project.yml` | XcodeGen definition (source of truth; `.xcodeproj` is generated + gitignored) |
 | `Sources/FreeAppStore/` | v2 app target — reuses `FreeLogic` UI/state; `FilterController` manages the filter |
-| `Sources/ContentFilter/` | `NEFilterDataProvider` system extension + its Info.plist |
+| `Sources/ContentFilter/` | `NEFilterDataProvider` app extension (.appex) + its Info.plist |
 | `Sources/Free/Logic/SharedRuleStore.swift` | App-Group bridge: app writes rules, extension reads them |
 | `Support/*.entitlements` | Sandbox + Network Extension + App Group for each target |
 
@@ -48,11 +48,14 @@ xcodebuild build -project Free.xcodeproj -scheme Free -destination 'platform=mac
 ```
 
 `FreeLogic` is exposed as a library product in `Package.swift` so both Xcode
-targets can link it. The extension is a **system extension** (`SYSX`), entry point
-in `Sources/ContentFilter/main.swift` (`NEProvider.startSystemExtensionMode()`),
-principal class declared under `NetworkExtension → NEProviderClasses` in its
-Info.plist. On macOS the filter sees `NEFilterSocketFlow`s (no browser flows);
-hostname comes from `flow.url` or the socket's `remoteFlowEndpoint`.
+targets can link it. The extension is an **app extension** (`.appex`, `NSExtensionPointIdentifier`
+`com.apple.networkextension.filter-data`, principal class `FilterDataProvider`).
+`NEFilterManager` loads it directly — no `OSSystemExtensionRequest`, no
+`/Applications` requirement, so it runs from Xcode. App extensions are
+App-Store-only, which is exactly v2's channel (v1 covers direct distribution).
+
+On macOS the filter sees `NEFilterSocketFlow`s (no browser flows); hostname comes
+from `flow.url` or the socket's `remoteFlowEndpoint`.
 
 ### Gotchas (all hit and fixed during bring-up)
 
@@ -70,15 +73,12 @@ hostname comes from `flow.url` or the socket's `remoteFlowEndpoint`.
 
 ## Remaining implementation work
 
-Tracked in `todo.md` (v2 section). The scaffold compiles the shared logic; the
-wiring still to do:
+Tracked in `todo.md` (v2 section). Done: the app builds/runs from Xcode, publishes
+rules to the shared store on state change, and enables the filter on first session
+start. Still to do:
 
-- Call `FilterController.enable()` when a focus session starts; `disable()` on stop.
-- Call `SharedRuleStore.publish(...)` whenever `AppState.isBlocking` or the active
-  rule set changes (mirror of the v1 monitor snapshot).
 - Verdict refinement in `FilterDataProvider.handleNewFlow` — validate hostname
-  extraction for socket vs. browser flows against real traffic once the
-  entitlement is approved and the extension can run.
+  extraction against real socket flows now that the extension can run from Xcode.
 - A block-page UX decision: a dropped flow shows a browser connection error, not
   the v1 styled localhost page — surface "blocked" in-app or via notification.
 - App Store Connect record, App-Store provisioning profiles, and a separate

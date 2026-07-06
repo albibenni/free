@@ -12,31 +12,37 @@ import os
 final class FilterDataProvider: NEFilterDataProvider {
     private let log = Logger(subsystem: "com.benni.Free.ContentFilter", category: "filter")
 
-    override func startFilter(completionHandler: @escaping (Error?) -> Void) {
+    override func startFilter(completionHandler: @escaping @Sendable (Error?) -> Void) {
         // Empty rule list + defaultAction .filterData routes every flow to
         // handleNewFlow, where the allow/drop verdict is decided.
         let settings = NEFilterSettings(rules: [], defaultAction: .filterData)
+        let log = self.log  // Logger is Sendable; avoids capturing non-Sendable self.
         apply(settings) { error in
-            if let error { self.log.error("startFilter failed: \(error.localizedDescription, privacy: .public)") }
+            if let error { log.error("startFilter failed: \(error.localizedDescription, privacy: .public)") }
             completionHandler(error)
         }
     }
 
-    override func stopFilter(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
+    override func stopFilter(with reason: NEProviderStopReason, completionHandler: @escaping @Sendable () -> Void) {
         completionHandler()
     }
 
     override func handleNewFlow(_ flow: NEFilterFlow) -> NEFilterNewFlowVerdict {
         let snapshot = SharedRuleStore.snapshot()
-        guard snapshot.isBlocking else { return .allow() }
-
-        guard let host = Self.hostname(for: flow) else { return .allow() }
-
-        // Reuse the existing matcher: a hostname the rules allow → allow, else drop.
-        if RuleMatcher.isAllowed(host, rules: snapshot.allowedRules) {
+        guard snapshot.isBlocking else {
+            log.debug("flow allowed (not blocking)")
             return .allow()
         }
-        return .drop()
+
+        guard let host = Self.hostname(for: flow) else {
+            // DIAGNOSTIC: no hostname resolvable (likely a raw IP / QUIC flow).
+            log.notice("flow: NO HOST resolvable → allowing")
+            return .allow()
+        }
+
+        let allowed = RuleMatcher.isAllowed(host, rules: snapshot.allowedRules)
+        log.notice("flow host=\(host, privacy: .public) blocking=true allowed=\(allowed) → \(allowed ? "ALLOW" : "DROP")")
+        return allowed ? .allow() : .drop()
     }
 
     private static func hostname(for flow: NEFilterFlow) -> String? {
