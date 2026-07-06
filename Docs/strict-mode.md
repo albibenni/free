@@ -38,6 +38,21 @@ Strict Mode is for situations where you know you are likely to give up too easil
 - You find yourself stopping Focus sessions early out of habit.
 - You want scheduled blocks to be truly uninterruptible.
 
+## Tamper Resistance and Honest Limits
+
+Strict Mode is a **commitment device, not a security boundary**. What it does defend:
+
+- **Quitting the app:** `applicationShouldTerminate` reads *in-memory* session state (wired from `AppState` via providers), so editing the persisted flags from a terminal does not unlock the quit path.
+- **External `defaults write` tampering:** persisted `IsStrict`/`IsBlocking` flags are re-asserted from in-memory state on every browser-monitor snapshot and schedule tick — an external edit is repaired, not honored.
+- **Pasting the challenge phrase:** the challenge field suppresses paste; the phrase must be typed.
+- **Impulse stops:** a 10-second grace period after starting a pomodoro focus phase locks skip/stop.
+
+What it deliberately does **not** defend:
+
+- `kill -9` (or Activity Monitor force-quit) terminates the process; blocking stops until relaunch. Surviving that requires a privileged helper daemon, which Free does not ship.
+- Editing persisted flags **while the app is not running** changes what the next launch restores.
+- The challenge phrase is a fixed, visible sentence — friction by design, not authentication.
+
 ## Tips
 
 - Enable Strict Mode **before** a session you know will be challenging.

@@ -2,9 +2,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateChallengeCoordinatorTests {
     @Test("disableStrict succeeds only with exact challenge phrase")
-    func disableStrictRequiresExactPhrase() {
+    func disableStrictRequiresExactPhrase() async throws {
         let failed = AppStateChallengeCoordinator.disableStrict(
             phrase: "wrong",
             challengePhrase: AppState.challengePhrase,
@@ -23,7 +24,7 @@ struct AppStateChallengeCoordinatorTests {
     }
 
     @Test("stopPomodoro returns temporary and restored strict states")
-    func stopPomodoroStateTransition() {
+    func stopPomodoroStateTransition() async throws {
         let failed = AppStateChallengeCoordinator.stopPomodoro(
             phrase: "wrong",
             challengePhrase: AppState.challengePhrase,

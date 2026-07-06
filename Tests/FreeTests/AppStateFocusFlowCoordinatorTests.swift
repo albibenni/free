@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateFocusFlowCoordinatorTests {
     @Test("startPomodoro and startBreak return run-timer transitions")
-    func startTransitions() {
+    func startTransitions() async throws {
         let pomodoroState = PomodoroEngine.State(
             status: .none,
             remaining: 0,
@@ -31,7 +32,7 @@ struct AppStateFocusFlowCoordinatorTests {
     }
 
     @Test("stopPomodoroIfUnlocked returns nil when locked and stop/check flags when unlocked")
-    func stopTransition() {
+    func stopTransition() async throws {
         let focusState = PomodoroEngine.State(
             status: .focus,
             remaining: 60,
@@ -56,7 +57,7 @@ struct AppStateFocusFlowCoordinatorTests {
     }
 
     @Test("pause transitions cover start guard and cancel behavior")
-    func pauseTransitions() {
+    func pauseTransitions() async throws {
         let initial = PauseEngine.State(isPaused: false, remaining: 0)
 
         #expect(
@@ -85,14 +86,14 @@ struct AppStateFocusFlowCoordinatorTests {
     }
 
     @Test("skip phase action maps pomodoro status branches")
-    func skipPhaseAction() {
+    func skipPhaseAction() async throws {
         #expect(AppStateFocusFlowCoordinator.skipPhaseAction(for: .focus) == .startBreak)
         #expect(AppStateFocusFlowCoordinator.skipPhaseAction(for: .breakTime) == .startFocus)
         #expect(AppStateFocusFlowCoordinator.skipPhaseAction(for: .none) == .none)
     }
 
     @Test("tick transitions bridge runtime coordinators for pomodoro and pause")
-    func tickTransitions() {
+    func tickTransitions() async throws {
         #expect(
             AppStateFocusFlowCoordinator.pomodoroTickAction(status: .focus, remaining: 5)
                 == .decrement

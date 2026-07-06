@@ -3,10 +3,11 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct RepeatingTimerSchedulerTests {
     @Test("DefaultRepeatingTimerScheduler schedules a live repeating timer")
     @MainActor
-    func defaultSchedulerSchedulesTimer() {
+    func defaultSchedulerSchedulesTimer() async throws {
         let scheduler = DefaultRepeatingTimerScheduler()
         let interval: TimeInterval = 0.01
         var fireCount = 0
@@ -15,7 +16,7 @@ struct RepeatingTimerSchedulerTests {
             fireCount += 1
         }
 
-        RunLoop.current.run(until: Date().addingTimeInterval(0.06))
+        try await Task.sleep(nanoseconds: 60_000_000)
         timer.invalidate()
         #expect(fireCount > 0)
     }

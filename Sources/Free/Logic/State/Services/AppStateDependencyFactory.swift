@@ -8,6 +8,7 @@ struct AppStateDependencies {
 }
 
 enum AppStateDependencyFactory {
+    @MainActor
     static func make(
         defaults: UserDefaults,
         injectedCalendar: (any CalendarProvider)?,

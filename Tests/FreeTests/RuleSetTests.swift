@@ -2,17 +2,18 @@ import Testing
 import Foundation
 @testable import FreeLogic
 
+@MainActor
 struct RuleSetTests {
     
     @Test("RuleSet default initialization")
-    func ruleSetDefaults() {
+    func ruleSetDefaults() async throws {
         let defaultSet = RuleSet.defaultSet()
         #expect(defaultSet.name == "Default")
         #expect(!defaultSet.urls.isEmpty)
     }
 
     @Test("RuleSet Equatable conformance")
-    func ruleSetEquatable() {
+    func ruleSetEquatable() async throws {
         let id = UUID()
         let set1 = RuleSet(id: id, name: "Work", urls: ["google.com"])
         let set2 = RuleSet(id: id, name: "Work", urls: ["google.com"])
@@ -23,14 +24,14 @@ struct RuleSetTests {
     }
 
     @Test("RuleSet unique IDs on default init")
-    func ruleSetUniqueIds() {
+    func ruleSetUniqueIds() async throws {
         let set1 = RuleSet(name: "A", urls: [])
         let set2 = RuleSet(name: "B", urls: [])
         #expect(set1.id != set2.id)
     }
 
     @Test("RuleSet serialization")
-    func ruleSetSerialization() throws {
+    func ruleSetSerialization() async throws {
         let original = RuleSet(name: "Deep Work", urls: ["github.com", "notion.so"])
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()

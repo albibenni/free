@@ -3,16 +3,17 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateReadModelCoordinatorTests {
     @Test("timeString formats minutes and seconds with zero padding")
-    func timeStringFormatting() {
+    func timeStringFormatting() async throws {
         #expect(AppStateReadModelCoordinator.timeString(time: 0) == "00:00")
         #expect(AppStateReadModelCoordinator.timeString(time: 65) == "01:05")
         #expect(AppStateReadModelCoordinator.timeString(time: 3599) == "59:59")
     }
 
     @Test("rule projections delegate to RuleSetService semantics")
-    func ruleProjections() {
+    func ruleProjections() async throws {
         let first = RuleSet(name: "One", urls: ["one.com"])
         let second = RuleSet(name: "Two", urls: ["two.com"])
 

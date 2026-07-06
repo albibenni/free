@@ -3,10 +3,11 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct PersistenceTests {
 
     @Test("Schedule serialization and deserialization")
-    func schedulePersistence() throws {
+    func schedulePersistence() async throws {
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 17, minute: 0))!
@@ -37,7 +38,7 @@ struct PersistenceTests {
     }
 
     @Test("RuleSet serialization and deserialization")
-    func ruleSetPersistence() throws {
+    func ruleSetPersistence() async throws {
         let original = RuleSet(
             id: UUID(),
             name: "Deep Work",
@@ -56,7 +57,7 @@ struct PersistenceTests {
     }
 
     @Test("AppState correctly persists settings to UserDefaults")
-    func appStatePersistence() {
+    func appStatePersistence() async throws {
         let testSuite = "com.free.test.persistence"
         UserDefaults.standard.removePersistentDomain(forName: testSuite)
         let defaults = UserDefaults(suiteName: testSuite)!
@@ -71,6 +72,8 @@ struct PersistenceTests {
         appState?.blockNewTabs = true
         appState?.blockDeveloperHosts = true
         appState?.blockLocalNetworkHosts = true
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 50_000_000)
         appState = nil
 
         let newAppState = AppState(defaults: defaults, isTesting: true)
@@ -85,7 +88,7 @@ struct PersistenceTests {
     }
 
     @Test("AppState rule management persists changes")
-    func appStateRuleManagement() {
+    func appStateRuleManagement() async throws {
         let testSuite = "com.free.test.rules"
         UserDefaults.standard.removePersistentDomain(forName: testSuite)
         let defaults = UserDefaults(suiteName: testSuite)!
@@ -94,12 +97,16 @@ struct PersistenceTests {
         let setId = appState.ruleSets[0].id
 
         appState.addRule("test.com", to: setId)
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 50_000_000)
         #expect(appState.ruleSets[0].urls.contains("test.com"))
 
         let newAppState = AppState(defaults: defaults, isTesting: true)
         #expect(newAppState.ruleSets[0].urls.contains("test.com"))
 
         appState.removeRule("test.com", from: setId)
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 50_000_000)
         #expect(!appState.ruleSets[0].urls.contains("test.com"))
 
         UserDefaults.standard.removePersistentDomain(forName: testSuite)

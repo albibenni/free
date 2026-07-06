@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum ScheduleEditorLayoutBuilder {
     static func makeImportedBadge() -> NSView {
         let badge = AppKitCardView()

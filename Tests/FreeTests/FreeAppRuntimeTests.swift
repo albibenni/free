@@ -4,9 +4,10 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct FreeAppRuntimeTests {
     @Test("FreeAppRuntimeStorage default terminator path can execute in SwiftPM tests")
-    func defaultTerminatorPathExecutes() {
+    func defaultTerminatorPathExecutes() async throws {
         let originalTerminator = FreeAppRuntimeStorage.terminator
         defer { FreeAppRuntimeStorage.terminator = originalTerminator }
 
@@ -16,7 +17,7 @@ struct FreeAppRuntimeTests {
     }
 
     @Test("FreeAppRuntime.quitApplication delegates to configured terminator")
-    func quitApplicationDelegatesToTerminator() {
+    func quitApplicationDelegatesToTerminator() async throws {
         var capturedApp: NSApplication?
         var capturedSender: Any?
         let originalTerminator = FreeAppRuntimeStorage.terminator
@@ -34,7 +35,7 @@ struct FreeAppRuntimeTests {
     }
 
     @Test("FreeAppRuntime uses latest configured terminator")
-    func usesLatestConfiguredTerminator() {
+    func usesLatestConfiguredTerminator() async throws {
         var calls = 0
         let originalTerminator = FreeAppRuntimeStorage.terminator
         defer { FreeAppRuntimeStorage.terminator = originalTerminator }
@@ -55,7 +56,7 @@ struct FreeAppRuntimeTests {
     }
 
     @Test("FreeApp quit action delegates to FreeAppRuntime")
-    func appQuitActionDelegates() {
+    func appQuitActionDelegates() async throws {
         var calls = 0
         let originalTerminator = FreeAppRuntimeStorage.terminator
         defer { FreeAppRuntimeStorage.terminator = originalTerminator }

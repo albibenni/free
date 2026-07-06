@@ -4,9 +4,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AllowedWebsitesCoordinatorsTests {
     @Test("Selection coordinator resolves selected, active, and fallback rule set ids")
-    func selectionCoordinatorResolveRuleSetId() {
+    func selectionCoordinatorResolveRuleSetId() async throws {
         let a = RuleSet(id: UUID(), name: "A", urls: [])
         let b = RuleSet(id: UUID(), name: "B", urls: [])
         let ruleSets = [a, b]
@@ -42,7 +43,7 @@ struct AllowedWebsitesCoordinatorsTests {
     }
 
     @Test("Selection coordinator maps selected rows and preserves selection by rule")
-    func selectionCoordinatorSelectionMapping() {
+    func selectionCoordinatorSelectionMapping() async throws {
         let rules = ["a.com", "b.com", "c.com"]
         let selected = AllowedWebsitesSelectionCoordinator.selectedRules(
             indexes: IndexSet([0, 2, 5]),
@@ -71,7 +72,7 @@ struct AllowedWebsitesCoordinatorsTests {
     }
 
     @Test("Import coordinator builds candidates with already-allowed state and selection extraction")
-    func importCoordinatorCandidatesAndSelection() {
+    func importCoordinatorCandidatesAndSelection() async throws {
         let existing = RuleSet(
             name: "Work",
             urls: ["https://www.youtube.com/watch?v=abc123", "github.com"]

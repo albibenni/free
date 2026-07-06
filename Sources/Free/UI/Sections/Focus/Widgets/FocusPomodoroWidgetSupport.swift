@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum FocusPomodoroWidgetSupport {
     static let sidebarPresets: [(focus: Double, breakTime: Double, label: String)] = [
         (25, 5, "25/5"),

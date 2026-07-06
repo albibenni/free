@@ -2,9 +2,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateLegacyBlockingMigrationCoordinatorTests {
     @Test("resolve returns nil when source metadata already exists")
-    func resolveWithPersistedSource() {
+    func resolveWithPersistedSource() async throws {
         let result = AppStateLegacyBlockingMigrationCoordinator.resolve(
             hasPersistedWasStartedBySchedule: true,
             isBlocking: true,
@@ -14,7 +15,7 @@ struct AppStateLegacyBlockingMigrationCoordinatorTests {
     }
 
     @Test("resolve returns nil when blocking is already disabled")
-    func resolveWhenBlockingDisabled() {
+    func resolveWhenBlockingDisabled() async throws {
         let result = AppStateLegacyBlockingMigrationCoordinator.resolve(
             hasPersistedWasStartedBySchedule: false,
             isBlocking: false,
@@ -24,7 +25,7 @@ struct AppStateLegacyBlockingMigrationCoordinatorTests {
     }
 
     @Test("resolve maps legacy state to automatic blocking decision")
-    func resolveLegacyDecision() {
+    func resolveLegacyDecision() async throws {
         let active = AppStateLegacyBlockingMigrationCoordinator.resolve(
             hasPersistedWasStartedBySchedule: false,
             isBlocking: true,

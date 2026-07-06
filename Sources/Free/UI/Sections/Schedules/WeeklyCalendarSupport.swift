@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 
+@MainActor
 enum WeeklyCalendarSupport {
     typealias CalendarHourSetter = (Calendar, Int, Int, Date) -> Date?
     typealias CalendarDateBuilder = (Calendar, DateComponents) -> Date?

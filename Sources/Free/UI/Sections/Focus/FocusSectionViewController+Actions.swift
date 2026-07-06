@@ -4,7 +4,7 @@ extension FocusSectionViewController {
     @objc
     func grantAccessibility() {
         if let monitor = appState.monitor {
-            monitor.checkPermissions(prompt: true)
+            Task { await monitor.checkPermissions(prompt: true) }
         } else {
             grantAccessibilityActionFactory()()
         }

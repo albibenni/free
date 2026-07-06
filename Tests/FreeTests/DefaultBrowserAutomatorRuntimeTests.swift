@@ -40,9 +40,10 @@ private final class BrowserAutomatorRuntimeBridgeState {
 }
 
 @Suite(.serialized)
+@MainActor
 struct DefaultBrowserAutomatorRuntimeTests {
     @Test("live(bridge:) forwards all runtime calls")
-    func liveBridgeForwarding() {
+    func liveBridgeForwarding() async throws {
         let state = BrowserAutomatorRuntimeBridgeState()
         state.permissionResult = true
         state.scriptResult = "script-result"
@@ -71,7 +72,7 @@ struct DefaultBrowserAutomatorRuntimeTests {
     }
 
     @Test("mapRunningApplication preserves key NSRunningApplication properties")
-    func mapRunningApplicationProperties() {
+    func mapRunningApplicationProperties() async throws {
         let app = NSRunningApplication.current
         let mapped = DefaultBrowserAutomatorRuntime.mapRunningApplication(app)
 
@@ -81,7 +82,7 @@ struct DefaultBrowserAutomatorRuntimeTests {
     }
 
     @Test("live() can be constructed and invoked on all closures")
-    func liveDefaultBridgePath() {
+    func liveDefaultBridgePath() async throws {
         let runtime = DefaultBrowserAutomatorRuntime.live()
 
         _ = runtime.checkPermissions(false)

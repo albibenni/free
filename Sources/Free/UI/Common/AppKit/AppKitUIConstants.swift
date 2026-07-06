@@ -1,6 +1,8 @@
 import AppKit
 
+@MainActor
 enum AppKitUIConstants {
+    @MainActor
     enum Typography {
         static let header = NSFont.systemFont(ofSize: 16, weight: .bold)
         static let sectionLabel = NSFont.systemFont(ofSize: 14, weight: .semibold)

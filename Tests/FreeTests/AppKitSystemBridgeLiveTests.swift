@@ -4,10 +4,11 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct AppKitSystemBridgeLiveTests {
     @Test("AppKitSystemBridgeLive openURL returns false during test runtime")
     @MainActor
-    func openURLReturnsFalseWhenTesting() throws {
+    func openURLReturnsFalseWhenTesting() async throws {
         defer { AppKitSystemBridgeLive.resetForTesting() }
 
         let url = try #require(URL(string: "https://example.com/testing"))
@@ -18,7 +19,7 @@ struct AppKitSystemBridgeLiveTests {
 
     @Test("AppKitSystemBridgeLive openURL uses workspace bridge outside test runtime")
     @MainActor
-    func openURLUsesWorkspaceBridgeWhenNotTesting() throws {
+    func openURLUsesWorkspaceBridgeWhenNotTesting() async throws {
         defer { AppKitSystemBridgeLive.resetForTesting() }
 
         let expected = try #require(URL(string: "https://example.com/workspace"))
@@ -35,7 +36,7 @@ struct AppKitSystemBridgeLiveTests {
 
     @Test("AppKitSystemBridgeLive runModal returns first button during test runtime")
     @MainActor
-    func runModalReturnsFirstButtonWhenTesting() {
+    func runModalReturnsFirstButtonWhenTesting() async throws {
         defer { AppKitSystemBridgeLive.resetForTesting() }
 
         AppKitSystemBridgeLive.setIsRunningInTestProcessForTesting { true }
@@ -45,7 +46,7 @@ struct AppKitSystemBridgeLiveTests {
 
     @Test("AppKitSystemBridgeLive runModal uses alert bridge outside test runtime")
     @MainActor
-    func runModalUsesAlertBridgeWhenNotTesting() {
+    func runModalUsesAlertBridgeWhenNotTesting() async throws {
         defer { AppKitSystemBridgeLive.resetForTesting() }
 
         AppKitSystemBridgeLive.setIsRunningInTestProcessForTesting { false }
@@ -56,7 +57,7 @@ struct AppKitSystemBridgeLiveTests {
 
     @Test("AppKitSystemBridgeLive resetForTesting clears overrides")
     @MainActor
-    func resetForTestingClearsOverrides() throws {
+    func resetForTestingClearsOverrides() async throws {
         defer { AppKitSystemBridgeLive.resetForTesting() }
 
         let url = try #require(URL(string: "https://example.com/reset"))
@@ -71,7 +72,7 @@ struct AppKitSystemBridgeLiveTests {
 
     @Test("AppKitSystemBridgeLive uses default detector path under tests")
     @MainActor
-    func usesDefaultDetectorPath() throws {
+    func usesDefaultDetectorPath() async throws {
         defer { AppKitSystemBridgeLive.resetForTesting() }
 
         let url = try #require(URL(string: "https://example.com/default-detector"))
@@ -81,7 +82,7 @@ struct AppKitSystemBridgeLiveTests {
 
     @Test("AppKitSystemBridgeLive uses default workspace fallback safely")
     @MainActor
-    func usesDefaultWorkspaceFallbackSafely() throws {
+    func usesDefaultWorkspaceFallbackSafely() async throws {
         defer {
             AppKitSystemBridgeLive.resetForTesting()
             AppKitSystemBridgeLiveSystem.resetForTesting()
@@ -97,7 +98,7 @@ struct AppKitSystemBridgeLiveTests {
 
     @Test("AppKitSystemBridgeLive uses default runModal fallback safely")
     @MainActor
-    func usesDefaultRunModalFallbackSafely() {
+    func usesDefaultRunModalFallbackSafely() async throws {
         defer {
             AppKitSystemBridgeLive.resetForTesting()
             AppKitSystemBridgeLiveSystem.resetForTesting()
@@ -112,7 +113,7 @@ struct AppKitSystemBridgeLiveTests {
 
     @Test("AppKitSystemBridgeLive live workspace fallback delegates to system bridge")
     @MainActor
-    func liveWorkspaceFallbackDelegatesToSystemBridge() {
+    func liveWorkspaceFallbackDelegatesToSystemBridge() async throws {
         defer {
             AppKitSystemBridgeLive.resetForTesting()
             AppKitSystemBridgeLiveSystem.resetForTesting()
@@ -128,7 +129,7 @@ struct AppKitSystemBridgeLiveTests {
 
     @Test("AppKitSystemBridgeLive live runModal fallback delegates to system bridge")
     @MainActor
-    func liveRunModalFallbackDelegatesToSystemBridge() {
+    func liveRunModalFallbackDelegatesToSystemBridge() async throws {
         defer {
             AppKitSystemBridgeLive.resetForTesting()
             AppKitSystemBridgeLiveSystem.resetForTesting()

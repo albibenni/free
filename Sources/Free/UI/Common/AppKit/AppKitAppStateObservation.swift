@@ -1,169 +1,122 @@
-import Combine
 import Foundation
+import Observation
 
 enum AppKitAppStateObservation {
-    typealias VoidPublisher = AnyPublisher<Void, Never>
+    // @MainActor classes are implicitly Sendable, so tracker instances can cross
+    // into withObservationTracking's @Sendable onChange closure. Each tracker
+    // intentionally keeps itself alive by re-arming from its own strong reference,
+    // matching the previous local-function behavior.
+    @MainActor
+    private final class ShellAppearanceTracker {
+        private let appState: AppState
+        private let onChange: @MainActor () -> Void
 
-    static func bind<Signature: Equatable>(
-        publisher: VoidPublisher,
-        signature: @escaping () -> Signature,
-        cancellables: inout Set<AnyCancellable>,
-        onChange: @escaping (_ signature: Signature) -> Void
-    ) {
-        publisher
-            .receive(on: RunLoop.main)
-            .map { signature() }
-            .prepend(signature())
-            .removeDuplicates()
-            .dropFirst()
-            .sink(receiveValue: onChange)
-            .store(in: &cancellables)
-    }
+        init(appState: AppState, onChange: @escaping @MainActor () -> Void) {
+            self.appState = appState
+            self.onChange = onChange
+        }
 
-    static func bind(
-        publisher: VoidPublisher,
-        cancellables: inout Set<AnyCancellable>,
-        onChange: @escaping () -> Void
-    ) {
-        bind(
-            publisher: publisher,
-            signature: { UUID() },
-            cancellables: &cancellables
-        ) { _ in
-            onChange()
+        func startTracking() {
+            withObservationTracking {
+                _ = appState.accentColorIndex
+                _ = appState.calendarIntegrationEnabled
+                _ = appState.cursorFluidAnimationEnabled
+                _ = appState.isStrict
+            } onChange: { [self] in
+                Task { @MainActor in
+                    self.onChange()
+                    self.startTracking()
+                }
+            }
         }
     }
 
-    static func bind<Signature: Equatable>(
-        appState: AppState,
-        signature: @escaping () -> Signature,
-        cancellables: inout Set<AnyCancellable>,
-        onChange: @escaping (_ signature: Signature) -> Void
-    ) {
-        bind(
-            publisher: appStatePublisher(appState: appState),
-            signature: signature,
-            cancellables: &cancellables,
-            onChange: onChange
-        )
-    }
+    @MainActor
+    private final class SignatureTracker<Signature: Equatable & Sendable> {
+        private var lastSignature: Signature?
+        private let signature: @MainActor () -> Signature
+        private let onChange: @MainActor (Signature) -> Void
 
-    static func bind(
-        appState: AppState,
-        cancellables: inout Set<AnyCancellable>,
-        onChange: @escaping () -> Void
-    ) {
-        bind(
-            appState: appState,
-            signature: { UUID() },
-            cancellables: &cancellables
-        ) { _ in
-            onChange()
+        init(
+            signature: @escaping @MainActor () -> Signature,
+            onChange: @escaping @MainActor (Signature) -> Void
+        ) {
+            self.signature = signature
+            self.onChange = onChange
+            lastSignature = signature()
+        }
+
+        func startTracking() {
+            withObservationTracking {
+                _ = signature()
+            } onChange: { [self] in
+                Task { @MainActor in
+                    let newSignature = self.signature()
+                    if newSignature != self.lastSignature {
+                        self.lastSignature = newSignature
+                        self.onChange(newSignature)
+                    }
+                    self.startTracking()
+                }
+            }
         }
     }
 
-    static func appStatePublisher(appState: AppState) -> VoidPublisher {
-        appState.objectWillChange
-            .map { _ in () }
-            .eraseToAnyPublisher()
+    @MainActor
+    private final class PredicateTracker {
+        private let readProperties: @MainActor () -> Bool
+        private let onChange: @MainActor (Bool) -> Void
+
+        init(
+            readProperties: @escaping @MainActor () -> Bool,
+            onChange: @escaping @MainActor (Bool) -> Void
+        ) {
+            self.readProperties = readProperties
+            self.onChange = onChange
+        }
+
+        func startTrackingIfNeeded() {
+            guard readProperties() else { return }
+            startTracking()
+        }
+
+        private func startTracking() {
+            withObservationTracking {
+                _ = readProperties()
+            } onChange: { [self] in
+                Task { @MainActor in
+                    let shouldContinue = self.readProperties()
+                    self.onChange(shouldContinue)
+                    if shouldContinue {
+                        self.startTracking()
+                    }
+                }
+            }
+        }
     }
 
-    static func settingsPublisher(appState: AppState) -> VoidPublisher {
-        merge([
-            appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
-            appState.$weekStartsOnMonday.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarImportFocusTitleRules.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarImportBreakTitleRules.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarImportedScheduleRuleSetId.map { _ in () }.eraseToAnyPublisher(),
-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
-            appState.$blockNewTabs.map { _ in () }.eraseToAnyPublisher(),
-            appState.$blockDeveloperHosts.map { _ in () }.eraseToAnyPublisher(),
-            appState.$blockLocalNetworkHosts.map { _ in () }.eraseToAnyPublisher(),
-            appState.$allowSearchEngineWebsites.map { _ in () }.eraseToAnyPublisher(),
-            appState.$allowAIProviderWebsites.map { _ in () }.eraseToAnyPublisher(),
-            appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
-            appState.$cursorFluidAnimationEnabled.map { _ in () }.eraseToAnyPublisher(),
-        ])
+    @MainActor
+    static func shellAppearancePublisher(appState: AppState) -> (@escaping @MainActor () -> Void) -> Void {
+        return { onChange in
+            ShellAppearanceTracker(appState: appState, onChange: onChange).startTracking()
+        }
     }
 
-    static func schedulesPublisher(appState: AppState) -> VoidPublisher {
-        merge([
-            appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
-            appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
-            appState.$weekStartsOnMonday.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
-            appState.calendarProvider.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
-        ])
+    @MainActor
+    static func observe<Signature: Equatable & Sendable>(
+        appState: AppState,
+        signature: @escaping @MainActor () -> Signature,
+        onChange: @escaping @MainActor (_ signature: Signature) -> Void
+    ) {
+        SignatureTracker(signature: signature, onChange: onChange).startTracking()
     }
 
-    static func rulesPublisher(appState: AppState) -> VoidPublisher {
-        merge([
-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
-            appState.$activeRuleSetId.map { _ in () }.eraseToAnyPublisher(),
-            appState.$currentOpenUrls.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
-        ])
-    }
-
-    static func allowedWebsitesPublisher(appState: AppState) -> VoidPublisher {
-        merge([
-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
-            appState.$activeRuleSetId.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
-        ])
-    }
-
-    static func focusPublisher(appState: AppState) -> VoidPublisher {
-        merge([
-            appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isTrusted.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isPaused.map { _ in () }.eraseToAnyPublisher(),
-            appState.$pauseRemaining.map { _ in () }.eraseToAnyPublisher(),
-            appState.$pomodoroStatus.map { _ in () }.eraseToAnyPublisher(),
-            appState.$pomodoroRemaining.map { _ in () }.eraseToAnyPublisher(),
-            appState.$pomodoroStartedAt.map { _ in () }.eraseToAnyPublisher(),
-            appState.$pomodoroFocusDuration.map { _ in () }.eraseToAnyPublisher(),
-            appState.$pomodoroBreakDuration.map { _ in () }.eraseToAnyPublisher(),
-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
-            appState.$activeRuleSetId.map { _ in () }.eraseToAnyPublisher(),
-            appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
-            appState.$appearanceMode.map { _ in () }.eraseToAnyPublisher(),
-        ])
-    }
-
-    static func calendarPublisher(appState: AppState) -> VoidPublisher {
-        merge([
-            appState.$weekStartsOnMonday.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarImportFocusTitleRules.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarImportBreakTitleRules.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarImportedScheduleRuleSetId.map { _ in () }.eraseToAnyPublisher(),
-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isBlocking.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
-        ])
-    }
-
-    static func shellAppearancePublisher(appState: AppState) -> VoidPublisher {
-        merge([
-            appState.$accentColorIndex.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
-            appState.$cursorFluidAnimationEnabled.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
-        ])
-    }
-
-    private static func merge(_ publishers: [VoidPublisher]) -> VoidPublisher {
-        Publishers.MergeMany(publishers).eraseToAnyPublisher()
+    @MainActor
+    static func observe(
+        appState: AppState,
+        readProperties: @escaping @MainActor () -> Bool,
+        onChange: @escaping @MainActor (_ dummy: Bool) -> Void
+    ) {
+        PredicateTracker(readProperties: readProperties, onChange: onChange).startTrackingIfNeeded()
     }
 }

@@ -1,3 +1,4 @@
+import Observation
 import Combine
 import Foundation
 
@@ -7,13 +8,15 @@ enum AppearanceMode: String, Codable, CaseIterable {
     case dark = "Dark"
 }
 
-class AppState: ObservableObject {
+@MainActor
+@Observable
+class AppState {
     static let challengePhrase =
         "I understand and want to quit!"
     let settingsStore: SettingsStore
     let logicFacade: AppStateLogicFacade
 
-    @Published var isBlocking = false {
+    var isBlocking = false {
         didSet {
             AppStatePropertyEffectsService.handleIsBlockingDidChange(
                 isBlocking: isBlocking,
@@ -21,13 +24,13 @@ class AppState: ObservableObject {
             )
         }
     }
-    @Published var isStrict = false
-    @Published var isTrusted = false
-    @Published var weekStartsOnMonday = false
-    @Published var accentColorIndex = 0
-    @Published var appearanceMode: AppearanceMode = .system
-    @Published var cursorFluidAnimationEnabled = true
-    @Published var calendarIntegrationEnabled = false {
+    var isStrict = false
+    var isTrusted = false
+    var weekStartsOnMonday = false
+    var accentColorIndex = 0
+    var appearanceMode: AppearanceMode = .system
+    var cursorFluidAnimationEnabled = true
+    var calendarIntegrationEnabled = false {
         didSet {
             AppStatePropertyEffectsService.handleCalendarIntegrationEnabledDidChange(
                 isEnabled: calendarIntegrationEnabled,
@@ -36,23 +39,23 @@ class AppState: ObservableObject {
             )
         }
     }
-    @Published var calendarImportFocusTitleRules: [String] = [] {
+    var calendarImportFocusTitleRules: [String] = [] {
         didSet { checkSchedules() }
     }
-    @Published var calendarImportBreakTitleRules: [String] = [] {
+    var calendarImportBreakTitleRules: [String] = [] {
         didSet { checkSchedules() }
     }
-    @Published var calendarImportedScheduleRuleSetId: UUID? = nil {
+    var calendarImportedScheduleRuleSetId: UUID? = nil {
         didSet { checkSchedules() }
     }
-    @Published var blockNewTabs = false
-    @Published var blockDeveloperHosts = false
-    @Published var blockLocalNetworkHosts = false
-    @Published var allowSearchEngineWebsites = false
-    @Published var allowAIProviderWebsites = false
-    @Published var ruleSets: [RuleSet] = []
-    @Published var activeRuleSetId: UUID? = nil
-    @Published var schedules: [Schedule] = [] {
+    var blockNewTabs = false
+    var blockDeveloperHosts = false
+    var blockLocalNetworkHosts = false
+    var allowSearchEngineWebsites = false
+    var allowAIProviderWebsites = false
+    var ruleSets: [RuleSet] = []
+    var activeRuleSetId: UUID? = nil
+    var schedules: [Schedule] = [] {
         didSet {
             AppStatePropertyEffectsService.handleSchedulesDidChange(
                 schedules: schedules,
@@ -62,7 +65,7 @@ class AppState: ObservableObject {
         }
     }
 
-    @Published var pomodoroFocusDuration: Double = 25 {
+    var pomodoroFocusDuration: Double = 25 {
         didSet {
             pomodoroRemaining = AppStatePropertyEffectsService
                 .updatedPomodoroRemainingAfterFocusDurationDidChange(
@@ -72,7 +75,7 @@ class AppState: ObservableObject {
                 )
         }
     }
-    @Published var pomodoroBreakDuration: Double = 5 {
+    var pomodoroBreakDuration: Double = 5 {
         didSet {
             pomodoroRemaining = AppStatePropertyEffectsService
                 .updatedPomodoroRemainingAfterBreakDurationDidChange(
@@ -83,12 +86,12 @@ class AppState: ObservableObject {
         }
     }
 
-    @Published var isPaused = false
-    @Published var pauseRemaining: TimeInterval = 0
-    @Published var pomodoroStatus: PomodoroStatus = .none
-    @Published var pomodoroRemaining: TimeInterval = 0
-    @Published var pomodoroStartedAt: Date?
-    @Published var currentOpenUrls: [String] = []
+    var isPaused = false
+    var pauseRemaining: TimeInterval = 0
+    var pomodoroStatus: PomodoroStatus = .none
+    var pomodoroRemaining: TimeInterval = 0
+    var pomodoroStartedAt: Date?
+    var currentOpenUrls: [String] = []
 
     var monitor: BrowserMonitor?
     let calendarProvider: any CalendarProvider
@@ -96,10 +99,10 @@ class AppState: ObservableObject {
     let launchAtLoginService: LaunchAtLoginService
     let timerCoordinator: AppStateTimerCoordinator
     private var persistenceCancellables = Set<AnyCancellable>()
-    private let scheduleCheckSubject = PassthroughSubject<Void, Never>()
+    private var scheduleCheckDebounceTask: Task<Void, Never>?
     private let isTesting: Bool
     var internalState = AppStateInternalState()
-    private var rescheduleScheduleTimer: (() -> Void)?
+    private var rescheduleScheduleTimer: (@MainActor () -> Void)?
 
     init(
         defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil,
@@ -108,14 +111,7 @@ class AppState: ObservableObject {
         logicFacade: AppStateLogicFacade = .live,
         launchAtLoginManager: any LaunchAtLoginManaging = DefaultLaunchAtLoginManager(),
         canPromptForLaunchAtLogin: @escaping () -> Bool = {
-            let processInfo = ProcessInfo.processInfo
-            let processName = processInfo.processName.lowercased()
-            let isXCTestEnvironment = processInfo.environment["XCTestConfigurationFilePath"] != nil
-            let isSwiftPMTestingHelper = processName.contains("swiftpm-testing-helper")
-            let isXCTestProcess = processName.contains("xctest")
-            let blockers = [isXCTestEnvironment, isSwiftPMTestingHelper, isXCTestProcess]
-            let isBlocked = blockers.reduce(false) { $0 || $1 }
-            return !isBlocked
+            !TestProcessDetector.isRunningTests()
         },
         isTesting: Bool = ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] == "1"
     ) {
@@ -144,14 +140,9 @@ class AppState: ObservableObject {
         applyScheduleDomainState(bootstrapProjection.schedule)
         manualBlockingEnabled = snapshot.manualBlockingEnabled
         persistenceCancellables = AppStateLifecycleService.bindPersistence(
-            bindings: persistenceBindings,
+            appState: self,
             settingsStore: settingsStore
         )
-        scheduleCheckSubject
-            .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
-            .sink { [weak self] in self?.performCheckSchedules() }
-            .store(in: &persistenceCancellables)
-
         // Migration for older builds that persisted IsBlocking but not its source.
         if let migration = AppStateLifecycleService.resolveLegacyBlockingMigration(
             logicFacade: logicFacade,
@@ -171,26 +162,32 @@ class AppState: ObservableObject {
             calendarProvider: calendarProvider,
             timerCoordinator: timerCoordinator,
             monitorStateSnapshotProvider: { [weak self] in
-                self.map { state in
-                    BrowserMonitor.StateSnapshot(
-                        isBlocking: state.isBlocking,
-                        isPaused: state.isPaused,
-                        blockNewTabs: state.blockNewTabs,
-                        blockDeveloperHosts: state.blockDeveloperHosts,
-                        blockLocalNetworkHosts: state.blockLocalNetworkHosts,
-                        allowedRules: state.allowedRules
+                guard let self else { return nil }
+                return await MainActor.run {
+                    self.reassertPersistedSessionFlags()
+                    return BrowserMonitor.StateSnapshot(
+                        isBlocking: self.isBlocking,
+                        isPaused: self.isPaused,
+                        blockNewTabs: self.blockNewTabs,
+                        blockDeveloperHosts: self.blockDeveloperHosts,
+                        blockLocalNetworkHosts: self.blockLocalNetworkHosts,
+                        allowedRules: self.allowedRules
                     )
                 }
             },
             onMonitorEvent: { [weak self] event in
-                switch event {
-                case .trustedStateChanged(let trusted):
-                    self?.isTrusted = trusted
+                Task { @MainActor in
+                    switch event {
+                    case .trustedStateChanged(let trusted):
+                        self?.isTrusted = trusted
+                    }
                 }
             },
-            onScheduleUpdate: { [weak self] in self?.checkSchedules() },
+            onScheduleUpdate: { [weak self] in Task { @MainActor in self?.checkSchedules() } },
             scheduleTickIntervalProvider: { [weak self] in
-                self?.nextScheduleTickInterval() ?? 60
+                MainActor.assumeIsolated {
+                    self?.nextScheduleTickInterval() ?? 60
+                }
             }
         )
         self.monitor = runtimeBindings.monitor
@@ -202,11 +199,9 @@ class AppState: ObservableObject {
         performCheckSchedules()
     }
 
-    deinit {
+    isolated deinit {
         AppStateLifecycleService.teardown(
-            timerCoordinator: timerCoordinator,
-            calendarCancellable: &calendarCancellable,
-            persistenceCancellables: &persistenceCancellables
+            timerCoordinator: timerCoordinator
         )
     }
 
@@ -219,7 +214,9 @@ class AppState: ObservableObject {
         )
         applySessionState(updated)
         if !wasBlocking && updated.isBlocking {
-            monitor?.checkPermissions(prompt: false)
+            Task {
+                await monitor?.checkPermissions(prompt: false)
+            }
         }
         if !wasBlocking && updated.isBlocking && !updated.wasStartedBySchedule {
             setManualBlockingEnabled(true)
@@ -233,12 +230,32 @@ class AppState: ObservableObject {
             performCheckSchedules()
         } else {
             rescheduleScheduleTimer?()
-            scheduleCheckSubject.send()
+            // Debounce bursts of state changes into a single schedule check.
+            scheduleCheckDebounceTask?.cancel()
+            scheduleCheckDebounceTask = Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(100))
+                guard !Task.isCancelled else { return }
+                self?.performCheckSchedules()
+            }
+        }
+    }
+
+    /// In-memory session state is authoritative while the app runs. The persisted
+    /// flags are externally writable (`defaults write com.benni.Free IsStrict -bool NO`),
+    /// so tampering is repaired here — called on every monitor snapshot and schedule
+    /// tick — rather than letting an external edit unlock strict mode or blocking.
+    func reassertPersistedSessionFlags() {
+        if settingsStore.isStrict() != isStrict {
+            settingsStore.setIsStrict(isStrict)
+        }
+        if settingsStore.isBlocking() != isBlocking {
+            settingsStore.setIsBlocking(isBlocking)
         }
     }
 
     private func performCheckSchedules() {
         synchronizeImportedCalendarSchedulesIfNeeded()
+        reassertPersistedSessionFlags()
         let updated = logicFacade.checkSession(
             current: sessionState,
             schedules: scheduleDomainState.schedules,
@@ -260,5 +277,15 @@ class AppState: ObservableObject {
         )
     }
 
-    func refreshCurrentOpenUrls() { currentOpenUrls = monitor?.getAllOpenUrls() ?? [] }
+    func refreshCurrentOpenUrls() { 
+        Task { @MainActor [weak self] in
+            await self?.refreshCurrentOpenUrlsAsync()
+        }
+    }
+
+    @MainActor
+    func refreshCurrentOpenUrlsAsync() async {
+        let urls = await self.monitor?.getAllOpenUrls()
+        self.currentOpenUrls = urls ?? []
+    }
 }

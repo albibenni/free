@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateBootstrapServiceTests {
     @Test("snapshot falls back to defaults when persisted values are missing")
-    func snapshotDefaults() {
+    func snapshotDefaults() async throws {
         let suite = "AppStateBootstrapServiceTests.snapshotDefaults"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -26,7 +27,7 @@ struct AppStateBootstrapServiceTests {
     }
 
     @Test("snapshot normalizes invalid appearance while preserving persisted rule selection")
-    func snapshotInvalidAppearanceFallback() {
+    func snapshotInvalidAppearanceFallback() async throws {
         let suite = "AppStateBootstrapServiceTests.snapshotInvalidAppearanceFallback"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -51,7 +52,7 @@ struct AppStateBootstrapServiceTests {
     }
 
     @Test("snapshot prunes one-off schedules older than previous week")
-    func snapshotPrunesStaleOneOffSchedules() {
+    func snapshotPrunesStaleOneOffSchedules() async throws {
         let suite = "AppStateBootstrapServiceTests.snapshotPrunesStaleOneOffSchedules"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)

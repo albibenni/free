@@ -13,7 +13,7 @@ enum FocusSectionSupport {
     }
 
     static func accessibilityPromptOptions() -> CFDictionary {
-        [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        ["AXTrustedCheckOptionPrompt": true] as CFDictionary
     }
 
     static func makeGrantAccessibilityAction(

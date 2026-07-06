@@ -1,9 +1,15 @@
 import AppKit
 
+@MainActor
 public class AppDelegate: NSObject, NSApplicationDelegate {
     public var defaults: UserDefaults = .standard
     public var onShowAlert: (() -> Void)?
     public var onApplicationDidFinishLaunching: (() -> Void)?
+    // In-memory session state providers wired by FreeApp. UserDefaults is only a
+    // fallback: it is externally writable (`defaults write`), so it must not be
+    // the enforcement boundary for strict mode.
+    public var isStrictProvider: (() -> Bool)?
+    public var isBlockingProvider: (() -> Bool)?
     var system: any AppDelegateSystem = DefaultAppDelegateSystem()
     var isRelaunching = false
 
@@ -33,15 +39,16 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         return path.hasPrefix("/Applications") || path.hasPrefix("/System/Applications")
     }
 
-    static func isRunningInTestProcess(
+    nonisolated static func isRunningInTestProcess(
         environment: [String: String] = ProcessInfo.processInfo.environment,
+        processName: String = ProcessInfo.processInfo.processName,
         classLookup: (String) -> AnyClass? = NSClassFromString
     ) -> Bool {
-        if environment["XCTestConfigurationFilePath"] != nil { return true }
-        if environment["XCTestBundlePath"] != nil { return true }
-        if environment["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES"] != nil { return true }
-        if environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil { return true }
-        return classLookup("XCTestCase") != nil
+        TestProcessDetector.isRunningTests(
+            environment: environment,
+            processName: processName,
+            classLookup: classLookup
+        )
     }
 
     private func moveToApplications(currentPath: String, destinationPath: String) {
@@ -79,10 +86,12 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     public func shouldPreventTermination() -> Bool {
-        return defaults.bool(forKey: "IsStrict")
+        return isStrictProvider?() ?? defaults.bool(forKey: "IsStrict")
     }
 
     public func shouldConfirmTerminationWhileBlocking() -> Bool {
-        return defaults.bool(forKey: "IsBlocking") && !defaults.bool(forKey: "IsStrict")
+        let isBlocking = isBlockingProvider?() ?? defaults.bool(forKey: "IsBlocking")
+        let isStrict = isStrictProvider?() ?? defaults.bool(forKey: "IsStrict")
+        return isBlocking && !isStrict
     }
 }

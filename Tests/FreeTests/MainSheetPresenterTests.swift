@@ -18,6 +18,7 @@ private final class RulesSheetPresenterSpy: RulesSheetPresenting {
 }
 
 @Suite(.serialized)
+@MainActor
 struct MainSheetPresenterTests {
     private func isolatedAppState(name: String) -> AppState {
         let suite = "MainSheetPresenterTests.\(name)"
@@ -28,7 +29,7 @@ struct MainSheetPresenterTests {
 
     @MainActor
     @Test("MainSheetPresenter rules sheet handles guard, create, reuse, dismiss, and onClose")
-    func rulesSheetBranches() {
+    func rulesSheetBranches() async throws {
         let appState = isolatedAppState(name: "rulesSheetBranches")
         let selectedId = UUID()
         appState.activeRuleSetId = selectedId

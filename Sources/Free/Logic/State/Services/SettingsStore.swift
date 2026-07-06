@@ -112,16 +112,16 @@ final class SettingsStore {
     }
 
     func pomodoroFocusDuration(default defaultValue: Double) -> Double {
-        let value = defaults.double(forKey: Key.pomodoroFocusDuration)
-        return value == 0 ? defaultValue : value
+        guard defaults.object(forKey: Key.pomodoroFocusDuration) != nil else { return defaultValue }
+        return defaults.double(forKey: Key.pomodoroFocusDuration)
     }
     func setPomodoroFocusDuration(_ value: Double) {
         defaults.set(value, forKey: Key.pomodoroFocusDuration)
     }
 
     func pomodoroBreakDuration(default defaultValue: Double) -> Double {
-        let value = defaults.double(forKey: Key.pomodoroBreakDuration)
-        return value == 0 ? defaultValue : value
+        guard defaults.object(forKey: Key.pomodoroBreakDuration) != nil else { return defaultValue }
+        return defaults.double(forKey: Key.pomodoroBreakDuration)
     }
     func setPomodoroBreakDuration(_ value: Double) {
         defaults.set(value, forKey: Key.pomodoroBreakDuration)

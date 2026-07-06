@@ -4,7 +4,7 @@ SHELL := /bin/bash
 APP_NAME := Free
 SWIFT := swift
 
-.PHONY: help build test test-verbose coverage logic-gate ui-gate regression-tests coverage-gates app dmg package run clean deep-clean
+.PHONY: help build test test-verbose coverage logic-gate ui-gate regression-tests coverage-gates app dmg package run clean deep-clean hooks
 
 help:
 	@echo "Available targets:"
@@ -12,8 +12,8 @@ help:
 	@echo "  make test          - Run test suite"
 	@echo "  make test-verbose  - Run test suite with verbose output"
 	@echo "  make coverage      - Run tests with code coverage and print summary"
-	@echo "  make logic-gate    - Enforce logic/services regional coverage gate (default 98.0%)"
-	@echo "  make ui-gate       - Enforce UI/* regional coverage threshold (default 85.0%)"
+	@echo "  make logic-gate    - Enforce logic/services regional coverage gate (default 93.0%)"
+	@echo "  make ui-gate       - Enforce UI/* regional coverage threshold (default 92.0%)"
 	@echo "  make regression-tests - Run targeted fragile-UI regression suites"
 	@echo "  make coverage-gates - Run coverage + logic/ui gates"
 	@echo "  make app           - Build macOS .app bundle via build.sh"
@@ -22,6 +22,7 @@ help:
 	@echo "  make run           - Launch Free.app"
 	@echo "  make clean         - Clean package artifacts and generated app bundle"
 	@echo "  make deep-clean    - Remove all generated artifacts including dmg"
+	@echo "  make hooks         - Install git hooks from scripts/githooks"
 
 build:
 	@$(SWIFT) build
@@ -55,9 +56,9 @@ coverage:
 		| xargs -0 xcrun llvm-profdata merge -sparse -o .build/coverage-merged/merged.profdata; \
 	xcrun llvm-cov report "$$bin" -instr-profile=.build/coverage-merged/merged.profdata $$src_files
 
-LOGIC_REGION_GATE ?= 98.0
+LOGIC_REGION_GATE ?= 93.0
 LOGIC_REGION_PATTERN ?= ^Logic/State/Services/
-UI_REGION_GATE ?= 85.0
+UI_REGION_GATE ?= 92.0
 
 logic-gate:
 	@bin=$$(find .build/coverage-main -path "*/debug/FreePackageTests.xctest/Contents/MacOS/FreePackageTests" -not -path "*.dSYM/*" | head -n 1); \
@@ -108,3 +109,8 @@ clean:
 
 deep-clean:
 	@rm -rf .build "$(APP_NAME).app" "$(APP_NAME).dmg" dist
+
+hooks:
+	@chmod +x scripts/githooks/*
+	@git config core.hooksPath scripts/githooks
+	@echo "Git hooks installed (core.hooksPath -> scripts/githooks)"

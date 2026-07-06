@@ -159,6 +159,7 @@ final class RulesSheetSuggestionRowView: NSStackView {
     }
 }
 
+@MainActor
 enum RulesSheetLayoutBuilder {
     static func makeSidebarRow(
         ruleSet: RuleSet,

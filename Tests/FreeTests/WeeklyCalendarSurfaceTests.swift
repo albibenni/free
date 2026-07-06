@@ -5,6 +5,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct WeeklyCalendarSurfaceTests {
     private func makeDate(hour: Int, minute: Int = 0) -> Date {
         Calendar.current.date(from: DateComponents(hour: hour, minute: minute)) ?? Date()
@@ -74,7 +75,7 @@ struct WeeklyCalendarSurfaceTests {
     }
 
     @Test("Weekly calendar support hook fallbacks cover nil builder and overnight normalization")
-    func weeklyCalendarSupportHookFallbackCoverage() throws {
+    func weeklyCalendarSupportHookFallbackCoverage() async throws {
         defer { WeeklyCalendarSupport.resetCalendarHooksForTesting() }
         let calendar = Calendar.current
         let anchor = calendar.startOfDay(for: Date())
@@ -113,7 +114,7 @@ struct WeeklyCalendarSurfaceTests {
     }
 
     @Test("Weekly calendar support calendarDateAdder nil fallbacks cover weekBounds and normalizedInterval defensive paths")
-    func weeklyCalendarSupportDateAdderNilFallbackCoverage() throws {
+    func weeklyCalendarSupportDateAdderNilFallbackCoverage() async throws {
         defer { WeeklyCalendarSupport.resetCalendarHooksForTesting() }
 
         WeeklyCalendarSupport.calendarDateAdder = { _, _, _, date in nil }
@@ -133,7 +134,7 @@ struct WeeklyCalendarSurfaceTests {
     }
 
     @Test("Weekly calendar timeString nil date fallback via calendarDateBuilder hook")
-    func weeklyCalendarTimeStringDateBuilderNilFallbackCoverage() {
+    func weeklyCalendarTimeStringDateBuilderNilFallbackCoverage() async throws {
         defer { WeeklyCalendarSupport.resetCalendarHooksForTesting() }
 
         WeeklyCalendarSupport.calendarDateBuilder = { _, _ in nil }
@@ -142,7 +143,7 @@ struct WeeklyCalendarSurfaceTests {
     }
 
     @Test("Weekly calendar support schedule helpers cover visibility, labels, and style metadata")
-    func weeklyCalendarSupportScheduleHelpersCoverage() throws {
+    func weeklyCalendarSupportScheduleHelpersCoverage() async throws {
         let calendar = Calendar.current
         let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let bounds = WeeklyCalendarSupport.weekBounds(for: weekRange, calendar: calendar)
@@ -237,7 +238,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar document timer callback marks view for redraw")
-    func weeklyCalendarDocumentTimerCallbackCoverage() {
+    func weeklyCalendarDocumentTimerCallbackCoverage() async throws {
         let document = WeeklyCalendarSurfaceDocumentNSView(
             frame: NSRect(x: 0, y: 0, width: 320, height: 320)
         )
@@ -259,7 +260,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar document interaction-end guard branch keeps pending refresh when not rebuilding immediately")
-    func weeklyCalendarDocumentInteractionEndGuardCoverage() {
+    func weeklyCalendarDocumentInteractionEndGuardCoverage() async throws {
         let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let bounds = WeeklyCalendarSupport.weekBounds(for: weekRange)
         let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
@@ -298,7 +299,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar schedule block supports click, drag, update, and imported draw")
-    func weeklyCalendarScheduleBlockInteractionsAndDraw() throws {
+    func weeklyCalendarScheduleBlockInteractionsAndDraw() async throws {
         let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
         let targetDay = Calendar.current.component(.weekday, from: weekRange[0])
@@ -453,7 +454,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar schedule block draw covers enabled unfocus color emphasis branch")
-    func weeklyCalendarScheduleBlockUnfocusDrawCoverage() {
+    func weeklyCalendarScheduleBlockUnfocusDrawCoverage() async throws {
         let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let targetDay = Calendar.current.component(.weekday, from: weekRange[0])
         var schedule = makeSchedule(name: "Break", day: targetDay)
@@ -501,7 +502,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar schedule block draw covers enabled focus raw color branch")
-    func weeklyCalendarScheduleBlockFocusDrawCoverage() {
+    func weeklyCalendarScheduleBlockFocusDrawCoverage() async throws {
         let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let targetDay = Calendar.current.component(.weekday, from: weekRange[0])
         var schedule = makeSchedule(name: "Focus", day: targetDay)
@@ -549,7 +550,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar schedule block guard branches handle unconfigured state")
-    func weeklyCalendarScheduleBlockUnconfiguredGuards() throws {
+    func weeklyCalendarScheduleBlockUnconfiguredGuards() async throws {
         let block = WeeklyCalendarSurfaceScheduleBlockNSView()
         block.frame = NSRect(x: 0, y: 0, width: 120, height: 80)
 
@@ -607,7 +608,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar header draws both populated and empty week states")
-    func weeklyCalendarHeaderDrawCoverage() {
+    func weeklyCalendarHeaderDrawCoverage() async throws {
         let header = WeeklyCalendarSurfaceHeaderNSView(
             frame: NSRect(x: 0, y: 0, width: 900, height: 64)
         )
@@ -641,7 +642,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar header supports rainbow accent draw and flipped coordinates")
-    func weeklyCalendarHeaderRainbowAndFlippedCoverage() {
+    func weeklyCalendarHeaderRainbowAndFlippedCoverage() async throws {
         let header = WeeklyCalendarSurfaceHeaderNSView(
             frame: NSRect(x: 0, y: 0, width: 900, height: 64)
         )
@@ -665,7 +666,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar document supports selection, quick add, deferred rebuild, and redraw")
-    func weeklyCalendarDocumentInteractionsAndRefresh() throws {
+    func weeklyCalendarDocumentInteractionsAndRefresh() async throws {
         let calendar = Calendar.current
         let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
@@ -856,7 +857,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar schedule block covers cursor rects, disabled draw, and no-superview drag")
-    func weeklyCalendarScheduleBlockAdditionalBranches() throws {
+    func weeklyCalendarScheduleBlockAdditionalBranches() async throws {
         let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
         let targetDay = Calendar.current.component(.weekday, from: weekRange[0])
@@ -975,7 +976,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar document handles selection preview draw and immediate rebuild branch")
-    func weeklyCalendarDocumentAdditionalBranches() throws {
+    func weeklyCalendarDocumentAdditionalBranches() async throws {
         let calendar = Calendar.current
         let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
@@ -1138,7 +1139,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar document skips entries with unmapped days in schedule and external-event rendering")
-    func weeklyCalendarDocumentUnmappedDayBranches() {
+    func weeklyCalendarDocumentUnmappedDayBranches() async throws {
         let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let weekBounds = WeeklyCalendarSupport.weekBounds(for: weekRange)
         let schedule = makeSchedule(name: "Unmapped", day: 2)
@@ -1197,7 +1198,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar document covers unconfigured guard paths and unavailable coder init")
-    func weeklyCalendarDocumentUnconfiguredGuardsAndCoderInitCoverage() throws {
+    func weeklyCalendarDocumentUnconfiguredGuardsAndCoderInitCoverage() async throws {
         let document = WeeklyCalendarSurfaceDocumentNSView(
             frame: NSRect(x: 0, y: 0, width: 640, height: 24 * 80)
         )
@@ -1262,7 +1263,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar document current-time indicator covers out-of-week and missing-day guards")
-    func weeklyCalendarDocumentCurrentTimeIndicatorGuardCoverage() {
+    func weeklyCalendarDocumentCurrentTimeIndicatorGuardCoverage() async throws {
         let now = Date()
         let currentWeekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
@@ -1305,7 +1306,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar document deferred rebuild guard keeps blocks until immediate rebuild")
-    func weeklyCalendarDocumentDeferredRebuildGuardCoverage() throws {
+    func weeklyCalendarDocumentDeferredRebuildGuardCoverage() async throws {
         let calendar = Calendar.current
         let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
@@ -1384,7 +1385,7 @@ struct WeeklyCalendarSurfaceTests {
 
     @MainActor
     @Test("Weekly calendar document draws rainbow gradient paths for selection preview and current-time indicator")
-    func weeklyCalendarDocumentRainbowGradientCoverage() throws {
+    func weeklyCalendarDocumentRainbowGradientCoverage() async throws {
         let calendar = Calendar.current
         let weekRange = WeeklyCalendarSupport.getWeekDates(weekStartsOnMonday: false)
         let dayOrder = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)

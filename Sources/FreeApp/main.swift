@@ -1,0 +1,3 @@
+import FreeLogic
+
+FreeAppEntry.run()

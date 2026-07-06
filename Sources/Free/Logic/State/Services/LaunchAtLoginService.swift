@@ -9,7 +9,7 @@ struct LaunchAtLoginService {
         launchAtLoginManager: any LaunchAtLoginManaging = DefaultLaunchAtLoginManager(),
         settingsStore: SettingsStore,
         canPromptForLaunchAtLogin: @escaping () -> Bool = {
-            ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
+            !TestProcessDetector.isRunningTests()
         }
     ) {
         self.canPromptForLaunchAtLogin = canPromptForLaunchAtLogin

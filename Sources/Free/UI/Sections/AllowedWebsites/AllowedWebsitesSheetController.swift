@@ -73,7 +73,7 @@ final class AllowedWebsitesSheetController: NSWindowController, NSWindowDelegate
             window.setFrameOrigin(origin)
         }
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
     }
 
     private func restoreDesiredContentSize(for window: NSWindow) {

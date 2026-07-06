@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct FocusPomodoroWidgetSignature: Equatable {
     struct RuleSetSnapshot: Equatable {
         let id: UUID
@@ -63,6 +64,7 @@ struct FocusPomodoroWidgetSignature: Equatable {
     }
 }
 
+@MainActor
 struct FocusSchedulesWidgetSignature: Equatable {
     let appearanceMode: AppearanceMode
     let accentColorIndex: Int
@@ -75,6 +77,7 @@ struct FocusSchedulesWidgetSignature: Equatable {
     }
 }
 
+@MainActor
 struct FocusAllowedWebsitesWidgetSignature: Equatable {
     let appearanceMode: AppearanceMode
     let accentColorIndex: Int

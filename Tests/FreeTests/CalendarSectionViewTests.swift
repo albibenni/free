@@ -5,6 +5,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct CalendarSectionViewTests {
     private final class TestModalAlert: NSAlert {
         override func runModal() -> NSApplication.ModalResponse {
@@ -81,7 +82,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section renders integration and import-rules controls")
     @MainActor
-    func calendarSectionRender() {
+    func calendarSectionRender() async throws {
         let appState = isolatedAppState(name: "render")
         let controller = CalendarSectionViewController(appState: appState)
         let hosted = host(controller)
@@ -100,7 +101,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section toggle row title remains visible after disabling integration")
     @MainActor
-    func calendarSectionToggleTitleVisibleAfterDisable() {
+    func calendarSectionToggleTitleVisibleAfterDisable() async throws {
         let appState = isolatedAppState(name: "toggleTitleVisible")
         appState.calendarIntegrationEnabled = true
         let controller = CalendarSectionViewController(appState: appState)
@@ -118,7 +119,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section testing hooks update integration state")
     @MainActor
-    func calendarSectionToggleHooks() {
+    func calendarSectionToggleHooks() async throws {
         let appState = isolatedAppState(name: "toggleHooks")
         let controller = CalendarSectionViewController(appState: appState)
         let hosted = host(controller)
@@ -142,7 +143,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section imported allowed-list selector binds to app state and follows integration lock")
     @MainActor
-    func calendarSectionImportedRuleSetSelection() {
+    func calendarSectionImportedRuleSetSelection() async throws {
         let appState = isolatedAppState(name: "importedRuleSetSelection")
         let base = appState.ruleSets.first ?? RuleSet.defaultSet()
         let selected = RuleSet(name: "Imported List", urls: ["calendar.example"])
@@ -178,7 +179,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section imported allowed-list index guard keeps nil selection when no lists exist")
     @MainActor
-    func calendarSectionImportedRuleSetEmptyListGuard() {
+    func calendarSectionImportedRuleSetEmptyListGuard() async throws {
         let appState = isolatedAppState(name: "importedRuleSetEmptyListGuard")
         appState.ruleSets = []
         appState.calendarIntegrationEnabled = true
@@ -192,7 +193,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section add/remove rules covers parsing, dedupe and selection")
     @MainActor
-    func calendarSectionRuleActions() {
+    func calendarSectionRuleActions() async throws {
         let appState = isolatedAppState(name: "ruleActions")
         appState.calendarIntegrationEnabled = true
         appState.calendarImportFocusTitleRules = ["existing"]
@@ -251,7 +252,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section disables rule actions when integration is off and lock path is exposed")
     @MainActor
-    func calendarSectionDisabledControls() {
+    func calendarSectionDisabledControls() async throws {
         let appState = isolatedAppState(name: "disabledControls")
         appState.calendarIntegrationEnabled = false
         appState.isBlocking = true
@@ -283,7 +284,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section shows title rule controls enabled when strict; challenge cancel blocks mutations")
     @MainActor
-    func calendarSectionRuleEditsLockedWhileStrict() {
+    func calendarSectionRuleEditsLockedWhileStrict() async throws {
         let appState = isolatedAppState(name: "ruleEditsLockedWhileStrict")
         appState.calendarIntegrationEnabled = true
         appState.isStrict = true
@@ -331,7 +332,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section private rule actions are blocked by challenge cancel when strict mode is active")
     @MainActor
-    func calendarSectionRuleActionGuardsWhenEditingLocked() {
+    func calendarSectionRuleActionGuardsWhenEditingLocked() async throws {
         let appState = isolatedAppState(name: "ruleActionGuardsWhenEditingLocked")
         appState.calendarIntegrationEnabled = true
         appState.isStrict = true
@@ -366,7 +367,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section resync requests access and falls back to permission alert in test runtime")
     @MainActor
-    func calendarSectionResyncUnauthorizedPresentsFallback() {
+    func calendarSectionResyncUnauthorizedPresentsFallback() async throws {
         defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
         let appState = isolatedAppState(name: "resyncUnauthorizedPresentsFallback")
         guard let calendar = appState.calendarProvider as? MockCalendarManager else {
@@ -393,17 +394,9 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section permission fallback scheduler guards pending and restored-authorization branches")
     @MainActor
-    func calendarSectionPermissionFallbackSchedulerGuards() {
+    func calendarSectionPermissionFallbackSchedulerGuards() async throws {
         defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
-        let originalEnv = getenv("XCTestConfigurationFilePath").map { String(cString: $0) }
-        unsetenv("XCTestConfigurationFilePath")
-        defer {
-            if let originalEnv {
-                setenv("XCTestConfigurationFilePath", originalEnv, 1)
-            } else {
-                unsetenv("XCTestConfigurationFilePath")
-            }
-        }
+        CalendarSectionViewController.isRunningInTestProcess = { false }
 
         let appState = isolatedAppState(name: "permissionFallbackSchedulerGuards")
         guard let calendar = appState.calendarProvider as? MockCalendarManager else {
@@ -441,7 +434,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section permission fallback immediate test-runtime branch presents alert")
     @MainActor
-    func calendarSectionPermissionFallbackImmediateTestRuntimeBranch() {
+    func calendarSectionPermissionFallbackImmediateTestRuntimeBranch() async throws {
         defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
         let originalEnv = getenv("XCTestConfigurationFilePath").map { String(cString: $0) }
         setenv("XCTestConfigurationFilePath", "1", 1)
@@ -474,7 +467,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section permission alert open-settings path handles valid and invalid URLs")
     @MainActor
-    func calendarSectionPermissionAlertOpenSettings() {
+    func calendarSectionPermissionAlertOpenSettings() async throws {
         defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
         let appState = isolatedAppState(name: "permissionAlertOpenSettings")
         let controller = CalendarSectionViewController(appState: appState)
@@ -499,7 +492,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section static opener/scheduler hooks cover default getter and setter paths")
     @MainActor
-    func calendarSectionStaticHookCoverage() {
+    func calendarSectionStaticHookCoverage() async throws {
         defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
 
         CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting()
@@ -523,13 +516,13 @@ struct CalendarSectionViewTests {
         let scheduler = CalendarSectionViewController.scheduleAfter
         var fired = false
         scheduler(0) { fired = true }
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100000000)
         _ = fired
     }
 
     @Test("Calendar section platform workspace opener covers x-free-test guard and native open path")
     @MainActor
-    func calendarSectionPlatformWorkspaceOpenerCoverage() {
+    func calendarSectionPlatformWorkspaceOpenerCoverage() async throws {
         defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
 
         CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting()
@@ -547,7 +540,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section default workspace helpers expose callable detector and opener closures")
     @MainActor
-    func calendarSectionDefaultWorkspaceHelperGettersCoverage() {
+    func calendarSectionDefaultWorkspaceHelperGettersCoverage() async throws {
         defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
 
         CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting()
@@ -560,7 +553,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section resync authorized path triggers imported schedule rebuild")
     @MainActor
-    func calendarSectionResyncAuthorizedPath() {
+    func calendarSectionResyncAuthorizedPath() async throws {
         let appState = isolatedAppState(name: "resyncAuthorizedPath")
         guard let calendar = appState.calendarProvider as? MockCalendarManager else {
             Issue.record("Expected MockCalendarManager")
@@ -586,7 +579,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section field action handlers and empty-selection remove guards are covered")
     @MainActor
-    func calendarSectionFieldActionAndEmptyRemoveGuards() {
+    func calendarSectionFieldActionAndEmptyRemoveGuards() async throws {
         let appState = isolatedAppState(name: "fieldActionAndEmptyRemoveGuards")
         appState.calendarIntegrationEnabled = true
         appState.calendarImportFocusTitleRules = ["focus-1"]
@@ -632,7 +625,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section table callbacks cover weak-self nil and out-of-bounds rule guards")
     @MainActor
-    func calendarSectionTableCallbackGuards() {
+    func calendarSectionTableCallbackGuards() async throws {
         let appState = isolatedAppState(name: "tableCallbackGuards")
         appState.calendarImportBreakTitleRules = ["break-0"]
         var controller: CalendarSectionViewController? = CalendarSectionViewController(appState: appState)
@@ -667,17 +660,9 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section permission fallback closure handles deallocated controller safely")
     @MainActor
-    func calendarSectionPermissionFallbackNilSelfGuard() {
+    func calendarSectionPermissionFallbackNilSelfGuard() async throws {
         defer { CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting() }
-        let originalEnv = getenv("XCTestConfigurationFilePath").map { String(cString: $0) }
-        unsetenv("XCTestConfigurationFilePath")
-        defer {
-            if let originalEnv {
-                setenv("XCTestConfigurationFilePath", originalEnv, 1)
-            } else {
-                unsetenv("XCTestConfigurationFilePath")
-            }
-        }
+        CalendarSectionViewController.isRunningInTestProcess = { false }
 
         let appState = isolatedAppState(name: "permissionFallbackNilSelfGuard")
         guard let calendar = appState.calendarProvider as? MockCalendarManager else {
@@ -707,7 +692,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar section observation callback reloads view on settings signature changes")
     @MainActor
-    func calendarSectionObservationReloadPath() {
+    func calendarSectionObservationReloadPath() async throws {
         let appState = isolatedAppState(name: "observationReloadPath")
         let controller = CalendarSectionViewController(appState: appState)
         let hosted = host(controller)
@@ -727,26 +712,25 @@ struct CalendarSectionViewTests {
 
         #expect(integrationNotice.isHidden == false)
         appState.calendarIntegrationEnabled = true
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100000000)
         #expect(integrationNotice.isHidden)
     }
 
     @MainActor
     @Test("Calendar section default alert hooks cover NSAlert runModal fallback and XCTest guard")
-    func calendarSectionDefaultAlertHooksCoverage() {
+    func calendarSectionDefaultAlertHooksCoverage() async throws {
         defer {
-            _ = setenv("XCTestConfigurationFilePath", "1", 1)
             CalendarSectionViewController.resetCalendarPermissionAlertHooksForTesting()
         }
 
-        unsetenv("XCTestConfigurationFilePath")
+        CalendarSectionViewController.isRunningInTestProcess = { false }
         _ = CalendarSectionViewController.makeCalendarPermissionAlert()
         #expect(
             CalendarSectionViewController.runCalendarPermissionAlert(TestModalAlert())
                 == .alertFirstButtonReturn
         )
 
-        _ = setenv("XCTestConfigurationFilePath", "1", 1)
+        CalendarSectionViewController.isRunningInTestProcess = { true }
         #expect(
             CalendarSectionViewController.runCalendarPermissionAlert(TestModalAlert())
                 == .alertSecondButtonReturn
@@ -755,7 +739,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar integration toggle works without challenge when strict is set but not actively blocking")
     @MainActor
-    func calendarIntegrationToggleWorksWhenStrictNotBlocking() {
+    func calendarIntegrationToggleWorksWhenStrictNotBlocking() async throws {
         let appState = isolatedAppState(name: "toggleStrictNotBlocking")
         appState.isStrict = true
         appState.isBlocking = false
@@ -773,7 +757,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar integration toggle reverts switch and skips update when strict is active and challenge is cancelled")
     @MainActor
-    func calendarIntegrationToggleStrictActiveCancel() {
+    func calendarIntegrationToggleStrictActiveCancel() async throws {
         let originalMakeAlert = StrictModeChallenge.makeAlert
         let originalRunAlert = StrictModeChallenge.runAlert
         defer {
@@ -798,7 +782,7 @@ struct CalendarSectionViewTests {
 
     @Test("Calendar integration toggle applies change when strict is active and challenge passes")
     @MainActor
-    func calendarIntegrationToggleStrictActivePass() {
+    func calendarIntegrationToggleStrictActivePass() async throws {
         let originalMakeAlert = StrictModeChallenge.makeAlert
         let originalRunAlert = StrictModeChallenge.runAlert
         defer {

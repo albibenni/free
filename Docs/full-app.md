@@ -74,13 +74,13 @@ All modes share the same underlying blocking engine — they only differ in *how
 │                        AppKit UI (108 files)                    │
 │  Shell / Sidebar / Sections / Floating editors / Status menu    │
 └────────────────────────┬────────────────────────────────────────┘
-                         │ observes @Published
+                         │ observes (Observation)
 ┌────────────────────────▼────────────────────────────────────────┐
-│                        AppState (ObservableObject)              │
+│                        AppState (@Observable)                 │
 │  Central published state · Domain-split extensions              │
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │ Coordinators │  │  Services    │  │ Persistence Bindings │  │
+│  │ Coordinators │  │  Services    │  │ Persistence Trackers │  │
 │  │ (stateful    │  │ (stateless   │  │ (UserDefaults via    │  │
 │  │  orchestrate)│  │  business    │  │  Combine sinks)      │  │
 │  └──────┬───────┘  │  logic)      │  └──────────────────────┘  │
@@ -92,7 +92,7 @@ All modes share the same underlying blocking engine — they only differ in *how
 │   Reads browser URL → evaluates block → redirects to :10000     │
 │                                                                  │
 │   DefaultBrowserAutomator          RuleMatcher                  │
-│   (AppleScript + AX API)           (NSPredicate cache)          │
+│   (AppleScript + AX API)           (wildcards → Regex)           │
 └─────────────────────────────────────────────────────────────────┘
           │
 ┌─────────▼───────────────────────────────────────────────────────┐
@@ -116,10 +116,10 @@ flowchart TB
   end
 
   subgraph State["State Core"]
-    AppState["AppState (@Published source of truth)"]
+    AppState["AppState (@Observable source of truth)"]
     ReadModel["AppState Read Model"]
     Facade["AppStateLogicFacade"]
-    Persist["AppStatePersistenceCoordinator"]
+    Persist["AppStatePersistenceCoordinator\n(observation trackers)"]
     Bootstrap["AppStateBootstrapService"]
     Store["SettingsStore (UserDefaults)"]
   end
@@ -127,9 +127,8 @@ flowchart TB
   subgraph Domain["Domain Services / Coordinators"]
     SessionC["Session Coordinator"]
     SchedC["Schedule Coordinator + ScheduleCheck Coordinator"]
-    PomodoroC["Pomodoro Coordinator"]
-    PauseC["Pause Coordinator"]
-    RulesC["RuleSet Coordinator / Rules Mutation"]
+    PauseC["FocusFlow Coordinator\n(pomodoro + pause)"]
+    RulesC["RuleSet Coordinator"]
     BlockingC["Blocking Coordinator"]
     RuleSetSvc["RuleSetService (build allowedRules)"]
     ScheduleEngine["ScheduleEngine"]
@@ -164,13 +163,11 @@ flowchart TB
   AppState --> Facade
   Facade --> SessionC
   Facade --> SchedC
-  Facade --> PomodoroC
   Facade --> PauseC
   Facade --> RulesC
   Facade --> BlockingC
 
   SchedC --> ScheduleEngine
-  PomodoroC --> PomodoroEngine
   PauseC --> PauseEngine
   RulesC --> RuleSetSvc
   CalendarSvc --> EventKit
@@ -213,7 +210,7 @@ flowchart LR
 
 - **AppKit-first** — full native macOS UI; no SwiftUI for the main app shell.
 - **Protocol-decoupled I/O** — browser control, calendar, timers, and persistence are all behind protocols so they're swappable in tests.
-- **Unidirectional data flow** — UI reads `AppState`, sends actions through coordinator methods; state flows back via `@Published`.
+- **Unidirectional data flow** — UI reads `AppState`, sends actions through coordinator methods; state flows back via Observation.
 - **Swift 6** — strict concurrency, `@MainActor` annotations, `NSLock` where needed.
 
 ---
@@ -222,19 +219,19 @@ flowchart LR
 
 ### 3-1 App Entry and Runtime
 
-**Files:** `FreeApp.swift`, `FreeAppRuntime.swift`, `AppDelegate.swift`
+**Files:** `FreeApp.swift`, `FreeAppRuntime.swift`, `AppDelegate.swift`, `Sources/FreeApp/main.swift`
 
-`FreeApp` is the SwiftUI `@main` entry point (just the entry token — the actual UI is AppKit). It instantiates `FreeAppRuntime` which:
+The app is pure AppKit (no SwiftUI). There are two build paths sharing one entry point:
 
-1. Builds the dependency graph (settings store, browser automator, calendar manager, local server).
-2. Creates `AppState` and injects all dependencies.
-3. Wires the `BrowserMonitor` to `AppState` via `AppStateRuntimeWiringCoordinator`.
-4. Bootstraps persisted state via `AppStateBootstrapService`.
-5. Creates the main window and status menu item.
+- `FreeAppEntry.run()` (public, in `FreeLogic`) builds `AppState`, `AppDelegate`, and `FreeApp`, then runs `NSApplication`.
+- The raw-`swiftc` bundle build (`build.sh`/`package.sh`) uses `@main enum FreeAppMain`, compiled only outside SwiftPM (`#if !SWIFT_PACKAGE`).
+- The SwiftPM executable target (`swift run FreeApp`) is a two-line `main.swift` calling `FreeAppEntry.run()`.
 
-`AppDelegate` handles system-level events: `applicationShouldTerminate` blocks quit during strict sessions, permission prompts, app-relocation to `/Applications`.
+`FreeApp` (a `@MainActor` class) wires the main window, status item, menu, and appearance, and binds shell state to `AppState` observation.
 
-**Architecture choice:** Thin `@main` struct + fat `Runtime` class keeps the app entry point clean and makes the dependency composition visible in one place.
+`AppState.init` builds the dependency graph via `AppStateDependencyFactory`, bootstraps persisted state via `AppStateBootstrapService`, binds persistence observers, and starts the runtime (browser monitor + calendar observation + schedule timer) via `AppStateLifecycleService`.
+
+`AppDelegate` (`@MainActor`) handles system-level events: `applicationShouldTerminate` blocks quit during strict sessions (reading in-memory state via providers wired by `FreeApp`, not raw `UserDefaults`), and offers app-relocation to `/Applications` on first launch.
 
 ---
 
@@ -242,22 +239,23 @@ flowchart LR
 
 **File:** `Sources/Free/Logic/State/AppState.swift` + 15+ extensions
 
-`AppState` is an `ObservableObject` that owns all `@Published` UI-facing properties. It is the single source of truth.
+`AppState` is a `@MainActor` `@Observable` class that owns all UI-facing state. It is the single source of truth. AppKit view controllers observe it through `withObservationTracking` helpers (see `AppKitAppStateObservation`), not Combine.
 
 Domain-split via Swift extensions (one file per domain):
 
 | Extension | Responsibility |
 |---|---|
-| `AppState+Actions` | User-triggered mutations (start session, stop, pause) |
+| `AppState+Actions` | Strict-mode challenges, launch-at-login, time formatting |
 | `AppState+Pomodoro` | Pomodoro phase transitions and timer |
 | `AppState+Schedules` | CRUD for schedule blocks |
 | `AppState+Rules` | CRUD for rule sets / allowed websites |
 | `AppState+Pause` | Quick-break state |
-| `AppState+Calendar` | Calendar sync and import rules |
+| `AppState+CalendarSync` | Rebuilding imported calendar schedules |
 | `AppState+ReadModel` | Derived/computed state for UI |
-| `AppState+Settings` | Appearance, theme, launch-at-login |
 
-**Why split into extensions?** `AppState` would be a 2000+ line god-object otherwise. Extensions let each feature domain own its slice while sharing the `@Published` backing store.
+Each extension calls `logicFacade` (a struct of pure functions) directly and applies the returned transition to state — there is deliberately no intermediate service layer between the extension and the facade.
+
+**Why split into extensions?** `AppState` would be a 2000+ line god-object otherwise. Extensions let each feature domain own its slice while sharing the observable backing store.
 
 ---
 
@@ -281,30 +279,31 @@ Services are **stateless** — they receive state as input, return new state as 
 
 ### 3-4 Coordinators Layer
 
-Coordinators are **stateful orchestrators** — they hold references to services, other coordinators, and `AppState`. They receive action calls, compute new state via services, and apply mutations.
+Coordinators are **stateless namespaces of transition functions** — given current state, they return new state plus effect flags (run timer, stop timer, re-check schedules). `AppState` extensions reach them through `AppStateLogicFacade`, whose extension files map one facade method to one coordinator call.
+
+The call chain is intentionally short: `AppState+X` extension → `logicFacade.x(...)` → coordinator → engine. (An earlier `*MutationService` layer of pure pass-through forwarders between the extensions and the facade was removed.)
 
 Key coordinators:
 
 **`AppStateSessionCoordinator`**
-Handles `startSession()`, `stopSession()`. Checks strict-mode constraints, delegates to `BlockingSessionService`, publishes new session state.
+Session start/stop/check transitions. Checks strict-mode constraints, delegates to `BlockingSessionService`.
 
-**`AppStateScheduleCheckCoordinator`**
-Called by `BrowserMonitor` and timer ticks. Runs `ScheduleEngine` against current date/time. If a schedule becomes active, starts a session automatically. Debounced via `PassthroughSubject` (100 ms) to avoid thrashing on rapid state changes.
+**`AppStateFocusFlowCoordinator`**
+Pomodoro and pause transitions: start focus/break, stop-if-unlocked, ticks. Returns `PomodoroTransition`/`PauseTransition` values carrying timer-effect flags. Calls `PomodoroEngine`/`PauseEngine` directly.
 
-**`AppStatePomodoroCoordinator`**
-Manages pomodoro phase: start, skip, stop. Enforces 10-second grace-period lock in strict mode. Delegates timer ticks to `PomodoroEngine`.
+Pomodoro phase computation and the 10-second grace-period lock in strict mode.
 
-**`AppStatePauseCoordinator`**
-Manages quick breaks. Starts countdown, processes timer ticks, ends break and resumes blocking.
+**`AppStateScheduleTickCoordinator`**
+Computes the next wall-clock boundary (schedule start/end, calendar event edges) so the schedule timer wakes exactly when something changes instead of polling.
 
 **`AppStateTimerCoordinator`**
-Owns the `RepeatingTimerScheduler` instances. Replaces timers cleanly when settings change (e.g. pomodoro duration edit). Protected by `NSLock` for timer replacement.
+Owns the live timers (schedule, pause, pomodoro). Replaces timers cleanly when settings change; `NSLock`-guarded swap-then-invalidate.
 
 **`AppStatePersistenceCoordinator`**
-Creates Combine sink chains: `$property.dropFirst().sink { settingsStore.set(value) }` for every persisted property. `dropFirst()` skips the initial value load to avoid a write-on-read loop.
+One `@MainActor` tracker per persisted property: `withObservationTracking` re-arms itself and writes changed values to `SettingsStore`, deduplicated by `Equatable`.
 
 **`AppStateRuntimeWiringCoordinator`**
-Bridges `BrowserMonitor` callbacks into `AppState` actions. Keeps the monitor protocol-agnostic (it calls `onBlockedURL(url:browser:)` — the coordinator decides what happens).
+Starts the runtime: observes `CalendarProvider.events` (re-arming observation tracker), arms the self-rescheduling schedule timer, and returns a cancellable for teardown.
 
 ---
 
@@ -314,15 +313,19 @@ Bridges `BrowserMonitor` callbacks into `AppState` actions. Keeps the monitor pr
 
 The beating heart of the app. Runs on a **1.5-second repeating timer**.
 
+`BrowserMonitor` is an **actor with its own `DispatchSerialQueue` executor**, so the synchronous AppleScript round-trips it performs never occupy the shared cooperative thread pool. The tick timer is a `DispatchSourceTimer` delivered on the main queue (`DispatchRepeatingTimer`) — deliberately not `Timer.scheduledTimer`, which would install on an executor thread whose run loop never runs.
+
 Each tick:
 
-1. Read a **state snapshot** (is blocking active? which rule set?) — lock-free read of value types.
-2. Ask `BrowserAutomator` for the frontmost browser's current URL.
-3. Pass URL + rule set to `RuleMatcher`.
-4. If blocked: call `BrowserAutomator.redirect(to: "http://localhost:10000")`.
-5. Enforce redirect cooldown per-browser via `redirectLock` + `lastRedirectTime` dictionary (2-second debounce — avoids redirect loop if user navigates back quickly).
+1. Re-check permissions on a slow cadence (every 30 s) and emit `.trustedStateChanged` only when the value changes — a revoked Accessibility/Automation grant surfaces in the UI instead of blocking failing silently.
+2. Pull a **state snapshot** (`Sendable` struct) from `AppState` via an async MainActor provider. The provider also re-asserts the persisted strict/blocking flags against in-memory state (tamper repair).
+3. Guard: not blocking, paused, or frontmost app not a supported browser → return.
+4. Ask `BrowserAutomator` for the frontmost browser's current URL.
+5. Special-case new-tab pages, developer/localhost hosts, and private-network hosts per their toggles.
+6. Otherwise pass the URL to `RuleMatcher`; if not allowed, redirect to the local block page.
+7. Enforce a 2-second per-browser redirect cooldown (`lastRedirectTime`, actor-isolated — no lock needed).
 
-**Event-driven for trusted state:** Rather than re-evaluating `isBlocking` every tick from scratch, the monitor now receives a `TrustedState` snapshot pushed by `AppState` whenever blocking state changes. This means: no redundant state recomputation inside the monitor, and the monitor can't disagree with AppState.
+**AppleScript failures are not silent:** the live bridge captures the `NSAppleScript` error dictionary, logs through `os.Logger` (subsystem `com.benni.Free`), and a `-1743` (Apple Events permission denied) flips the permission check false until a script succeeds again — self-healing after the user re-grants access.
 
 **Architecture choice — polling vs. accessibility notifications:** macOS accessibility does not provide reliable "tab URL changed" notifications across all browsers. A 1.5s poll is the pragmatic choice — low enough CPU cost, fast enough response time.
 
@@ -335,11 +338,15 @@ Each tick:
 Protocol: `BrowserAutomator`
 
 ```swift
-protocol BrowserAutomator {
-    func currentURL(for browser: Browser) async -> URL?
-    func redirect(browser: Browser, to url: URL) async
+protocol BrowserAutomator: Sendable {
+    func getActiveUrl(for app: NSRunningApplication) -> String?
+    func redirect(app: NSRunningApplication, to url: String)
+    func getAllOpenUrls(browsers: [String]) -> [String]
+    func checkPermissions(prompt: Bool) -> Bool
 }
 ```
+
+The protocol is `Sendable` because implementations cross into the `BrowserMonitor` actor.
 
 Implementation uses two mechanisms:
 
@@ -369,11 +376,12 @@ Pattern syntax:
 
 **Implementation:**
 
-- Patterns converted to `NSPredicate` with `LIKE` operator (wildcard-aware).
-- Predicates cached in a dictionary keyed by pattern string — avoids recompilation on every tick.
-- Domain normalization strips `www.`, lowercases, removes trailing slash.
+- Internal browser URLs (`about:`, `chrome:`, the block page itself) are always allowed.
+- Domain normalization strips scheme and `www.`, lowercases, trims trailing slash.
+- Non-wildcard rules match by normalized equality or path/query/fragment prefix.
+- Wildcard rules are escaped and compiled to Swift `Regex` (`*` → `.*`, `?` → `.`), anchored `^…$`, case-insensitive. A malformed pattern simply fails to match (`try?`) rather than throwing.
 
-**Architecture choice — NSPredicate vs regex:** `NSPredicate LIKE` handles `*` and `?` wildcards natively, is fast, and is familiar to users. Full regex would be more powerful but harder to explain to non-technical users.
+**Architecture choice — wildcards over full regex:** `*`/`?` wildcards are easy to explain to non-technical users; they compile to regex internally, so the engine stays simple.
 
 ---
 
@@ -383,9 +391,9 @@ Pattern syntax:
 
 Protocol: `LocalServerConnection`
 
-Runs a minimal HTTP server on `http://localhost:10000`. When the browser is redirected there, it displays the block page HTML.
+Runs a minimal HTTP server on localhost (ephemeral port; redirects use the actual bound port). When the browser is redirected there, it displays the block page HTML.
 
-Runs on `DispatchQueue.global()`. Incoming connections are handled asynchronously; the response is a static HTML string baked into the binary.
+The `NWListener` is bound with `requiredInterfaceType = .loopback` — the block page is not reachable from the network. Connection handling runs on the Network framework's queue; the response is a static HTML string baked into the binary. The bound `port` is lock-protected because it is written on the Network queue and read from the `BrowserMonitor` actor.
 
 **Why localhost vs a custom URL scheme?** Custom URL schemes require the browser to have the app registered as a handler, which varies by browser. A plain HTTP server on localhost works universally.
 
@@ -432,52 +440,56 @@ Uses EventKit to read calendar events. Refreshes every 5 minutes via a repeating
 
 **State observation pattern (`AppKitAppStateObservation`):**
 
-```
-Publishers.MergeMany([publisher1, publisher2, ...])
-    .debounce(for: .milliseconds(16), scheduler: RunLoop.main)
-    .sink { [weak self] _ in self?.render() }
+```swift
+AppKitAppStateObservation.observe(
+    appState: appState,
+    signature: { [weak self] in self?.makeSignature() },  // reads the properties it cares about
+    onChange: { [weak self] _ in self?.render() }
+)
 ```
 
-Each view controller declares which `@Published` properties it cares about, subscribes to them merged, and calls a `render()` method that reads current `AppState` and updates the view. This is the AppKit equivalent of a SwiftUI `body` — explicit but controlled.
+A `@MainActor` tracker wraps `withObservationTracking`: the signature closure reads exactly the observable properties the view cares about; when any of them changes, the tracker recomputes the signature, deduplicates by `Equatable`, calls `render()`, and re-arms. This is the AppKit equivalent of a SwiftUI `body` — explicit but controlled.
 
 **Why AppKit over SwiftUI?**
 
-- The app targets macOS 14+, but was started before SwiftUI was production-ready for complex layouts.
 - AppKit gives precise control over `NSTableView`, drag-and-drop in the calendar, animation timing, and window chrome.
-- SwiftUI views are embedded in specific places (e.g. the weekly calendar blocks use SwiftUI for the block content inside an AppKit container).
+- The entire UI tree is AppKit — there is no SwiftUI in the app.
 
 ---
 
 ## 4. Threading Model
 
-```
-Main Thread (DispatchQueue.main / @MainActor)
-├── All @Published mutations
-├── AppKit UI updates
-├── Accessibility API calls (AXUIElement reads)
-├── AppleScript execution
-└── Timer coordinator callbacks
+Both targets compile in **Swift 6 language mode** — isolation is compiler-checked, not convention.
 
-Background Thread (DispatchQueue.global)
-├── BrowserMonitor tick (1.5s timer fires here)
-│   └── reads state snapshot (value types, safe)
-│   └── calls BrowserAutomator (async, awaited)
-│   └── dispatches state mutations back to main
-├── LocalServer HTTP listener
-└── EventKit calendar fetch
+```
+@MainActor
+├── AppState (@Observable) and every mutation of it
+├── All AppKit view controllers, FreeApp, AppDelegate
+├── Logic facade / coordinators / services (annotated @MainActor)
+├── Timer callbacks (DispatchRepeatingTimer fires on the main queue)
+└── Observation re-arm hops (Task { @MainActor in ... })
+
+actor BrowserMonitor (own DispatchSerialQueue executor)
+├── 1.5s tick, AppleScript round-trips, AX tree walks
+└── redirect cooldown state (actor-isolated)
+
+Network framework queue (.global())
+└── LocalServer listener/connection handlers
+    (`LocalServer` is @unchecked Sendable; `port` behind NSLock)
 ```
 
 **Thread-safety mechanisms:**
 
 | Mechanism | Where used | Why |
 |---|---|---|
-| `NSLock` | `BrowserMonitor.redirectLock` | Guards `lastRedirectTime` dict modified on background, read on background |
-| `NSLock` | `AppStateTimerCoordinator.timerLock` | Prevents race when replacing a running timer |
-| `@MainActor` | `FreeShellState` | All UI shell mutations on main thread |
-| `DispatchQueue.main.async` | Calendar fetch completion | EventKit callbacks arrive on background |
-| Value-type snapshots | `BrowserMonitor` state reads | Copies of structs are immutable; no lock needed |
+| Actor isolation | `BrowserMonitor` | Tick state (`lastRedirectTime`, permission cadence) needs no locks |
+| Custom serial executor | `BrowserMonitor` | Blocking AppleScript stays off the cooperative pool |
+| `NSLock` | `LocalServer.port`, `AppStateTimerCoordinator` | Written on the Network queue / timer swap races |
+| `@MainActor` classes as `Sendable` | observation trackers | Can re-arm from `withObservationTracking`'s `@Sendable` onChange |
+| `isolated deinit` | `AppState`, `FreeApp`, `BrowserMonitor`, `RealCalendarManager`, overlay view | Timer/observer teardown without `nonisolated(unsafe)` escape hatches |
+| Sendable protocols | `BrowserAutomator`, `RepeatingTimer(-Scheduling)` | These dependencies cross into the actor |
 
-**Why not Swift actors everywhere?** The codebase targets Swift 6 strict concurrency. `@MainActor` is used on the UI layer. The monitor uses `NSLock` for its small critical sections rather than an actor because the lock scope is tiny and the overhead of actor hops would add latency to the 1.5s loop.
+The three remaining `@unchecked Sendable` conformances are deliberate and documented in place: `LocalServer` (lock-protected state), `DefaultBrowserAutomator` (immutable runtime), and the wiring coordinator's lock-based cancel flag (cancellation can fire from a nonisolated `deinit`).
 
 ---
 
@@ -486,28 +498,32 @@ Background Thread (DispatchQueue.global)
 This is the most important flow to understand:
 
 ```
-Every 1.5 seconds:
-┌─ BrowserMonitor.tick() ──────────────────────────────────────────┐
-│                                                                   │
-│  1. snapshot = trustedState  // value type, thread-safe copy     │
-│                                                                   │
-│  2. if !snapshot.isBlocking → return early (fast path)           │
-│                                                                   │
-│  3. url = await automator.currentURL(for: frontmostBrowser)      │
-│     └─ AppleScript or AX API depending on browser                │
-│                                                                   │
-│  4. allowed = ruleMatcher.isAllowed(url, ruleSet: snapshot.rules) │
-│     └─ NSPredicate cache lookup                                  │
-│                                                                   │
-│  5. if allowed → return                                           │
-│                                                                   │
-│  6. cooldown check: lastRedirectTime[browser] < now - 2s?         │
-│     └─ NSLock read                                               │
-│                                                                   │
-│  7. automator.redirect(browser, to: "http://localhost:10000")    │
-│     └─ AppleScript set URL                                       │
-│                                                                   │
-│  8. lastRedirectTime[browser] = now  // NSLock write             │
+Every 1.5 seconds (BrowserMonitor.checkActiveTab, on the monitor actor):
+┌───────────────────────────────────────────────────────────────────┐
+│  0. permission re-check (once per 30s) → .trustedStateChanged     │
+│                                                                    │
+│  1. snapshot = await stateSnapshotProvider()  // hops to MainActor│
+│     └─ also re-asserts persisted strict/blocking flags            │
+│                                                                    │
+│  2. guards: !isBlocking, isPaused, frontmost not a supported      │
+│     browser → return early                                         │
+│                                                                    │
+│  3. cooldown check: lastRedirectTime[bundleId] < now - 2s?        │
+│     └─ actor-isolated dictionary, no lock                          │
+│                                                                    │
+│  4. url = automator.getActiveUrl(for: frontApp)                   │
+│     └─ AppleScript (AX tree walk for Arc); errors logged,          │
+│        -1743 flips the permission state                            │
+│                                                                    │
+│  5. block-page URL itself → return                                 │
+│     new-tab / developer-host / private-network URL → redirect      │
+│     if the matching toggle is on                                   │
+│                                                                    │
+│  6. RuleMatcher.isAllowed(url, rules, localPort)                   │
+│     └─ wildcard rules compiled to Regex                            │
+│                                                                    │
+│  7. not allowed → automator.redirect(app, to: "http://localhost:  │
+│     <port>") and record lastRedirectTime                           │
 └───────────────────────────────────────────────────────────────────┘
 ```
 
@@ -516,15 +532,13 @@ Every 1.5 seconds:
 ```
 User action / Schedule tick / Calendar event
          ↓
-AppStateSessionCoordinator.startSession()
+logicFacade.checkSession / startSession (session coordinator)
          ↓
-AppState.isBlocking = true  (@Published, main thread)
+AppState.isBlocking = true  (@Observable, MainActor)
          ↓
-AppStateRuntimeWiringCoordinator observes change
+Next monitor tick pulls a fresh snapshot from AppState
          ↓
-BrowserMonitor.trustedState updated (value type push)
-         ↓
-Next tick: fast path no longer skips → blocking active
+guards no longer skip → blocking active
 ```
 
 **What makes blocking stop?**
@@ -711,37 +725,40 @@ During strict mode with active blocking: Quit is hidden from the menu.
 
 ## 7. State Management Deep Dive
 
-`AppState` owns roughly 40 `@Published` properties. Here is a simplified view:
+`AppState` owns roughly 40 observable properties. Here is a simplified view:
 
 ```swift
-class AppState: ObservableObject {
+@MainActor
+@Observable
+class AppState {
     // Session
-    @Published var isBlocking: Bool
-    @Published var wasStartedBySchedule: Bool
-    @Published var manuallyPausedScheduleIds: Set<UUID>
+    var isBlocking = false
+    var isStrict = false
+    var isTrusted = false          // Accessibility + Automation permission state
 
     // Pomodoro
-    @Published var pomodoroStatus: PomodoroStatus
-    @Published var pomodoroRemaining: TimeInterval
+    var pomodoroStatus: PomodoroStatus = .none
+    var pomodoroRemaining: TimeInterval = 0
 
     // Pause
-    @Published var isPaused: Bool
-    @Published var pauseRemaining: TimeInterval
+    var isPaused = false
+    var pauseRemaining: TimeInterval = 0
 
     // Rules
-    @Published var ruleSets: [RuleSet]
-    @Published var activeRuleSetId: UUID?
+    var ruleSets: [RuleSet] = []
+    var activeRuleSetId: UUID?
 
     // Schedules
-    @Published var schedules: [Schedule]
+    var schedules: [Schedule] = []
 
     // Settings
-    @Published var isStrict: Bool
-    @Published var appearanceMode: AppearanceMode
-    @Published var accentColor: FocusColor
+    var appearanceMode: AppearanceMode = .system
+    var accentColorIndex = 0
     // ... ~25 more
 }
 ```
+
+AppKit consumes this through `withObservationTracking` wrappers (`AppKitAppStateObservation`): a `@MainActor` tracker class reads the properties it cares about, and the `@Sendable` onChange hops back to the main actor and re-arms. Sheet/shell state (`FreeShellState`) uses the same `@Observable` mechanism via `MainShellBindings`.
 
 **Read Model:** `AppStateReadModelCoordinator` computes derived state for the UI:
 
@@ -757,18 +774,23 @@ This prevents UI components from having to re-derive state independently and avo
 
 All settings are stored in `UserDefaults` via `SettingsStore`.
 
-`AppStatePersistenceCoordinator` creates Combine bindings at startup:
+`AppStatePersistenceCoordinator` arms one observation tracker per persisted property at startup:
 
 ```swift
-appState.$isBlocking
-    .dropFirst()  // skip initial load value
-    .sink { [weak self] value in
-        self?.settingsStore.set(value, forKey: .isBlocking)
+// One @MainActor Tracker per key path; simplified:
+withObservationTracking {
+    _ = appState[keyPath: keyPath]
+} onChange: {
+    Task { @MainActor in
+        if last != current { save(current) }   // Equatable dedup, skips initial load
+        startTracking(appState)                 // re-arm
     }
-    .store(in: &cancellables)
+}
 ```
 
 And the reverse — `AppStateBootstrapService` reads all stored values at launch and populates `AppState`.
+
+**Tamper resistance:** the persisted `IsStrict`/`IsBlocking` flags are externally writable (`defaults write`), so they are *not* the enforcement boundary. In-memory state is authoritative while the app runs: `AppDelegate` quit-prevention reads it via providers, and `reassertPersistedSessionFlags()` repairs external edits on every monitor snapshot and schedule tick. See `Docs/strict-mode.md` for the limits.
 
 **Persisted data includes:** session state, all schedules, all rule sets, pomodoro config, calendar import rules, appearance settings, strict mode, launch-at-login preference.
 
@@ -778,11 +800,13 @@ And the reverse — `AppStateBootstrapService` reads all stored values at launch
 
 ## 9. Testing Strategy
 
-Tests live in `Tests/FreeTests/` — 20+ test files.
+Tests live in `Tests/FreeTests/` — 60+ test files, ~720 tests. Both targets compile in Swift 6 language mode.
 
-**Test framework:** Swift Testing (new `#expect`, `@Test` macros from Xcode 16+).
+**Test framework:** Swift Testing (`#expect`, `@Test`). There is no XCTest dependency; under `swift test` the suite runs in SwiftPM's `swiftpm-testing-helper` process.
 
-**Coverage:** Run with `make coverage` which sets `FREE_COVERAGE_MODE=1` env var. Some code paths (permission prompts, app relocation) are gated behind this flag to avoid breaking tests.
+**Test-process detection:** production code that must not touch real system state in tests (modals, login items, network listeners, app relocation) routes through one canonical API — `TestProcessDetector.isRunningTests(environment:processName:classLookup:)` — which recognizes both the XCTest harness and the marker-less `swiftpm-testing-helper` process. Tests that need to force the "not a test" branch use each class's injectable `isRunningInTestProcess` hook, never environment-variable manipulation.
+
+**Coverage:** `make coverage` (sets `FREE_COVERAGE_MODE=1`), with honest gates: 95% total lines (CI), 93% regional on `Logic/State/Services/`, 92% regional on `UI/` (`make coverage-gates`).
 
 **Test doubles:**
 
@@ -799,7 +823,6 @@ Tests live in `Tests/FreeTests/` — 20+ test files.
 | Test file | Coverage |
 |---|---|
 | `AppStateSessionCoordinatorTests` | Start/stop blocking, strict mode constraints |
-| `AppStatePomodoroCoordinatorTests` | Phase transitions, grace period locking |
 | `AppStateScheduleMutationCoordinatorTests` | Schedule CRUD, overlap detection |
 | `CalendarManagerTests` | EventKit fetch, import rule matching |
 | `AllowedWebsitesCoordinatorsTests` | Rule set CRUD, pattern validation |
@@ -812,36 +835,39 @@ Tests live in `Tests/FreeTests/` — 20+ test files.
 
 **Testing philosophy:**
 
-- Services are unit-tested in isolation (pure input → output).
-- Coordinators are tested with mock dependencies.
-- UI tests use ViewInspector to assert on AppKit view state.
-- Integration tests (calendar, persistence) use real subsystems with cleanup.
+- Services and coordinators are unit-tested in isolation (pure input → output).
+- UI tests host real AppKit view controllers/views and assert on view state directly.
+- Integration tests (calendar, persistence) use real subsystems with isolated `UserDefaults` suites and cleanup.
+- Test doubles that cross into the `BrowserMonitor` actor are `@unchecked Sendable` (suites are serialized).
 
 ---
 
 ## 10. Design Patterns Reference
 
-### Event-Driven Trusted State (BrowserMonitor)
+### Snapshot Pull + Event Push (BrowserMonitor)
 
-Rather than the monitor calling back into `AppState` to ask "should I block?", `AppState` pushes a `TrustedState` value type snapshot to the monitor whenever blocking state changes. The monitor only reads this snapshot — no lock contention, no callback chain.
+Each tick the monitor pulls an immutable `Sendable` snapshot from `AppState` (async MainActor provider), so it can never disagree with the source of truth. In the other direction it pushes only one event type up (`.trustedStateChanged`), emitted on change only.
 
 ### Debounced Schedule Checking
 
 ```swift
-scheduleCheckSubject
-    .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
-    .sink { [weak self] _ in self?.evaluateSchedules() }
+scheduleCheckDebounceTask?.cancel()
+scheduleCheckDebounceTask = Task { [weak self] in
+    try? await Task.sleep(for: .milliseconds(100))
+    guard !Task.isCancelled else { return }
+    self?.performCheckSchedules()
+}
 ```
 
 Schedule evaluation is expensive (iterate all schedules). Rapid changes (e.g. user editing times) collapse into a single evaluation.
 
 ### Coordinator Pattern (not Apple's)
 
-Each coordinator owns one domain of mutations. It holds a weak reference to `AppState` and strong references to the services it needs. Coordinators never call each other directly — they go through `AppState` actions.
+Each coordinator is a stateless namespace owning one domain of transition functions. `AppState` extensions reach them through `AppStateLogicFacade`; coordinators return new state plus effect flags and never touch `AppState` themselves.
 
 ### Signature-Based Deduplication (UI Observation)
 
-View controllers compute a "signature" hash of the state fields they care about. If the signature hasn't changed since last render, `render()` is a no-op. Prevents redundant UI work when unrelated `@Published` properties change.
+View controllers compute a "signature" hash of the state fields they care about. If the signature hasn't changed since last render, `render()` is a no-op. Prevents redundant UI work when unrelated observable properties change.
 
 ### Challenge-Based Unblock
 
@@ -861,12 +887,13 @@ Strict mode requires the user to demonstrate intent by typing a full sentence. T
 | Polling (1.5s) over AX notifications | Simpler, reliable across all browsers. Max 1.5s delay before redirect. |
 | AppleScript + AX hybrid | AppleScript doesn't work on Arc; AX does. Both needed for full browser coverage. |
 | localhost:10000 block page | No browser extension required. Port 10000 could theoretically conflict with other apps. |
-| NSPredicate for URL matching | Simple wildcard syntax for users. Can't express complex regex patterns. |
+| Wildcard rules compiled to `Regex` | Simple syntax for users; a malformed pattern just fails to match. |
 | UserDefaults for persistence | Simple, no migrations needed. Not suitable if data were large. |
 | Value-type state snapshots | Thread-safe reads without locks. Requires discipline to not pass mutable refs. |
-| 30+ coordinators | High file count, but each is small and focused. Avoids monolithic AppState mutations. |
-| Swift 6 strict concurrency | Catches data races at compile time. Required adapting legacy NSLock patterns. |
+| Facade → coordinator → engine (3 hops) | A pass-through mutation-service layer was removed; each remaining file holds real logic. |
+| Swift 6 language mode (both targets) | Catches data races at compile time. Required Sendable protocols for actor-crossing deps and `isolated deinit` for teardown. |
+| Unsigned-by-default local builds, ad-hoc + Hardened Runtime for packaging | TCC grants survive rebuilds; Developer ID + notarization activate via env vars (see `Docs/build-and-release.md`). |
 
 ---
 
-*Generated: 2026-03-23 | Free macOS App*
+*Last updated: 2026-07-05 | Free macOS App*

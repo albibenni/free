@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateCalendarSyncCoordinatorTests {
     @Test("rebuildForResync returns nil when calendar integration is disabled")
-    func rebuildForResyncDisabledIntegration() {
+    func rebuildForResyncDisabledIntegration() async throws {
         let result = AppStateCalendarSyncCoordinator.rebuildForResync(
             calendarIntegrationEnabled: false,
             currentSchedules: [],
@@ -24,7 +25,7 @@ struct AppStateCalendarSyncCoordinatorTests {
     }
 
     @Test("rebuildForScheduleCheck returns nil while synchronization is in progress")
-    func rebuildForScheduleCheckWhileSynchronizing() {
+    func rebuildForScheduleCheckWhileSynchronizing() async throws {
         let result = AppStateCalendarSyncCoordinator.rebuildForScheduleCheck(
             isSynchronizingImportedSchedules: true,
             currentSchedules: [],
@@ -44,7 +45,7 @@ struct AppStateCalendarSyncCoordinatorTests {
     }
 
     @Test("rebuildForResync returns rebuilt schedules when importable event changes state")
-    func rebuildForResyncReturnsMergedSchedules() {
+    func rebuildForResyncReturnsMergedSchedules() async throws {
         let now = Date()
         let event = ExternalEvent(
             id: "event-1",

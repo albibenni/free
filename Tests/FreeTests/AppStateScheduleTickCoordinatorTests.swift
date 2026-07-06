@@ -3,6 +3,7 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateScheduleTickCoordinatorTests {
     private func makeCalendar() -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -32,7 +33,7 @@ struct AppStateScheduleTickCoordinatorTests {
     }
 
     @Test("nextInterval targets the nearest upcoming schedule boundary")
-    func nextIntervalTargetsNearestScheduleBoundary() {
+    func nextIntervalTargetsNearestScheduleBoundary() async throws {
         let calendar = makeCalendar()
         let now = makeDate(year: 2026, month: 4, day: 2, hour: 10, minute: 0, calendar: calendar)
         let weekday = calendar.component(.weekday, from: now)
@@ -61,7 +62,7 @@ struct AppStateScheduleTickCoordinatorTests {
     }
 
     @Test("nextInterval uses event boundaries when meetings can override blocking")
-    func nextIntervalTracksMeetingBoundariesWhenEnabled() {
+    func nextIntervalTracksMeetingBoundariesWhenEnabled() async throws {
         let calendar = makeCalendar()
         let now = makeDate(year: 2026, month: 4, day: 2, hour: 10, minute: 0, calendar: calendar)
         let event = ExternalEvent(
@@ -84,7 +85,7 @@ struct AppStateScheduleTickCoordinatorTests {
     }
 
     @Test("nextInterval ignores meeting boundaries when strict mode is active")
-    func nextIntervalIgnoresMeetingBoundariesInStrictMode() {
+    func nextIntervalIgnoresMeetingBoundariesInStrictMode() async throws {
         let calendar = makeCalendar()
         let now = makeDate(year: 2026, month: 4, day: 2, hour: 10, minute: 0, calendar: calendar)
         let event = ExternalEvent(

@@ -45,17 +45,33 @@ private final class LocalServerNWConnectionAdapter: LocalServerConnection {
     }
 }
 
-class LocalServer {
+// @unchecked Sendable: `port` is lock-protected; `listener`, `onFailure`, and the
+// factory/provider seams are configured before `start()` and never mutated
+// concurrently (tests set them during setup, production uses the defaults).
+final class LocalServer: @unchecked Sendable {
     var listener: NWListener?
-    private(set) var port: NWEndpoint.Port?
     var onFailure: ((Error) -> Void)?
     var processNameProvider: () -> String = { ProcessInfo.processInfo.processName }
     var listenerFactory: (_ port: NWEndpoint.Port) throws -> NWListener = { port in
-        try NWListener(using: .tcp, on: port)
+        // Loopback only: the block page must not be reachable from the network.
+        let parameters = NWParameters.tcp
+        parameters.requiredInterfaceType = .loopback
+        return try NWListener(using: parameters, on: port)
     }
 
-    func start(on requestedPort: NWEndpoint.Port = 10000) {
-        let isGeneralTesting = processNameProvider().contains("Test") && requestedPort == 10000
+    // `port` is written from the listener's Network queue and read from the
+    // BrowserMonitor actor, so access must be synchronized.
+    private let portLock = NSLock()
+    private var _port: NWEndpoint.Port?
+    private(set) var port: NWEndpoint.Port? {
+        get { portLock.lock(); defer { portLock.unlock() }; return _port }
+        set { portLock.lock(); defer { portLock.unlock() }; _port = newValue }
+    }
+
+    func start(on requestedPort: NWEndpoint.Port = .any) {
+        let isGeneralTesting = requestedPort == .any
+            && (processNameProvider().localizedCaseInsensitiveContains("test")
+                || TestProcessDetector.isRunningTests())
 
         if isGeneralTesting {
             return
@@ -65,19 +81,19 @@ class LocalServer {
             let listener = try listenerFactory(requestedPort)
             self.port = requestedPort
 
-            listener.stateUpdateHandler = { state in
+            listener.stateUpdateHandler = { [weak self] state in
                 switch state {
                 case .ready:
-                    _ = listener.port
+                    self?.port = listener.port
                 case .failed(let error):
-                    self.onFailure?(error)
+                    self?.onFailure?(error)
                 default:
                     break
                 }
             }
 
-            listener.newConnectionHandler = { connection in
-                self.handleConnection(LocalServerNWConnectionAdapter(base: connection))
+            listener.newConnectionHandler = { [weak self] connection in
+                self?.handleConnection(LocalServerNWConnectionAdapter(base: connection))
             }
 
             listener.start(queue: .global())

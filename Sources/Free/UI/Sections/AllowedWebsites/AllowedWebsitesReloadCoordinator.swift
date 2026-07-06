@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum AllowedWebsitesReloadCoordinator {
     struct ReloadState {
         let renderSignature: AllowedWebsitesFloatingEditorViewController.RenderSignature

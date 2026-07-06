@@ -2,16 +2,16 @@ import AppKit
 import Combine
 
 final class SettingsSectionViewController: NSViewController {
-    typealias AlertFactory = () -> NSAlert
-    typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
+    typealias AlertFactory = @MainActor () -> NSAlert
+    typealias AlertRunner = @MainActor (NSAlert) -> NSApplication.ModalResponse
     typealias CalendarSettingsOpener = () -> Void
-    typealias URLOpener = (URL) -> Void
+    typealias URLOpener = @MainActor (URL) -> Void
     typealias AsyncAfterScheduler = (TimeInterval, @escaping () -> Void) -> Void
     typealias TestProcessDetector = () -> Bool
 
     private static func defaultMakeStrictModeAlert() -> NSAlert { NSAlert() }
     private static func defaultRunStrictModeAlert(_ alert: NSAlert) -> NSApplication.ModalResponse {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if Self.isRunningInTestProcess() {
             return .alertSecondButtonReturn
         }
         return alert.runModal()
@@ -20,7 +20,7 @@ final class SettingsSectionViewController: NSViewController {
     private static func defaultRunCalendarPermissionAlert(
         _ alert: NSAlert
     ) -> NSApplication.ModalResponse {
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if Self.isRunningInTestProcess() {
             return .alertSecondButtonReturn
         }
         return alert.runModal()
@@ -53,50 +53,53 @@ final class SettingsSectionViewController: NSViewController {
     private static var _openCalendarPrivacySettings: CalendarSettingsOpener?
     private static var _isRunningInTestProcess: TestProcessDetector?
     private static var _nativeWorkspaceURLOpener: URLOpener?
+    private static let hookLock = NSLock()
+
     static var makeCalendarPermissionAlert: AlertFactory {
-        get { _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
-        set { _makeCalendarPermissionAlert = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _makeCalendarPermissionAlert ?? defaultMakeCalendarPermissionAlert }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _makeCalendarPermissionAlert = newValue }
     }
     static var runCalendarPermissionAlert: AlertRunner {
-        get { _runCalendarPermissionAlert ?? defaultRunCalendarPermissionAlert }
-        set { _runCalendarPermissionAlert = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _runCalendarPermissionAlert ?? defaultRunCalendarPermissionAlert }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _runCalendarPermissionAlert = newValue }
     }
     static var injectedWorkspaceURLOpener: URLOpener?
     static var isRunningInTestProcess: TestProcessDetector {
-        get { _isRunningInTestProcess ?? { AppDelegate.isRunningInTestProcess() } }
-        set { _isRunningInTestProcess = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _isRunningInTestProcess ?? { AppDelegate.isRunningInTestProcess() } }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _isRunningInTestProcess = newValue }
     }
     static var nativeWorkspaceURLOpener: URLOpener {
-        get { _nativeWorkspaceURLOpener ?? { url in workspaceNativeOpenURLOpener(url) } }
-        set { _nativeWorkspaceURLOpener = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _nativeWorkspaceURLOpener ?? { url in workspaceNativeOpenURLOpener(url) } }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _nativeWorkspaceURLOpener = newValue }
     }
     private static var workspaceNativeOpenURLOpener: URLOpener {
         _workspaceNativeOpenURLOpener ?? AppKitSystemBridges.openURL
     }
     static var platformWorkspaceURLOpener: URLOpener {
         get {
-            _platformWorkspaceURLOpener ?? { url in
+            hookLock.lock(); defer { hookLock.unlock() }
+            return _platformWorkspaceURLOpener ?? { url in
                 if url.scheme == "x-free-test" || isRunningInTestProcess() {
                     return
                 }
                 nativeWorkspaceURLOpener(url)
             }
         }
-        set { _platformWorkspaceURLOpener = newValue }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _platformWorkspaceURLOpener = newValue }
     }
     static var calendarPrivacySettingsURLString =
         "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
     static var workspaceURLOpener: URLOpener {
-        get { _workspaceURLOpener ?? defaultWorkspaceURLOpener }
-        set { _workspaceURLOpener = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _workspaceURLOpener ?? defaultWorkspaceURLOpener }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _workspaceURLOpener = newValue }
     }
     static var scheduleAfter: AsyncAfterScheduler {
-        get { _scheduleAfter ?? defaultScheduleAfter }
-        set { _scheduleAfter = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _scheduleAfter ?? defaultScheduleAfter }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _scheduleAfter = newValue }
     }
     static var openCalendarPrivacySettings: CalendarSettingsOpener {
-        get { _openCalendarPrivacySettings ?? defaultOpenCalendarPrivacySettings }
-        set { _openCalendarPrivacySettings = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _openCalendarPrivacySettings ?? defaultOpenCalendarPrivacySettings }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _openCalendarPrivacySettings = newValue }
     }
     static var calendarPermissionFallbackDelay: TimeInterval = 0.6
 
@@ -215,10 +218,11 @@ final class SettingsSectionViewController: NSViewController {
         super.viewDidLoad()
         let appState = self.appState
 
-        AppKitAppStateObservation.bind(
-            publisher: AppKitAppStateObservation.settingsPublisher(appState: appState),
-            signature: {
-                ObservationSignature(
+        AppKitAppStateObservation.observe(
+            appState: appState,
+            signature: { [weak self, weak appState] () -> ObservationSignature? in
+                guard self != nil, let appState = appState else { return nil }
+                return ObservationSignature(
                     isBlocking: appState.isBlocking,
                     isStrict: appState.isStrict,
                     isStrictActive: appState.isStrictActive,
@@ -234,8 +238,7 @@ final class SettingsSectionViewController: NSViewController {
                     cursorFluidAnimationEnabled: appState.cursorFluidAnimationEnabled,
                     launchAtLoginEnabled: appState.launchAtLoginStatus()
                 )
-            },
-            cancellables: &cancellables
+            }
         ) { [weak self] _ in
             self?.reloadSettings()
         }
@@ -647,7 +650,7 @@ final class SettingsSectionViewController: NSViewController {
 
     private func scheduleCalendarPermissionFallbackIfNeeded() {
         guard pendingCalendarPermissionFallback == false else { return }
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+        if Self.isRunningInTestProcess() {
             presentCalendarPermissionAlert()
             return
         }

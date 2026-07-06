@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 enum FreeAppRuntimeStorage {
     static var terminator: (NSApplication, Any?) -> Void {
         get { FreeAppRuntimeTerminatorState.terminator }

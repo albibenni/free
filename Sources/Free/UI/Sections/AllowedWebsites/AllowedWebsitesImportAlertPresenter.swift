@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum AllowedWebsitesImportAlertPresenter {
     typealias AlertFactory = () -> NSAlert
     typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
@@ -66,14 +67,19 @@ enum AllowedWebsitesImportAlertPresenter {
     }
 
     private static func isRunningInTestProcess() -> Bool {
-        let environment = environmentProvider()
-        if environment["XCTestConfigurationFilePath"] != nil { return true }
-        if environment["XCTestBundlePath"] != nil { return true }
-        if environment["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES"] != nil { return true }
-        if environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil {
-            return true
+        if environmentProviderOverride != nil || classLookupOverride != nil {
+            // A test has taken control of the detection inputs: honor exactly
+            // those and neutralize the ambient process-name heuristic.
+            return TestProcessDetector.isRunningTests(
+                environment: environmentProvider(),
+                processName: "",
+                classLookup: classLookup
+            )
         }
-        return classLookup("XCTestCase") != nil
+        return TestProcessDetector.isRunningTests(
+            environment: environmentProvider(),
+            classLookup: classLookup
+        )
     }
 
     private final class SelectAllCoordinator: NSObject {

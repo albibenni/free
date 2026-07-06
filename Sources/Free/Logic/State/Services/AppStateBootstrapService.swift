@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct AppStateBootstrapService {
     struct Snapshot: Equatable {
         let isBlocking: Bool

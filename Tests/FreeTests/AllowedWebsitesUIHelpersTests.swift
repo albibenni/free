@@ -4,9 +4,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AllowedWebsitesUIHelpersTests {
     @Test("Control-state applier updates allowed-websites controls consistently")
-    func controlStateApplier() {
+    func controlStateApplier() async throws {
         let urlField = NSTextField(string: "")
         let addButton = NSButton(title: "Add", target: nil, action: nil)
         let importButton = NSButton(title: "Import", target: nil, action: nil)
@@ -47,7 +48,7 @@ struct AllowedWebsitesUIHelpersTests {
     }
 
     @Test("Rule-set list builder rebuilds rows and wires taps")
-    func ruleSetListBuilder() {
+    func ruleSetListBuilder() async throws {
         let stack = NSStackView()
         stack.orientation = .vertical
         let firstId = UUID()
@@ -97,7 +98,7 @@ struct AllowedWebsitesUIHelpersTests {
     }
 
     @Test("Rule-set list builder reuses existing rows when shape is unchanged")
-    func ruleSetListBuilderReuse() {
+    func ruleSetListBuilderReuse() async throws {
         let stack = NSStackView()
         stack.orientation = .vertical
         let firstId = UUID()
@@ -153,7 +154,7 @@ struct AllowedWebsitesUIHelpersTests {
     }
 
     @Test("Rule-set list builder updateOrRebuild falls back to rebuild on id/title/order mismatches")
-    func ruleSetListBuilderUpdateFallbacks() {
+    func ruleSetListBuilderUpdateFallbacks() async throws {
         let stack = NSStackView()
         stack.orientation = .vertical
         let firstId = UUID()

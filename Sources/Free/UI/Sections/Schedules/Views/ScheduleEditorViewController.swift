@@ -4,16 +4,22 @@ final class ScheduleEditorViewController: NSViewController, NSTextFieldDelegate 
     typealias AlertFactory = () -> NSAlert
     typealias AlertRunner = (NSAlert) -> NSApplication.ModalResponse
 
+    private static let hookLock = NSLock()
     private static var _makeDeleteConfirmationAlert: AlertFactory?
     private static var _runDeleteConfirmationAlert: AlertRunner?
     private static var _isRunningInTestProcess: (() -> Bool)?
     static var makeDeleteConfirmationAlert: AlertFactory {
-        get { _makeDeleteConfirmationAlert ?? defaultMakeDeleteConfirmationAlert }
-        set { _makeDeleteConfirmationAlert = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _makeDeleteConfirmationAlert ?? defaultMakeDeleteConfirmationAlert }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _makeDeleteConfirmationAlert = newValue }
     }
     static var runDeleteConfirmationAlert: AlertRunner {
-        get { _runDeleteConfirmationAlert ?? defaultRunDeleteConfirmationAlert }
-        set { _runDeleteConfirmationAlert = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _runDeleteConfirmationAlert ?? defaultRunDeleteConfirmationAlert }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _runDeleteConfirmationAlert = newValue }
+    }
+
+    static var isRunningInTestProcess: () -> Bool {
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _isRunningInTestProcess ?? { isRunningUnderXCTest } }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _isRunningInTestProcess = newValue }
     }
 
     private static func defaultMakeDeleteConfirmationAlert() -> NSAlert { NSAlert() }

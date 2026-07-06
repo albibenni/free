@@ -3,6 +3,7 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct BlockingSessionServiceTests {
     private func activeFocusSchedule() -> Schedule {
         let now = Date()
@@ -17,7 +18,7 @@ struct BlockingSessionServiceTests {
     }
 
     @Test("toggleBlocking keeps state unchanged when strict mode is active")
-    func toggleBlockingStrictModeNoop() {
+    func toggleBlockingStrictModeNoop() async throws {
         let initialPaused: Set<UUID> = [UUID()]
         let result = BlockingSessionService.toggleBlocking(
             isBlocking: true,
@@ -33,7 +34,7 @@ struct BlockingSessionServiceTests {
     }
 
     @Test("toggleBlocking adds active focus schedules to paused ids when turning off")
-    func toggleBlockingAddsActiveFocusIds() {
+    func toggleBlockingAddsActiveFocusIds() async throws {
         let schedule = activeFocusSchedule()
         let result = BlockingSessionService.toggleBlocking(
             isBlocking: true,
@@ -49,7 +50,7 @@ struct BlockingSessionServiceTests {
     }
 
     @Test("scheduleTransition starts schedule-driven blocking when needed")
-    func scheduleTransitionStartsAutomaticBlocking() {
+    func scheduleTransitionStartsAutomaticBlocking() async throws {
         let result = BlockingSessionService.scheduleTransition(
             isBlocking: false,
             wasStartedBySchedule: false,
@@ -61,7 +62,7 @@ struct BlockingSessionServiceTests {
     }
 
     @Test("scheduleTransition stops only schedule-driven blocking")
-    func scheduleTransitionStopsOnlyScheduleDrivenBlocking() {
+    func scheduleTransitionStopsOnlyScheduleDrivenBlocking() async throws {
         let stops = BlockingSessionService.scheduleTransition(
             isBlocking: true,
             wasStartedBySchedule: true,

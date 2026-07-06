@@ -5,6 +5,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct FreeAppTests {
     private struct SharedAppSnapshot {
         let delegate: NSApplicationDelegate?
@@ -50,30 +51,36 @@ struct FreeAppTests {
     }
 
     @MainActor
-    private func drainMainRunLoop() {
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+    private func drainMainRunLoop() async throws {
+        try await Task.sleep(nanoseconds: 100000000)
     }
 
     @MainActor
-    private func withIsolatedAppKitState(_ body: () -> Void) {
+    private func withIsolatedAppKitState(_ body: () async throws -> Void) async throws {
         let snapshot = snapshotSharedApplicationState()
         resetSharedApplicationState()
-        defer {
-            drainMainRunLoop()
+        do {
+            try await body()
+        } catch {
+            try await drainMainRunLoop()
             resetSharedApplicationState()
             restoreSharedApplicationState(snapshot)
-            drainMainRunLoop()
+            try await drainMainRunLoop()
+            throw error
         }
-        body()
+        try await drainMainRunLoop()
+        resetSharedApplicationState()
+        restoreSharedApplicationState(snapshot)
+        try await drainMainRunLoop()
     }
 
     @MainActor
     @Test("FreeApp reflects inactive menu state")
-    func inactiveMenuState() {
-        withIsolatedAppKitState {
+    func inactiveMenuState() async throws {
+        try await withIsolatedAppKitState {
             let appState = isolatedAppState(name: "inactiveMenuState")
             appState.isBlocking = false
-            let app = FreeApp(appState: appState)
+            let app = FreeApp(appState: appState, appDelegate: AppDelegate())
 
             #expect(app.menuStatusText.hasPrefix("Focus Mode: Inactive"))
             #expect(app.isQuitDisabled == false)
@@ -83,11 +90,11 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp reflects active menu state")
-    func activeMenuState() {
-        withIsolatedAppKitState {
+    func activeMenuState() async throws {
+        try await withIsolatedAppKitState {
             let appState = isolatedAppState(name: "activeMenuState")
             appState.isBlocking = true
-            let app = FreeApp(appState: appState)
+            let app = FreeApp(appState: appState, appDelegate: AppDelegate())
 
             #expect(app.menuStatusText.hasPrefix("Focus Mode: Active"))
             #expect(app.isQuitDisabled == true)
@@ -97,8 +104,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp menu status summary includes focus, calendar, list, unbreakable and pomodoro details")
-    func menuStatusSummaryIncludesRequestedSignals() {
-        withIsolatedAppKitState {
+    func menuStatusSummaryIncludesRequestedSignals() async throws {
+        try await withIsolatedAppKitState {
             let suite = "FreeAppTests.topBarStatusSummaryIncludesRequestedSignals"
             let defaults = UserDefaults(suiteName: suite)!
             defaults.removePersistentDomain(forName: suite)
@@ -123,7 +130,7 @@ struct FreeAppTests {
             appState.pomodoroStatus = .focus
             appState.pomodoroRemaining = 120
 
-            let app = FreeApp(appState: appState)
+            let app = FreeApp(appState: appState, appDelegate: AppDelegate())
             let menu = app.menuStatusText
 
             #expect(menu.contains("Focus Mode: Active"))
@@ -137,8 +144,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp menu status summary shows next calendar schedule when no event is currently active")
-    func menuStatusSummaryShowsNextCalendarEvent() {
-        withIsolatedAppKitState {
+    func menuStatusSummaryShowsNextCalendarEvent() async throws {
+        try await withIsolatedAppKitState {
             let suite = "FreeAppTests.topBarStatusSummaryShowsNextCalendarEvent"
             let defaults = UserDefaults(suiteName: suite)!
             defaults.removePersistentDomain(forName: suite)
@@ -154,7 +161,7 @@ struct FreeAppTests {
 
             let appState = AppState(defaults: defaults, calendar: calendar, isTesting: true)
             appState.calendarIntegrationEnabled = true
-            let app = FreeApp(appState: appState)
+            let app = FreeApp(appState: appState, appDelegate: AppDelegate())
 
             #expect(app.menuStatusText.contains("Calendar: Next"))
             #expect(app.topBarStatusText.isEmpty)
@@ -163,8 +170,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp menu status summary chooses earliest upcoming calendar event from unsorted events")
-    func menuStatusSummarySortsCalendarEventsBeforePickingNext() {
-        withIsolatedAppKitState {
+    func menuStatusSummarySortsCalendarEventsBeforePickingNext() async throws {
+        try await withIsolatedAppKitState {
             let suite = "FreeAppTests.menuStatusSummarySortsCalendarEventsBeforePickingNext"
             let defaults = UserDefaults(suiteName: suite)!
             defaults.removePersistentDomain(forName: suite)
@@ -188,7 +195,7 @@ struct FreeAppTests {
 
             let appState = AppState(defaults: defaults, calendar: calendar, isTesting: true)
             appState.calendarIntegrationEnabled = true
-            let app = FreeApp(appState: appState)
+            let app = FreeApp(appState: appState, appDelegate: AppDelegate())
             let formatter = DateFormatter()
             formatter.timeStyle = .short
             formatter.dateStyle = .none
@@ -200,8 +207,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp menu status summary shows calendar none when integration is enabled with no events")
-    func menuStatusSummaryShowsCalendarNone() {
-        withIsolatedAppKitState {
+    func menuStatusSummaryShowsCalendarNone() async throws {
+        try await withIsolatedAppKitState {
             let suite = "FreeAppTests.menuStatusSummaryShowsCalendarNone"
             let defaults = UserDefaults(suiteName: suite)!
             defaults.removePersistentDomain(forName: suite)
@@ -210,7 +217,7 @@ struct FreeAppTests {
 
             let appState = AppState(defaults: defaults, calendar: calendar, isTesting: true)
             appState.calendarIntegrationEnabled = true
-            let app = FreeApp(appState: appState)
+            let app = FreeApp(appState: appState, appDelegate: AppDelegate())
 
             #expect(app.menuStatusText.contains("Calendar: None"))
         }
@@ -218,12 +225,12 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp menu status summary includes pomodoro break phase")
-    func menuStatusSummaryIncludesPomodoroBreak() {
-        withIsolatedAppKitState {
+    func menuStatusSummaryIncludesPomodoroBreak() async throws {
+        try await withIsolatedAppKitState {
             let appState = isolatedAppState(name: "menuStatusSummaryIncludesPomodoroBreak")
             appState.pomodoroStatus = .breakTime
             appState.pomodoroRemaining = 90
-            let app = FreeApp(appState: appState)
+            let app = FreeApp(appState: appState, appDelegate: AppDelegate())
 
             #expect(app.menuStatusText.contains("Pomodoro: Break"))
         }
@@ -231,8 +238,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp appearance mapping mirrors app settings")
-    func appearanceMapping() {
-        withIsolatedAppKitState {
+    func appearanceMapping() async throws {
+        try await withIsolatedAppKitState {
             #expect(FreeApp.nsAppearance(for: .system) == nil)
             #expect(FreeApp.nsAppearance(for: .light)?.name == .aqua)
             #expect(FreeApp.nsAppearance(for: .dark)?.name == .darkAqua)
@@ -241,8 +248,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp derives application name from bundle metadata with process fallback")
-    func applicationNameResolution() {
-        withIsolatedAppKitState {
+    func applicationNameResolution() async throws {
+        try await withIsolatedAppKitState {
             #expect(
                 FreeApp.applicationName(
                     bundleInfo: ["CFBundleDisplayName": "Free Display"],
@@ -278,8 +285,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp main menu includes Quit item bound to command-Q")
-    func mainMenuContainsQuitShortcut() {
-        withIsolatedAppKitState {
+    func mainMenuContainsQuitShortcut() async throws {
+        try await withIsolatedAppKitState {
             let menu = FreeApp.makeMainMenu(appName: "Free")
 
             #expect(menu.items.count == 2)
@@ -302,17 +309,17 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp default initializer can be created")
-    func defaultInitializerBuildsAppController() {
-        withIsolatedAppKitState {
-            let app = FreeApp()
+    func defaultInitializerBuildsAppController() async throws {
+        try await withIsolatedAppKitState {
+            let app = FreeApp(appState: isolatedAppState(name: "defaultInit"), appDelegate: AppDelegate())
             #expect(app.menuStatusText.hasPrefix("Focus Mode:"))
         }
     }
 
     @MainActor
     @Test("FreeApp default factories build interface objects on first start")
-    func defaultFactoriesBuildInterfaceObjects() {
-        withIsolatedAppKitState {
+    func defaultFactoriesBuildInterfaceObjects() async throws {
+        try await withIsolatedAppKitState {
             let appState = isolatedAppState(name: "defaultFactoriesBuildInterfaceObjects")
             let app = FreeApp(appState: appState, appDelegate: AppDelegate())
 
@@ -326,8 +333,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp initializer uses default controller factories when omitted")
-    func initializerDefaultFactoryArguments() {
-        withIsolatedAppKitState {
+    func initializerDefaultFactoryArguments() async throws {
+        try await withIsolatedAppKitState {
             let appState = isolatedAppState(name: "defaultFactories")
             let app = FreeApp(
                 appState: appState,
@@ -339,8 +346,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp resolves application name from Bundle/ProcessInfo wrapper")
-    func bundleAndProcessNameWrapper() {
-        withIsolatedAppKitState {
+    func bundleAndProcessNameWrapper() async throws {
+        try await withIsolatedAppKitState {
             let result = FreeApp.applicationName(bundle: .main, processInfo: .processInfo)
             #expect(result.isEmpty == false)
         }
@@ -348,8 +355,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp falls back to process name when bundle info dictionary is nil")
-    func bundleWrapperNilInfoFallback() {
-        withIsolatedAppKitState {
+    func bundleWrapperNilInfoFallback() async throws {
+        try await withIsolatedAppKitState {
             let processInfo = ProcessInfo.processInfo
 
             let result = FreeApp.applicationName(bundleInfo: nil, processName: processInfo.processName)
@@ -359,8 +366,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp launch/start interface and appearance updates are stable")
-    func launchStartAndAppearanceLifecycle() {
-        withIsolatedAppKitState {
+    func launchStartAndAppearanceLifecycle() async throws {
+        try await withIsolatedAppKitState {
             let appState = isolatedAppState(name: "launchAndStartInterfaceLifecycle")
             let appDelegate = AppDelegate()
 
@@ -413,18 +420,18 @@ struct FreeAppTests {
             #expect(NSApp.appearance == nil)
 
             appState.isBlocking.toggle()
-            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            try await Task.sleep(nanoseconds: 100000000)
             appState.appearanceMode = .light
-            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            try await Task.sleep(nanoseconds: 100000000)
             appState.appearanceMode = .dark
-            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            try await Task.sleep(nanoseconds: 100000000)
         }
     }
 
     @MainActor
     @Test("FreeApp status-menu Open App action routes through the wired window activation handler")
-    func statusMenuOpenAppActionPath() {
-        withIsolatedAppKitState {
+    func statusMenuOpenAppActionPath() async throws {
+        try await withIsolatedAppKitState {
             let appState = isolatedAppState(name: "statusMenuOpenAppActionPath")
             let app = FreeApp(
                 appState: appState,
@@ -453,8 +460,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp Open App handler safely no-ops when app instance is released")
-    func statusMenuOpenAppActionNoOpAfterAppReleased() {
-        withIsolatedAppKitState {
+    func statusMenuOpenAppActionNoOpAfterAppReleased() async throws {
+        try await withIsolatedAppKitState {
             let appState = isolatedAppState(name: "statusMenuOpenAppActionNoOpAfterAppReleased")
             var app: FreeApp? = FreeApp(
                 appState: appState,
@@ -485,8 +492,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp observes calendar provider publisher after interface binding")
-    func observesCalendarProviderPublisher() {
-        withIsolatedAppKitState {
+    func observesCalendarProviderPublisher() async throws {
+        try await withIsolatedAppKitState {
             let suite = "FreeAppTests.observesCalendarProviderPublisher"
             let defaults = UserDefaults(suiteName: suite)!
             defaults.removePersistentDomain(forName: suite)
@@ -516,7 +523,7 @@ struct FreeAppTests {
                     endDate: Date().addingTimeInterval(1200)
                 )
             ]
-            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            try await Task.sleep(nanoseconds: 100000000)
 
             #expect(app.menuStatusText.contains("Calendar: Next"))
         }
@@ -524,8 +531,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp didBecomeActive observer triggers monitor permission check without prompt")
-    func appDidBecomeActiveChecksPermissions() {
-        final class PermissionAutomator: BrowserAutomator {
+    func appDidBecomeActiveChecksPermissions() async throws {
+        final class PermissionAutomator: BrowserAutomator, @unchecked Sendable {
             var promptValues: [Bool] = []
             func getActiveUrl(for _: NSRunningApplication) -> String? { nil }
             func redirect(app _: NSRunningApplication, to _: String) {}
@@ -536,7 +543,7 @@ struct FreeAppTests {
             }
         }
 
-        withIsolatedAppKitState {
+        try await withIsolatedAppKitState {
             let appState = isolatedAppState(name: "appDidBecomeActiveChecksPermissions")
             let automator = PermissionAutomator()
             let monitor = BrowserMonitor(
@@ -547,6 +554,7 @@ struct FreeAppTests {
                 startTimer: false
             )
             appState.monitor = monitor
+            try await Task.sleep(nanoseconds: 100000000)
             let baselineCallCount = automator.promptValues.count
 
             let app = FreeApp(
@@ -557,7 +565,7 @@ struct FreeAppTests {
             app.startInterface(application: NSApplication.shared)
 
             NotificationCenter.default.post(name: NSApplication.didBecomeActiveNotification, object: nil)
-            RunLoop.main.run(until: Date().addingTimeInterval(0.03))
+            try await Task.sleep(nanoseconds: 30000000)
 
             #expect(automator.promptValues.count == baselineCallCount + 1)
             #expect(automator.promptValues.last == false)
@@ -566,8 +574,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp launch callback safely no-ops when app is already released")
-    func launchCallbackNoOpsAfterAppRelease() {
-        withIsolatedAppKitState {
+    func launchCallbackNoOpsAfterAppRelease() async throws {
+        try await withIsolatedAppKitState {
             let appState = isolatedAppState(name: "launchCallbackNoOpsAfterAppRelease")
             let appDelegate = AppDelegate()
             var app: FreeApp? = FreeApp(appState: appState, appDelegate: appDelegate)
@@ -585,8 +593,8 @@ struct FreeAppTests {
 
     @MainActor
     @Test("FreeApp quitAction delegates through runtime terminator")
-    func quitActionDelegatesToRuntime() {
-        withIsolatedAppKitState {
+    func quitActionDelegatesToRuntime() async throws {
+        try await withIsolatedAppKitState {
             let originalTerminator = FreeAppRuntimeStorage.terminator
             defer { FreeAppRuntimeStorage.terminator = originalTerminator }
 

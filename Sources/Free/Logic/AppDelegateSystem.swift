@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 protocol AppDelegateSystem {
     var bundlePath: String { get }
     var bundleName: String { get }
@@ -19,6 +20,7 @@ protocol AppDelegateSystem {
     func showBlockingAlert()
 }
 
+@MainActor
 protocol AppDelegateAlertPresenting: AnyObject {
     var messageText: String { get set }
     var informativeText: String { get set }
@@ -46,7 +48,9 @@ protocol AppDelegateProcessRunning: AnyObject {
 
 extension Process: AppDelegateProcessRunning {}
 
+@MainActor
 struct DefaultAppDelegateSystem: AppDelegateSystem {
+    @MainActor
     private enum ModalDefault {
         static func run(_ alert: any AppDelegateAlertPresenting) -> NSApplication.ModalResponse {
             if isRunningInTestProcess(), alert is NSAlert {
@@ -60,6 +64,7 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
         }
     }
 
+    @MainActor
     struct Runtime {
         var bundlePathProvider: () -> String
         var bundleNameProvider: () -> String
@@ -77,7 +82,7 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
 #else
             let activate: () -> Void = {
                 NSApp.setActivationPolicy(.regular)
-                NSApp.activate(ignoringOtherApps: true)
+                NSApp.activate()
             }
             let terminate: () -> Void = { NSApplication.shared.terminate(nil) }
 #endif
@@ -96,15 +101,16 @@ struct DefaultAppDelegateSystem: AppDelegateSystem {
 
     private let runtime: Runtime
 
-    static func isRunningInTestProcess(
+    nonisolated static func isRunningInTestProcess(
         environment: [String: String] = ProcessInfo.processInfo.environment,
+        processName: String = ProcessInfo.processInfo.processName,
         classLookup: (String) -> AnyClass? = NSClassFromString
     ) -> Bool {
-        if environment["XCTestConfigurationFilePath"] != nil { return true }
-        if environment["XCTestBundlePath"] != nil { return true }
-        if environment["SWIFT_TESTING_ENABLE_EXPERIMENTAL_FEATURES"] != nil { return true }
-        if environment["__XCODE_BUILT_PRODUCTS_DIR_PATHS"] != nil { return true }
-        return classLookup("XCTestCase") != nil
+        TestProcessDetector.isRunningTests(
+            environment: environment,
+            processName: processName,
+            classLookup: classLookup
+        )
     }
 
     init(runtime: Runtime = .live) {

@@ -1,13 +1,14 @@
 import AppKit
 import Combine
 
+@MainActor
 final class FreeApp {
     let appState: AppState
     let appDelegate: AppDelegate
 
-    private let makeMainViewController: (AppState) -> FreeMainViewController
-    private let makeStatusItemController: (@escaping () -> Void) -> FreeStatusItemController
-    private let presentMainWindow: (FreeMainWindowController, FreeMainViewController) -> Void
+    private let makeMainViewController: @MainActor (AppState) -> FreeMainViewController
+    private let makeStatusItemController: @MainActor (@escaping @MainActor () -> Void) -> FreeStatusItemController
+    private let presentMainWindow: @MainActor (FreeMainWindowController, FreeMainViewController) -> Void
 
     private(set) var mainWindowController: FreeMainWindowController?
     private(set) var statusItemController: FreeStatusItemController?
@@ -25,15 +26,15 @@ final class FreeApp {
     }
 
     init(
-        appState: AppState = AppState(defaults: .standard),
-        appDelegate: AppDelegate = AppDelegate(),
-        makeMainViewController: @escaping (AppState) -> FreeMainViewController = {
+        appState: AppState,
+        appDelegate: AppDelegate,
+        makeMainViewController: @escaping @MainActor (AppState) -> FreeMainViewController = {
             FreeMainViewController(appState: $0)
         },
-        makeStatusItemController: @escaping (@escaping () -> Void) -> FreeStatusItemController = {
+        makeStatusItemController: @escaping @MainActor (@escaping @MainActor () -> Void) -> FreeStatusItemController = {
             FreeStatusItemController(onQuit: $0)
         },
-        presentMainWindow: @escaping (FreeMainWindowController, FreeMainViewController) -> Void = {
+        presentMainWindow: @escaping @MainActor (FreeMainWindowController, FreeMainViewController) -> Void = {
             windowController, rootViewController in
             windowController.showWindow(nil)
             windowController.window?.makeKeyAndOrderFront(nil)
@@ -65,7 +66,7 @@ final class FreeApp {
         ""
     }
 
-    static func quitAction() -> () -> Void {
+    static func quitAction() -> @MainActor () -> Void {
         FreeAppRuntime.quitApplication
     }
 
@@ -202,8 +203,15 @@ final class FreeApp {
         return mainMenu
     }
 
-    func launch(application: NSApplication = .shared) {
+    func launch(application: NSApplication? = nil) {
+        let application = application ?? NSApplication.shared
         application.setActivationPolicy(.regular)
+        appDelegate.isStrictProvider = { [weak appState] in
+            MainActor.assumeIsolated { appState?.isStrict ?? false }
+        }
+        appDelegate.isBlockingProvider = { [weak appState] in
+            MainActor.assumeIsolated { appState?.isBlocking ?? false }
+        }
         appDelegate.onApplicationDidFinishLaunching = { [weak self, weak application] in
             guard let self, let application else { return }
             self.startInterface(application: application)
@@ -211,7 +219,8 @@ final class FreeApp {
         application.delegate = appDelegate
     }
 
-    func startInterface(application: NSApplication = .shared) {
+    func startInterface(application: NSApplication? = nil) {
+        let application = application ?? NSApplication.shared
         application.mainMenu = Self.makeMainMenu(
             appName: Self.applicationName()
         )
@@ -232,7 +241,9 @@ final class FreeApp {
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
-                self?.appState.monitor?.checkPermissions(prompt: false)
+                Task {
+                    await self?.appState.monitor?.checkPermissions(prompt: false)
+                }
             }
         }
         statusItemController?.setOpenAppHandler { [weak self, weak application] in
@@ -240,16 +251,16 @@ final class FreeApp {
             self.mainWindowController?.showWindow(nil)
             self.mainWindowController?.window?.makeKeyAndOrderFront(nil)
             self.mainWindowController?.window?.orderFrontRegardless()
-            application.activate(ignoringOtherApps: true)
+            application.activate()
         }
 
         bindStateIfNeeded()
         applyMacOSAppearance(appState.appearanceMode)
         updateStatusItem()
-        application.activate(ignoringOtherApps: true)
+        application.activate()
     }
 
-    deinit {
+    isolated deinit {
         if let didBecomeActiveObserver {
             NotificationCenter.default.removeObserver(didBecomeActiveObserver)
         }
@@ -270,36 +281,45 @@ final class FreeApp {
         guard !hasBoundState else { return }
         hasBoundState = true
 
-        appState.$isBlocking
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
+        startTrackingStatusItem()
+        startTrackingAppearance()
+    }
+
+    private func startTrackingStatusItem() {
+        withObservationTracking {
+            MainActor.assumeIsolated {
+                _ = appState.isBlocking
+                _ = appState.isStrict
+                _ = appState.isPaused
+                _ = appState.schedules
+                _ = appState.ruleSets
+                _ = appState.activeRuleSetId
+                _ = appState.pomodoroStatus
+                _ = appState.pomodoroRemaining
+                _ = appState.calendarIntegrationEnabled
+                _ = appState.calendarProvider.events
+            }
+        } onChange: { [weak self] in
+            DispatchQueue.main.async {
                 self?.updateStatusItem()
+                self?.startTrackingStatusItem()
             }
-            .store(in: &cancellables)
-
-        Publishers.MergeMany(
-            appState.$isStrict.map { _ in () }.eraseToAnyPublisher(),
-            appState.$isPaused.map { _ in () }.eraseToAnyPublisher(),
-            appState.$schedules.map { _ in () }.eraseToAnyPublisher(),
-            appState.$ruleSets.map { _ in () }.eraseToAnyPublisher(),
-            appState.$activeRuleSetId.map { _ in () }.eraseToAnyPublisher(),
-            appState.$pomodoroStatus.map { _ in () }.eraseToAnyPublisher(),
-            appState.$pomodoroRemaining.map { _ in () }.eraseToAnyPublisher(),
-            appState.$calendarIntegrationEnabled.map { _ in () }.eraseToAnyPublisher(),
-            appState.calendarProvider.objectWillChange.map { _ in () }.eraseToAnyPublisher()
-        )
-        .receive(on: RunLoop.main)
-        .sink { [weak self] _ in
-            self?.updateStatusItem()
         }
-        .store(in: &cancellables)
+    }
 
-        appState.$appearanceMode
-            .receive(on: RunLoop.main)
-            .sink { [weak self] mode in
-                self?.applyMacOSAppearance(mode)
+    private func startTrackingAppearance() {
+        withObservationTracking {
+            MainActor.assumeIsolated {
+                _ = appState.appearanceMode
             }
-            .store(in: &cancellables)
+        } onChange: { [weak self] in
+            DispatchQueue.main.async {
+                if let mode = self?.appState.appearanceMode {
+                    self?.applyMacOSAppearance(mode)
+                }
+                self?.startTrackingAppearance()
+            }
+        }
     }
 
     private func updateStatusItem() {
@@ -372,16 +392,27 @@ final class FreeApp {
     }()
 }
 
+/// Public entry point shared by the raw-swiftc bundle build (`FreeAppMain`
+/// below) and the SPM executable target (`Sources/FreeApp/main.swift`).
+public enum FreeAppEntry {
+    @MainActor public static func run() {
+        let application = NSApplication.shared
+        let app = FreeApp(
+            appState: AppState(defaults: .standard),
+            appDelegate: AppDelegate()
+        )
+        app.launch(application: application)
+        withExtendedLifetime(app) {
+            application.run()
+        }
+    }
+}
+
 #if !SWIFT_PACKAGE
     @main
     enum FreeAppMain {
-        static func main() {
-            let application = NSApplication.shared
-            let app = FreeApp()
-            app.launch(application: application)
-            withExtendedLifetime(app) {
-                application.run()
-            }
+        @MainActor static func main() {
+            FreeAppEntry.run()
         }
     }
 #endif

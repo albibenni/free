@@ -5,6 +5,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct PomodoroWidgetTests {
     private final class TestModalAlert: NSAlert {
         override func runModal() -> NSApplication.ModalResponse {
@@ -85,7 +86,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView renders setup content when no session is active")
     @MainActor
-    func pomodoroWidgetSetupRender() {
+    func pomodoroWidgetSetupRender() async throws {
         let appState = isolatedAppState(name: "setupRender")
         appState.pomodoroStatus = .none
 
@@ -100,7 +101,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView default alert hook closures execute safely")
     @MainActor
-    func pomodoroWidgetDefaultAlertHookClosures() {
+    func pomodoroWidgetDefaultAlertHookClosures() async throws {
         let createdAlert = FocusPomodoroWidgetView.makeAlert()
         #expect(type(of: createdAlert) == NSAlert.self)
 
@@ -122,7 +123,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView applies presets and quick breaks through AppKit buttons")
     @MainActor
-    func pomodoroWidgetPresetAndQuickBreakActions() {
+    func pomodoroWidgetPresetAndQuickBreakActions() async throws {
         let appState = isolatedAppState(name: "presetAndQuickBreak")
         appState.isBlocking = true
         appState.isStrict = false
@@ -149,7 +150,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView exposes draggable AppKit dials that update durations")
     @MainActor
-    func pomodoroWidgetDraggableDials() {
+    func pomodoroWidgetDraggableDials() async throws {
         let appState = isolatedAppState(name: "draggableDials")
         appState.pomodoroStatus = .none
         appState.pomodoroFocusDuration = 25
@@ -183,7 +184,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView disables quick-break controls when blocking is inactive; enables with challenge in strict mode")
     @MainActor
-    func pomodoroWidgetQuickBreakDisabledStates() {
+    func pomodoroWidgetQuickBreakDisabledStates() async throws {
         let inactiveState = isolatedAppState(name: "inactiveQuickBreak")
         inactiveState.isBlocking = false
         inactiveState.isStrict = false
@@ -204,7 +205,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView selects rule sets and locks them during strict mode")
     @MainActor
-    func pomodoroWidgetRuleSetSelectionAndStrictLock() {
+    func pomodoroWidgetRuleSetSelectionAndStrictLock() async throws {
         let appState = isolatedAppState(name: "ruleSetSelectionAndLock")
         let work = sampleRuleSet(name: "Work", url: "https://work.example")
         let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
@@ -232,7 +233,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView keeps showing the session rule set after selection changes")
     @MainActor
-    func pomodoroWidgetUsesSessionRuleSet() {
+    func pomodoroWidgetUsesSessionRuleSet() async throws {
         let appState = isolatedAppState(name: "usesSessionRuleSet")
         let work = sampleRuleSet(name: "Work", url: "https://work.example")
         let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
@@ -251,7 +252,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView start, skip, and stop actions update AppState")
     @MainActor
-    func pomodoroWidgetStartSkipStopFlow() {
+    func pomodoroWidgetStartSkipStopFlow() async throws {
         let appState = isolatedAppState(name: "startSkipStopFlow")
 
         let idleHosted = host(FocusPomodoroWidgetView(appState: appState))
@@ -281,7 +282,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView ignores preset clicks while session is active")
     @MainActor
-    func pomodoroWidgetPresetsDisabledWhileActive() {
+    func pomodoroWidgetPresetsDisabledWhileActive() async throws {
         let appState = isolatedAppState(name: "presetsDisabledWhileActive")
         appState.pomodoroFocusDuration = 25
         appState.pomodoroBreakDuration = 5
@@ -300,7 +301,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView stop button is always enabled in strict mode and requires challenge")
     @MainActor
-    func pomodoroWidgetStopBehaviorAcrossStrictGracePeriod() {
+    func pomodoroWidgetStopBehaviorAcrossStrictGracePeriod() async throws {
         let appState = isolatedAppState(name: "stopBehaviorAcrossStrictGracePeriod")
         appState.startPomodoro()
         appState.isBlocking = true
@@ -332,7 +333,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView stop button triggers challenge in strict mode and stops when accepted")
     @MainActor
-    func pomodoroWidgetStopRequiresChallengeInStrictMode() {
+    func pomodoroWidgetStopRequiresChallengeInStrictMode() async throws {
         let appState = isolatedAppState(name: "stopRequiresChallengeStrictMode")
         appState.startPomodoro()
         appState.isBlocking = true
@@ -372,7 +373,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetSupport helper functions cover selection fallback and recursive labels")
     @MainActor
-    func pomodoroWidgetSupportHelpers() {
+    func pomodoroWidgetSupportHelpers() async throws {
         let appState = isolatedAppState(name: "pomodoroWidgetSupportHelpers")
         let first = sampleRuleSet(name: "First", url: "https://first.example")
         let second = sampleRuleSet(name: "Second", url: "https://second.example")
@@ -400,7 +401,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView refresh handles mode transitions and active updates")
     @MainActor
-    func pomodoroWidgetRefreshTransitions() {
+    func pomodoroWidgetRefreshTransitions() async throws {
         let appState = isolatedAppState(name: "refreshTransitions")
         let work = sampleRuleSet(name: "Work", url: "https://work.example")
         let personal = sampleRuleSet(name: "Personal", url: "https://personal.example")
@@ -431,7 +432,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView dial adjustment symbols change durations")
     @MainActor
-    func pomodoroWidgetDialAdjustmentButtons() {
+    func pomodoroWidgetDialAdjustmentButtons() async throws {
         let appState = isolatedAppState(name: "dialAdjustButtons")
         appState.pomodoroStatus = .none
         appState.pomodoroFocusDuration = 25
@@ -454,7 +455,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView dial adjustment minus path and break-branch currentDuration are exercised")
     @MainActor
-    func pomodoroWidgetDialMinusAndBreakBranchCoverage() {
+    func pomodoroWidgetDialMinusAndBreakBranchCoverage() async throws {
         let appState = isolatedAppState(name: "dialMinusAndBreakBranch")
         appState.pomodoroStatus = .none
         appState.pomodoroFocusDuration = 35
@@ -474,7 +475,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView idle refresh path updates idle controls and rule-set selection state")
     @MainActor
-    func pomodoroWidgetIdleRefreshUpdatesSelectionAndControls() {
+    func pomodoroWidgetIdleRefreshUpdatesSelectionAndControls() async throws {
         let appState = isolatedAppState(name: "idleRefreshSelectionAndControls")
         let first = sampleRuleSet(name: "First", url: "https://first.example")
         let second = sampleRuleSet(name: "Second", url: "https://second.example")
@@ -500,7 +501,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView testing callback hook and default prompt hook closures execute")
     @MainActor
-    func pomodoroWidgetTestingCallbacksAndDefaultPromptHooks() {
+    func pomodoroWidgetTestingCallbacksAndDefaultPromptHooks() async throws {
         defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
 
         var beginCount = 0
@@ -526,7 +527,7 @@ struct PomodoroWidgetTests {
 
     @Test("Pomodoro dial views cover draw and mouse interaction paths")
     @MainActor
-    func pomodoroDialViewsInteractionCoverage() throws {
+    func pomodoroDialViewsInteractionCoverage() async throws {
         var committedMinutes: [Double] = []
         var beginCount = 0
         var endCount = 0
@@ -653,7 +654,7 @@ struct PomodoroWidgetTests {
 
     @Test("PomodoroDurationDialView guard-return branches handle non-drag and zero-size safely")
     @MainActor
-    func pomodoroDurationDialGuardBranches() throws {
+    func pomodoroDurationDialGuardBranches() async throws {
         var commitCount = 0
         let dial = PomodoroDurationDialView(
             title: "FOCUS",
@@ -692,7 +693,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView custom break prompt uses simulation hooks")
     @MainActor
-    func pomodoroWidgetPromptSimulations() {
+    func pomodoroWidgetPromptSimulations() async throws {
         let breakState = isolatedAppState(name: "promptCustomBreak")
         breakState.isBlocking = true
         breakState.isStrict = false
@@ -718,7 +719,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView refresh rebuilds active badge when rule-set visibility changes")
     @MainActor
-    func pomodoroWidgetActiveBadgeRebuildBranches() {
+    func pomodoroWidgetActiveBadgeRebuildBranches() async throws {
         let appState = isolatedAppState(name: "activeBadgeRebuildBranches")
         let work = sampleRuleSet(name: "Work", url: "https://work.example")
         appState.ruleSets = [work]
@@ -741,7 +742,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView prompt hook paths cover custom-break modal flow")
     @MainActor
-    func pomodoroWidgetPromptHookPaths() {
+    func pomodoroWidgetPromptHookPaths() async throws {
         defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
 
         let breakState = isolatedAppState(name: "promptHookModal")
@@ -769,7 +770,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView prompt branches cover custom-break sheet path")
     @MainActor
-    func pomodoroWidgetPromptBranchCoverage() {
+    func pomodoroWidgetPromptBranchCoverage() async throws {
         defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
 
         let customState = isolatedAppState(name: "promptBranchCustomSheet")
@@ -804,7 +805,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView testing hooks cover active-badge rebuild branches")
     @MainActor
-    func pomodoroWidgetTestingHookBadgeBranches() {
+    func pomodoroWidgetTestingHookBadgeBranches() async throws {
         let appState = isolatedAppState(name: "testingHookBadgeBranches")
         let work = sampleRuleSet(name: "Work", url: "https://work.example")
         appState.ruleSets = [work]
@@ -826,7 +827,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView default sheet prompt hook executes without custom overrides")
     @MainActor
-    func pomodoroWidgetDefaultSheetPromptHookCoverage() {
+    func pomodoroWidgetDefaultSheetPromptHookCoverage() async throws {
         defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
 
         FocusPomodoroWidgetView.resetPromptHooksForTesting()
@@ -842,7 +843,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView covers strict-mode row/preset early-return closures and invalid prompt input branches")
     @MainActor
-    func pomodoroWidgetClosureGuardCoverage() {
+    func pomodoroWidgetClosureGuardCoverage() async throws {
         defer { FocusPomodoroWidgetView.resetPromptHooksForTesting() }
 
         let appState = isolatedAppState(name: "closureGuardCoverage")
@@ -891,7 +892,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView covers missing-button and nil-container guard paths")
     @MainActor
-    func pomodoroWidgetGuardPathsCoverage() {
+    func pomodoroWidgetGuardPathsCoverage() async throws {
         let appState = isolatedAppState(name: "guardPathsCoverage")
         let work = sampleRuleSet(name: "Work", url: "https://work.example")
         appState.ruleSets = [work]
@@ -907,7 +908,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView covers zero-duration active progress fallback branches")
     @MainActor
-    func pomodoroWidgetZeroDurationProgressCoverage() {
+    func pomodoroWidgetZeroDurationProgressCoverage() async throws {
         let appState = isolatedAppState(name: "zeroDurationProgressCoverage")
         appState.pomodoroStatus = .focus
         appState.pomodoroFocusDuration = 0
@@ -925,7 +926,7 @@ struct PomodoroWidgetTests {
 
     @Test("FocusPomodoroWidgetView custom break prompt rejects invalid numeric input")
     @MainActor
-    func pomodoroWidgetCustomBreakInvalidInputCoverage() {
+    func pomodoroWidgetCustomBreakInvalidInputCoverage() async throws {
         let appState = isolatedAppState(name: "customBreakInvalidInputCoverage")
         appState.isBlocking = true
         appState.isStrict = false

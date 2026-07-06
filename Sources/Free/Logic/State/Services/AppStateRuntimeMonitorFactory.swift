@@ -2,12 +2,14 @@ import Foundation
 
 enum AppStateRuntimeMonitorFactory {
     static func makeMonitor(
-        stateSnapshotProvider: @escaping () -> BrowserMonitor.StateSnapshot?,
-        onEvent: @escaping (BrowserMonitor.Event) -> Void
+        stateSnapshotProvider: @escaping @Sendable () async -> BrowserMonitor.StateSnapshot?,
+        onEvent: @escaping @Sendable (BrowserMonitor.Event) -> Void,
+        isTesting: Bool
     ) -> BrowserMonitor {
         BrowserMonitor(
             stateSnapshotProvider: stateSnapshotProvider,
-            onEvent: onEvent
+            onEvent: onEvent,
+            isTesting: isTesting
         )
     }
 }

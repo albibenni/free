@@ -267,6 +267,7 @@ final class AppKitSymbolControlButton: ActionButton {
     var symbolNameForTesting: String { symbolName }
 }
 
+@MainActor
 func configureAppKitIconButton(
     _ button: NSButton,
     symbolName: String,
@@ -295,6 +296,7 @@ func configureAppKitIconButton(
     }
 }
 
+@MainActor
 func configureAppKitIconButton(
     _ button: NSButton,
     symbol: AppKitUISymbolSpec,
@@ -315,6 +317,7 @@ func configureAppKitIconButton(
     )
 }
 
+@MainActor
 func configureAppKitDangerSymbolButton(
     _ button: NSButton,
     symbol: AppKitUISymbolSpec
@@ -324,6 +327,7 @@ func configureAppKitDangerSymbolButton(
     button.image = appKitSymbolImage(spec: symbol, color: .systemRed)
 }
 
+@MainActor
 func configureAppKitWindowButton(
     in window: NSWindow,
     type: NSWindow.ButtonType,
@@ -345,6 +349,7 @@ func configureAppKitWindowButton(
     )
 }
 
+@MainActor
 func makeAppKitPrimaryButton(title: String, color: NSColor) -> ActionButton {
     let button = ActionButton(title: title)
     button.isBordered = false
@@ -369,12 +374,14 @@ func makeAppKitPrimaryButton(title: String, color: NSColor) -> ActionButton {
     return button
 }
 
+@MainActor
 func makeAppKitSecondaryButton(title: String, color: NSColor) -> ActionButton {
     let button = ActionButton(title: title)
     applyAppKitSecondaryButtonStyle(button, title: title, color: color)
     return button
 }
 
+@MainActor
 func applyAppKitSecondaryButtonStyle(
     _ button: ActionButton,
     title: String,
@@ -402,6 +409,7 @@ func applyAppKitSecondaryButtonStyle(
     button.contentTintColor = appKitAccentForegroundColor(for: color)
 }
 
+@MainActor
 func applyAppKitListActionButtonStyle(
     _ button: ActionButton,
     title: String,
@@ -430,6 +438,7 @@ func applyAppKitListActionButtonStyle(
     button.contentTintColor = appKitAccentForegroundColor(for: color)
 }
 
+@MainActor
 func applyAppKitNeutralButtonStyle(
     _ button: ActionButton,
     title: String
@@ -455,6 +464,7 @@ func applyAppKitNeutralButtonStyle(
     button.contentTintColor = .labelColor
 }
 
+@MainActor
 func makeAppKitPillButton(
     title: String,
     isSelected: Bool,
@@ -480,6 +490,7 @@ func makeAppKitPillButton(
     return button
 }
 
+@MainActor
 func makeAppKitSymbolControlButton(
     symbol: String,
     isEnabled: Bool,
@@ -504,6 +515,7 @@ func makeAppKitSymbolControlButton(
     return button
 }
 
+@MainActor
 func makeAppKitSelectableRowButton(
     title: String,
     isSelected: Bool,
@@ -527,6 +539,7 @@ func makeAppKitSelectableRowButton(
     return button
 }
 
+@MainActor
 func makeAppKitDividerView(
     color: NSColor = NSColor.separatorColor.withAlphaComponent(0.4)
 ) -> NSView {

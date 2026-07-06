@@ -1,39 +1,56 @@
 import Foundation
 
 extension AppState {
-    private var calendarSyncMutationContext: AppStateCalendarSyncMutationService.Context {
-        AppStateCalendarSyncMutationService.Context(
-            schedule: scheduleDomainState,
-            rules: rulesDomainState,
-            settings: settingsDomainState,
-            weekStartsOnMonday: settingsDomainState.weekStartsOnMonday,
-            events: calendarProvider.events
-        )
-    }
-
-    private func applyCalendarSyncUpdate(_ update: AppStateCalendarSyncMutationService.Update) {
-        applyScheduleDomainState(update.schedule)
-    }
-
     func resyncImportedCalendarSchedules(
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
-        guard let update = AppStateCalendarSyncMutationService.resync(
-            logicFacade: logicFacade,
-            context: calendarSyncMutationContext,
-            preservedImportedByKey: preservedImportedByKey
-        ) else { return }
-        applyCalendarSyncUpdate(update)
+        guard
+            let rebuilt = logicFacade.rebuildForResync(
+                calendarIntegrationEnabled: scheduleDomainState.calendarIntegrationEnabled,
+                currentSchedules: scheduleDomainState.schedules,
+                events: calendarProvider.events,
+                suppressedImportedCalendarEventKeys: scheduleDomainState
+                    .suppressedImportedCalendarEventKeys,
+                focusTitleRules: settingsDomainState.calendarImportFocusTitleRules,
+                breakTitleRules: settingsDomainState.calendarImportBreakTitleRules,
+                calendarImportedScheduleRuleSetId: settingsDomainState.calendarImportedScheduleRuleSetId,
+                activeRuleSetId: rulesDomainState.activeRuleSetId,
+                ruleSets: rulesDomainState.ruleSets,
+                weekStartsOnMonday: settingsDomainState.weekStartsOnMonday,
+                preservedImportedByKey: preservedImportedByKey
+            )
+        else { return }
+        applyRebuiltImportedSchedules(rebuilt)
     }
 
     func synchronizeImportedCalendarSchedulesIfNeeded(
         preservedImportedByKey: [String: Schedule] = [:]
     ) {
-        guard let update = AppStateCalendarSyncMutationService.synchronizeIfNeeded(
-            logicFacade: logicFacade,
-            context: calendarSyncMutationContext,
-            preservedImportedByKey: preservedImportedByKey
-        ) else { return }
-        applyCalendarSyncUpdate(update)
+        guard
+            let merged = logicFacade.rebuildForScheduleCheck(
+                isSynchronizingImportedSchedules: scheduleDomainState.isSynchronizingImportedSchedules,
+                currentSchedules: scheduleDomainState.schedules,
+                events: calendarProvider.events,
+                calendarIntegrationEnabled: scheduleDomainState.calendarIntegrationEnabled,
+                suppressedImportedCalendarEventKeys: scheduleDomainState
+                    .suppressedImportedCalendarEventKeys,
+                focusTitleRules: settingsDomainState.calendarImportFocusTitleRules,
+                breakTitleRules: settingsDomainState.calendarImportBreakTitleRules,
+                calendarImportedScheduleRuleSetId: settingsDomainState.calendarImportedScheduleRuleSetId,
+                activeRuleSetId: rulesDomainState.activeRuleSetId,
+                ruleSets: rulesDomainState.ruleSets,
+                weekStartsOnMonday: settingsDomainState.weekStartsOnMonday,
+                preservedImportedByKey: preservedImportedByKey
+            )
+        else { return }
+        applyRebuiltImportedSchedules(merged)
+    }
+
+    private func applyRebuiltImportedSchedules(_ rebuilt: [Schedule]) {
+        var state = scheduleDomainState
+        state.isSynchronizingImportedSchedules = true
+        state.schedules = rebuilt
+        state.isSynchronizingImportedSchedules = false
+        applyScheduleDomainState(state)
     }
 }

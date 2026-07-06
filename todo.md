@@ -1,5 +1,14 @@
 # TODO
 
+## v2
+
+- [ ] Network Extension rewrite (`NEFilterDataProvider`) — replaces the AppleScript/AX
+      blocking engine with a system-wide content filter. Sandbox-compatible, so it
+      unlocks Mac App Store distribution, and blocks all browsers/apps with no polling
+      window. Requires applying to Apple for the Network Extension entitlement first.
+      Context: App Sandbox blocks NSAppleScript events and the Accessibility API, so
+      the current engine can never pass App Store review (see Docs/build-and-release.md).
+
 ## UI
 
 ### TOPBAR

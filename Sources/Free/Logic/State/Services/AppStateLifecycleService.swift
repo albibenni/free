@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 
+@MainActor
 enum AppStateLifecycleService {
     struct BootstrapProjection {
         let session: AppSessionDomainState
@@ -13,15 +14,16 @@ enum AppStateLifecycleService {
     struct RuntimeBindings {
         let monitor: BrowserMonitor?
         let calendarCancellable: AnyCancellable
-        let rescheduleScheduleTimer: () -> Void
+        let rescheduleScheduleTimer: @MainActor () -> Void
     }
 
+    @MainActor
     static func bindPersistence(
-        bindings: AppStatePersistenceCoordinator.Bindings,
+        appState: AppState,
         settingsStore: SettingsStore
     ) -> Set<AnyCancellable> {
-        AppStatePersistenceCoordinator.bind(
-            bindings: bindings,
+        return AppStatePersistenceCoordinator.bind(
+            appState: appState,
             settingsStore: settingsStore
         )
     }
@@ -99,10 +101,10 @@ enum AppStateLifecycleService {
         isTesting: Bool,
         calendarProvider: any CalendarProvider,
         timerCoordinator: AppStateTimerCoordinator,
-        monitorStateSnapshotProvider: @escaping () -> BrowserMonitor.StateSnapshot?,
-        onMonitorEvent: @escaping (BrowserMonitor.Event) -> Void,
-        onScheduleUpdate: @escaping () -> Void,
-        scheduleTickIntervalProvider: @escaping () -> TimeInterval
+        monitorStateSnapshotProvider: @escaping @Sendable () async -> BrowserMonitor.StateSnapshot?,
+        onMonitorEvent: @escaping @Sendable (BrowserMonitor.Event) -> Void,
+        onScheduleUpdate: @escaping @MainActor () -> Void,
+        scheduleTickIntervalProvider: @escaping @MainActor () -> TimeInterval
     ) -> RuntimeBindings {
         let monitor = AppStateRuntimeWiringCoordinator.resolveMonitor(
             injectedMonitor: injectedMonitor,
@@ -110,7 +112,8 @@ enum AppStateLifecycleService {
         ) {
             AppStateRuntimeMonitorFactory.makeMonitor(
                 stateSnapshotProvider: monitorStateSnapshotProvider,
-                onEvent: onMonitorEvent
+                onEvent: onMonitorEvent,
+                isTesting: isTesting
             )
         }
 
@@ -130,14 +133,10 @@ enum AppStateLifecycleService {
     }
 
     static func teardown(
-        timerCoordinator: AppStateTimerCoordinator,
-        calendarCancellable: inout AnyCancellable?,
-        persistenceCancellables: inout Set<AnyCancellable>
+        timerCoordinator: AppStateTimerCoordinator
     ) {
         AppStateRuntimeWiringCoordinator.teardown(
-            timerCoordinator: timerCoordinator,
-            calendarCancellable: &calendarCancellable
+            timerCoordinator: timerCoordinator
         )
-        persistenceCancellables.removeAll()
     }
 }

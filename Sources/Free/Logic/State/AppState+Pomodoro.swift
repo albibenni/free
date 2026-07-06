@@ -1,19 +1,6 @@
 import Foundation
 
 extension AppState {
-    private var pomodoroMutationContext: AppStatePomodoroMutationService.Context {
-        AppStatePomodoroMutationService.Context(
-            state: pomodoroEngineState,
-            status: pomodoroStatus,
-            remaining: pomodoroRemaining,
-            focusDurationMinutes: pomodoroFocusDuration,
-            breakDurationMinutes: pomodoroBreakDuration,
-            activeRuleSetId: activeRuleSetId,
-            ruleSets: ruleSets,
-            isLocked: isPomodoroLocked
-        )
-    }
-
     private func applyPomodoroTransition(
         _ transition: AppStateLogicFacade.PomodoroTransition
     ) {
@@ -30,28 +17,31 @@ extension AppState {
     }
 
     func startPomodoro() {
-        let transition = AppStatePomodoroMutationService.startPomodoro(
-            logicFacade: logicFacade,
-            context: pomodoroMutationContext
+        applyPomodoroTransition(
+            logicFacade.startPomodoro(
+                state: pomodoroEngineState,
+                focusDurationMinutes: pomodoroFocusDuration,
+                activeRuleSetId: activeRuleSetId,
+                ruleSets: ruleSets
+            )
         )
-        applyPomodoroTransition(transition)
     }
 
-    func stopPomodoro() {
+    /// `bypassingStrictLock` is only for callers that have already passed the
+    /// strict-mode challenge; it avoids round-tripping `isStrict` through
+    /// persisted state to unlock the stop.
+    func stopPomodoro(bypassingStrictLock: Bool = false) {
         guard
-            let transition = AppStatePomodoroMutationService.stopPomodoroIfUnlocked(
-                logicFacade: logicFacade,
-                context: pomodoroMutationContext
+            let transition = logicFacade.stopPomodoroIfUnlocked(
+                state: pomodoroEngineState,
+                isLocked: bypassingStrictLock ? false : isPomodoroLocked
             )
         else { return }
         applyPomodoroTransition(transition)
     }
 
     func skipPomodoroPhase() {
-        switch AppStatePomodoroMutationService.skipPhaseAction(
-            logicFacade: logicFacade,
-            status: pomodoroStatus
-        ) {
+        switch logicFacade.skipPhaseAction(for: pomodoroStatus) {
         case .startBreak:
             startBreak()
         case .startFocus:
@@ -62,20 +52,21 @@ extension AppState {
     }
 
     private func startBreak() {
-        let transition = AppStatePomodoroMutationService.startBreak(
-            logicFacade: logicFacade,
-            context: pomodoroMutationContext
+        applyPomodoroTransition(
+            logicFacade.startBreak(
+                state: pomodoroEngineState,
+                breakDurationMinutes: pomodoroBreakDuration
+            )
         )
-        applyPomodoroTransition(transition)
     }
 
     private func runPomodoroTimer() {
         let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
             guard let self = self else { return }
             guard !self.isPaused else { return }
-            switch AppStatePomodoroMutationService.tickAction(
-                logicFacade: self.logicFacade,
-                context: self.pomodoroMutationContext
+            switch self.logicFacade.pomodoroTickAction(
+                status: self.pomodoroStatus,
+                remaining: self.pomodoroRemaining
             ) {
             case .decrement:
                 self.pomodoroRemaining -= 1

@@ -5,6 +5,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct FocusViewTests {
     private func isolatedAppState(name: String) -> AppState {
         let suite = "FocusViewTests.\(name)"
@@ -66,12 +67,12 @@ struct FocusViewTests {
     }
 
     @Test("Focus section support covers warning/icon/status/pause/action paths")
-    func focusViewHelperLogic() {
+    func focusViewHelperLogic() async throws {
         #expect(FocusSectionSupport.shouldShowStrictWarning(isBlocking: true, isStrict: true))
         #expect(!FocusSectionSupport.shouldShowStrictWarning(isBlocking: false, isStrict: true))
         #expect(!FocusSectionSupport.shouldShowStrictWarning(isBlocking: true, isStrict: false))
 
-        let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        let key = "AXTrustedCheckOptionPrompt"
         let options = FocusSectionSupport.accessibilityPromptOptions() as NSDictionary
         #expect((options[key] as? Bool) == true)
 
@@ -161,7 +162,7 @@ struct FocusViewTests {
 
     @Test("Focus section grant accessibility action delegates through controller factory")
     @MainActor
-    func focusGrantAccessibilityAction() {
+    func focusGrantAccessibilityAction() async throws {
         let appState = isolatedAppState(name: "grantAccessibility")
         let controller = makeController(appState: appState, section: .all)
         _ = host(controller)
@@ -177,8 +178,8 @@ struct FocusViewTests {
 
     @Test("Focus section grant accessibility uses monitor permission check when available")
     @MainActor
-    func focusGrantAccessibilityUsesMonitorBranch() {
-        final class PermissionAutomator: BrowserAutomator {
+    func focusGrantAccessibilityUsesMonitorBranch() async throws {
+        final class PermissionAutomator: BrowserAutomator, @unchecked Sendable {
             var checkCallCount = 0
             func getActiveUrl(for _: NSRunningApplication) -> String? { nil }
             func redirect(app _: NSRunningApplication, to _: String) {}
@@ -209,7 +210,7 @@ struct FocusViewTests {
 
         let baselineCalls = automator.checkCallCount
         controller.grantAccessibility()
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100000000)
 
         #expect(automator.checkCallCount == baselineCalls + 1)
         #expect(didInvokeFallbackFactory == false)
@@ -217,7 +218,7 @@ struct FocusViewTests {
 
     @Test("Focus section cancelPause action clears pause state and keeps reload flags consistent")
     @MainActor
-    func focusCancelPauseAction() {
+    func focusCancelPauseAction() async throws {
         let appState = isolatedAppState(name: "cancelPauseControllerAction")
         appState.isBlocking = true
         appState.isPaused = true
@@ -235,7 +236,7 @@ struct FocusViewTests {
 
     @Test("Focus section end interaction guard does not flush when depth is zero")
     @MainActor
-    func focusEndInteractionGuardAtZeroDepth() {
+    func focusEndInteractionGuardAtZeroDepth() async throws {
         let appState = isolatedAppState(name: "endInteractionGuard")
         let controller = makeController(appState: appState, section: .pomodoro)
         _ = host(controller)
@@ -253,7 +254,7 @@ struct FocusViewTests {
 
     @Test("Focus section end interaction keeps deferred flag when depth flush predicate is false")
     @MainActor
-    func focusEndInteractionNoFlushWhenDeferredFlagIsFalse() {
+    func focusEndInteractionNoFlushWhenDeferredFlagIsFalse() async throws {
         let appState = isolatedAppState(name: "endInteractionNoFlush")
         let controller = makeController(appState: appState, section: .pomodoro)
         _ = host(controller)
@@ -267,7 +268,7 @@ struct FocusViewTests {
 
     @Test("Focus section shows live overview instead of full widgets")
     @MainActor
-    func focusViewLiveOverviewRender() {
+    func focusViewLiveOverviewRender() async throws {
         let appState = isolatedAppState(name: "liveOverview")
         appState.isBlocking = true
         appState.ruleSets = [RuleSet(name: "Work", urls: ["example.com", "developer.apple.com"])]
@@ -286,7 +287,7 @@ struct FocusViewTests {
 
     @Test("Focus section live overview renders active schedules and pomodoro previews")
     @MainActor
-    func focusViewLiveOverviewActivePreviews() {
+    func focusViewLiveOverviewActivePreviews() async throws {
         let appState = isolatedAppState(name: "liveOverviewActivePreviews")
         appState.isBlocking = true
         let rules = RuleSet(name: "Work", urls: ["example.com"])
@@ -319,7 +320,7 @@ struct FocusViewTests {
 
     @Test("Focus section pomodoro mode renders AppKit widget without overview")
     @MainActor
-    func focusViewPomodoroSectionRender() {
+    func focusViewPomodoroSectionRender() async throws {
         let appState = isolatedAppState(name: "pomodoroSection")
         appState.isTrusted = true
 
@@ -334,7 +335,7 @@ struct FocusViewTests {
 
     @Test("Focus section defers pomodoro widget rebuild while a dial drag is active")
     @MainActor
-    func focusViewDefersPomodoroWidgetReloadDuringDialInteraction() {
+    func focusViewDefersPomodoroWidgetReloadDuringDialInteraction() async throws {
         let appState = isolatedAppState(name: "pomodoroDialInteraction")
         let controller = makeController(appState: appState, section: .pomodoro)
 
@@ -363,7 +364,7 @@ struct FocusViewTests {
 
     @Test("Focus section widget interaction callbacks execute through reloadWidget closure wiring")
     @MainActor
-    func focusViewPomodoroWidgetInteractionCallbackWiring() {
+    func focusViewPomodoroWidgetInteractionCallbackWiring() async throws {
         let appState = isolatedAppState(name: "pomodoroInteractionCallbackWiring")
         let controller = makeController(appState: appState, section: .pomodoro)
 
@@ -381,7 +382,7 @@ struct FocusViewTests {
 
     @Test("Focus section keeps pomodoro widget instance when unrelated app state changes")
     @MainActor
-    func focusViewKeepsPomodoroWidgetForUnrelatedStateChanges() {
+    func focusViewKeepsPomodoroWidgetForUnrelatedStateChanges() async throws {
         let appState = isolatedAppState(name: "pomodoroUnrelatedStateChange")
         appState.isTrusted = true
         let controller = makeController(appState: appState, section: .pomodoro)
@@ -402,7 +403,7 @@ struct FocusViewTests {
 
     @Test("Focus section keeps pomodoro widget instance when switching selected list")
     @MainActor
-    func focusViewKeepsPomodoroWidgetForListSelectionChanges() {
+    func focusViewKeepsPomodoroWidgetForListSelectionChanges() async throws {
         let appState = isolatedAppState(name: "pomodoroListSelectionChange")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -433,7 +434,7 @@ struct FocusViewTests {
 
     @Test("Focus layout builder overview row clamps width to minimum when available width is non-positive")
     @MainActor
-    func focusLayoutBuilderOverviewRowWidthClamp() {
+    func focusLayoutBuilderOverviewRowWidthClamp() async throws {
         let clamped = FocusSectionLayoutBuilder.makeOverviewRow(
             iconName: AppKitUISymbols.Name.focus,
             title: "Title",
@@ -470,7 +471,7 @@ struct FocusViewTests {
 
     @Test("Focus section keeps pomodoro widget stable when applying a preset")
     @MainActor
-    func focusViewKeepsPomodoroWidgetForPresetChanges() {
+    func focusViewKeepsPomodoroWidgetForPresetChanges() async throws {
         let appState = isolatedAppState(name: "pomodoroPresetChange")
         appState.isTrusted = true
         let controller = makeController(appState: appState, section: .pomodoro)
@@ -495,7 +496,7 @@ struct FocusViewTests {
 
     @Test("Focus section keeps pomodoro widget stable when starting a pomodoro")
     @MainActor
-    func focusViewKeepsPomodoroWidgetForStartTransition() {
+    func focusViewKeepsPomodoroWidgetForStartTransition() async throws {
         let appState = isolatedAppState(name: "pomodoroStartTransition")
         appState.isTrusted = true
         let controller = makeController(appState: appState, section: .pomodoro)
@@ -519,7 +520,7 @@ struct FocusViewTests {
 
     @Test("Focus section switching preserves widget reuse behavior when returning to pomodoro")
     @MainActor
-    func focusViewSectionSwitchingKeepsPomodoroReuse() {
+    func focusViewSectionSwitchingKeepsPomodoroReuse() async throws {
         let appState = isolatedAppState(name: "sectionSwitchingPomodoroReuse")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -567,7 +568,7 @@ struct FocusViewTests {
 
     @Test("Focus section schedules widget stays mounted for unrelated app-state changes")
     @MainActor
-    func focusViewKeepsSchedulesWidgetForUnrelatedStateChanges() {
+    func focusViewKeepsSchedulesWidgetForUnrelatedStateChanges() async throws {
         let appState = isolatedAppState(name: "schedulesUnrelatedStateChange")
         appState.isTrusted = true
         appState.schedules = [
@@ -595,7 +596,7 @@ struct FocusViewTests {
 
     @Test("Focus section allowed-websites mode renders AppKit widget without overview")
     @MainActor
-    func focusViewAllowedWebsitesSectionRender() {
+    func focusViewAllowedWebsitesSectionRender() async throws {
         let appState = isolatedAppState(name: "allowedWebsitesSection")
         appState.isTrusted = true
         appState.ruleSets = [RuleSet(name: "Default", urls: ["example.com"])]
@@ -612,7 +613,7 @@ struct FocusViewTests {
 
     @Test("Focus section live overview handles missing rule-set context")
     @MainActor
-    func focusViewLiveOverviewMissingRuleSetContext() {
+    func focusViewLiveOverviewMissingRuleSetContext() async throws {
         let appState = isolatedAppState(name: "missingRuleSetContext")
         appState.ruleSets = []
         appState.activeRuleSetId = nil
@@ -629,7 +630,7 @@ struct FocusViewTests {
 
     @Test("Focus section renders trusted inactive state")
     @MainActor
-    func focusViewRenderTrustedInactive() {
+    func focusViewRenderTrustedInactive() async throws {
         let appState = isolatedAppState(name: "trustedInactive")
         appState.isTrusted = true
         appState.isBlocking = false
@@ -646,7 +647,7 @@ struct FocusViewTests {
 
     @Test("Focus section renders blocking active strict state with list name")
     @MainActor
-    func focusViewRenderBlockingActiveStrict() {
+    func focusViewRenderBlockingActiveStrict() async throws {
         let appState = isolatedAppState(name: "activeStrict")
         appState.isTrusted = false
         appState.isBlocking = true
@@ -667,7 +668,7 @@ struct FocusViewTests {
 
     @Test("Schedule section shows strict mode warning when strict mode is active")
     @MainActor
-    func scheduleTabShowsStrictWarning() {
+    func scheduleTabShowsStrictWarning() async throws {
         let appState = isolatedAppState(name: "strictSchedule")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -682,7 +683,7 @@ struct FocusViewTests {
 
     @Test("Allowed list tab shows strict mode warning when strict mode is active")
     @MainActor
-    func allowedListTabShowsStrictWarning() {
+    func allowedListTabShowsStrictWarning() async throws {
         let appState = isolatedAppState(name: "strictAllowedWebsites")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -697,7 +698,7 @@ struct FocusViewTests {
 
     @Test("Focus section renders paused dashboard state")
     @MainActor
-    func focusViewRenderPausedDashboard() {
+    func focusViewRenderPausedDashboard() async throws {
         let appState = isolatedAppState(name: "pausedDashboard")
         appState.isTrusted = false
         appState.isBlocking = true
@@ -714,7 +715,7 @@ struct FocusViewTests {
 
     @Test("End Break & Focus button cancels pause from pomodoro section")
     @MainActor
-    func focusViewPauseEndButtonCancelsPause() {
+    func focusViewPauseEndButtonCancelsPause() async throws {
         let appState = isolatedAppState(name: "pauseEndButton")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -734,7 +735,7 @@ struct FocusViewTests {
 
     @Test("End Break & Focus button works after starting quick break in pomodoro section")
     @MainActor
-    func focusViewPauseEndButtonAfterQuickBreakStart() {
+    func focusViewPauseEndButtonAfterQuickBreakStart() async throws {
         let appState = isolatedAppState(name: "pauseEndAfterQuickBreak")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -757,7 +758,7 @@ struct FocusViewTests {
 
     @Test("Quick Break buttons in main view start pause sessions")
     @MainActor
-    func focusViewMainQuickBreakButtonsStartPause() {
+    func focusViewMainQuickBreakButtonsStartPause() async throws {
         let appState = isolatedAppState(name: "mainQuickBreak")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -777,7 +778,7 @@ struct FocusViewTests {
 
     @Test("Quick Break 15m and 30m buttons in main view start expected pause durations")
     @MainActor
-    func focusViewMainQuickBreakButtonsAdditionalDurations() {
+    func focusViewMainQuickBreakButtonsAdditionalDurations() async throws {
         let appState = isolatedAppState(name: "mainQuickBreakAdditionalDurations")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -800,7 +801,7 @@ struct FocusViewTests {
 
     @Test("Quick Break custom value in main view starts pause session")
     @MainActor
-    func focusViewMainQuickBreakCustomValue() {
+    func focusViewMainQuickBreakCustomValue() async throws {
         let appState = isolatedAppState(name: "mainQuickBreakCustom")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -825,7 +826,7 @@ struct FocusViewTests {
 
     @Test("Quick Break custom start ignores non-numeric value")
     @MainActor
-    func focusViewMainQuickBreakCustomValueInvalidInput() {
+    func focusViewMainQuickBreakCustomValueInvalidInput() async throws {
         let appState = isolatedAppState(name: "mainQuickBreakCustomInvalid")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -842,7 +843,7 @@ struct FocusViewTests {
 
     @Test("Quick Break custom field accepts only digits and max 3 characters")
     @MainActor
-    func focusViewMainQuickBreakCustomFieldSanitization() {
+    func focusViewMainQuickBreakCustomFieldSanitization() async throws {
         let appState = isolatedAppState(name: "mainQuickBreakCustomFieldSanitization")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -862,7 +863,7 @@ struct FocusViewTests {
 
     @Test("Quick Break custom field ignores unrelated text-change notifications")
     @MainActor
-    func focusViewMainQuickBreakCustomFieldIgnoresUnrelatedNotifications() {
+    func focusViewMainQuickBreakCustomFieldIgnoresUnrelatedNotifications() async throws {
         let appState = isolatedAppState(name: "mainQuickBreakFieldUnrelatedNotification")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -886,7 +887,7 @@ struct FocusViewTests {
 
     @Test("Quick Break is blocked when Strict mode dialog is cancelled")
     @MainActor
-    func focusViewQuickBreakBlockedByStrictModeDialogCancel() {
+    func focusViewQuickBreakBlockedByStrictModeDialogCancel() async throws {
         let appState = isolatedAppState(name: "quickBreakStrictDialogCancel")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -912,7 +913,7 @@ struct FocusViewTests {
 
     @Test("Quick Break starts normally when Strict mode dialog is confirmed with correct phrase")
     @MainActor
-    func focusViewQuickBreakStartsWhenStrictModeChallengeSucceeds() {
+    func focusViewQuickBreakStartsWhenStrictModeChallengeSucceeds() async throws {
         let appState = isolatedAppState(name: "quickBreakStrictDialogConfirmed")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -945,7 +946,7 @@ struct FocusViewTests {
 
     @Test("Quick Break controls are clickable in Strict mode and trigger the challenge dialog")
     @MainActor
-    func focusViewMainQuickBreakClickableInStrictMode() {
+    func focusViewMainQuickBreakClickableInStrictMode() async throws {
         let appState = isolatedAppState(name: "mainQuickBreakClickableStrict")
         appState.isTrusted = true
         appState.isBlocking = true
@@ -968,7 +969,7 @@ struct FocusViewTests {
 
     @Test("Focus schedules widget reload keeps existing view when signature is unchanged")
     @MainActor
-    func focusSchedulesWidgetKeepExistingReload() {
+    func focusSchedulesWidgetKeepExistingReload() async throws {
         let appState = isolatedAppState(name: "schedulesKeepExistingReload")
         let now = Date()
         let weekday = Calendar.current.component(.weekday, from: now)
@@ -996,7 +997,7 @@ struct FocusViewTests {
 
     @Test("Focus allowed websites widget reload keeps existing view when signature is unchanged")
     @MainActor
-    func focusAllowedWebsitesWidgetKeepExistingReload() {
+    func focusAllowedWebsitesWidgetKeepExistingReload() async throws {
         let appState = isolatedAppState(name: "allowedWebsitesKeepExistingReload")
         let set = RuleSet(name: "Default", urls: ["swift.org"])
         appState.ruleSets = [set]

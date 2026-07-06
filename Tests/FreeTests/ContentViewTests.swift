@@ -5,6 +5,7 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct ContentViewTests {
     private func isolatedAppState(name: String) -> AppState {
         let suite = "ContentViewTests.\(name)"
@@ -44,7 +45,7 @@ struct ContentViewTests {
 
     @Test("Main shell controller covers sidebar state and section switching")
     @MainActor
-    func mainShellControllerState() {
+    func mainShellControllerState() async throws {
         let controller = FreeMainViewController(
             appState: isolatedAppState(name: "mainShellState"),
             initialSection: .focus,
@@ -73,7 +74,7 @@ struct ContentViewTests {
 
     @Test("Main shell renders expanded sidebar menu with section entries and settings")
     @MainActor
-    func mainShellExpandedSidebarRender() {
+    func mainShellExpandedSidebarRender() async throws {
         let controller = FreeMainViewController(
             appState: isolatedAppState(name: "expandedSidebar"),
             initialShowSidebar: true
@@ -93,7 +94,7 @@ struct ContentViewTests {
 
     @Test("Main shell schedules section loads full-page schedules calendar")
     @MainActor
-    func mainShellSchedulesSectionOpensWidget() {
+    func mainShellSchedulesSectionOpensWidget() async throws {
         let appState = isolatedAppState(name: "schedulesSection")
         appState.schedules = [
             Schedule(
@@ -123,7 +124,7 @@ struct ContentViewTests {
 
     @Test("Main shell settings section renders AppKit settings controller")
     @MainActor
-    func mainShellSettingsSectionRender() {
+    func mainShellSettingsSectionRender() async throws {
         let controller = FreeMainViewController(
             appState: isolatedAppState(name: "settingsSection"),
             initialSection: .settings,
@@ -141,7 +142,7 @@ struct ContentViewTests {
 
     @Test("Main shell calendar section is always accessible")
     @MainActor
-    func mainShellCalendarSectionAvailability() {
+    func mainShellCalendarSectionAvailability() async throws {
         let appState = isolatedAppState(name: "calendarSectionAvailability")
         let controller = FreeMainViewController(
             appState: appState,
@@ -154,7 +155,7 @@ struct ContentViewTests {
         #expect(controller.selectedSectionForTesting == .calendar)
 
         appState.calendarIntegrationEnabled = true
-        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        try await Task.sleep(nanoseconds: 100000000)
         controller.selectSectionForTesting(.calendar)
         #expect(controller.selectedSectionForTesting == .calendar)
         #expect(controller.currentContentViewControllerForTesting is CalendarSectionViewController)

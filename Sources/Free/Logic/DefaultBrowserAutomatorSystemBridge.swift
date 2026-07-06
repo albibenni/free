@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import ApplicationServices
+import os
 
 struct DefaultBrowserAutomatorAXAPI {
     var makeApplication: (pid_t) -> AnyObject
@@ -28,13 +29,37 @@ struct DefaultBrowserAutomatorSystemDependencies {
     var axAPI: DefaultBrowserAutomatorAXAPI
 
     static func live() -> DefaultBrowserAutomatorSystemDependencies {
-        DefaultBrowserAutomatorSystemDependencies(
+        // Shared between the two closures below: a denied Automation permission
+        // (detected when a script fails) makes the overall permission check fail,
+        // which surfaces the existing "grant permissions" warning in the UI.
+        // Cleared again by the next successful script, so it self-heals after
+        // the user re-grants access in System Settings.
+        let automationDenied = OSAllocatedUnfairLock(initialState: false)
+        return DefaultBrowserAutomatorSystemDependencies(
             checkPermissions: { prompt in
-                let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: prompt] as CFDictionary
-                return AXIsProcessTrustedWithOptions(options)
+                let options = ["AXTrustedCheckOptionPrompt": prompt] as CFDictionary
+                let axTrusted = AXIsProcessTrustedWithOptions(options)
+                return axTrusted && !automationDenied.withLock { $0 }
             },
             executeAppleScript: { source in
-                NSAppleScript(source: source)?.executeAndReturnError(nil).stringValue
+                var errorInfo: NSDictionary?
+                let result = NSAppleScript(source: source)?.executeAndReturnError(&errorInfo).stringValue
+                if let errorInfo {
+                    // errAEEventNotPermitted (-1743) means the Automation permission
+                    // was denied or revoked: blocking cannot work until it is restored.
+                    let number = errorInfo[NSAppleScript.errorNumber] as? Int ?? 0
+                    let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "unknown"
+                    let logger = Logger(subsystem: "com.benni.Free", category: "BrowserAutomation")
+                    if number == -1743 {
+                        automationDenied.withLock { $0 = true }
+                        logger.fault("Apple Events permission denied; browser blocking is inactive: \(message, privacy: .public)")
+                    } else {
+                        logger.error("AppleScript failed (\(number)): \(message, privacy: .public)")
+                    }
+                } else {
+                    automationDenied.withLock { $0 = false }
+                }
+                return result
             },
             runningApplications: {
                 NSWorkspace.shared.runningApplications

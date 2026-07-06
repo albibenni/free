@@ -86,12 +86,14 @@ private final class MockAppDelegateSystem: AppDelegateSystem {
 }
 
 @Suite(.serialized)
+@MainActor
 struct AppDelegateTests {
 
     private func setupIsolatedDelegate(
         name: String,
-        system: MockAppDelegateSystem = MockAppDelegateSystem()
+        system: MockAppDelegateSystem? = nil
     ) -> (AppDelegate, MockAppDelegateSystem, UserDefaults) {
+        let system = system ?? MockAppDelegateSystem()
         let suite = "AppDelegateTests.\(name)"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -102,7 +104,7 @@ struct AppDelegateTests {
     }
 
     @Test("AppDelegate launch check returns early when app is already in Applications")
-    func launchCheckInApplicationsEarlyReturn() {
+    func launchCheckInApplicationsEarlyReturn() async throws {
         let system = MockAppDelegateSystem()
         system.bundlePath = "/Applications/Free.app"
         let (delegate, _, _) = setupIsolatedDelegate(
@@ -118,7 +120,7 @@ struct AppDelegateTests {
     }
 
     @Test("AppDelegate launch check short-circuits for default system during test runtime")
-    func launchCheckDefaultSystemTestRuntimeEarlyReturn() {
+    func launchCheckDefaultSystemTestRuntimeEarlyReturn() async throws {
         let delegate = AppDelegate()
         var callbackCalls = 0
         delegate.onApplicationDidFinishLaunching = {
@@ -131,7 +133,7 @@ struct AppDelegateTests {
     }
 
     @Test("AppDelegate launch check returns early in test process")
-    func launchCheckTestProcessEarlyReturn() {
+    func launchCheckTestProcessEarlyReturn() async throws {
         let system = MockAppDelegateSystem()
         system.processName = "FreeTests"
         let (delegate, _, _) = setupIsolatedDelegate(
@@ -147,7 +149,7 @@ struct AppDelegateTests {
     }
 
     @Test("AppDelegate launch check prompts but does not move when user declines")
-    func launchCheckDeclineMove() {
+    func launchCheckDeclineMove() async throws {
         let system = MockAppDelegateSystem()
         system.confirmMoveResult = false
         let (delegate, _, _) = setupIsolatedDelegate(
@@ -164,7 +166,7 @@ struct AppDelegateTests {
     }
 
     @Test("AppDelegate moves app and relaunches when user confirms")
-    func launchCheckMoveSuccess() {
+    func launchCheckMoveSuccess() async throws {
         let system = MockAppDelegateSystem()
         system.confirmMoveResult = true
         let destination = "/Applications/\(system.bundleName)"
@@ -188,7 +190,7 @@ struct AppDelegateTests {
     }
 
     @Test("AppDelegate reports copy errors during move flow")
-    func launchCheckMoveCopyError() {
+    func launchCheckMoveCopyError() async throws {
         let system = MockAppDelegateSystem()
         system.confirmMoveResult = true
         system.copyError = MockSystemError.copyFailed
@@ -206,7 +208,7 @@ struct AppDelegateTests {
     }
 
     @Test("AppDelegate reports remove and relaunch errors during move flow")
-    func launchCheckMoveRemoveAndRelaunchErrors() {
+    func launchCheckMoveRemoveAndRelaunchErrors() async throws {
         let removeSystem = MockAppDelegateSystem()
         removeSystem.confirmMoveResult = true
         let removeDestination = "/Applications/\(removeSystem.bundleName)"
@@ -239,7 +241,7 @@ struct AppDelegateTests {
     }
 
     @Test("AppDelegate prevents termination whenever strict mode is enabled")
-    func terminationPrevention() {
+    func terminationPrevention() async throws {
         let (delegate, _, defaults) = setupIsolatedDelegate(name: "terminationPrevention")
 
         defaults.set(false, forKey: "IsBlocking")
@@ -264,7 +266,7 @@ struct AppDelegateTests {
     }
 
     @Test("applicationShouldTerminate blocks quit whenever strict mode is enabled and triggers custom alert")
-    func applicationTerminationStrictReply() {
+    func applicationTerminationStrictReply() async throws {
         let (delegate, system, defaults) = setupIsolatedDelegate(
             name: "applicationTerminationStrictReply")
 
@@ -296,7 +298,7 @@ struct AppDelegateTests {
     }
 
     @Test("applicationShouldTerminate asks confirmation while non-strict blocking and respects confirm")
-    func applicationTerminationNonStrictConfirm() {
+    func applicationTerminationNonStrictConfirm() async throws {
         let (delegate, system, defaults) = setupIsolatedDelegate(
             name: "applicationTerminationNonStrictConfirm")
         delegate.onShowAlert = nil
@@ -312,7 +314,7 @@ struct AppDelegateTests {
     }
 
     @Test("applicationShouldTerminate asks confirmation while non-strict blocking and respects cancel")
-    func applicationTerminationNonStrictCancel() {
+    func applicationTerminationNonStrictCancel() async throws {
         let (delegate, system, defaults) = setupIsolatedDelegate(
             name: "applicationTerminationNonStrictCancel")
         delegate.onShowAlert = nil
@@ -328,7 +330,7 @@ struct AppDelegateTests {
     }
 
     @Test("applicationShouldTerminate uses default blocking alert when no custom handler")
-    func applicationTerminationDefaultAlert() {
+    func applicationTerminationDefaultAlert() async throws {
         let (delegate, system, defaults) = setupIsolatedDelegate(
             name: "applicationTerminationDefaultAlert")
         delegate.onShowAlert = nil
@@ -343,7 +345,7 @@ struct AppDelegateTests {
     }
 
     @Test("applicationShouldTerminate allows quit unconditionally when relaunching to Applications")
-    func applicationTerminationRelaunchBypass() {
+    func applicationTerminationRelaunchBypass() async throws {
         let (delegate, system, defaults) = setupIsolatedDelegate(
             name: "applicationTerminationRelaunchBypass")
         delegate.onShowAlert = nil
@@ -363,7 +365,7 @@ struct AppDelegateTests {
     }
 
     @Test("isInApplications identifies correct paths")
-    func pathDetectionLogic() {
+    func pathDetectionLogic() async throws {
         let delegate = AppDelegate()
 
         #expect(delegate.isInApplications(path: "/Applications/Free.app"))
@@ -373,7 +375,7 @@ struct AppDelegateTests {
     }
 
     @Test("isRunningInTestProcess checks all environment keys and class lookup fallback")
-    func isRunningInTestProcessHelperCoverage() {
+    func isRunningInTestProcessHelperCoverage() async throws {
         #expect(
             AppDelegate.isRunningInTestProcess(
                 environment: ["XCTestConfigurationFilePath": "1"],
@@ -401,13 +403,29 @@ struct AppDelegateTests {
         #expect(
             AppDelegate.isRunningInTestProcess(
                 environment: [:],
+                processName: "Free",
                 classLookup: { _ in nil }
             ) == false
         )
         #expect(
             AppDelegate.isRunningInTestProcess(
                 environment: [:],
+                processName: "Free",
                 classLookup: { _ in NSObject.self }
+            )
+        )
+        #expect(
+            AppDelegate.isRunningInTestProcess(
+                environment: [:],
+                processName: "swiftpm-testing-helper",
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            AppDelegate.isRunningInTestProcess(
+                environment: [:],
+                processName: "FreePackageTests.xctest",
+                classLookup: { _ in nil }
             )
         )
     }

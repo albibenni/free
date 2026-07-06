@@ -4,16 +4,18 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct AppStateRuntimeMonitorFactoryTests {
     @Test("AppStateRuntimeMonitorFactory builds a monitor and allows teardown")
-    func makeMonitorBuildsBrowserMonitor() {
+    func makeMonitorBuildsBrowserMonitor() async {
         let monitor = AppStateRuntimeMonitorFactory.makeMonitor(
-            stateSnapshotProvider: { nil },
-            onEvent: { _ in }
+            stateSnapshotProvider: { nil as BrowserMonitor.StateSnapshot? },
+            onEvent: { _ in },
+            isTesting: false
         )
 
-        monitor.checkActiveTab()
-        monitor.stopMonitoring()
+        await monitor.checkActiveTab()
+        await monitor.stopMonitoring()
 
         #expect(type(of: monitor) == BrowserMonitor.self)
     }

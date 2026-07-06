@@ -19,10 +19,10 @@ flowchart TB
   end
 
   subgraph State["State Core"]
-    AppState["AppState\n(@Published source of truth)"]
+    AppState["AppState\n(@Observable source of truth)"]
     ReadModel["Read Model\n(derived state)"]
     Facade["AppStateLogicFacade\n(dispatch router)"]
-    Persist["PersistenceCoordinator\n(Combine → UserDefaults)"]
+    Persist["PersistenceCoordinator\n(observation → UserDefaults)"]
     Bootstrap["BootstrapService\n(load on launch)"]
     Store["SettingsStore\n(UserDefaults)"]
   end
@@ -30,8 +30,7 @@ flowchart TB
   subgraph Domain["Domain Coordinators + Services"]
     SessionC["Session Coordinator"]
     SchedC["Schedule Coordinator\n+ ScheduleCheck Coordinator"]
-    PomodoroC["Pomodoro Coordinator"]
-    PauseC["Pause Coordinator"]
+    FocusC["FocusFlow Coordinator\n(pomodoro + pause)"]
     RulesC["RuleSet Coordinator"]
     BlockingC["Blocking Coordinator"]
     ScheduleEngine["ScheduleEngine\n(stateless)"]
@@ -43,7 +42,7 @@ flowchart TB
 
   subgraph Enforcement["Blocking Enforcement (background thread)"]
     Monitor["BrowserMonitor\n(1.5s polling)"]
-    Matcher["RuleMatcher\n(NSPredicate cache)"]
+    Matcher["RuleMatcher\n(wildcards → Regex)"]
     Automator["DefaultBrowserAutomator\n(AppleScript + AX)"]
     LocalServer["LocalServer\nlocalhost:10000"]
   end
@@ -67,14 +66,13 @@ flowchart TB
   AppState --> Facade
   Facade --> SessionC
   Facade --> SchedC
-  Facade --> PomodoroC
-  Facade --> PauseC
+  Facade --> FocusC
   Facade --> RulesC
   Facade --> BlockingC
 
   SchedC --> ScheduleEngine
-  PomodoroC --> PomodoroEngine
-  PauseC --> PauseEngine
+  FocusC --> PomodoroEngine
+  FocusC --> PauseEngine
   RulesC --> RuleSetSvc
   CalendarSvc --> EventKit
   AppState --> CalendarSvc
@@ -82,7 +80,7 @@ flowchart TB
   Bootstrap --> Store
   Persist --> Store
   Store -->|load on launch| AppState
-  AppState -->|"@Published changes"| Persist
+  AppState -->|"observed changes"| Persist
 
   AppState -->|"TrustedState snapshot\n(isBlocking + allowedRules)"| Monitor
   Monitor --> Matcher
@@ -154,7 +152,7 @@ sequenceDiagram
   AS->>Facade: toggleSession()
   Facade->>Coord: startSession(ruleSetId:)
   Coord->>AS: isBlocking = true
-  AS-->>UI: @Published update → render()
+  AS-->>UI: observation fires → render()
   AS-->>Persist: sink fires → UserDefaults.set(true)
   AS-->>Monitor: push TrustedState(isBlocking: true)
   Note over Monitor: Next tick: fast path skipped → enforcement active
@@ -194,7 +192,7 @@ How scheduled blocks activate and deactivate blocking automatically.
 ```mermaid
 flowchart TD
   Trigger(["Trigger:\nTimer tick (1Hz)\nor state change"])
-  Debounce["debounce 100ms\n(PassthroughSubject)"]
+  Debounce["debounce 100ms\n(cancel-and-restart Task)"]
   Evaluate["ScheduleEngine.activeSchedules(at: now)"]
   CalendarEvents["Merge calendar-imported\nvirtual schedules"]
   AnyActive{Any active\nschedule?}
@@ -268,8 +266,8 @@ flowchart TD
   ActiveRuleSet["Resolve active rule set\n(session > schedule > pomodoro priority)"]
   BuiltIns{Built-in flags\nenabled?}
   AddBuiltIns["Append built-in patterns:\n• search engines\n• AI providers\n• developer hosts"]
-  CacheCheck{NSPredicate\ncached for pattern?}
-  BuildPredicate["Build NSPredicate\n(LIKE wildcard)"]
+  CacheCheck{Regex built\nfor pattern?}
+  BuildPredicate["Compile wildcard\nrule to Regex"]
   Cache["Store in\npredicate cache"]
   Evaluate["Evaluate predicate\nagainst normalized URL"]
   Allowed{Match found?}
@@ -298,7 +296,7 @@ flowchart TD
 ```mermaid
 flowchart TB
   subgraph Main["Main Thread (@MainActor)"]
-    Published["@Published mutations\n(AppState)"]
+    Published["@Observable mutations\n(AppState)"]
     UIUpdate["AppKit UI updates\n(render())"]
     TimerCoord["AppStateTimerCoordinator\n(1Hz tick callbacks)"]
     AppleScriptExec["AppleScript execution"]
@@ -368,11 +366,11 @@ flowchart TD
 flowchart LR
   subgraph Startup["App Launch"]
     BS["BootstrapService\nread all keys from UserDefaults"]
-    Populate["Populate AppState\n@Published properties"]
+    Populate["Populate AppState\nobservable properties"]
   end
 
-  subgraph Runtime["Runtime (Combine sinks)"]
-    Published["AppState @Published\nproperty changes"]
+  subgraph Runtime["Runtime (observation trackers)"]
+    Published["AppState observable\nproperty changes"]
     DropFirst["dropFirst()\nskip initial load value"]
     Sink["sink closure fires"]
     Write["SettingsStore.set(value, forKey:)"]
@@ -400,7 +398,7 @@ How AppKit view controllers stay in sync with `AppState`.
 
 ```mermaid
 flowchart TD
-  Props["AppState @Published\nproperties relevant to view"]
+  Props["AppState observable\nproperties relevant to view"]
   Merge["Publishers.MergeMany(...)"]
   Debounce["debounce 16ms\n(RunLoop.main)\n≈ 1 frame"]
   Sink["sink → render()"]
@@ -439,7 +437,7 @@ sequenceDiagram
   AS->>Bootstrap: loadPersistedState()
   Bootstrap->>Store: read all keys
   Store-->>Bootstrap: stored values
-  Bootstrap-->>AS: populate @Published props
+  Bootstrap-->>AS: populate observable props
   Runtime->>Wire: wire(monitor → appState)
   Wire->>Monitor: start(onEvent:)
   Monitor-->>Wire: events (trustedState changes)

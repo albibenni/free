@@ -1,87 +1,70 @@
 import Foundation
 
 extension AppState {
-    private var rulesMutationContext: AppStateRulesMutationService.Context {
-        AppStateRulesMutationService.Context(
-            ruleSets: ruleSets,
-            activeRuleSetId: activeRuleSetId,
-            isStrictActive: isStrictActive
-        )
+    private func applyRulesUpdate(ruleSets newRuleSets: [RuleSet], activeRuleSetId newActiveRuleSetId: UUID?) {
+        if ruleSets != newRuleSets {
+            ruleSets = newRuleSets
+        }
+        if activeRuleSetId != newActiveRuleSetId {
+            activeRuleSetId = newActiveRuleSetId
+        }
     }
 
-    private func applyRulesMutationUpdate(_ update: AppStateRulesMutationService.Update) {
-        if ruleSets != update.ruleSets {
-            ruleSets = update.ruleSets
-        }
-        if activeRuleSetId != update.activeRuleSetId {
-            activeRuleSetId = update.activeRuleSetId
-        }
+    private func mutateRule(_ rule: String, setId: UUID, mutation: AppStateLogicFacade.RuleMutation) {
+        applyRulesUpdate(
+            ruleSets: logicFacade.mutateRule(
+                rule,
+                setId: setId,
+                currentRuleSets: ruleSets,
+                isStrictActive: isStrictActive,
+                mutation: mutation
+            ),
+            activeRuleSetId: activeRuleSetId
+        )
     }
 
     func addRule(_ rule: String, to setId: UUID) {
-        applyRulesMutationUpdate(
-            AppStateRulesMutationService.mutateRule(
-                logicFacade: logicFacade,
-                context: rulesMutationContext,
-                rule: rule,
-                setId: setId,
-                mutation: .add
-            )
-        )
+        mutateRule(rule, setId: setId, mutation: .add)
     }
 
     func addSpecificRule(_ rule: String, to setId: UUID) {
-        applyRulesMutationUpdate(
-            AppStateRulesMutationService.mutateRule(
-                logicFacade: logicFacade,
-                context: rulesMutationContext,
-                rule: rule,
-                setId: setId,
-                mutation: .addSpecific
-            )
-        )
+        mutateRule(rule, setId: setId, mutation: .addSpecific)
     }
 
     func removeRule(_ rule: String, from setId: UUID) {
-        applyRulesMutationUpdate(
-            AppStateRulesMutationService.mutateRule(
-                logicFacade: logicFacade,
-                context: rulesMutationContext,
-                rule: rule,
-                setId: setId,
-                mutation: .remove
-            )
-        )
+        mutateRule(rule, setId: setId, mutation: .remove)
     }
 
     func deleteSet(id: UUID) {
-        applyRulesMutationUpdate(
-            AppStateRulesMutationService.deleteSet(
-                logicFacade: logicFacade,
-                context: rulesMutationContext,
-                id: id
-            )
+        let result = logicFacade.deleteRuleSet(
+            id: id,
+            currentRuleSets: ruleSets,
+            currentActiveRuleSetId: activeRuleSetId,
+            isStrictActive: isStrictActive
         )
+        applyRulesUpdate(ruleSets: result.ruleSets, activeRuleSetId: result.activeRuleSetId)
     }
 
     @discardableResult
     func createRuleSet(name: String, makeActive: Bool = false) -> RuleSet {
-        let result = AppStateRulesMutationService.createRuleSet(
-            logicFacade: logicFacade,
-            context: rulesMutationContext,
+        let result = logicFacade.createRuleSet(
             name: name,
-            makeActive: makeActive
+            makeActive: makeActive,
+            currentRuleSets: ruleSets,
+            currentActiveRuleSetId: activeRuleSetId
         )
-        applyRulesMutationUpdate(result.update)
+        applyRulesUpdate(ruleSets: result.ruleSets, activeRuleSetId: result.activeRuleSetId)
         return result.created
     }
 
     func selectActiveRuleSet(_ id: UUID) {
-        applyRulesMutationUpdate(
-            AppStateRulesMutationService.selectActiveRuleSet(
-                logicFacade: logicFacade,
-                context: rulesMutationContext,
-                id: id
+        applyRulesUpdate(
+            ruleSets: ruleSets,
+            activeRuleSetId: logicFacade.selectActiveRuleSet(
+                id,
+                currentRuleSets: ruleSets,
+                currentActiveRuleSetId: activeRuleSetId,
+                isStrictActive: isStrictActive
             )
         )
     }

@@ -56,18 +56,31 @@ final class FocusPomodoroWidgetView: AppKitCardView {
         alert.beginSheetModal(for: window, completionHandler: completion)
     }
 
+    private static let hookLock = NSLock()
+
     private static var makeAlertOverride: AlertFactory?
     static var makeAlert: AlertFactory {
-        get { makeAlertOverride ?? defaultMakeAlert }
-        set { makeAlertOverride = newValue }
+        get { hookLock.lock(); defer { hookLock.unlock() }; return makeAlertOverride ?? defaultMakeAlert }
+        set { hookLock.lock(); defer { hookLock.unlock() }; makeAlertOverride = newValue }
     }
-    static var runAlertModal: AlertModalRunner = defaultRunAlertModal
-    static var runAlertSheet: AlertSheetRunner = defaultRunAlertSheet
+    
+    private static var _runAlertModal: AlertModalRunner?
+    static var runAlertModal: AlertModalRunner {
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _runAlertModal ?? defaultRunAlertModal }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _runAlertModal = newValue }
+    }
+    
+    private static var _runAlertSheet: AlertSheetRunner?
+    static var runAlertSheet: AlertSheetRunner {
+        get { hookLock.lock(); defer { hookLock.unlock() }; return _runAlertSheet ?? defaultRunAlertSheet }
+        set { hookLock.lock(); defer { hookLock.unlock() }; _runAlertSheet = newValue }
+    }
 
     static func resetPromptHooksForTesting() {
+        hookLock.lock(); defer { hookLock.unlock() }
         makeAlertOverride = nil
-        runAlertModal = defaultRunAlertModal
-        runAlertSheet = defaultRunAlertSheet
+        _runAlertModal = nil
+        _runAlertSheet = nil
     }
 
     init(

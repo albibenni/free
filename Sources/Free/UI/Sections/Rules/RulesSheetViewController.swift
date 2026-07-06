@@ -99,8 +99,8 @@ extension RulesSheetViewController {
         reloadRuleContent()
     }
 
-    func refreshSuggestionsForTesting() {
-        appState.refreshCurrentOpenUrls()
+    func refreshSuggestionsForTestingAsync() async {
+        await appState.refreshCurrentOpenUrlsAsync()
         reloadRuleContent()
     }
 

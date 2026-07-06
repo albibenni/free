@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 enum AppKitSystemBridgeLiveSystem {
     private static var isRunningInTestProcessForTesting: (() -> Bool)?
     private static var workspaceOpenForTesting: ((URL) -> Bool)?
@@ -31,16 +32,8 @@ enum AppKitSystemBridgeLiveSystem {
         workspaceOpenForTesting = impl
     }
 
-    static func setIsRunningUnderXCTestForTesting(_ impl: (() -> Bool)?) {
-        AppKitSystemBridgeLiveSystemRuntime.setIsRunningUnderXCTestForTesting(impl)
-    }
-
     static func setRunModalForTesting(_ impl: ((NSAlert) -> NSApplication.ModalResponse)?) {
         runModalForTesting = impl
-    }
-
-    static func setNativeWorkspaceOpenForTesting(_ impl: ((URL) -> Bool)?) {
-        AppKitSystemBridgeLiveSystemRuntime.setNativeWorkspaceOpenForTesting(impl)
     }
 
     static func setNativeRunModalForTesting(_ impl: ((NSAlert) -> NSApplication.ModalResponse)?) {
@@ -52,7 +45,6 @@ enum AppKitSystemBridgeLiveSystem {
         workspaceOpenForTesting = nil
         runModalForTesting = nil
         nativeRunModalForTesting = nil
-        AppKitSystemBridgeLiveSystemRuntime.resetForTesting()
     }
 
     private static func isRunningInTestProcess() -> Bool {
@@ -88,6 +80,9 @@ enum AppKitSystemBridgeLiveSystem {
     }
 
     private static func defaultNativeWorkspaceOpen(_ url: URL) -> Bool {
-        AppKitSystemBridgeLiveSystemRuntime.nativeWorkspaceOpen(url)
+        if TestProcessDetector.isRunningTests() {
+            return false
+        }
+        return NSWorkspace.shared.open(url)
     }
 }

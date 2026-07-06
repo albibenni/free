@@ -74,6 +74,7 @@ private final class MockProcessRunner: AppDelegateProcessRunning {
 }
 
 @Suite(.serialized)
+@MainActor
 struct AppDelegateSystemTests {
 
     private func makeSystem(
@@ -111,7 +112,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("DefaultAppDelegateSystem exposes runtime-provided identifiers")
-    func identifiers() {
+    func identifiers() async throws {
         let (system, _, _, _, _, _) = makeSystem(
             bundlePath: "/Applications/Test.app",
             bundleName: "Test.app",
@@ -124,7 +125,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("DefaultAppDelegateSystem live runtime path can be instantiated")
-    func liveRuntimeInitializationCoverage() {
+    func liveRuntimeInitializationCoverage() async throws {
         let runtime = DefaultAppDelegateSystem.Runtime.live
         let system = DefaultAppDelegateSystem()
 
@@ -141,7 +142,7 @@ struct AppDelegateSystemTests {
 
     @MainActor
     @Test("DefaultAppDelegateSystem live runtime can build alert and process")
-    func liveRuntimeFactoriesCoverage() {
+    func liveRuntimeFactoriesCoverage() async throws {
         let runtime = DefaultAppDelegateSystem.Runtime.live
         _ = runtime.makeAlert()
         _ = runtime.makeProcess()
@@ -149,7 +150,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("activateForAlert delegates through runtime")
-    func activateForAlert() {
+    func activateForAlert() async throws {
         let (system, _, _, _, activateCounter, _) = makeSystem()
 
         system.activateForAlert()
@@ -157,7 +158,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("confirmMoveToApplications configures alert and maps modal response")
-    func confirmMoveAlertConfiguration() {
+    func confirmMoveAlertConfiguration() async throws {
         let alert = MockAlertPresenter()
         let (system, capturedAlert, _, _, _, _) = makeSystem(alert: alert)
 
@@ -181,7 +182,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("confirmQuitWhileBlocking configures warning alert and maps modal response")
-    func confirmQuitWhileBlockingAlertConfiguration() {
+    func confirmQuitWhileBlockingAlertConfiguration() async throws {
         let alert = MockAlertPresenter()
         let (system, capturedAlert, _, _, _, _) = makeSystem(alert: alert)
 
@@ -202,7 +203,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("file operations delegate to runtime file manager")
-    func fileOperations() throws {
+    func fileOperations() async throws {
         let fileManager = MockFileManager()
         fileManager.existingPaths = ["/Applications/Free.app"]
 
@@ -221,7 +222,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("file operations propagate runtime file manager errors")
-    func fileOperationErrors() {
+    func fileOperationErrors() async throws {
         let fileManager = MockFileManager()
         fileManager.removeError = AppDelegateSystemTestError.removeFailed
         fileManager.copyError = AppDelegateSystemTestError.copyFailed
@@ -236,7 +237,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("relaunch configures and runs process")
-    func relaunchSuccess() throws {
+    func relaunchSuccess() async throws {
         let process = MockProcessRunner()
         let (system, _, _, capturedProcess, _, _) = makeSystem(process: process)
 
@@ -248,7 +249,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("relaunch propagates process errors")
-    func relaunchError() {
+    func relaunchError() async throws {
         let process = MockProcessRunner()
         process.runError = AppDelegateSystemTestError.processFailed
         let (system, _, _, _, _, _) = makeSystem(process: process)
@@ -259,7 +260,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("terminate delegates through runtime")
-    func terminate() {
+    func terminate() async throws {
         let (system, _, _, _, _, terminateCounter) = makeSystem()
 
         system.terminate()
@@ -267,7 +268,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("showMoveError configures alert and shows it")
-    func showMoveError() {
+    func showMoveError() async throws {
         let alert = MockAlertPresenter()
         let (system, capturedAlert, _, _, _, _) = makeSystem(alert: alert)
 
@@ -279,7 +280,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("showBlockingAlert configures warning alert")
-    func showBlockingAlert() {
+    func showBlockingAlert() async throws {
         let alert = MockAlertPresenter()
         let (system, capturedAlert, _, _, _, _) = makeSystem(alert: alert)
 
@@ -296,7 +297,7 @@ struct AppDelegateSystemTests {
 
     @MainActor
     @Test("NSAlert-backed modal default returns cancel in test process without running modal UI")
-    func nsAlertModalDefaultTestProcessPath() {
+    func nsAlertModalDefaultTestProcessPath() async throws {
         let runtime = DefaultAppDelegateSystem.Runtime(
             bundlePathProvider: { "/tmp/Free.app" },
             bundleNameProvider: { "Free.app" },
@@ -314,7 +315,7 @@ struct AppDelegateSystemTests {
     }
 
     @Test("test-process helper checks all environment keys and class lookup fallback")
-    func isRunningInTestProcessHelperCoverage() {
+    func isRunningInTestProcessHelperCoverage() async throws {
         #expect(
             DefaultAppDelegateSystem.isRunningInTestProcess(
                 environment: ["XCTestConfigurationFilePath": "1"],
@@ -342,13 +343,29 @@ struct AppDelegateSystemTests {
         #expect(
             DefaultAppDelegateSystem.isRunningInTestProcess(
                 environment: [:],
+                processName: "Free",
                 classLookup: { _ in nil }
             ) == false
         )
         #expect(
             DefaultAppDelegateSystem.isRunningInTestProcess(
                 environment: [:],
+                processName: "Free",
                 classLookup: { _ in NSObject.self }
+            )
+        )
+        #expect(
+            DefaultAppDelegateSystem.isRunningInTestProcess(
+                environment: [:],
+                processName: "swiftpm-testing-helper",
+                classLookup: { _ in nil }
+            )
+        )
+        #expect(
+            DefaultAppDelegateSystem.isRunningInTestProcess(
+                environment: [:],
+                processName: "FreePackageTests.xctest",
+                classLookup: { _ in nil }
             )
         )
     }

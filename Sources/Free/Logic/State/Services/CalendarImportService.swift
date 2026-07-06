@@ -1,6 +1,7 @@
 import CryptoKit
 import Foundation
 
+@MainActor
 struct CalendarImportService {
     typealias WeekDateProvider = (_ now: Date, _ weekStartsOnMonday: Bool, _ offset: Int, _ calendar: Calendar) -> [Date]
 
@@ -11,17 +12,6 @@ struct CalendarImportService {
             offset: offset,
             calendar: calendar
         )
-    }
-
-    static func resetWeekDateProviderForTesting() {
-        weekDateProvider = { now, weekStartsOnMonday, offset, calendar in
-            WeekDateCalculator.getWeekDates(
-                at: now,
-                weekStartsOnMonday: weekStartsOnMonday,
-                offset: offset,
-                calendar: calendar
-            )
-        }
     }
 
     struct LegacyImportedEventSignature: Hashable {

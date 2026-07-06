@@ -53,7 +53,7 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
 
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
-        webView.setValue(false, forKey: "drawsBackground")
+        webView.underPageBackgroundColor = .clear
         webView.alphaValue = 0.5
 
         addSubview(webView)
@@ -63,11 +63,6 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
             webView.topAnchor.constraint(equalTo: topAnchor),
             webView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
-        webView.enclosingScrollView?.drawsBackground = false
-        webView.enclosingScrollView?.hasVerticalScroller = false
-        webView.enclosingScrollView?.hasHorizontalScroller = false
-        webView.enclosingScrollView?.verticalScrollElasticity = .none
-        webView.enclosingScrollView?.horizontalScrollElasticity = .none
         webView.loadHTMLString(AppKitFluid.html, baseURL: nil)
     }
 
@@ -147,7 +142,7 @@ final class AppKitCursorFluidOverlayView: NSView, WKNavigationDelegate {
         isAnimationActive = NSApplication.shared.isActive
     }
 
-    deinit {
+    isolated deinit {
         if let didBecomeActiveObserver {
             NotificationCenter.default.removeObserver(didBecomeActiveObserver)
         }

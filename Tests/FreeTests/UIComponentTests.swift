@@ -6,6 +6,7 @@ import WebKit
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct UIComponentTests {
     private func rgbaComponents(_ cgColor: CGColor?) -> (CGFloat, CGFloat, CGFloat, CGFloat)? {
         guard let cgColor,
@@ -51,7 +52,7 @@ struct UIComponentTests {
 
 
     @Test("AddScheduleView configuration logic")
-    func addScheduleViewLogic() {
+    func addScheduleViewLogic() async throws {
         let calendar = Calendar.current
         let now = Date()
 
@@ -78,7 +79,7 @@ struct UIComponentTests {
     }
 
     @Test("ScheduleEditorContext integrity")
-    func scheduleEditorContextLogic() {
+    func scheduleEditorContextLogic() async throws {
         let context1 = ScheduleEditorContext()
         #expect(context1.schedule == nil)
         #expect(context1.day == nil)
@@ -93,7 +94,7 @@ struct UIComponentTests {
     }
 
     @Test("Negative: AddScheduleView configuration with end before start")
-    func addScheduleViewNegative() {
+    func addScheduleViewNegative() async throws {
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: 17, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 9, minute: 0))!
@@ -105,7 +106,7 @@ struct UIComponentTests {
     }
 
     @Test("AppKit symbol control button maps shorthand symbols")
-    func appKitSymbolControlButtonShorthand() {
+    func appKitSymbolControlButtonShorthand() async throws {
         #expect(resolvedAppKitControlSymbolName("+") == "plus.circle.fill")
         #expect(resolvedAppKitControlSymbolName("-") == "minus.circle.fill")
         #expect(resolvedAppKitControlSymbolName("xmark") == "xmark")
@@ -134,7 +135,7 @@ struct UIComponentTests {
     }
 
     @Test("AppKit symbol helper returns nil for unknown symbols")
-    func appKitSymbolHelperUnknownSymbol() {
+    func appKitSymbolHelperUnknownSymbol() async throws {
         let unknown = appKitSymbolImage(
             named: "definitely.not.a.real.symbol",
             pointSize: 14,
@@ -145,7 +146,7 @@ struct UIComponentTests {
     }
 
     @Test("AppKit symbol helper supports nil tint color")
-    func appKitSymbolHelperNilTintColor() {
+    func appKitSymbolHelperNilTintColor() async throws {
         let image = appKitSymbolImage(
             named: "chevron.left",
             pointSize: 12,
@@ -156,7 +157,7 @@ struct UIComponentTests {
     }
 
     @Test("AppKit symbol helper supports default color argument")
-    func appKitSymbolHelperDefaultColorArgument() {
+    func appKitSymbolHelperDefaultColorArgument() async throws {
         let image = appKitSymbolImage(
             named: "chevron.left",
             pointSize: 12,
@@ -166,7 +167,7 @@ struct UIComponentTests {
     }
 
     @Test("AppKit symbol helper supports symbol spec overload")
-    func appKitSymbolHelperSpecOverload() {
+    func appKitSymbolHelperSpecOverload() async throws {
         let image = appKitSymbolImage(
             spec: AppKitUISymbols.navChevron,
             color: .labelColor
@@ -175,7 +176,7 @@ struct UIComponentTests {
     }
 
     @Test("Shared AppKit icon button helper applies image inset when supported")
-    func sharedAppKitIconButtonInset() {
+    func sharedAppKitIconButtonInset() async throws {
         let button = IconInsetButton()
         configureAppKitIconButton(
             button,
@@ -194,7 +195,7 @@ struct UIComponentTests {
 
     @MainActor
     @Test("AppKit button primitives cover action, gradient, and inset-cell geometry")
-    func appKitButtonPrimitivesCoverage() {
+    func appKitButtonPrimitivesCoverage() async throws {
         let plainButton = ActionButton(title: "Plain")
         plainButton.wantsLayer = false
         plainButton.frame = NSRect(x: 0, y: 0, width: 100, height: 24)
@@ -251,7 +252,7 @@ struct UIComponentTests {
     }
 
     @Test("Shared AppKit pill and selectable-row helpers configure common controls")
-    func sharedAppKitControlHelpers() {
+    func sharedAppKitControlHelpers() async throws {
         let pillButton = makeAppKitPillButton(
             title: "25/5",
             isSelected: true,
@@ -275,7 +276,7 @@ struct UIComponentTests {
 
     @MainActor
     @Test("AppKit button style helpers cover didSet, appearance refresh, and utility builders")
-    func appKitButtonStylesCoverage() {
+    func appKitButtonStylesCoverage() async throws {
         let selectable = AppKitSelectableRowButton(
             title: "Row",
             isSelected: false,
@@ -354,7 +355,7 @@ struct UIComponentTests {
     }
 
     @Test("Schedule editor support views cover arranged-subview removal and safe collection lookup")
-    func scheduleEditorSupportViewsCoverage() {
+    func scheduleEditorSupportViewsCoverage() async throws {
         let section = EditorSectionView(title: "Section")
         #expect(section.contentStack.arrangedSubviews.count == 1)
 
@@ -378,7 +379,7 @@ struct UIComponentTests {
     }
 
     @Test("Shared AppKit selection button group applies accent to selected value")
-    func sharedAppKitSelectionButtonGroup() {
+    func sharedAppKitSelectionButtonGroup() async throws {
         let control = AppKitSelectionButtonGroup(
             options: [
                 AppKitSelectionButtonOption(title: "Focus", value: "focus"),
@@ -401,7 +402,7 @@ struct UIComponentTests {
     }
 
     @Test("Selection button group handles empty options with stable intrinsic size")
-    func sharedAppKitSelectionButtonGroupEmptyOptions() {
+    func sharedAppKitSelectionButtonGroupEmptyOptions() async throws {
         let control = AppKitSelectionButtonGroup(
             options: [AppKitSelectionButtonOption<String>](),
             selectedValue: "",
@@ -414,7 +415,7 @@ struct UIComponentTests {
 
     @MainActor
     @Test("Selection button group routes click selection callback and appearance refresh")
-    func sharedAppKitSelectionButtonGroupActions() {
+    func sharedAppKitSelectionButtonGroupActions() async throws {
         let control = AppKitSelectionButtonGroup(
             options: [
                 AppKitSelectionButtonOption(title: "One", value: 1),
@@ -442,7 +443,7 @@ struct UIComponentTests {
 
     @MainActor
     @Test("AppKit toggle switch covers layout, key, and mouse interactions")
-    func appKitToggleSwitchInteractions() {
+    func appKitToggleSwitchInteractions() async throws {
         let toggle = AppKitToggleSwitch(frame: NSRect(x: 0, y: 0, width: 52, height: 28))
         toggle.accentColor = .systemGreen
         #expect(toggle.intrinsicContentSize == NSSize(width: 46, height: 24))
@@ -557,7 +558,7 @@ struct UIComponentTests {
     }
 
     @Test("AppKit card stack view refreshes appearance colors on appearance changes")
-    func appKitCardStackViewAppearanceRefresh() {
+    func appKitCardStackViewAppearanceRefresh() async throws {
         let cardStack = AppKitCardStackView(frame: NSRect(x: 0, y: 0, width: 100, height: 60))
         #expect(cardStack.layer?.backgroundColor != nil)
         cardStack.viewDidChangeEffectiveAppearance()
@@ -565,7 +566,7 @@ struct UIComponentTests {
     }
 
     @Test("Shared AppKit stack helpers build consistent row and column layouts")
-    func sharedAppKitStackHelpers() {
+    func sharedAppKitStackHelpers() async throws {
         let leading = NSTextField(labelWithString: "A")
         let trailing = NSTextField(labelWithString: "B")
         let row = makeAppKitHorizontalRow(
@@ -592,7 +593,7 @@ struct UIComponentTests {
     }
 
     @Test("Dynamic AppKit color providers resolve inside the requested appearance")
-    func dynamicAppKitProviderResolution() {
+    func dynamicAppKitProviderResolution() async throws {
         let lightAppearance = NSAppearance(named: .aqua)
         let darkAppearance = NSAppearance(named: .darkAqua)
 
@@ -616,7 +617,7 @@ struct UIComponentTests {
     }
 
     @Test("Dynamic AppKit color helpers resolve without appearance context")
-    func dynamicAppKitProviderResolutionWithoutAppearance() {
+    func dynamicAppKitProviderResolutionWithoutAppearance() async throws {
         let fixedColor = resolvedAppKitCGColor(NSColor.systemRed, appearance: nil)
         #expect(NSColor(cgColor: fixedColor) != nil)
 
@@ -628,7 +629,7 @@ struct UIComponentTests {
     }
 
     @Test("Dynamic AppKit color helpers cover appearance branch and unfocus emphasis helper")
-    func dynamicAppKitColorHelperCoverage() {
+    func dynamicAppKitColorHelperCoverage() async throws {
         let appearance = NSAppearance(named: .darkAqua)
         let resolved = resolvedAppKitCGColor(NSColor.systemGreen, appearance: appearance)
         #expect(NSColor(cgColor: resolved) != nil)
@@ -649,7 +650,7 @@ struct UIComponentTests {
 
     @Test("Main sidebar selection callback routes to expected section controller")
     @MainActor
-    func mainSidebarSelectionRoutesToExpectedController() {
+    func mainSidebarSelectionRoutesToExpectedController() async throws {
         let suite = "UIComponentTests.mainSidebarSelectionRoutesToExpectedController"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -728,7 +729,7 @@ struct UIComponentTests {
 
     @MainActor
     @Test("Main section metadata and router cover all enum cases")
-    func mainSectionMetadataAndRouterCoverage() {
+    func mainSectionMetadataAndRouterCoverage() async throws {
         let suite = "UIComponentTests.mainSectionMetadataAndRouterCoverage"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -784,7 +785,7 @@ struct UIComponentTests {
 
     @MainActor
     @Test("Main sidebar visibility and enable/disable states update style and click routing")
-    func mainSidebarVisibilityAndEnabledStateCoverage() {
+    func mainSidebarVisibilityAndEnabledStateCoverage() async throws {
         let sidebar = MainSidebarView(
             selectedSection: .focus,
             isSidebarVisible: false,
@@ -874,7 +875,7 @@ struct UIComponentTests {
     }
 
     @Test("AppKit color helpers cover rainbow branches and non-rainbow fallback")
-    func appKitColorHelperRainbowCoverage() {
+    func appKitColorHelperRainbowCoverage() async throws {
         let rainbow = FocusColor.nsColor(for: FocusColor.rainbowAccentIndex)
         let solid = NSColor.systemBlue
 
@@ -896,7 +897,7 @@ struct UIComponentTests {
 
     @MainActor
     @Test("Cursor fluid overlay and HTML source helpers cover test hooks and parser guards")
-    func cursorFluidOverlayAndHTMLSourceCoverage() {
+    func cursorFluidOverlayAndHTMLSourceCoverage() async throws {
         let overlay = AppKitCursorFluidOverlayView()
         #expect(overlay.isOpaque == false)
         #expect(overlay.hitTest(NSPoint(x: 1, y: 1)) == nil)
@@ -955,7 +956,7 @@ struct UIComponentTests {
 
     @MainActor
     @Test("Cursor fluid overlay lifecycle notifications and setters cover observer/task paths")
-    func cursorFluidOverlayLifecycleCoverage() {
+    func cursorFluidOverlayLifecycleCoverage() async throws {
         let overlay = AppKitCursorFluidOverlayView.makeIfSupported()
         #expect(overlay != nil)
         guard let overlay else { return }
@@ -966,9 +967,9 @@ struct UIComponentTests {
         overlay.setAnimationActive(false)
 
         NotificationCenter.default.post(name: NSApplication.didBecomeActiveNotification, object: nil)
-        RunLoop.main.run(until: Date().addingTimeInterval(0.03))
+        try await Task.sleep(nanoseconds: 30000000)
         NotificationCenter.default.post(name: NSApplication.didResignActiveNotification, object: nil)
-        RunLoop.main.run(until: Date().addingTimeInterval(0.03))
+        try await Task.sleep(nanoseconds: 30000000)
 
         overlay.setAnimationActiveForTesting(false, didFinishInitialLoad: true)
         overlay.applyAnimationStateIfPossibleForTesting()

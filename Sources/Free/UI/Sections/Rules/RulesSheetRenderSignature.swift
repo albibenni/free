@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 struct RulesSheetRenderSignature: Equatable {
     struct RuleSetSummary: Equatable {
         let id: UUID

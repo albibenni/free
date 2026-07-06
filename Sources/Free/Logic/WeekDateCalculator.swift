@@ -1,9 +1,9 @@
 import Foundation
 
-struct WeekDateCalculatorRuntime {
-    var addWeeks: (_ calendar: Calendar, _ offset: Int, _ date: Date) -> Date?
-    var weekInterval: (_ calendar: Calendar, _ date: Date) -> DateInterval?
-    var addDays: (_ calendar: Calendar, _ dayOffset: Int, _ startOfWeek: Date) -> Date?
+struct WeekDateCalculatorRuntime: Sendable {
+    var addWeeks: @Sendable (_ calendar: Calendar, _ offset: Int, _ date: Date) -> Date?
+    var weekInterval: @Sendable (_ calendar: Calendar, _ date: Date) -> DateInterval?
+    var addDays: @Sendable (_ calendar: Calendar, _ dayOffset: Int, _ startOfWeek: Date) -> Date?
 
     static let live = WeekDateCalculatorRuntime(
         addWeeks: { calendar, offset, date in

@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum FocusSectionOverviewRenderCoordinator {
     static let emptyStateText = "No active schedule, allow list, or pomodoro session."
 

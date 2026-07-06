@@ -92,13 +92,28 @@ struct Schedule: Identifiable, Codable, Equatable {
         endMinutes: Int,
         calendar: Calendar = .current
     ) -> DateInterval? {
+        // Calendar math, not second arithmetic: on DST-transition days the civil
+        // day is 23/25 hours long, so "start of day + minutes" would drift the
+        // schedule by an hour. bySettingHour resolves the wall-clock time and
+        // adding a civil day preserves it across transitions.
         let startOfAnchor = calendar.startOfDay(for: anchorDay)
-        let start = startOfAnchor.addingTimeInterval(Double(startMinutes) * 60)
-        let sameDayEnd = startOfAnchor.addingTimeInterval(Double(endMinutes) * 60)
+        guard
+            let start = calendar.date(
+                bySettingHour: startMinutes / 60, minute: startMinutes % 60, second: 0,
+                of: startOfAnchor
+            ),
+            let sameDayEnd = calendar.date(
+                bySettingHour: endMinutes / 60, minute: endMinutes % 60, second: 0,
+                of: startOfAnchor
+            )
+        else { return nil }
 
         let end: Date
         if endMinutes < startMinutes {
-            end = sameDayEnd.addingTimeInterval(24 * 60 * 60)
+            guard let overnightEnd = calendar.date(byAdding: .day, value: 1, to: sameDayEnd) else {
+                return nil
+            }
+            end = overnightEnd
         } else {
             end = sameDayEnd
         }

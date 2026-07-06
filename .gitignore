@@ -1,6 +1,10 @@
 # Swift Package Manager & Build
 .build/
 .build_log
+*.log
+*.patch
+dist/
+coverage-report.txt
 Packages/
 .swiftpm/
 node_modules/
@@ -11,3 +15,5 @@ node_modules/
 # Application Bundle
 Free.app/
 Free.dmg
+# Release signing config
+release.env

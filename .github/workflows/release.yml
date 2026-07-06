@@ -1,0 +1,57 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - "v*"
+
+permissions:
+    contents: write
+
+jobs:
+    release-dmg:
+        runs-on: macos-latest
+        timeout-minutes: 30
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Select latest Xcode
+              run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer"
+
+            - name: Import signing certificate
+              env:
+                  MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+                  MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+              run: |
+                  set -euo pipefail
+                  KEYCHAIN_PWD="$(uuidgen)"
+                  echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+                  security create-keychain -p "$KEYCHAIN_PWD" build.keychain
+                  security default-keychain -s build.keychain
+                  security unlock-keychain -p "$KEYCHAIN_PWD" build.keychain
+                  security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+                  security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PWD" build.keychain
+                  rm certificate.p12
+
+            - name: Stamp version from tag
+              run: |
+                  VERSION="${GITHUB_REF_NAME#v}"
+                  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" Resources/Info.plist
+                  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" Resources/Info.plist
+
+            - name: Build, sign, notarize DMG
+              env:
+                  CODESIGN_IDENTITY: ${{ secrets.CODESIGN_IDENTITY }}
+                  NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+                  NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+                  NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+              run: ./package.sh
+
+            - name: Verify Gatekeeper acceptance
+              run: spctl -a -vv -t open --context context:primary-signature Free.dmg
+
+            - name: Create GitHub Release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: gh release create "$GITHUB_REF_NAME" Free.dmg --title "Free $GITHUB_REF_NAME" --generate-notes

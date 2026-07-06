@@ -38,7 +38,7 @@ A debouncer collapses multiple rapid calls into a single delayed execution. It s
 ```
 calendarImportFocusTitleRules.didSet ──┐
 calendarImportBreakTitleRules.didSet ──┤
-schedules.didSet ───────────────────────┤──► scheduleCheckSubject.send()
+schedules.didSet ───────────────────────┤──► restart debounce Task
 calendarIntegrationEnabled.didSet ─────┤         │
 calendarProvider.objectWillChange ─────┘    debounce(100ms)
                                                   │
@@ -50,26 +50,29 @@ Implementation:
 
 ```swift
 // In AppState
-private let scheduleCheckSubject = PassthroughSubject<Void, Never>()
-
-// Wired once in init:
-scheduleCheckSubject
-    .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
-    .sink { [weak self] in self?.performCheckSchedules() }
-    .store(in: &cancellables)
+private var scheduleCheckDebounceTask: Task<Void, Never>?
 
 // Public API — unchanged for all callers:
 func checkSchedules() {
-    scheduleCheckSubject.send()
+    rescheduleScheduleTimer?()
+    scheduleCheckDebounceTask?.cancel()          // restart the window
+    scheduleCheckDebounceTask = Task { [weak self] in
+        try? await Task.sleep(for: .milliseconds(100))
+        guard !Task.isCancelled else { return }
+        self?.performCheckSchedules()
+    }
 }
 
 // The actual work — now only runs once per burst:
 private func performCheckSchedules() {
     synchronizeImportedCalendarSchedulesIfNeeded()
+    reassertPersistedSessionFlags()
     let updated = logicFacade.checkSession(...)
     applySessionState(updated)
 }
 ```
+
+(In `isTesting` mode `checkSchedules()` calls `performCheckSchedules()` synchronously so tests stay deterministic.)
 
 ### What changed vs the old code
 
@@ -77,8 +80,8 @@ private func performCheckSchedules() {
 |--------|-------|
 | `checkSchedules()` ran the full logic immediately, every call | `checkSchedules()` just sends a signal |
 | 3 property changes = 3 full evaluations | 3 property changes = 1 evaluation after 100ms |
-| Synchronous | Async (deferred to next RunLoop cycle) |
-| No Combine overhead | One Combine subscription |
+| Synchronous | Async (deferred ~100 ms on the main actor) |
+| No machinery | One cancel-and-restart `Task` |
 
 ### When to use a debouncer
 

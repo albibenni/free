@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 enum FocusSectionWidgetReloadCoordinator {
     enum WidgetKind {
         case none

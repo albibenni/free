@@ -3,10 +3,11 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct FocusColorTests {
 
     @Test("FocusColor selection logic")
-    func colorSelection() {
+    func colorSelection() async throws {
         #expect(FocusColor.nsColor(for: 0) == .systemBlue)
         #expect(FocusColor.nsColor(for: 1) == .systemPurple)
         #expect(FocusColor.isRainbowAccentIndex(FocusColor.rainbowAccentIndex))
@@ -19,7 +20,7 @@ struct FocusColorTests {
     }
 
     @Test("FocusColor rainbow detection returns false for non-deviceRGB colors")
-    func rainbowDetectionFallback() {
+    func rainbowDetectionFallback() async throws {
         let pattern = NSColor(patternImage: NSImage(size: NSSize(width: 2, height: 2)))
         #expect(FocusColor.isRainbowAccentColor(pattern) == false)
     }

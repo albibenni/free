@@ -3,10 +3,11 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct UITransformationTests {
 
     @Test("Time string formatting logic")
-    func timeFormatting() {
+    func timeFormatting() async throws {
         let appState = AppState(isTesting: true)
 
         #expect(appState.timeString(time: 60) == "01:00")
@@ -15,7 +16,7 @@ struct UITransformationTests {
     }
 
     @Test("FocusColor hex/integrity check")
-    func colorIntegrity() {
+    func colorIntegrity() async throws {
         #expect(FocusColor.all.count >= 9)
 
         for i in 0..<(FocusColor.all.count - 1) {
@@ -24,7 +25,7 @@ struct UITransformationTests {
     }
 
     @Test("Pomodoro duration calculation and snapping")
-    func pomodoroCalculation() {
+    func pomodoroCalculation() async throws {
         let center = CGPoint(x: 100, y: 100)
         let maxMins: Double = 60
 
@@ -54,7 +55,7 @@ struct UITransformationTests {
     }
 
     @Test("WeeklyCalendar day ordering")
-    func dayOrdering() {
+    func dayOrdering() async throws {
         let sunFirst = WeeklyCalendarSupport.getDayOrder(weekStartsOnMonday: false)
         #expect(sunFirst.first == 1)
         #expect(sunFirst.last == 7)
@@ -65,7 +66,7 @@ struct UITransformationTests {
     }
 
     @Test("WeeklyCalendar rect calculation math")
-    func calendarRectMath() {
+    func calendarRectMath() async throws {
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 10, minute: 30))!
@@ -81,7 +82,7 @@ struct UITransformationTests {
     }
 
     @Test("Rules section suggestion filtering logic")
-    func suggestionFiltering() {
+    func suggestionFiltering() async throws {
         let existing = RuleSet(name: "Test", urls: ["google.com", "youtube.com/watch?v=123"])
         let suggestions = [
             "https://www.google.com",
@@ -98,7 +99,7 @@ struct UITransformationTests {
     }
 
     @Test("Negative: rules section suggestion filtering with edge cases")
-    func suggestionFilteringEdgeCases() {
+    func suggestionFilteringEdgeCases() async throws {
         let existing = RuleSet(name: "Test", urls: ["google.com"])
 
         #expect(RulesSectionSupport.filterSuggestions([], existing: existing).isEmpty)
@@ -114,7 +115,7 @@ struct UITransformationTests {
     }
 
     @Test("WeeklyCalendar week date ranges")
-    func weekDateRange() {
+    func weekDateRange() async throws {
         let calendar = Calendar.current
         let now = Date()
 
@@ -139,7 +140,7 @@ struct UITransformationTests {
     }
 
     @Test("WeeklyCalendar overnight rect math")
-    func overnightRectMath() {
+    func overnightRectMath() async throws {
         let calendar = Calendar.current
         let hourH: CGFloat = 100
 
@@ -154,7 +155,7 @@ struct UITransformationTests {
     }
 
     @Test("WeeklyCalendar formatting helpers")
-    func calendarFormatting() {
+    func calendarFormatting() async throws {
         #expect(!WeeklyCalendarSupport.dayName(for: 1).isEmpty)
 
         let nineAM = WeeklyCalendarSupport.timeString(hour: 9)
@@ -166,7 +167,7 @@ struct UITransformationTests {
     }
 
     @Test("WeeklyCalendar drag snapping logic")
-    func dragSnapping() {
+    func dragSnapping() async throws {
         let calendar = Calendar.current
 
         let result = WeeklyCalendarSupport.calculateDragSelection(startHour: 9.1, endHour: 10.4)
@@ -179,7 +180,7 @@ struct UITransformationTests {
     }
 
     @Test("WeeklyCalendar year transition edge case")
-    func calendarYearTransition() {
+    func calendarYearTransition() async throws {
         let calendar = Calendar.current
         let nye = calendar.date(from: DateComponents(year: 2023, month: 12, day: 31))!
 
@@ -191,7 +192,7 @@ struct UITransformationTests {
     }
 
     @Test("WeeklyCalendar rect calculation extreme edges")
-    func calendarRectExtremeEdges() {
+    func calendarRectExtremeEdges() async throws {
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: 12, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 12, minute: 1))!
@@ -206,7 +207,7 @@ struct UITransformationTests {
     }
 
     @Test("WeeklyCalendar zero-duration drag selection")
-    func zeroDurationDrag() {
+    func zeroDurationDrag() async throws {
         let calendar = Calendar.current
         let result = WeeklyCalendarSupport.calculateDragSelection(startHour: 14.0, endHour: 14.0)
 
@@ -217,7 +218,7 @@ struct UITransformationTests {
     }
 
     @Test("Negative: WeeklyCalendar rect calculation with invalid range")
-    func calendarRectNegative() {
+    func calendarRectNegative() async throws {
         let calendar = Calendar.current
         let hourH: CGFloat = 100
 
@@ -231,7 +232,7 @@ struct UITransformationTests {
     }
 
     @Test("WeeklyCalendar support models and lane calculation cover initializer-heavy branches")
-    func weeklyCalendarSupportModelCoverage() {
+    func weeklyCalendarSupportModelCoverage() async throws {
         let calendar = Calendar.current
         let start = calendar.date(from: DateComponents(hour: 9, minute: 0))!
         let end = calendar.date(from: DateComponents(hour: 10, minute: 0))!
@@ -313,7 +314,7 @@ struct UITransformationTests {
     }
 
     @Test("Rules section support import candidates cover excluded scheme and malformed fallback paths")
-    func rulesImportCandidatesCoverage() {
+    func rulesImportCandidatesCoverage() async throws {
         let existing = RuleSet(
             name: "Existing",
             urls: ["youtube.com/watch?v=abc"]

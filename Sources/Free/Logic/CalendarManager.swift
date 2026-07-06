@@ -1,22 +1,25 @@
-import Combine
+import Observation
 import EventKit
 import Foundation
 
-protocol CalendarProvider: ObservableObject
-where ObjectWillChangePublisher == ObservableObjectPublisher {
+@MainActor
+protocol CalendarProvider: AnyObject {
     var events: [ExternalEvent] { get set }
     var isAuthorized: Bool { get }
     func requestAccess()
     func fetchEvents()
 }
 
+@MainActor
+@Observable
 class RealCalendarManager: CalendarProvider {
-    @Published var events: [ExternalEvent] = []
-    @Published var isAuthorized: Bool = false
+    var events: [ExternalEvent] = []
+    var isAuthorized: Bool = false
 
     private let runtime: CalendarManagerRuntime
     private let timerScheduler: any RepeatingTimerScheduling
     private let nowProvider: () -> Date
+    @ObservationIgnored
     private var refreshTimer: (any RepeatingTimer)?
 
     init(
@@ -35,11 +38,13 @@ class RealCalendarManager: CalendarProvider {
 
         refreshTimer = timerScheduler.scheduledRepeatingTimer(withTimeInterval: 5 * 60) {
             [weak self] in
-            self?.fetchEvents()
+            Task { @MainActor [weak self] in
+                self?.fetchEvents()
+            }
         }
     }
 
-    deinit {
+    isolated deinit {
         refreshTimer?.invalidate()
         refreshTimer = nil
     }
@@ -47,8 +52,8 @@ class RealCalendarManager: CalendarProvider {
     func requestAccess() {
         let runtime = self.runtime
         runtime.requestEventAccess { [weak self] granted in
-            guard let self else { return }
-            runtime.dispatchMain {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
                 self.isAuthorized = granted
                 if granted {
                     self.fetchEvents()
@@ -79,15 +84,15 @@ class RealCalendarManager: CalendarProvider {
             )
         }
 
-        runtime.dispatchMain { [weak self] in
-            self?.events = mapped
-        }
+        self.events = mapped
     }
 }
 
+@MainActor
+@Observable
 class MockCalendarManager: CalendarProvider {
-    @Published var events: [ExternalEvent] = []
-    @Published var isAuthorized: Bool = true
+    var events: [ExternalEvent] = []
+    var isAuthorized: Bool = true
     var requestAccessCallCount = 0
     func requestAccess() {
         requestAccessCallCount += 1

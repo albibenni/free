@@ -5,11 +5,12 @@ import Testing
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct LaunchAtLoginManagerTests {
     private struct DummyError: Error {}
 
     @Test("DefaultLaunchAtLoginManager isEnabled mirrors runtime status")
-    func isEnabledFromRuntimeStatus() {
+    func isEnabledFromRuntimeStatus() async throws {
         let enabledManager = DefaultLaunchAtLoginManager(
             runtime: .init(
                 status: { .enabled },
@@ -30,7 +31,7 @@ struct LaunchAtLoginManagerTests {
     }
 
     @Test("DefaultLaunchAtLoginManager enable delegates to runtime register")
-    func enableDelegatesToRuntimeRegister() throws {
+    func enableDelegatesToRuntimeRegister() async throws {
         final class Box {
             var registerCallCount = 0
         }
@@ -50,7 +51,7 @@ struct LaunchAtLoginManagerTests {
     }
 
     @Test("DefaultLaunchAtLoginManager disable delegates to runtime unregister")
-    func disableDelegatesToRuntimeUnregister() throws {
+    func disableDelegatesToRuntimeUnregister() async throws {
         final class Box {
             var unregisterCallCount = 0
         }
@@ -70,7 +71,7 @@ struct LaunchAtLoginManagerTests {
     }
 
     @Test("DefaultLaunchAtLoginManager rethrows enable/disable runtime errors")
-    func enableDisableRethrowRuntimeFailures() {
+    func enableDisableRethrowRuntimeFailures() async throws {
         let enableManager = DefaultLaunchAtLoginManager(
             runtime: .init(
                 status: { .notRegistered },
@@ -95,7 +96,7 @@ struct LaunchAtLoginManagerTests {
     }
 
     @Test("DefaultLaunchAtLoginManager live runtime can be constructed safely")
-    func liveRuntimeClosuresInvocable() {
+    func liveRuntimeClosuresInvocable() async throws {
         let runtime = DefaultLaunchAtLoginManager.Runtime.live
         _ = runtime.status()
         _ = try? runtime.register()

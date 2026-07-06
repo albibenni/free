@@ -4,6 +4,7 @@ import Foundation
 @testable import FreeLogic
 
 @Suite(.serialized)
+@MainActor
 struct AddScheduleViewTests {
     private final class TestDeleteAlert: NSAlert {
         override func runModal() -> NSApplication.ModalResponse {
@@ -93,7 +94,7 @@ struct AddScheduleViewTests {
     }
 
     @Test("Schedule editor support covers focus/break and scheduling branches")
-    func addScheduleViewHelperLogic() {
+    func addScheduleViewHelperLogic() async throws {
         let existing = Schedule(name: "Existing", days: [2, 3], startTime: Date(), endTime: Date().addingTimeInterval(3600), colorIndex: 1, type: .focus)
 
         #expect(ScheduleEditorSupport.shouldShowAllowedList(for: .focus))
@@ -190,7 +191,7 @@ struct AddScheduleViewTests {
     }
 
     @Test("Schedule editor support save payload maps recurring and one-off correctly")
-    func addScheduleViewSavePayload() {
+    func addScheduleViewSavePayload() async throws {
         let recurring = ScheduleEditorSupport.savePayload(days: [2, 3], isRecurring: true, initialDay: 2, weekOffset: 0, weekStartsOnMonday: false)
         #expect(recurring.days == [2, 3])
         #expect(recurring.date == nil)
@@ -215,7 +216,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController renders new schedule form")
     @MainActor
-    func addScheduleViewRender() {
+    func addScheduleViewRender() async throws {
         let appState = isolatedAppState(name: "renderAndSave")
         appState.accentColorIndex = 4
         appState.ruleSets = [RuleSet(name: "Allowlist", urls: ["example.com"])]
@@ -229,7 +230,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController header renders close button and dismisses")
     @MainActor
-    func addScheduleViewCloseButtonRenders() {
+    func addScheduleViewCloseButtonRenders() async throws {
         let appState = isolatedAppState(name: "closeButton")
         var closeCount = 0
         let controller = makeController(appState: appState) {
@@ -245,7 +246,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController renders edit scope path")
     @MainActor
-    func addScheduleViewRenderEdit() {
+    func addScheduleViewRenderEdit() async throws {
         let appState = isolatedAppState(name: "renderEditAndDelete")
         let schedule = Schedule(
             name: "Recurring Focus",
@@ -273,7 +274,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController can render single-day recurring badge path")
     @MainActor
-    func addScheduleViewSingleDayBadgePath() {
+    func addScheduleViewSingleDayBadgePath() async throws {
         let appState = isolatedAppState(name: "singleDayBadgePath")
         let schedule = Schedule(
             name: "Recurring Focus",
@@ -299,7 +300,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController can render break-session path without allowed list")
     @MainActor
-    func addScheduleViewBreakPath() {
+    func addScheduleViewBreakPath() async throws {
         let appState = isolatedAppState(name: "breakPath")
         appState.accentColorIndex = 6
         let schedule = Schedule(
@@ -330,7 +331,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController does not reload the whole form when toggling repeat weekly")
     @MainActor
-    func addScheduleViewRepeatToggleStaysInPlace() {
+    func addScheduleViewRepeatToggleStaysInPlace() async throws {
         let appState = isolatedAppState(name: "repeatToggle")
         let controller = makeController(appState: appState)
         _ = host(controller)
@@ -355,7 +356,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController keeps save enabled in strict mode; challenge fires on click not on render")
     @MainActor
-    func addScheduleViewStrictModeDisablesSaveThroughRecurringRefresh() {
+    func addScheduleViewStrictModeDisablesSaveThroughRecurringRefresh() async throws {
         let appState = isolatedAppState(name: "strictModeDisablesSaveThroughRecurringRefresh")
         appState.isStrict = true
         appState.isBlocking = true
@@ -373,7 +374,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController renders imported schedule editor with limited editable sections")
     @MainActor
-    func addScheduleViewImportedPath() {
+    func addScheduleViewImportedPath() async throws {
         let appState = isolatedAppState(name: "importedPath")
         appState.ruleSets = [RuleSet(name: "Allowlist", urls: ["example.com"])]
 
@@ -403,7 +404,7 @@ struct AddScheduleViewTests {
     }
 
     @Test("ScheduleEditorViewController save schedule persists and dismisses")
-    func addScheduleViewPerformSave() {
+    func addScheduleViewPerformSave() async throws {
         let appState = isolatedAppState(name: "performSave")
         appState.ruleSets = [RuleSet(name: "Allowlist", urls: ["example.com"])]
 
@@ -420,7 +421,7 @@ struct AddScheduleViewTests {
     }
 
     @Test("ScheduleEditorViewController delete schedule removes and dismisses")
-    func addScheduleViewPerformDelete() {
+    func addScheduleViewPerformDelete() async throws {
         defer { ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting() }
         let appState = isolatedAppState(name: "performDelete")
         let schedule = Schedule(
@@ -451,7 +452,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController delete confirms multi-day recurring schedule before deleting")
     @MainActor
-    func addScheduleViewDeleteRequiresConfirmationForRecurringMultiDay() {
+    func addScheduleViewDeleteRequiresConfirmationForRecurringMultiDay() async throws {
         defer { ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting() }
         let appState = isolatedAppState(name: "deleteRecurringConfirm")
         let schedule = Schedule(
@@ -499,7 +500,7 @@ struct AddScheduleViewTests {
     }
 
     @Test("ScheduleEditorViewController delete uses XCTest fast path when confirmation hooks are not overridden")
-    func addScheduleViewDeleteUsesXCTestFastPathWithoutAlertHooks() {
+    func addScheduleViewDeleteUsesXCTestFastPathWithoutAlertHooks() async throws {
         defer { ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting() }
         let appState = isolatedAppState(name: "deleteUsesXCTestFastPathWithoutAlertHooks")
         let schedule = Schedule(
@@ -532,7 +533,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController delete confirmation hooks expose default and override paths")
     @MainActor
-    func addScheduleViewDeleteConfirmationHookCoverage() {
+    func addScheduleViewDeleteConfirmationHookCoverage() async throws {
         defer { ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting() }
         ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting()
 
@@ -562,7 +563,7 @@ struct AddScheduleViewTests {
 
     @Test("ScheduleEditorViewController control handlers update editor state")
     @MainActor
-    func addScheduleViewControlHandlers() {
+    func addScheduleViewControlHandlers() async throws {
         let appState = isolatedAppState(name: "controlHandlers")
         let firstSet = RuleSet(name: "One", urls: [])
         let secondSet = RuleSet(name: "Two", urls: [])
@@ -606,7 +607,7 @@ struct AddScheduleViewTests {
 
     @Test("Schedule editor UI interactions trigger selection closures and button actions")
     @MainActor
-    func addScheduleViewInteractiveClosureCoverage() {
+    func addScheduleViewInteractiveClosureCoverage() async throws {
         defer { ScheduleEditorViewController.resetDeleteConfirmationHooksForTesting() }
         let appState = isolatedAppState(name: "interactiveClosureCoverage")
         appState.ruleSets = [
@@ -687,7 +688,7 @@ struct AddScheduleViewTests {
 
     @Test("Schedule editor allowed-list popup falls back to None when current rule-set is missing")
     @MainActor
-    func addScheduleViewAllowedListPopupFallbackCoverage() {
+    func addScheduleViewAllowedListPopupFallbackCoverage() async throws {
         let appState = isolatedAppState(name: "allowedListFallback")
         appState.ruleSets = [RuleSet(name: "Known", urls: ["known.com"])]
 
@@ -721,7 +722,7 @@ struct AddScheduleViewTests {
 
     @Test("Schedule editor recurring day button actions trigger toggle closures")
     @MainActor
-    func addScheduleViewRecurringDayButtonClosureCoverage() {
+    func addScheduleViewRecurringDayButtonClosureCoverage() async throws {
         let appState = isolatedAppState(name: "recurringDayButtonClosures")
         let controller = makeController(appState: appState)
         let hosted = host(controller)
@@ -737,7 +738,7 @@ struct AddScheduleViewTests {
 
     @Test("Schedule editor save/delete are blocked while strict mode is active")
     @MainActor
-    func addScheduleViewStrictModeBlocksSaveAndDelete() {
+    func addScheduleViewStrictModeBlocksSaveAndDelete() async throws {
         let appState = isolatedAppState(name: "strictModeBlocksSaveAndDelete")
         var schedule = Schedule(
             name: "Strict Existing",

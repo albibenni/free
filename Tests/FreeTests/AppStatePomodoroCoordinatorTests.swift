@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStatePomodoroCoordinatorTests {
     @Test("timerAction decrements while remaining time is positive")
-    func timerActionDecrement() {
+    func timerActionDecrement() async throws {
         let action = AppStatePomodoroCoordinator.timerAction(
             status: .focus,
             remaining: 1
@@ -14,7 +15,7 @@ struct AppStatePomodoroCoordinatorTests {
     }
 
     @Test("timerAction switches phase at zero based on current status")
-    func timerActionPhaseSwitches() {
+    func timerActionPhaseSwitches() async throws {
         let focusAction = AppStatePomodoroCoordinator.timerAction(
             status: .focus,
             remaining: 0
@@ -29,7 +30,7 @@ struct AppStatePomodoroCoordinatorTests {
     }
 
     @Test("stopIfUnlocked returns nil for locked sessions and clears status/ruleset when unlocked")
-    func stopIfUnlocked() {
+    func stopIfUnlocked() async throws {
         let running = PomodoroEngine.State(
             status: .focus,
             remaining: 60,

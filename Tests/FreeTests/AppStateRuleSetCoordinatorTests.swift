@@ -3,9 +3,10 @@ import Testing
 
 @testable import FreeLogic
 
+@MainActor
 struct AppStateRuleSetCoordinatorTests {
     @Test("mutateRule always applies mutation regardless of strict-mode flag")
-    func mutateRuleStrictGuard() {
+    func mutateRuleStrictGuard() async throws {
         let set = RuleSet(name: "Default", urls: [])
 
         let blocked = AppStateRuleSetCoordinator.mutateRule(
@@ -28,7 +29,7 @@ struct AppStateRuleSetCoordinatorTests {
     }
 
     @Test("createRuleSet and deleteRuleSet keep active selection coherent")
-    func createAndDeleteKeepActiveSelectionCoherent() {
+    func createAndDeleteKeepActiveSelectionCoherent() async throws {
         let initial = RuleSet.defaultSet()
 
         let created = AppStateRuleSetCoordinator.createRuleSet(
@@ -51,7 +52,7 @@ struct AppStateRuleSetCoordinatorTests {
     }
 
     @Test("selectActiveRuleSet respects strict mode and unknown ids")
-    func selectActiveRuleSetRules() {
+    func selectActiveRuleSetRules() async throws {
         let first = RuleSet.defaultSet()
         let second = RuleSet(name: "Second", urls: [])
         let all = [first, second]
