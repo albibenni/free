@@ -25,15 +25,17 @@ scripting, has no polling window, and blocks system-wide.
 are all reused from the `FreeLogic` SPM package — only the enforcement path changes.
 
 Identifiers: app `com.benni.Free`, extension `com.benni.Free.ContentFilter`,
-App Group `group.com.benni.Free`, team `YVZG5QKT42`.
+App Group `YVZG5QKT42.group.com.benni.Free`, team `YVZG5QKT42`.
 
 ## Prerequisites (do these first — the entitlement is gated by Apple)
 
 1. **Request the Network Extension entitlement** on the developer portal
    (`com.apple.developer.networking.networkextension` → content-filter-provider).
    Apple must approve it; this can take days, so start it before building.
-2. **Register the App Group** `group.com.benni.Free` in the portal and enable it
-   on both the app and extension App IDs.
+2. **Register the App Group** in the portal as `group.com.benni.Free` and enable it on
+   both App IDs. **On macOS the entitlement/container form is Team-ID-prefixed** —
+   `YVZG5QKT42.group.com.benni.Free` — which is what the entitlements and
+   `SharedRuleStore.appGroupID` use (the automatic profile grants `YVZG5QKT42.*`).
 3. `brew install xcodegen`, then `xcodegen generate` to produce `Free.xcodeproj`.
 
 ## Build
@@ -52,8 +54,19 @@ principal class declared under `NetworkExtension → NEProviderClasses` in its
 Info.plist. On macOS the filter sees `NEFilterSocketFlow`s (no browser flows);
 hostname comes from `flow.url` or the socket's `remoteFlowEndpoint`.
 
-Gotcha: re-run `xcodegen generate` whenever you add files under `Sources/ContentFilter`
-or `Sources/FreeAppStore` — the generated `.xcodeproj` won't see them otherwise.
+### Gotchas (all hit and fixed during bring-up)
+
+- **Re-run `xcodegen generate`** whenever you add files under `Sources/ContentFilter`
+  or `Sources/FreeAppStore` — the generated `.xcodeproj` snapshots the tree.
+- **App groups are Team-ID-prefixed on macOS** (`YVZG5QKT42.group.…`), not the iOS
+  `group.…` form. A mismatch makes App Sandbox init `SIGTRAP` before `main`.
+- **Custom `INFOPLIST_FILE`s must include `CFBundleIdentifier`** (and the other
+  standard `CFBundle*` keys, referencing build settings like
+  `$(PRODUCT_BUNDLE_IDENTIFIER)`). Xcode only auto-injects these when it generates
+  the Info.plist; with a hand-written one, a missing bundle id makes `secinitd`
+  fail to create the sandbox container → launch `SIGTRAP` in `_libsecinit_appsandbox`.
+- Diagnosing a launch `SIGTRAP`: `log show --last 30s --predicate 'process == "secinitd"'`
+  surfaces the real reason (e.g. "Info.plist … has no value for kCFBundleIdentifierKey").
 
 ## Remaining implementation work
 

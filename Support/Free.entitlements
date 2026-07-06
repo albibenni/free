@@ -11,7 +11,7 @@
     </array>
     <key>com.apple.security.application-groups</key>
     <array>
-        <string>group.com.benni.Free</string>
+        <string>YVZG5QKT42.group.com.benni.Free</string>
     </array>
     <!-- Calendar import (EventKit) — keep parity with v1. -->
     <key>com.apple.security.personal-information.calendars</key>

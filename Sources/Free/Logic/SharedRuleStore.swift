@@ -8,7 +8,7 @@ import Foundation
 /// This is the v2 (App Store / Network Extension) blocking path. It does not
 /// replace the v1 AppleScript engine — both can coexist.
 public enum SharedRuleStore {
-    public static let appGroupID = "group.com.benni.Free"
+    public static let appGroupID = "YVZG5QKT42.group.com.benni.Free"
 
     private enum Key {
         static let isBlocking = "shared.isBlocking"
