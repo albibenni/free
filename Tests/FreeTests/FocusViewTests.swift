@@ -153,11 +153,32 @@ struct FocusViewTests {
         #expect(FocusSectionSupport.strictWarningText(for: .allowedWebsites) == StrictModeCopy.active)
         #expect(FocusSectionSupport.strictWarningText(for: .pomodoro) == StrictModeCopy.active)
 
+        #expect(FocusSectionSupport.focusedTodayText(seconds: 0) == "0m")
+        #expect(FocusSectionSupport.focusedTodayText(seconds: 59) == "0m")
+        #expect(FocusSectionSupport.focusedTodayText(seconds: 90) == "1m")
+        #expect(FocusSectionSupport.focusedTodayText(seconds: 3600) == "1h 0m")
+        #expect(FocusSectionSupport.focusedTodayText(seconds: 3600 + 23 * 60) == "1h 23m")
+        #expect(FocusSectionSupport.focusedTodayText(seconds: -100) == "0m")
+
         let appState = isolatedAppState(name: "cancelPauseAction")
         appState.isPaused = true
         let cancelPause = FocusSectionSupport.makeCancelPauseAction(cancelPause: { appState.cancelPause() })
         cancelPause()
         #expect(appState.isPaused == false)
+    }
+
+    @Test("Focus header renders the daily focused total")
+    @MainActor
+    func focusHeaderShowsFocusedTotal() async throws {
+        let appState = isolatedAppState(name: "focusedTotalHeader")
+        appState.focusedSecondsToday = 3600 + 23 * 60
+        appState.focusStatsDay = Calendar.current.startOfDay(for: Date())
+
+        let controller = makeController(appState: appState, section: .all)
+        _ = host(controller)
+
+        #expect(controller.headerFocusedValueLabel.stringValue == "1h 23m")
+        #expect(visibleText(in: controller.view).contains("1h 23m"))
     }
 
     @Test("Focus section grant accessibility action delegates through controller factory")

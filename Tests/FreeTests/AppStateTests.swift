@@ -1029,19 +1029,23 @@ struct AppStateTests {
         appState.startPause(minutes: 1)
         #expect(scheduler.handlers.count >= 2)
 
+        // The countdown (pause/pomodoro) timers run at a 1s interval; the
+        // focus-stats timer runs at 60s, so the most recent 1s timer is the one
+        // we want to fire regardless of how many focus-stats timers exist.
+        let pauseTimerIndex = scheduler.intervals.lastIndex(of: 1)!
         appState.pauseRemaining = 2
-        scheduler.fire(at: 1)
+        scheduler.fire(at: pauseTimerIndex)
         #expect(appState.pauseRemaining == 1)
 
         appState.pauseRemaining = 0
-        scheduler.fire(at: 1)
+        scheduler.fire(at: pauseTimerIndex)
         #expect(!appState.isPaused)
 
         appState.startPomodoro()
         #expect(appState.pomodoroStatus == .focus)
         #expect(scheduler.handlers.count >= 3)
 
-        let focusTimerIndex = scheduler.handlers.count - 1
+        let focusTimerIndex = scheduler.intervals.lastIndex(of: 1)!
         appState.pomodoroRemaining = 2
         scheduler.fire(at: focusTimerIndex)
         #expect(appState.pomodoroRemaining == 1)
@@ -1050,7 +1054,7 @@ struct AppStateTests {
         scheduler.fire(at: focusTimerIndex)
         #expect(appState.pomodoroStatus == .breakTime)
 
-        let breakTimerIndex = scheduler.handlers.count - 1
+        let breakTimerIndex = scheduler.intervals.lastIndex(of: 1)!
         appState.pomodoroRemaining = 0
         scheduler.fire(at: breakTimerIndex)
         #expect(appState.pomodoroStatus == .focus)
@@ -1200,16 +1204,17 @@ struct AppStateTests {
         appState?.startPause(minutes: 1)
         appState?.startPomodoro()
 
-        #expect(scheduler.timers.count == 3)
-        let scheduleTimer = scheduler.timers[0]
-        let pauseTimer = scheduler.timers[1]
-        let pomodoroTimer = scheduler.timers[2]
+        // schedule + focus-stats + pause + pomodoro timers were all created.
+        #expect(scheduler.timers.count >= 3)
+        let createdTimers = scheduler.timers
 
         appState = nil
 
-        #expect(scheduleTimer.invalidateCallCount == 1)
-        #expect(pauseTimer.invalidateCallCount == 1)
-        #expect(pomodoroTimer.invalidateCallCount == 1)
+        // Every timer is invalidated: current ones by teardown, replaced ones
+        // (e.g. the focus-stats timer stopped when the break started) already.
+        for timer in createdTimers {
+            #expect(timer.invalidateCallCount >= 1)
+        }
     }
 
     @Test("AppState replaces active pause and pomodoro timers safely")
@@ -1219,20 +1224,19 @@ struct AppStateTests {
             name: "appStateReplacesTimersSafely", timerScheduler: scheduler)
         appState.isBlocking = true
 
+        // The pause/pomodoro countdown timers run at a 1s interval (the
+        // focus-stats timer is 60s), so the most recent 1s timer is the one
+        // just started.
         appState.startPause(minutes: 1)
-        #expect(scheduler.timers.count == 2)
-        let firstPauseTimer = scheduler.timers[1]
+        let firstPauseTimer = scheduler.timers[scheduler.intervals.lastIndex(of: 1)!]
 
         appState.startPause(minutes: 2)
-        #expect(scheduler.timers.count == 3)
         #expect(firstPauseTimer.invalidateCallCount == 1)
 
         appState.startPomodoro()
-        #expect(scheduler.timers.count == 4)
-        let firstPomodoroTimer = scheduler.timers[3]
+        let firstPomodoroTimer = scheduler.timers[scheduler.intervals.lastIndex(of: 1)!]
 
         appState.startPomodoro()
-        #expect(scheduler.timers.count == 5)
         #expect(firstPomodoroTimer.invalidateCallCount == 1)
     }
 

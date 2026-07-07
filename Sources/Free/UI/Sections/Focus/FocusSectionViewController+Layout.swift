@@ -16,7 +16,9 @@ extension FocusSectionViewController {
             headerCardView: headerCardView,
             headerIconView: headerIconView,
             headerTitleLabel: headerTitleLabel,
-            headerStatusLabel: headerStatusLabel
+            headerStatusLabel: headerStatusLabel,
+            headerFocusedCaptionLabel: headerFocusedCaptionLabel,
+            headerFocusedValueLabel: headerFocusedValueLabel
         )
     }
 

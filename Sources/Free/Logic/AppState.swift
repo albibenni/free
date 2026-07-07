@@ -22,6 +22,7 @@ class AppState {
                 isBlocking: isBlocking,
                 cancelPause: { cancelPause() }
             )
+            refreshFocusAccumulation()
         }
     }
     var isStrict = false
@@ -93,6 +94,15 @@ class AppState {
     var pomodoroStartedAt: Date?
     var currentOpenUrls: [String] = []
 
+    /// Accumulated focus time for the current local day (persisted). "Focus"
+    /// means actively blocking and not on a break (`isBlocking && !isPaused`).
+    var focusedSecondsToday: TimeInterval = 0
+    /// Start-of-day the `focusedSecondsToday` total belongs to (persisted).
+    var focusStatsDay: Date = Date(timeIntervalSince1970: 0)
+    /// Wall-clock start of the in-progress focus interval, folded into
+    /// `focusedSecondsToday` on each tick / when focus ends. Not persisted.
+    var focusIntervalStartedAt: Date?
+
     var monitor: BrowserMonitor?
     let calendarProvider: any CalendarProvider
     private var calendarCancellable: AnyCancellable?
@@ -103,6 +113,12 @@ class AppState {
     private let isTesting: Bool
     var internalState = AppStateInternalState()
     private var rescheduleScheduleTimer: (@MainActor () -> Void)?
+    /// Injectable clock for the focus-stats accumulator (tests supply a fake).
+    let focusStatsNow: () -> Date
+    /// Gates focus-accumulation side effects until `init` has fully populated
+    /// state, so `isBlocking`/pause mutations during bootstrap don't start
+    /// timers or fold against not-yet-loaded totals.
+    var isFocusStatsReady = false
 
     init(
         defaults: UserDefaults = .standard, monitor: BrowserMonitor? = nil,
@@ -113,8 +129,10 @@ class AppState {
         canPromptForLaunchAtLogin: @escaping () -> Bool = {
             !TestProcessDetector.isRunningTests()
         },
+        dateProvider: @escaping () -> Date = { Date() },
         isTesting: Bool = ProcessInfo.processInfo.environment["FREE_COVERAGE_MODE"] == "1"
     ) {
+        self.focusStatsNow = dateProvider
         let dependencies = AppStateDependencyFactory.make(
             defaults: defaults,
             injectedCalendar: calendar,
@@ -139,6 +157,8 @@ class AppState {
         applyRulesDomainState(bootstrapProjection.rules)
         applyScheduleDomainState(bootstrapProjection.schedule)
         manualBlockingEnabled = snapshot.manualBlockingEnabled
+        focusedSecondsToday = snapshot.focusedSecondsToday
+        focusStatsDay = snapshot.focusStatsDay
         persistenceCancellables = AppStateLifecycleService.bindPersistence(
             appState: self,
             settingsStore: settingsStore
@@ -197,6 +217,11 @@ class AppState {
             isBlocking = false
         }
         performCheckSchedules()
+        // State is fully loaded: enable focus accumulation, reset the total if
+        // the persisted day is stale, and start an interval if already focusing.
+        isFocusStatsReady = true
+        rollOverFocusStatsIfNeeded()
+        refreshFocusAccumulation()
     }
 
     isolated deinit {

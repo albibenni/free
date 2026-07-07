@@ -12,6 +12,7 @@ Each feature has a walkthrough in [Docs/full-app.md](Docs/full-app.md) (section 
 - **Pomodoro and quick breaks** — focus/break cycles with a grace-period lock ([walkthrough](Docs/full-app.md#6-3-pomodoro-timer), [state machine](Docs/diagrams.md#4-pomodoro-state-machine)).
 - **Strict mode** — challenge-phrase-protected sessions with quit prevention and tamper repair ([Docs/strict-mode.md](Docs/strict-mode.md)).
 - **Calendar import** — EventKit events become focus/break blocks via title rules ([walkthrough](Docs/full-app.md#6-7-calendar-integration), [flow diagram](Docs/diagrams.md#6-calendar-integration-flow)).
+- **Daily focus total** — the Focus header shows how long you've focused today (active blocking, breaks excluded), resetting at local midnight.
 - **DMG install flow** with optional move to `/Applications`, signing, and notarization ([Docs/build-and-release.md](Docs/build-and-release.md)).
 
 ## Tech

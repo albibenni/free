@@ -26,6 +26,8 @@ struct AppStateBootstrapService {
         let wasStartedBySchedule: Bool
         let manualBlockingEnabled: Bool
         let suppressedImportedCalendarEventKeys: Set<String>
+        let focusedSecondsToday: TimeInterval
+        let focusStatsDay: Date
     }
 
     static func snapshot(from settingsStore: SettingsStore) -> Snapshot {
@@ -65,7 +67,9 @@ struct AppStateBootstrapService {
             activeRuleSetId: settingsStore.activeRuleSetId() ?? ruleSets.first?.id,
             wasStartedBySchedule: settingsStore.wasStartedBySchedule(),
             manualBlockingEnabled: settingsStore.manualBlockingEnabled(),
-            suppressedImportedCalendarEventKeys: settingsStore.suppressedImportedCalendarEventKeys()
+            suppressedImportedCalendarEventKeys: settingsStore.suppressedImportedCalendarEventKeys(),
+            focusedSecondsToday: settingsStore.focusedSecondsToday(),
+            focusStatsDay: settingsStore.focusStatsDay() ?? Date(timeIntervalSince1970: 0)
         )
     }
 }

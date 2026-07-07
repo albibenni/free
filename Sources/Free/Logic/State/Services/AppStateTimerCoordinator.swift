@@ -6,6 +6,7 @@ final class AppStateTimerCoordinator {
     private var pauseTimer: (any RepeatingTimer)?
     private var pomodoroTimer: (any RepeatingTimer)?
     private var scheduleTimer: (any RepeatingTimer)?
+    private var focusStatsTimer: (any RepeatingTimer)?
 
     init(timerScheduler: any RepeatingTimerScheduling) {
         self.timerScheduler = timerScheduler
@@ -39,10 +40,18 @@ final class AppStateTimerCoordinator {
         )
     }
 
+    func replaceFocusStatsTimer(with newTimer: (any RepeatingTimer)?) {
+        replaceTimer(
+            currentTimer: &focusStatsTimer,
+            newTimer: newTimer
+        )
+    }
+
     func invalidateAllTimers() {
         replacePauseTimer(with: nil)
         replacePomodoroTimer(with: nil)
         replaceScheduleTimer(with: nil)
+        replaceFocusStatsTimer(with: nil)
     }
 
     private func replaceTimer(

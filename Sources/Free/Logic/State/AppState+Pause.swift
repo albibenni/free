@@ -10,6 +10,8 @@ extension AppState {
             )
         else { return }
         applyPauseEngineState(transition.state)
+        // A break just started: stop counting focus time until it ends.
+        refreshFocusAccumulation()
         if transition.shouldStartTimer {
             let timer = timerCoordinator.scheduledRepeatingTimer(withTimeInterval: 1) { [weak self] in
                 guard let self = self else { return }
@@ -31,6 +33,8 @@ extension AppState {
         if transition.shouldStopTimer {
             timerCoordinator.replacePauseTimer(with: nil)
         }
+        // The break ended: resume counting focus time if still blocking.
+        refreshFocusAccumulation()
         if transition.shouldCheckSchedules {
             checkSchedules()
         }

@@ -431,7 +431,7 @@ Uses EventKit to read calendar events. Refreshes every 5 minutes via a repeating
 
 **Sections** (all `NSViewController`):
 
-1. **Focus** — main dashboard: status card, pause dashboard, quick break, live overview.
+1. **Focus** — main dashboard: status card (with the always-visible "focused today" total), pause dashboard, quick break, live overview.
 2. **Schedules** — weekly calendar with drag/drop schedule blocks.
 3. **Rules** — allowed websites table, add/edit/delete, import from clipboard.
 4. **Calendar** — sync settings, import rules editor.
@@ -790,7 +790,9 @@ And the reverse — `AppStateBootstrapService` reads all stored values at launch
 
 **Tamper resistance:** the persisted `IsStrict`/`IsBlocking` flags are externally writable (`defaults write`), so they are *not* the enforcement boundary. In-memory state is authoritative while the app runs: `AppDelegate` quit-prevention reads it via providers, and `reassertPersistedSessionFlags()` repairs external edits on every monitor snapshot and schedule tick. See `Docs/strict-mode.md` for the limits.
 
-**Persisted data includes:** session state, all schedules, all rule sets, pomodoro config, calendar import rules, appearance settings, strict mode, launch-at-login preference.
+**Persisted data includes:** session state, all schedules, all rule sets, pomodoro config, calendar import rules, appearance settings, strict mode, launch-at-login preference, and the daily focus total (`FocusedSecondsToday` + `FocusStatsDay`).
+
+**Daily focus total:** `FocusStatsService` (a stateless fold/rollover helper) accumulates wall-clock time while `isBlocking && !isPaused` — active blocking, excluding quick breaks and Pomodoro breaks. `AppState` folds the in-progress interval on a 60 s timer (and on every rising/falling edge) so the Focus header ticks up live, and the total resets at local midnight when the persisted day is stale.
 
 **Data integrity:** `DataIntegrityTests.swift` verifies that encode → decode roundtrips for all models produce identical values.
 

@@ -61,7 +61,9 @@ struct AppStateLifecycleServiceTests {
             activeRuleSetId: ruleSet.id,
             wasStartedBySchedule: true,
             manualBlockingEnabled: false,
-            suppressedImportedCalendarEventKeys: ["event-1"]
+            suppressedImportedCalendarEventKeys: ["event-1"],
+            focusedSecondsToday: 0,
+            focusStatsDay: Date(timeIntervalSince1970: 0)
         )
 
         let projection = AppStateLifecycleService.makeBootstrapProjection(snapshot: snapshot)
