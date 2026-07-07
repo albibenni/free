@@ -17,3 +17,8 @@ Free.app/
 Free.dmg
 # Release signing config
 release.env
+
+# Xcode (v1 builds via SwiftPM; xcodeproj is a local-only artifact)
+Free.xcodeproj/
+xcuserdata/
+build
