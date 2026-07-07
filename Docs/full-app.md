@@ -71,7 +71,7 @@ All modes share the same underlying blocking engine — they only differ in *how
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        AppKit UI (108 files)                    │
+│                        AppKit UI (109 files)                    │
 │  Shell / Sidebar / Sections / Floating editors / Status menu    │
 └────────────────────────┬────────────────────────────────────────┘
                          │ observes (Observation)
@@ -82,21 +82,21 @@ All modes share the same underlying blocking engine — they only differ in *how
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
 │  │ Coordinators │  │  Services    │  │ Persistence Trackers │  │
 │  │ (stateful    │  │ (stateless   │  │ (UserDefaults via    │  │
-│  │  orchestrate)│  │  business    │  │  Combine sinks)      │  │
+│  │  orchestrate)│  │  business    │  │  Observation)        │  │
 │  └──────┬───────┘  │  logic)      │  └──────────────────────┘  │
 │         │          └──────────────┘                             │
 └─────────┼───────────────────────────────────────────────────────┘
           │ reads state snapshot / sends actions
 ┌─────────▼───────────────────────────────────────────────────────┐
 │                   BrowserMonitor (1.5 s timer)                  │
-│   Reads browser URL → evaluates block → redirects to :10000     │
+│   Reads browser URL → evaluates block → redirects to :<port>    │
 │                                                                  │
 │   DefaultBrowserAutomator          RuleMatcher                  │
 │   (AppleScript + AX API)           (wildcards → Regex)           │
 └─────────────────────────────────────────────────────────────────┘
           │
 ┌─────────▼───────────────────────────────────────────────────────┐
-│              LocalServer (http://localhost:10000)               │
+│           LocalServer (loopback, ephemeral port)                │
 │              Serves block page HTML                             │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -141,7 +141,7 @@ flowchart TB
     Monitor["BrowserMonitor (1.5s polling)"]
     Matcher["RuleMatcher"]
     Automator["DefaultBrowserAutomator"]
-    LocalServer["LocalServer :10000 (block page)"]
+    LocalServer["LocalServer :&lt;port&gt; (loopback block page)"]
   end
 
   subgraph OS["macOS / External"]
@@ -185,7 +185,7 @@ flowchart TB
   Automator --> AX
   AppleScript --> Browsers
   AX --> Browsers
-  Monitor -->|"redirect disallowed URL to http://localhost:10000"| Automator
+  Monitor -->|"redirect disallowed URL to http://localhost:&lt;port&gt;"| Automator
   Browsers --> LocalServer
 ```
 
@@ -201,7 +201,7 @@ flowchart LR
   Monitor --> Automator["Browser Automator"]
   Automator --> Browsers["Browsers"]
   Monitor --> Matcher["RuleMatcher"]
-  Monitor -->|Blocked| BlockPage["LocalServer :10000 Block Page"]
+  Monitor -->|Blocked| BlockPage["LocalServer :&lt;port&gt; Block Page"]
   AppState --> Store["UserDefaults"]
   AppState --> Calendar["EventKit Calendar"]
 ```
@@ -421,7 +421,7 @@ Uses EventKit to read calendar events. Refreshes every 5 minutes via a repeating
 
 ### 3-10 UI Architecture
 
-**108 AppKit files** in `Sources/Free/UI/`.
+**109 AppKit files** in `Sources/Free/UI/`.
 
 **Shell:**
 
@@ -584,10 +584,10 @@ Same chain in reverse: `stopSession()` → `isBlocking = false` → monitor snap
 
 ```swift
 struct Schedule {
-    var days: Set<Int>       // 0=Sun … 6=Sat  (recurring)
-    var date: Date?          // set for one-off
-    var startTime: DateComponents
-    var endTime: DateComponents
+    var days: Set<Int>   // 1=Sun … 7=Sat  (recurring)
+    var date: Date?      // set for one-off (a specific calendar day)
+    var startTime: Date  // only the time component matters
+    var endTime: Date    // only the time component matters
 }
 ```
 
@@ -613,15 +613,13 @@ none → focus (blocking on, timer starts)
 
 **Strict mode lockout:** After 10 seconds into a focus phase, stopping or skipping requires a challenge phrase (strict mode only).
 
-**State:**
+**State:** there is no `PomodoroState` struct — the phase lives directly on `AppState` as separate observable properties:
 
 ```swift
-struct PomodoroState {
-    var status: PomodoroStatus  // .none | .focus | .breakTime
-    var remaining: TimeInterval
-    var startedAt: Date?
-    var ruleSetId: UUID?
-}
+var pomodoroStatus: PomodoroStatus = .none  // .none | .focus | .breakTime
+var pomodoroRemaining: TimeInterval = 0
+var pomodoroStartedAt: Date?
+var pomodoroRuleSetId: UUID?                 // via internalState adapter
 ```
 
 ---
@@ -682,7 +680,7 @@ struct PomodoroState {
 | `github.com/*` | Any path on `github.com` |
 | `*` | Everything (effectively disables blocking) |
 
-**Implementation:** `RuleMatcher` normalizes the input URL, converts each pattern to an `NSPredicate(format: "self LIKE[c] %@", pattern)`, caches the predicate, and evaluates.
+**Implementation:** `RuleMatcher` normalizes the input URL, then for each pattern escapes it and compiles a case-insensitive Swift `Regex` inline (`*` → `.*`, `?` → `.`, anchored `^…$`); non-wildcard rules match by normalized equality or path/query/fragment prefix. A malformed pattern simply fails to match (`try?`) rather than throwing.
 
 ---
 
@@ -886,7 +884,7 @@ Strict mode requires the user to demonstrate intent by typing a full sentence. T
 | AppKit over SwiftUI | More code, full control. SwiftUI drag-and-drop on macOS was unreliable when started. |
 | Polling (1.5s) over AX notifications | Simpler, reliable across all browsers. Max 1.5s delay before redirect. |
 | AppleScript + AX hybrid | AppleScript doesn't work on Arc; AX does. Both needed for full browser coverage. |
-| localhost:10000 block page | No browser extension required. Port 10000 could theoretically conflict with other apps. |
+| loopback block page (ephemeral port) | No browser extension required. Binds an ephemeral loopback port (10000 only as a fallback), so there is no fixed-port conflict. |
 | Wildcard rules compiled to `Regex` | Simple syntax for users; a malformed pattern just fails to match. |
 | UserDefaults for persistence | Simple, no migrations needed. Not suitable if data were large. |
 | Value-type state snapshots | Thread-safe reads without locks. Requires discipline to not pass mutable refs. |
@@ -896,4 +894,4 @@ Strict mode requires the user to demonstrate intent by typing a full sentence. T
 
 ---
 
-*Last updated: 2026-07-05 | Free macOS App*
+*Last updated: 2026-07-07 | Free macOS App*
