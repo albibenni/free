@@ -17,6 +17,9 @@ final class FilterController: NSObject, OSSystemExtensionRequestDelegate {
     private let log = Logger(subsystem: "com.benni.Free", category: "filter-controller")
     private let extensionIdentifier = "com.benni.Free.ContentFilter"
 
+    /// Reports activation progress to the UI (wired in FreeAppStore/main.swift).
+    var onStatusChange: (@MainActor (FilterStatus) -> Void)?
+
     /// Activate the system extension; NEFilterManager is enabled once activation
     /// succeeds (see requestDidFinish).
     func enable() {
@@ -37,6 +40,7 @@ final class FilterController: NSObject, OSSystemExtensionRequestDelegate {
             log.error("DIAG SystemExtensions dir NOT readable at \(sysExtDir.path, privacy: .public)")
         }
         log.notice("DIAG requesting activation for id=\(self.extensionIdentifier, privacy: .public)")
+        onStatusChange?(.installing)
 
         let request = OSSystemExtensionRequest.activationRequest(
             forExtensionWithIdentifier: extensionIdentifier,
@@ -66,8 +70,10 @@ final class FilterController: NSObject, OSSystemExtensionRequestDelegate {
                 }
                 manager.isEnabled = true
                 try await manager.saveToPreferences()
+                onStatusChange?(.active)
                 log.info("Content filter configuration enabled")
             } catch {
+                onStatusChange?(.failed(error.localizedDescription))
                 log.error("Enabling filter configuration failed: \(error.localizedDescription, privacy: .public)")
             }
         }
@@ -85,6 +91,7 @@ final class FilterController: NSObject, OSSystemExtensionRequestDelegate {
 
     nonisolated func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) {
         Task { @MainActor in
+            self.onStatusChange?(.needsApproval)
             log.notice("System extension needs approval in System Settings → General → Login Items & Extensions")
         }
     }
@@ -98,6 +105,7 @@ final class FilterController: NSObject, OSSystemExtensionRequestDelegate {
 
     nonisolated func request(_ request: OSSystemExtensionRequest, didFailWithError error: Error) {
         Task { @MainActor in
+            self.onStatusChange?(.failed(error.localizedDescription))
             log.error("System extension activation failed: \(error.localizedDescription, privacy: .public)")
         }
     }

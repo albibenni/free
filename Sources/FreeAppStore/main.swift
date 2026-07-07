@@ -19,8 +19,11 @@ import FreeLogic
 // TODO: move activation behind a Settings toggle with explanation once the flow
 // is validated, so the approval prompt is tied to explicit user intent.
 let filterController = FilterController()
-Task { @MainActor in
-    filterController.enable()
-}
-
-FreeAppEntry.run(startBrowserMonitor: false)
+FreeAppEntry.run(
+    startBrowserMonitor: false,
+    filterStatusSink: { setStatus in
+        filterController.onStatusChange = setStatus
+        filterController.enable()
+    },
+    onFilterRetry: { filterController.enable() }
+)

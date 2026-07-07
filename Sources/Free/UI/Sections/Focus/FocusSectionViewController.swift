@@ -106,6 +106,7 @@ final class FocusSectionViewController: NSViewController {
             _ = appState.isBlocking
             _ = appState.isStrict
             _ = appState.isTrusted
+            _ = appState.filterStatus
             _ = appState.isPaused
             _ = appState.pauseRemaining
             _ = appState.pomodoroStatus

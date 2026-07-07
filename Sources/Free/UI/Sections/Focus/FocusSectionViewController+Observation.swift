@@ -32,6 +32,8 @@ extension FocusSectionViewController {
         let sharedState = FocusSectionSharedStateCoordinator.makePresentation(appState: appState)
 
         permissionWarningView.isHidden = sharedState.isPermissionWarningHidden
+        permissionTitleLabel.stringValue = sharedState.permissionWarningText
+        grantPermissionButton.title = sharedState.permissionActionTitle
 
         let headerIconName = AppKitUISymbols.Name.focus
         headerIconView.image = NSImage(

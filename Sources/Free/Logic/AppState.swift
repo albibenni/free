@@ -1,6 +1,7 @@
 import Observation
 import Combine
 import Foundation
+import ApplicationServices
 
 enum AppearanceMode: String, Codable, CaseIterable {
     case system = "System"
@@ -27,6 +28,9 @@ class AppState {
     }
     var isStrict = false
     var isTrusted = false
+    var filterStatus: FilterStatus = .installing
+    /// v2 only: re-attempt content-filter activation (wired in FreeAppStore/main.swift).
+    @ObservationIgnored var onFilterRetry: (@MainActor () -> Void)?
     var weekStartsOnMonday = false
     var accentColorIndex = 0
     var appearanceMode: AppearanceMode = .system
@@ -263,6 +267,19 @@ class AppState {
             settingsStore.setIsBlocking(isBlocking)
         }
         publishSharedFilterState()
+    }
+
+    /// v1 (Developer ID) enforces blocking via the Accessibility/AppleScript engine;
+    /// the v2 content-filter build does not, so its Accessibility banner is meaningless.
+    var usesAccessibilityEngine: Bool { startBrowserMonitor }
+
+    /// Re-read Accessibility trust directly and update `isTrusted`. It's otherwise only
+    /// set by the BrowserMonitor — absent on v2, polled only every 30s on v1 — so the
+    /// banner would linger after the user grants access. Called on app re-activation
+    /// (returning from System Settings) to clear it immediately.
+    func refreshAccessibilityTrust() {
+        let trusted = AXIsProcessTrusted()
+        if trusted != isTrusted { isTrusted = trusted }
     }
 
     /// Mirror the effective blocking state + active allowed rules into the shared

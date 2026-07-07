@@ -216,6 +216,9 @@ final class FreeApp {
             guard let self, let application else { return }
             self.startInterface(application: application)
         }
+        appDelegate.onApplicationDidBecomeActive = { [weak appState] in
+            appState?.refreshAccessibilityTrust()
+        }
         application.delegate = appDelegate
     }
 
@@ -404,10 +407,15 @@ public enum FreeAppEntry {
     ///     session start without needing access to AppState internals.
     @MainActor public static func run(
         startBrowserMonitor: Bool = true,
-        onBlockingChanged: (@MainActor (Bool) -> Void)? = nil
+        onBlockingChanged: (@MainActor (Bool) -> Void)? = nil,
+        filterStatusSink: (@MainActor (@escaping @MainActor (FilterStatus) -> Void) -> Void)? = nil,
+        onFilterRetry: (@MainActor () -> Void)? = nil
     ) {
         let application = NSApplication.shared
         let appState = AppState(defaults: .standard, startBrowserMonitor: startBrowserMonitor)
+        // Hand the v2 caller a setter so its FilterController can report status.
+        filterStatusSink? { status in appState.filterStatus = status }
+        appState.onFilterRetry = onFilterRetry
         let app = FreeApp(appState: appState, appDelegate: AppDelegate())
         app.launch(application: application)
         let blockingObserver = onBlockingChanged.map {

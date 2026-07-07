@@ -4,6 +4,7 @@ build/
 .build_log
 *.log
 *.patch
+.claude/
 dist/
 coverage-report.txt
 Packages/

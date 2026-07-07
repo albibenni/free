@@ -3,6 +3,18 @@ import AppKit
 extension FocusSectionViewController {
     @objc
     func grantAccessibility() {
+        guard appState.usesAccessibilityEngine else {
+            // v2 — content-filter build.
+            switch appState.filterStatus {
+            case .failed:
+                // Nothing to approve yet (activation never registered): retry it.
+                appState.onFilterRetry?()
+            default:
+                // Waiting for approval / installing: point the user at Settings.
+                FocusSectionSupport.openSystemExtensionSettings()
+            }
+            return
+        }
         if let monitor = appState.monitor {
             Task { await monitor.checkPermissions(prompt: true) }
         } else {

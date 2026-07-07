@@ -16,6 +16,14 @@ enum FocusSectionSupport {
         ["AXTrustedCheckOptionPrompt": true] as CFDictionary
     }
 
+    static func openSystemExtensionSettings() {
+        // System Settings → Login Items & Extensions (content filter is approved
+        // under "Network Extensions").
+        if let url = URL(string: "x-apple.systempreferences:com.apple.ExtensionsPreferences") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     static func makeGrantAccessibilityAction(
         checkWithOptions: @escaping (CFDictionary) -> Bool = AXIsProcessTrustedWithOptions
     ) -> () -> Void {

@@ -5,6 +5,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     public var defaults: UserDefaults = .standard
     public var onShowAlert: (() -> Void)?
     public var onApplicationDidFinishLaunching: (() -> Void)?
+    public var onApplicationDidBecomeActive: (() -> Void)?
     // In-memory session state providers wired by FreeApp. UserDefaults is only a
     // fallback: it is externally writable (`defaults write`), so it must not be
     // the enforcement boundary for strict mode.
@@ -16,6 +17,10 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     public func applicationDidFinishLaunching(_ notification: Notification) {
         checkLocation()
         onApplicationDidFinishLaunching?()
+    }
+
+    public func applicationDidBecomeActive(_ notification: Notification) {
+        onApplicationDidBecomeActive?()
     }
 
     private func checkLocation() {
