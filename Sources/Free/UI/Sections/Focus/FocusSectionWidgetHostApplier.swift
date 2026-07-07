@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 enum FocusSectionWidgetHostApplier {
     static func applyPomodoroReuse(
         action: FocusSectionWidgetCoordinator.PomodoroReuseAction,

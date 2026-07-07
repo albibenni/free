@@ -5,7 +5,7 @@ final class CalendarSectionViewController: NSViewController {
     typealias AlertFactory = @MainActor () -> NSAlert
     typealias AlertRunner = @MainActor (NSAlert) -> NSApplication.ModalResponse
     typealias URLOpener = @MainActor (URL) -> Void
-    typealias AsyncAfterScheduler = (TimeInterval, @escaping () -> Void) -> Void
+    typealias AsyncAfterScheduler = (TimeInterval, @escaping @MainActor () -> Void) -> Void
     typealias TestProcessDetector = () -> Bool
 
     private static func defaultMakeCalendarPermissionAlert() -> NSAlert { NSAlert() }
@@ -26,8 +26,10 @@ final class CalendarSectionViewController: NSViewController {
         }
         nativeWorkspaceURLOpener(url)
     }
-    private static func defaultScheduleAfter(_ delay: TimeInterval, _ work: @escaping () -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+    private static func defaultScheduleAfter(_ delay: TimeInterval, _ work: @escaping @MainActor () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            MainActor.assumeIsolated(work)
+        }
     }
     private static func defaultOpenCalendarPrivacySettings() {
         openCalendarPrivacySettingsIfPossible(

@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 func makeAppKitStack(
     views: [NSView],
     orientation: NSUserInterfaceLayoutOrientation,
@@ -17,6 +18,7 @@ func makeAppKitStack(
     return stack
 }
 
+@MainActor
 func makeAppKitHorizontalRow(
     views: [NSView],
     alignment: NSLayoutConstraint.Attribute = .centerY,
@@ -32,6 +34,7 @@ func makeAppKitHorizontalRow(
     )
 }
 
+@MainActor
 func makeAppKitVerticalStack(
     views: [NSView],
     alignment: NSLayoutConstraint.Attribute = .leading,
@@ -47,6 +50,7 @@ func makeAppKitVerticalStack(
     )
 }
 
+@MainActor
 func removeAllArrangedSubviews(from stackView: NSStackView) {
     let subviews = stackView.arrangedSubviews
     subviews.forEach { subview in

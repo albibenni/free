@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 enum FocusSectionOverviewViewApplier {
     static func apply(
         renderModel: FocusSectionOverviewRenderCoordinator.RenderModel,

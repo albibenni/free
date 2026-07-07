@@ -3,6 +3,18 @@ import Foundation
 import EventKit
 @testable import FreeLogic
 
+// Thread-safe holder so a value captured in a @Sendable completion can be read
+// back after the callback fires.
+private final class Holder<T>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedValue: T
+    init(_ value: T) { storedValue = value }
+    var value: T {
+        get { lock.lock(); defer { lock.unlock() }; return storedValue }
+        set { lock.lock(); defer { lock.unlock() }; storedValue = newValue }
+    }
+}
+
 private final class RuntimeEventStoreDouble: EKEventStore {
     var requestFullAccessCalls = 0
     var requestAccessCalls = 0
@@ -83,14 +95,14 @@ struct CalendarManagerRuntimeTests {
         store.requestAccessResult = false
 
         let runtime = CalendarManagerRuntime.live(eventStore: store)
-        var grantedValue: Bool?
+        let grantedValue = Holder<Bool?>(nil)
         runtime.requestEventAccess { granted in
-            grantedValue = granted
+            grantedValue.value = granted
         }
 
         #expect(store.requestFullAccessCalls == 1)
         #expect(store.requestAccessCalls == 0)
-        #expect(grantedValue == true)
+        #expect(grantedValue.value == true)
     }
 
     @Test("live runtime loadEvents maps EventKit events into snapshots")

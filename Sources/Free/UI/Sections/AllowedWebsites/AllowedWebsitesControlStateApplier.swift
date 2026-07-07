@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum AllowedWebsitesControlStateApplier {
     static func apply(
         _ state: AllowedWebsitesPresentationCoordinator.ControlState,

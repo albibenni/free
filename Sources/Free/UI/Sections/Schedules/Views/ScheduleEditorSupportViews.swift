@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 func removeArrangedSubviews(from stackView: NSStackView) {
     let arrangedSubviews = stackView.arrangedSubviews
     arrangedSubviews.forEach { subview in

@@ -106,6 +106,7 @@ class AppKitCardView: AppKitFlippedView {
     }
 }
 
+@MainActor
 func applyAppKitInputFieldStyle(
     _ textField: NSTextField,
     backgroundOpacity: CGFloat = 0.62,

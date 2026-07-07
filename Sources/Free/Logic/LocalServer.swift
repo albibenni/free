@@ -1,18 +1,20 @@
 import Foundation
 import Network
 
-protocol LocalServerConnection {
+protocol LocalServerConnection: Sendable {
     func start(queue: DispatchQueue)
     func receive(
         minimumIncompleteLength: Int,
         maximumLength: Int,
-        completion: @escaping (_ data: Data?, _ isComplete: Bool, _ error: NWError?) -> Void
+        completion: @escaping @Sendable (_ data: Data?, _ isComplete: Bool, _ error: NWError?) -> Void
     )
-    func send(content: Data?, completion: @escaping (NWError?) -> Void)
+    func send(content: Data?, completion: @escaping @Sendable (NWError?) -> Void)
     func cancel()
 }
 
-private final class LocalServerNWConnectionAdapter: LocalServerConnection {
+// @unchecked Sendable: an immutable wrapper over NWConnection, which is
+// internally thread-safe and delivers its callbacks on the queue it's started on.
+private final class LocalServerNWConnectionAdapter: LocalServerConnection, @unchecked Sendable {
     private let base: NWConnection
 
     init(base: NWConnection) {
@@ -26,7 +28,7 @@ private final class LocalServerNWConnectionAdapter: LocalServerConnection {
     func receive(
         minimumIncompleteLength: Int,
         maximumLength: Int,
-        completion: @escaping (_ data: Data?, _ isComplete: Bool, _ error: NWError?) -> Void
+        completion: @escaping @Sendable (_ data: Data?, _ isComplete: Bool, _ error: NWError?) -> Void
     ) {
         base.receive(
             minimumIncompleteLength: minimumIncompleteLength,
@@ -36,7 +38,7 @@ private final class LocalServerNWConnectionAdapter: LocalServerConnection {
         }
     }
 
-    func send(content: Data?, completion: @escaping (NWError?) -> Void) {
+    func send(content: Data?, completion: @escaping @Sendable (NWError?) -> Void) {
         base.send(content: content, completion: .contentProcessed(completion))
     }
 

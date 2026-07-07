@@ -30,6 +30,7 @@ final class FreeStatusItemController: NSObject {
         statusItem.menu = statusMenu
     }
 
+    @MainActor
     func update(statusText: String, topBarText: String, isQuitDisabled: Bool, iconColor: NSColor) {
         let statusLines = statusText
             .split(whereSeparator: \.isNewline)

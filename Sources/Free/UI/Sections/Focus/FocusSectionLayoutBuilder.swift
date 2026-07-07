@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum FocusSectionLayoutBuilder {
     private static func systemSymbolImageOrEmpty(_ name: String) -> NSImage {
         guard let image = NSImage(systemSymbolName: name, accessibilityDescription: nil) else {

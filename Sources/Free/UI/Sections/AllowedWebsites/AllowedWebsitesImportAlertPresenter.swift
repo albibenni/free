@@ -82,6 +82,7 @@ enum AllowedWebsitesImportAlertPresenter {
         )
     }
 
+    @MainActor
     private final class SelectAllCoordinator: NSObject {
         private let checkboxes: [NSButton]
 

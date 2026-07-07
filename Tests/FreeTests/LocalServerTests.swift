@@ -8,7 +8,8 @@ private enum LocalServerTestError: Error, Equatable {
     case listenerInitFailed
 }
 
-private final class FakeLocalServerConnection: LocalServerConnection {
+// @unchecked Sendable: all mutable state is guarded by `lock`.
+private final class FakeLocalServerConnection: LocalServerConnection, @unchecked Sendable {
     private let lock = NSLock()
     private var _didStart = false
     private var _didCancel = false

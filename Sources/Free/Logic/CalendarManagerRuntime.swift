@@ -11,7 +11,7 @@ struct CalendarEventSnapshot {
 
 struct CalendarManagerRuntime {
     var hasEventAuthorization: () -> Bool
-    var requestEventAccess: (@escaping (Bool) -> Void) -> Void
+    var requestEventAccess: (@escaping @Sendable (Bool) -> Void) -> Void
     var loadEvents: (_ start: Date, _ end: Date) -> [CalendarEventSnapshot]
 }
 

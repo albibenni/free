@@ -27,7 +27,7 @@ final class WeeklyCalendarSurfaceDocumentNSView: NSView {
         nil
     }
 
-    deinit {
+    isolated deinit {
         stopTimerMonitoring()
     }
 
@@ -216,7 +216,7 @@ final class WeeklyCalendarSurfaceDocumentNSView: NSView {
     private func startTimerMonitoringIfNeeded() {
         guard timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            self?.needsDisplay = true
+            MainActor.assumeIsolated { self?.needsDisplay = true }
         }
     }
 

@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 
+@MainActor
 enum ScheduleEditorRecurringUICoordinator {
     static func applyRecurringUI(
         repeatCheckbox: NSButton?,
