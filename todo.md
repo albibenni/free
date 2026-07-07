@@ -12,9 +12,13 @@ DONE:
 - [x] Manual Developer-ID signing + Hardened Runtime; scripts/package-v2.sh archives → exports → notarizes → installs (notarization Accepted, Gatekeeper accepted)
 - [x] App unsandboxed (Developer-ID sysext host must be); extension stays sandboxed
 
-BLOCKED — system extension won't activate:
-- OSSystemExtensionRequest returns "Extension not found in App bundle" for a build that is correct by every check (notarized, right identifier/entitlement, in /Applications, single LS registration, SIP off, dev mode on, DB reset). Xcode ⌘R also fails.
-- [ ] NEXT: build Apple's "Filtering Network Traffic" NEFilterDataProvider sample and try to activate it. Fails too → machine/OS state; works → diff its project against ours to find the delta.
+BLOCKED — system extension won't activate — ROOT CAUSE: macOS Tahoe 26.x sysextd BUG (not our code):
+- OSSystemExtensionRequest returns "Extension not found in App bundle" + sysextd logs "no policy, cannot allow apps outside /Applications" for a build correct by every check, app verifiably in /Applications. Confirmed 2026-07-06 on 26.5.2 (25F84).
+- Proven not-our-fault: a clean-room Apple-pattern control extension (same IDs/profiles/signing/notarization) fails identically; reproduced on fresh sysextd after reboot; no MDM/collision/dup-registration. Same signature reported by LuLu (#784, #825), Tailscale (#17891).
+- Full writeup + re-test procedure: **Docs/tahoe-sysext-bug.md**
+- [ ] After each macOS update: run `./scripts/retest-sysext.sh` to check if Apple fixed it.
+- [ ] Verify the app is shippable on a healthy Mac: `build/dist/Free-v2-notarized.zip` (notarized+stapled).
+- NOTE: use `scripts/package-v2.sh` (notarized), NOT `run-v2.sh` (unnotarized Debug — can't activate with SIP on). Stray `~/benni-projects/Freee/Freee.app` (bundle-id collision) moved to `.collision-bak`.
 
 AFTER ACTIVATION WORKS:
 - [ ] Validate hostname extraction + verdicts in FilterDataProvider.handleNewFlow vs real traffic (per-flow logging already added; watch for IP/QUIC flows with no hostname)
