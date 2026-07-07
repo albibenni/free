@@ -40,6 +40,7 @@ extension FocusSectionViewController {
         )
         headerIconView.contentTintColor = sharedState.focusIconColor
         headerStatusLabel.stringValue = sharedState.headerStatusText
+        headerFocusedValueLabel.stringValue = sharedState.focusedTodayText
 
         strictWarningLabel.font = .systemFont(ofSize: 12)
         strictWarningLabel.textColor = .systemOrange

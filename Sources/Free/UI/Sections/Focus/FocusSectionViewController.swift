@@ -16,6 +16,8 @@ final class FocusSectionViewController: NSViewController {
     let headerIconView = NSImageView()
     let headerTitleLabel = NSTextField(labelWithString: "Focus Mode")
     let headerStatusLabel = NSTextField(labelWithString: "")
+    let headerFocusedCaptionLabel = NSTextField(labelWithString: "Today")
+    let headerFocusedValueLabel = NSTextField(labelWithString: "0m")
     let strictWarningLabel = NSTextField(
         labelWithString: StrictModeCopy.active(
             withSuffix: " A challenge phrase is required to disable Focus Mode."
@@ -108,6 +110,7 @@ final class FocusSectionViewController: NSViewController {
             _ = appState.isTrusted
             _ = appState.isPaused
             _ = appState.pauseRemaining
+            _ = appState.focusedSecondsToday
             _ = appState.pomodoroStatus
             _ = appState.pomodoroRemaining
             _ = appState.pomodoroStartedAt

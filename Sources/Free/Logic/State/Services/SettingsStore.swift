@@ -26,6 +26,8 @@ final class SettingsStore {
         static let manualBlockingEnabled = "ManualBlockingEnabled"
         static let launchAtLoginPromptShown = "LaunchAtLoginPromptShown"
         static let suppressedImportedCalendarEventKeys = "SuppressedImportedCalendarEventKeys"
+        static let focusedSecondsToday = "FocusedSecondsToday"
+        static let focusStatsDay = "FocusStatsDay"
     }
 
     private let defaults: UserDefaults
@@ -126,6 +128,14 @@ final class SettingsStore {
     func setPomodoroBreakDuration(_ value: Double) {
         defaults.set(value, forKey: Key.pomodoroBreakDuration)
     }
+
+    func focusedSecondsToday() -> TimeInterval { defaults.double(forKey: Key.focusedSecondsToday) }
+    func setFocusedSecondsToday(_ value: TimeInterval) {
+        defaults.set(value, forKey: Key.focusedSecondsToday)
+    }
+
+    func focusStatsDay() -> Date? { defaults.object(forKey: Key.focusStatsDay) as? Date }
+    func setFocusStatsDay(_ value: Date) { defaults.set(value, forKey: Key.focusStatsDay) }
 
     func wasStartedBySchedule() -> Bool { defaults.bool(forKey: Key.wasStartedBySchedule) }
     func setWasStartedBySchedule(_ value: Bool) {

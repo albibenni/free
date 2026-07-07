@@ -59,7 +59,9 @@ enum FocusSectionLayoutBuilder {
         headerCardView: AppKitDynamicView,
         headerIconView: NSImageView,
         headerTitleLabel: NSTextField,
-        headerStatusLabel: NSTextField
+        headerStatusLabel: NSTextField,
+        headerFocusedCaptionLabel: NSTextField,
+        headerFocusedValueLabel: NSTextField
     ) {
         headerCardView.backgroundColorProvider = { NSColor.controlBackgroundColor }
         headerCardView.layer?.cornerRadius = 12
@@ -77,8 +79,21 @@ enum FocusSectionLayoutBuilder {
             spacing: 4
         )
 
+        headerFocusedCaptionLabel.font = .systemFont(ofSize: 11, weight: .medium)
+        headerFocusedCaptionLabel.textColor = .secondaryLabelColor
+        headerFocusedCaptionLabel.alignment = .right
+        headerFocusedValueLabel.font = .monospacedDigitSystemFont(ofSize: 20, weight: .bold)
+        headerFocusedValueLabel.alignment = .right
+
+        let focusedStack = makeAppKitVerticalStack(
+            views: [headerFocusedCaptionLabel, headerFocusedValueLabel],
+            alignment: .trailing,
+            spacing: 2
+        )
+        focusedStack.setContentHuggingPriority(.required, for: .horizontal)
+
         let row = makeAppKitHorizontalRow(
-            views: [headerIconView, labelStack, NSView()],
+            views: [headerIconView, labelStack, NSView(), focusedStack],
             alignment: .centerY,
             spacing: 12,
             edgeInsets: NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)

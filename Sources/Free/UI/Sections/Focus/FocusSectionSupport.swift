@@ -73,4 +73,13 @@ enum FocusSectionSupport {
     static func makeCancelPauseAction(cancelPause: @escaping () -> Void) -> () -> Void {
         cancelPause
     }
+
+    /// Formats the daily focus total for the header stat: `0m`, `Ym`, or `Xh Ym`
+    /// (whole minutes, rounded down). Negative input is clamped to zero.
+    static func focusedTodayText(seconds: TimeInterval) -> String {
+        let totalMinutes = max(0, Int(seconds) / 60)
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        return hours > 0 ? "\(hours)h \(minutes)m" : "\(minutes)m"
+    }
 }

@@ -8,7 +8,7 @@
 
 ```mermaid
 flowchart TB
-  subgraph UI["AppKit UI (108 files)"]
+  subgraph UI["AppKit UI (109 files)"]
     Shell["Shell + Sidebar + Status Item"]
     Focus["Focus Section"]
     RulesUI["Allowed Websites"]
@@ -40,11 +40,11 @@ flowchart TB
     CalendarSvc["CalendarImport/SyncService"]
   end
 
-  subgraph Enforcement["Blocking Enforcement (background thread)"]
+  subgraph Enforcement["Blocking Enforcement (BrowserMonitor actor)"]
     Monitor["BrowserMonitor\n(1.5s polling)"]
     Matcher["RuleMatcher\n(wildcards → Regex)"]
     Automator["DefaultBrowserAutomator\n(AppleScript + AX)"]
-    LocalServer["LocalServer\nlocalhost:10000"]
+    LocalServer["LocalServer\nloopback (ephemeral port)"]
   end
 
   subgraph OS["macOS / External"]
@@ -89,7 +89,7 @@ flowchart TB
   Automator --> AX
   AppleScript --> Browsers
   AX --> Browsers
-  Automator -->|"redirect to localhost:10000"| Browsers
+  Automator -->|"redirect to localhost:&lt;port&gt;"| Browsers
   Browsers --> LocalServer
 ```
 
@@ -97,7 +97,7 @@ flowchart TB
 
 ## 2. Blocking Loop Flowchart
 
-The core enforcement loop runs every 1.5 seconds on a background thread.
+The core enforcement loop runs every 1.5 seconds. The tick timer fires on the main queue, then hops into the `BrowserMonitor` actor (its own serial executor) where the AppleScript/AX round-trips run — off the shared cooperative pool.
 
 ```mermaid
 flowchart TD
@@ -111,8 +111,8 @@ flowchart TD
   IsAllowed{Allowed?}
   CheckCooldown{Redirect cooldown\n< 2s since last?}
   Skip(["Return\n(skip — avoid loop)"])
-  Redirect["automator.redirect()\nto localhost:10000"]
-  UpdateTime["Update lastRedirectTime\n(NSLock write)"]
+  Redirect["automator.redirect()\nto localhost:&lt;port&gt;"]
+  UpdateTime["Update lastRedirectTime\n(actor-isolated, no lock)"]
   Done(["End tick"])
 
   Start --> Snapshot
@@ -153,7 +153,7 @@ sequenceDiagram
   Facade->>Coord: startSession(ruleSetId:)
   Coord->>AS: isBlocking = true
   AS-->>UI: observation fires → render()
-  AS-->>Persist: sink fires → UserDefaults.set(true)
+  AS-->>Persist: observation tracker fires → UserDefaults.set(true)
   AS-->>Monitor: push TrustedState(isBlocking: true)
   Note over Monitor: Next tick: fast path skipped → enforcement active
 ```
@@ -191,7 +191,7 @@ How scheduled blocks activate and deactivate blocking automatically.
 
 ```mermaid
 flowchart TD
-  Trigger(["Trigger:\nTimer tick (1Hz)\nor state change"])
+  Trigger(["Trigger:\nTimer tick (next wall-clock boundary)\nor state change"])
   Debounce["debounce 100ms\n(cancel-and-restart Task)"]
   Evaluate["ScheduleEngine.activeSchedules(at: now)"]
   CalendarEvents["Merge calendar-imported\nvirtual schedules"]
@@ -266,24 +266,19 @@ flowchart TD
   ActiveRuleSet["Resolve active rule set\n(session > schedule > pomodoro priority)"]
   BuiltIns{Built-in flags\nenabled?}
   AddBuiltIns["Append built-in patterns:\n• search engines\n• AI providers\n• developer hosts"]
-  CacheCheck{Regex built\nfor pattern?}
-  BuildPredicate["Compile wildcard\nrule to Regex"]
-  Cache["Store in\npredicate cache"]
-  Evaluate["Evaluate predicate\nagainst normalized URL"]
+  ForEachRule["For each rule:\nwildcard → compile Regex inline\n(non-wildcard → equality / prefix)"]
+  Evaluate["Match against\nnormalized URL"]
   Allowed{Match found?}
   AllowResult(["ALLOW — no redirect"])
-  BlockResult(["BLOCK — redirect to\nlocalhost:10000"])
+  BlockResult(["BLOCK — redirect to\nlocalhost:&lt;port&gt;"])
 
   Input --> Normalize
   Normalize --> ActiveRuleSet
   ActiveRuleSet --> BuiltIns
   BuiltIns -->|Yes| AddBuiltIns
-  BuiltIns -->|No| CacheCheck
-  AddBuiltIns --> CacheCheck
-  CacheCheck -->|Hit| Evaluate
-  CacheCheck -->|Miss| BuildPredicate
-  BuildPredicate --> Cache
-  Cache --> Evaluate
+  BuiltIns -->|No| ForEachRule
+  AddBuiltIns --> ForEachRule
+  ForEachRule --> Evaluate
   Evaluate --> Allowed
   Allowed -->|Yes| AllowResult
   Allowed -->|No| BlockResult
@@ -298,32 +293,43 @@ flowchart TB
   subgraph Main["Main Thread (@MainActor)"]
     Published["@Observable mutations\n(AppState)"]
     UIUpdate["AppKit UI updates\n(render())"]
-    TimerCoord["AppStateTimerCoordinator\n(1Hz tick callbacks)"]
-    AppleScriptExec["AppleScript execution"]
-    AXCalls["AX API calls"]
+    TimerCoord["AppStateTimerCoordinator\n(boundary-scheduled tick callbacks)"]
+    MonitorTick["BrowserMonitor tick timer\n(DispatchSourceTimer on main queue)"]
     CalendarDispatch["Calendar fetch\ndispatch to main"]
   end
 
-  subgraph BG["Background Threads"]
-    MonitorTimer["BrowserMonitor\n(1.5s timer — global queue)"]
-    LocalServerNet["LocalServer\n(NWListener — global queue)"]
+  subgraph MonitorActor["BrowserMonitor actor (own serial executor)"]
+    CheckTab["checkActiveTab tick body\n(1.5s cadence)"]
+    AppleScriptExec["AppleScript execution"]
+    AXCalls["AX API calls"]
+    RedirectState["lastRedirectTime\n(actor-isolated, no lock)"]
+  end
+
+  subgraph Net["Network framework queue"]
+    LocalServerNet["LocalServer\n(NWListener + connection handlers)"]
+  end
+
+  subgraph BG["Background timer"]
     EventKitFetch["EventKit fetch\n(5-min timer)"]
   end
 
   subgraph Sync["Thread Sync Mechanisms"]
-    NSLock1["NSLock\n(lastRedirectTime)"]
+    ActorIso["Actor isolation\n(lastRedirectTime, tick state)"]
+    NSLock1["NSLock\n(LocalServer.port)"]
     NSLock2["NSLock\n(timer replacement)"]
     ValueSnapshot["Value-type snapshots\n(TrustedState struct)"]
-    DispatchMain["DispatchQueue.main.async\n(calendar + monitor events)"]
   end
 
-  MonitorTimer -->|reads| ValueSnapshot
-  MonitorTimer -->|guarded by| NSLock1
-  MonitorTimer -->|writes via| DispatchMain
-  DispatchMain --> Published
-  EventKitFetch -->|completes via| DispatchMain
+  MonitorTick -->|hops into| CheckTab
+  CheckTab -->|awaits MainActor| ValueSnapshot
+  CheckTab --> AppleScriptExec
+  CheckTab --> AXCalls
+  CheckTab -->|isolated by| ActorIso
+  ValueSnapshot -->|read from| Published
+  LocalServerNet -->|port guarded by| NSLock1
+  TimerCoord -->|swap guarded by| NSLock2
+  EventKitFetch -->|completes on| Main
   TimerCoord -->|fires on| Main
-  LocalServerNet -->|async handlers| BG
 ```
 
 ---
@@ -371,8 +377,8 @@ flowchart LR
 
   subgraph Runtime["Runtime (observation trackers)"]
     Published["AppState observable\nproperty changes"]
-    DropFirst["dropFirst()\nskip initial load value"]
-    Sink["sink closure fires"]
+    Tracker["withObservationTracking\n(one tracker per key path, re-arms)"]
+    Dedup["Equatable dedup\n(skip initial load value)"]
     Write["SettingsStore.set(value, forKey:)"]
     UD["UserDefaults.standard"]
   end
@@ -382,9 +388,9 @@ flowchart LR
   end
 
   BS --> Populate
-  Published --> DropFirst
-  DropFirst --> Sink
-  Sink --> Write
+  Published --> Tracker
+  Tracker --> Dedup
+  Dedup --> Write
   Write --> Codable
   Codable --> UD
   BS --> UD
@@ -399,17 +405,15 @@ How AppKit view controllers stay in sync with `AppState`.
 ```mermaid
 flowchart TD
   Props["AppState observable\nproperties relevant to view"]
-  Merge["Publishers.MergeMany(...)"]
-  Debounce["debounce 16ms\n(RunLoop.main)\n≈ 1 frame"]
-  Sink["sink → render()"]
+  Track["withObservationTracking\n(signature closure reads them)"]
+  OnChange["@Sendable onChange:\nhop to MainActor, recompute\nsignature, re-arm"]
   Signature{Signature\nhash changed?}
   NoOp(["No-op\n(skip redundant render)"])
   Render["Read current AppState\nUpdate NSView / NSViewController\nsubviews"]
 
-  Props --> Merge
-  Merge --> Debounce
-  Debounce --> Sink
-  Sink --> Signature
+  Props --> Track
+  Track --> OnChange
+  OnChange --> Signature
   Signature -->|Same| NoOp
   Signature -->|Changed| Render
 ```
@@ -441,7 +445,7 @@ sequenceDiagram
   Runtime->>Wire: wire(monitor → appState)
   Wire->>Monitor: start(onEvent:)
   Monitor-->>Wire: events (trustedState changes)
-  Runtime->>Server: start() on localhost:10000
+  Runtime->>Server: start() on loopback (ephemeral port)
   Server-->>Runtime: listening
   Runtime-->>Entry: app ready
 ```

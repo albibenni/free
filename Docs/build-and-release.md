@@ -77,6 +77,39 @@ One-time repo secrets (Settings → Secrets and variables → Actions):
 
 Export the `.p12` from Keychain Access: My Certificates → right-click the "Developer ID Application" certificate → Export (choose a password).
 
+## Homebrew (cask tap)
+
+Free is installable via Homebrew Cask from a personal tap:
+
+```bash
+brew install --cask albibenni/free/free
+brew upgrade --cask free
+```
+
+- **Tap repo:** [`albibenni/homebrew-free`](https://github.com/albibenni/homebrew-free) — a separate repo (a tap *must* be named `homebrew-<name>`) holding one file, `Casks/free.rb`. It's a thin pointer (URL + `sha256`) to the notarized `Free.dmg` published by this repo's releases; it does not host the app.
+- **Cask internals:** `url` interpolates the tag (`.../releases/download/v#{version}/Free.dmg`), `depends_on macos: :tahoe` (means "≥ macOS 26"), and a `zap` stanza removes `com.benni.Free` preferences/caches on `brew uninstall --zap`. Validate changes with `brew style --cask free` and `brew audit --cask free`.
+
+### Automated cask bump on release
+
+The `Release` workflow's **Update Homebrew cask** step runs after the GitHub Release is created: it computes the new DMG's `sha256`, rewrites `version` + `sha256` in the tap's `Casks/free.rb`, and pushes. So a normal release (`git tag vX.Y.Z && git push origin vX.Y.Z`) updates Homebrew with no manual step. The step **skips itself** if the token below is absent, so releases never fail because of it.
+
+**One-time setup** — a fine-grained PAT is required because the workflow runs in *this* repo but must push to the *tap* repo (the built-in `GITHUB_TOKEN` can't):
+
+1. Create the tap repo first (the token picker only lists repos that exist).
+2. Generate a fine-grained PAT at <https://github.com/settings/personal-access-tokens/new>:
+   - **Resource owner:** `albibenni`
+   - **Repository access:** Only select repositories → `homebrew-free`
+   - **Permissions → Repository → Contents:** Read and write (Metadata: Read is added automatically)
+3. Store it as an Actions secret named `HOMEBREW_TAP_TOKEN` on this repo, either:
+   - **Web UI:** repo → Settings → Secrets and variables → Actions → New repository secret, or
+   - **CLI:** `gh secret set HOMEBREW_TAP_TOKEN --repo albibenni/free`
+
+Fine-grained PATs expire (max ~1 year) — when the bump step starts failing with an auth error, regenerate the token and re-run `gh secret set`.
+
+**Manual bump** (fallback, or before the token is set up): in the tap repo, set `version` and the DMG's `sha256` (`shasum -a 256 Free.dmg`) in `Casks/free.rb`, then commit and push.
+
+Graduating to the official `homebrew/cask` (for the shorter `brew install --cask free`, no tap step) needs the source repo to clear the self-submission notability bar (~90 forks / 90 watchers / 225 stars) or earn an exception; the same cask file is reused.
+
 ## Distribution note (why not the Mac App Store)
 
 The App Store requires the App Sandbox, which blocks both of Free's blocking mechanisms: `NSAppleScript` events to browsers and the Accessibility API. Direct distribution of the notarized DMG is the standard channel for this app category. An App Store path exists but means replacing the engine with a Network Extension content filter (`NEFilterDataProvider`) — tracked as a v2 idea in `todo.md`.

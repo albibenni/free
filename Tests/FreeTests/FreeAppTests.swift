@@ -565,7 +565,14 @@ struct FreeAppTests {
             app.startInterface(application: NSApplication.shared)
 
             NotificationCenter.default.post(name: NSApplication.didBecomeActiveNotification, object: nil)
-            try await Task.sleep(nanoseconds: 30000000)
+
+            // The observer checks permissions from an unstructured Task that hops
+            // to the monitor actor; poll (up to ~2s) for it to land rather than
+            // relying on a fixed short sleep, which is flaky on loaded CI runners.
+            for _ in 0..<200 {
+                if automator.promptValues.count >= baselineCallCount + 1 { break }
+                try await Task.sleep(nanoseconds: 10000000)
+            }
 
             #expect(automator.promptValues.count == baselineCallCount + 1)
             #expect(automator.promptValues.last == false)

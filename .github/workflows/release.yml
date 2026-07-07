@@ -55,3 +55,33 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
               run: gh release create "$GITHUB_REF_NAME" Free.dmg --title "Free $GITHUB_REF_NAME" --generate-notes
+
+            - name: Update Homebrew cask
+              env:
+                  # Fine-grained PAT with Contents:read/write on albibenni/homebrew-free.
+                  # Add it as a repo secret named HOMEBREW_TAP_TOKEN. If unset, this
+                  # step is skipped so the release itself still succeeds.
+                  TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+              run: |
+                  set -euo pipefail
+                  if [ -z "${TAP_TOKEN:-}" ]; then
+                      echo "HOMEBREW_TAP_TOKEN not set; skipping cask bump."
+                      exit 0
+                  fi
+                  VERSION="${GITHUB_REF_NAME#v}"
+                  SHA256="$(shasum -a 256 Free.dmg | awk '{print $1}')"
+                  git clone --depth 1 \
+                      "https://x-access-token:${TAP_TOKEN}@github.com/albibenni/homebrew-free.git" tap
+                  cd tap
+                  # BSD sed (macOS runner) — update the version and sha256 stanzas.
+                  sed -i '' -E "s/^  version \".*\"/  version \"${VERSION}\"/" Casks/free.rb
+                  sed -i '' -E "s/^  sha256 \".*\"/  sha256 \"${SHA256}\"/" Casks/free.rb
+                  if git diff --quiet; then
+                      echo "Cask already up to date for ${VERSION}."
+                      exit 0
+                  fi
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add Casks/free.rb
+                  git commit -m "Update free to ${VERSION}"
+                  git push
