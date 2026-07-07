@@ -92,6 +92,30 @@ struct AppStateFocusStatsTests {
         #expect(appState.focusedSecondsToday == 90)
     }
 
+    @Test("Overlapping blocking sources count as one wall-clock interval")
+    func overlappingSourcesCountOnce() {
+        let clock = FakeClock(noon())
+        let scheduler = MockRepeatingTimerScheduler()
+        let appState = makeAppState(name: "overlapping", clock: clock, scheduler: scheduler)
+
+        appState.isBlocking = true // e.g. a schedule activates
+        let start = appState.focusIntervalStartedAt
+        let focusTimerCount = scheduler.intervals.filter { $0 == 60 }.count
+
+        clock.advance(30)
+        // A second overlapping source (another schedule / pomodoro) re-asserts
+        // blocking while already focusing — must not restart or double-count.
+        appState.isBlocking = true
+        #expect(appState.focusIntervalStartedAt == start)
+        #expect(scheduler.intervals.filter { $0 == 60 }.count == focusTimerCount)
+
+        clock.advance(30)
+        appState.isBlocking = false // all sources end
+
+        // 60s of wall-clock elapsed total, counted once (not 120s).
+        #expect(appState.focusedSecondsToday == 60)
+    }
+
     @Test("A stale day reads as zero")
     func rollsOverStaleDay() {
         let clock = FakeClock(noon())
